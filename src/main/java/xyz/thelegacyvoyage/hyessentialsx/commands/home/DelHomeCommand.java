@@ -50,23 +50,23 @@ public final class DelHomeCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isHomesEnabled()) {
-            Messages.err(context, "Homes are disabled.");
+            Messages.errKey(context, "home.disabled", java.util.Map.of());
             return;
         }
 
         String name = context.get(nameArg);
         if (name == null || name.isBlank()) {
-            Messages.err(context, "Home name required.");
+            Messages.errKey(context, "home.name_required", java.util.Map.of());
             return;
         }
 
         boolean removed = homeManager.removeHome(playerRef.getUuid(), name);
         if (!removed) {
-            Messages.err(context, "Home not found.");
+            Messages.errKey(context, "home.not_found", java.util.Map.of());
             return;
         }
 
-        Messages.ok(context, "Home '&f" + name + "&a' deleted.");
+        Messages.okKey(context, "home.deleted", java.util.Map.of("home", name));
     }
 }
 

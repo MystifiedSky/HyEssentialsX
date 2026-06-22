@@ -7,7 +7,6 @@ import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.protocol.MovementStates;
 import com.hypixel.hytale.server.core.HytaleServer;
 import com.hypixel.hytale.server.core.entity.Frozen;
-import com.hypixel.hytale.server.core.entity.nameplate.Nameplate;
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.modules.entity.component.Interactable;
 import com.hypixel.hytale.server.core.modules.entity.component.Invulnerable;
@@ -19,6 +18,7 @@ import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
+import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcNameplateUtil;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -66,19 +66,30 @@ public final class ShopNpcFixTask {
         if (npcs.isEmpty()) {
             return;
         }
+        java.util.Set<java.util.UUID> knownIds = new java.util.HashSet<>();
+        for (ShopNpcModel npc : npcs) {
+            String id = npc.getNpcId();
+            if (id.isBlank()) continue;
+            try {
+                knownIds.add(java.util.UUID.fromString(id));
+            } catch (Exception ignored) {
+            }
+        }
         for (World world : Universe.get().getWorlds().values()) {
-            world.execute(() -> fixWorld(world, npcs));
+            world.execute(() -> fixWorld(world, npcs, knownIds));
         }
     }
 
-    private void fixWorld(@Nonnull World world, @Nonnull List<ShopNpcModel> npcs) {
+    private void fixWorld(@Nonnull World world,
+                          @Nonnull List<ShopNpcModel> npcs,
+                          @Nonnull java.util.Set<java.util.UUID> knownIds) {
         Store<EntityStore> store = world.getEntityStore().getStore();
         for (ShopNpcModel npc : npcs) {
             try {
                 String id = npc.getNpcId();
                 if (id.isBlank()) continue;
                 UUID npcUuid = UUID.fromString(id);
-                findAndFixNpc(world, store, npcUuid, npc);
+                findAndFixNpc(world, store, npcUuid, npc, knownIds);
             } catch (Exception ignored) {
             }
         }
@@ -87,7 +98,8 @@ public final class ShopNpcFixTask {
     private void findAndFixNpc(@Nonnull World world,
                                @Nonnull Store<EntityStore> store,
                                @Nonnull UUID npcUuid,
-                               @Nonnull ShopNpcModel loc) {
+                               @Nonnull ShopNpcModel loc,
+                               @Nonnull java.util.Set<java.util.UUID> knownIds) {
         Vector3i blockPos = loc.getPosition();
         store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
             try {
@@ -109,6 +121,16 @@ public final class ShopNpcFixTask {
                         double dy = Math.abs(pos.getY() - blockPos.getY());
                         double dz = Math.abs(pos.getZ() - (blockPos.getZ() + 0.5D));
                         matched = dx < 1.5D && dy < 2.0D && dz < 1.5D;
+                        if (matched) {
+                            UUID currentId = null;
+                            try {
+                                currentId = npc.getUuid();
+                            } catch (Exception ignored) {
+                            }
+                            if (currentId != null && knownIds.contains(currentId)) {
+                                matched = currentId.equals(npcUuid);
+                            }
+                        }
                     }
                 }
                 if (matched) {
@@ -139,12 +161,7 @@ public final class ShopNpcFixTask {
             if (shop != null) {
                 displayName = shop.getDisplayName();
             }
-            Nameplate nameplate = store.getComponent(npcRef, Nameplate.getComponentType());
-            if (nameplate == null) {
-                store.addComponent(npcRef, Nameplate.getComponentType(), new Nameplate(displayName));
-            } else {
-                nameplate.setText(displayName);
-            }
+            ShopNpcNameplateUtil.apply(store, npcRef, displayName);
             MovementStatesComponent movementStates = store.getComponent(npcRef, MovementStatesComponent.getComponentType());
             if (movementStates != null) {
                 MovementStates states = movementStates.getMovementStates();

@@ -270,44 +270,44 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
             resetStock(shop);
         }
         if (!hasStock(trade)) {
-            Messages.sendPrefixed(playerRef, "&cOut of stock.");
+            Messages.sendPrefixedKey(playerRef, "shop.trade.out_of_stock", java.util.Map.of());
             return;
         }
         if (!shop.isOpen()) {
-            Messages.sendPrefixed(playerRef, "&cThis shop is currently closed.");
+            Messages.sendPrefixedKey(playerRef, "shop.trade.closed", java.util.Map.of());
             return;
         }
         if (!trade.isEnabled()) {
-            Messages.sendPrefixed(playerRef, "&cThis trade is disabled.");
+            Messages.sendPrefixedKey(playerRef, "shop.trade.disabled", java.util.Map.of());
             return;
         }
 
         Player player = store.getComponent(ref, Player.getComponentType());
         if (player == null) {
-            Messages.sendPrefixed(playerRef, "&cCould not access inventory.");
+            Messages.sendPrefixedKey(playerRef, "shop.trade.inventory_failed", java.util.Map.of());
             return;
         }
         Inventory inventory = player.getInventory();
         if (inventory == null) {
-            Messages.sendPrefixed(playerRef, "&cCould not access inventory.");
+            Messages.sendPrefixedKey(playerRef, "shop.trade.inventory_failed", java.util.Map.of());
             return;
         }
 
         if (trade.isMoneyTrade() && trade.isSellTrade()) {
             if (!economy.isEnabled()) {
-                Messages.sendPrefixed(playerRef, "&cEconomy is disabled.");
+                Messages.sendPrefixedKey(playerRef, "shop.trade.economy_disabled", java.util.Map.of());
                 return;
             }
             if (!hasMoneyStock(trade)) {
-                Messages.sendPrefixed(playerRef, "&cThis shop is out of funds.");
+                Messages.sendPrefixedKey(playerRef, "shop.trade.out_of_funds", java.util.Map.of());
                 return;
             }
             if (!InventoryUtil.hasItems(inventory, trade.getCostItems())) {
-                Messages.sendPrefixed(playerRef, "&cYou don't have the required items.");
+                Messages.sendPrefixedKey(playerRef, "shop.trade.missing_items", java.util.Map.of());
                 return;
             }
             if (!InventoryUtil.removeItems(inventory, trade.getCostItems())) {
-                Messages.sendPrefixed(playerRef, "&cFailed to remove items from inventory.");
+                Messages.sendPrefixedKey(playerRef, "shop.trade.remove_failed", java.util.Map.of());
                 return;
             }
             economy.deposit(playerRef.getUuid(), trade.getMoneyCost());
@@ -321,16 +321,16 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
 
         if (trade.isMoneyTrade()) {
             if (!economy.isEnabled()) {
-                Messages.sendPrefixed(playerRef, "&cEconomy is disabled.");
+                Messages.sendPrefixedKey(playerRef, "shop.trade.economy_disabled", java.util.Map.of());
                 return;
             }
             long cost = trade.getMoneyCost();
             if (economy.getBalance(playerRef.getUuid()) < cost) {
-                Messages.sendPrefixed(playerRef, "&cYou do not have enough money.");
+                Messages.sendPrefixedKey(playerRef, "shop.trade.insufficient_funds", java.util.Map.of());
                 return;
             }
             if (!economy.withdraw(playerRef.getUuid(), cost)) {
-                Messages.sendPrefixed(playerRef, "&cPayment failed.");
+                Messages.sendPrefixedKey(playerRef, "shop.trade.payment_failed", java.util.Map.of());
                 return;
             }
             applyMoneyStockChange(trade, true);
@@ -338,7 +338,7 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                     InventoryUtil.addItemsWithOverflow(inventory, trade.getRewardItems());
             if (!overflow.isEmpty()) {
                 dropOverflow(player, overflow);
-                Messages.sendPrefixed(playerRef, "&eYour inventory was full. Items were dropped.");
+                Messages.sendPrefixedKey(playerRef, "shop.trade.inventory_full", java.util.Map.of());
             }
             applyStockChange(trade, false);
             shopManager.saveShop(shop);
@@ -347,11 +347,11 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
         }
 
         if (!InventoryUtil.hasItems(inventory, trade.getCostItems())) {
-            Messages.sendPrefixed(playerRef, "&cYou don't have the required items.");
+            Messages.sendPrefixedKey(playerRef, "shop.trade.missing_items", java.util.Map.of());
             return;
         }
         if (!InventoryUtil.removeItems(inventory, trade.getCostItems())) {
-            Messages.sendPrefixed(playerRef, "&cFailed to remove items from inventory.");
+            Messages.sendPrefixedKey(playerRef, "shop.trade.remove_failed", java.util.Map.of());
             return;
         }
 
@@ -359,7 +359,7 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                 InventoryUtil.addItemsWithOverflow(inventory, trade.getRewardItems());
         if (!overflow.isEmpty()) {
             dropOverflow(player, overflow);
-            Messages.sendPrefixed(playerRef, "&eYour inventory was full. Items were dropped.");
+            Messages.sendPrefixedKey(playerRef, "shop.trade.inventory_full", java.util.Map.of());
         }
         applyStockChange(trade, false);
         shopManager.saveShop(shop);
@@ -419,7 +419,8 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
         }
         if (paid.isBlank()) paid = "nothing";
         if (received.isBlank()) received = "nothing";
-        return "&aTrade completed, you paid &f" + paid + " &aand received &f" + received + "&a.";
+        return Messages.tr(playerRef, "shop.trade.completed",
+                java.util.Map.of("paid", paid, "received", received));
     }
 
     private String formatItems(@Nonnull List<ShopItemModel> items) {

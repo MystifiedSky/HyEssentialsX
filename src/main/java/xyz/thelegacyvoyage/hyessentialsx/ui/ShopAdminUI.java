@@ -21,7 +21,6 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
-import com.hypixel.hytale.server.core.entity.nameplate.Nameplate;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
@@ -32,6 +31,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.ShopItemModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopTradeModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcNameplateUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -447,17 +447,17 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
     private void setCostFromHand(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
         Player player = store.getComponent(ref, Player.getComponentType());
         if (player == null) {
-            Messages.sendPrefixed(playerRef, "&cCould not access inventory.");
+            Messages.sendPrefixedKey(playerRef, "shop.admin.inventory_failed", java.util.Map.of());
             return;
         }
         Inventory inventory = player.getInventory();
         if (inventory == null) {
-            Messages.sendPrefixed(playerRef, "&cCould not access inventory.");
+            Messages.sendPrefixedKey(playerRef, "shop.admin.inventory_failed", java.util.Map.of());
             return;
         }
         ItemStack hand = inventory.getItemInHand();
         if (hand == null || hand.isEmpty()) {
-            Messages.sendPrefixed(playerRef, "&cHold an item in your hand to set the cost.");
+            Messages.sendPrefixedKey(playerRef, "shop.admin.cost_hand_required", java.util.Map.of());
             return;
         }
         pendingCostItem = new ShopItemModel(hand.getItemId(), Math.max(1, hand.getQuantity()));
@@ -469,17 +469,17 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
     private void setOutputFromHand(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
         Player player = store.getComponent(ref, Player.getComponentType());
         if (player == null) {
-            Messages.sendPrefixed(playerRef, "&cCould not access inventory.");
+            Messages.sendPrefixedKey(playerRef, "shop.admin.inventory_failed", java.util.Map.of());
             return;
         }
         Inventory inventory = player.getInventory();
         if (inventory == null) {
-            Messages.sendPrefixed(playerRef, "&cCould not access inventory.");
+            Messages.sendPrefixedKey(playerRef, "shop.admin.inventory_failed", java.util.Map.of());
             return;
         }
         ItemStack hand = inventory.getItemInHand();
         if (hand == null || hand.isEmpty()) {
-            Messages.sendPrefixed(playerRef, "&cHold an item in your hand to set the output.");
+            Messages.sendPrefixedKey(playerRef, "shop.admin.output_hand_required", java.util.Map.of());
             return;
         }
         pendingOutputItem = new ShopItemModel(hand.getItemId(), Math.max(1, hand.getQuantity()));
@@ -488,9 +488,9 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
     private void saveTrade() {
         if (!useMoney || !sellTrade) {
             if (pendingOutputItem == null || pendingOutputItem.getItemId().isBlank()) {
-                Messages.sendPrefixed(playerRef, "&cSelect an output item first.");
-                return;
-            }
+            Messages.sendPrefixedKey(playerRef, "shop.admin.output_required", java.util.Map.of());
+            return;
+        }
         }
         ShopTradeModel trade;
         int previousLimit = 0;
@@ -511,17 +511,17 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         if (useMoney) {
             long price = parsePrice(pendingPriceText);
             if (price <= 0L) {
-                Messages.sendPrefixed(playerRef, "&cEnter a valid price.");
+                Messages.sendPrefixedKey(playerRef, "shop.admin.price_invalid", java.util.Map.of());
                 return;
             }
             if (!economy.isEnabled()) {
-                Messages.sendPrefixed(playerRef, "&cEconomy is disabled.");
+                Messages.sendPrefixedKey(playerRef, "shop.admin.economy_disabled", java.util.Map.of());
                 return;
             }
             trade.setMoneyCost(price);
             if (sellTrade) {
                 if (pendingCostItem == null || pendingCostItem.getItemId().isBlank()) {
-                    Messages.sendPrefixed(playerRef, "&cSelect a cost item first.");
+                    Messages.sendPrefixedKey(playerRef, "shop.admin.cost_required", java.util.Map.of());
                     return;
                 }
                 trade.setCostItems(List.of(pendingCostItem));
@@ -531,7 +531,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             trade.setSellTrade(sellTrade);
         } else {
             if (pendingCostItem == null || pendingCostItem.getItemId().isBlank()) {
-                Messages.sendPrefixed(playerRef, "&cSelect a cost item first.");
+                Messages.sendPrefixedKey(playerRef, "shop.admin.cost_required", java.util.Map.of());
                 return;
             }
             trade.setMoneyCost(0L);
@@ -564,7 +564,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         }
         shopManager.saveShop(shop);
         clearPending();
-        Messages.sendPrefixed(playerRef, "&aTrade saved.");
+        Messages.sendPrefixedKey(playerRef, "shop.admin.trade_saved", java.util.Map.of());
     }
 
     private void saveStockSettings() {
@@ -587,25 +587,25 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             }
         }
         shopManager.saveShop(shop);
-        Messages.sendPrefixed(playerRef, "&aStock settings saved.");
+        Messages.sendPrefixedKey(playerRef, "shop.admin.stock_saved", java.util.Map.of());
     }
 
     private void saveName() {
         String name = pendingNameText == null ? "" : pendingNameText.trim();
         if (name.isBlank()) {
-            Messages.sendPrefixed(playerRef, "&cEnter a valid shop name.");
+            Messages.sendPrefixedKey(playerRef, "shop.admin.name_invalid", java.util.Map.of());
             return;
         }
         shop.setDisplayName(name);
         shopManager.saveShop(shop);
         updateNpcNameplates();
-        Messages.sendPrefixed(playerRef, "&aShop name updated.");
+        Messages.sendPrefixedKey(playerRef, "shop.admin.name_updated", java.util.Map.of());
     }
 
     private void toggleOpen() {
         shop.setOpen(!shop.isOpen());
         shopManager.saveShop(shop);
-        Messages.sendPrefixed(playerRef, shop.isOpen() ? "&aShop opened." : "&cShop closed.");
+        Messages.sendPrefixedKey(playerRef, shop.isOpen() ? "shop.admin.opened" : "shop.admin.closed", java.util.Map.of());
     }
 
     private void updateNpcNameplates() {
@@ -629,24 +629,13 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             Store<EntityStore> store = world.getEntityStore().getStore();
             NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
             if (npc == null) continue;
-            applyNameplate(store, ref, displayName);
+            ShopNpcNameplateUtil.apply(store, ref, displayName);
         }
     }
 
     private void applyNameplate(@Nonnull Store<EntityStore> store,
                                 @Nonnull Ref<EntityStore> ref) {
-        applyNameplate(store, ref, shop.getDisplayName());
-    }
-
-    private void applyNameplate(@Nonnull Store<EntityStore> store,
-                                @Nonnull Ref<EntityStore> ref,
-                                @Nonnull String displayName) {
-        Nameplate nameplate = store.getComponent(ref, Nameplate.getComponentType());
-        if (nameplate == null) {
-            store.addComponent(ref, Nameplate.getComponentType(), new Nameplate(displayName));
-        } else {
-            nameplate.setText(displayName);
-        }
+        ShopNpcNameplateUtil.apply(store, ref, shop.getDisplayName());
     }
 
     private void deleteTrade(String rawIndex) {
@@ -657,7 +646,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             clearPending();
         }
         shopManager.saveShop(shop);
-        Messages.sendPrefixed(playerRef, "&cTrade removed.");
+        Messages.sendPrefixedKey(playerRef, "shop.admin.trade_removed", java.util.Map.of());
     }
 
     private void editTrade(String rawIndex) {
@@ -738,17 +727,17 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
 
     private void applyNpcRole() {
         if (npcRoleSelected.isBlank()) {
-            Messages.sendPrefixed(playerRef, "&cNo NPC role selected.");
+            Messages.sendPrefixedKey(playerRef, "shop.admin.npc_role.none_selected", java.util.Map.of());
             return;
         }
         NPCPlugin plugin = NPCPlugin.get();
         if (plugin == null) {
-            Messages.sendPrefixed(playerRef, "&cNPC system not available.");
+            Messages.sendPrefixedKey(playerRef, "shop.admin.npc_role.system_unavailable", java.util.Map.of());
             return;
         }
         int roleIndex = plugin.getIndex(npcRoleSelected);
         if (roleIndex < 0) {
-            Messages.sendPrefixed(playerRef, "&cNPC role not found.");
+            Messages.sendPrefixedKey(playerRef, "shop.admin.npc_role.not_found", java.util.Map.of());
             return;
         }
         shop.setNpcRole(npcRoleSelected);
@@ -760,7 +749,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         for (World world : Universe.get().getWorlds().values()) {
             world.execute(() -> respawnNpcRoleInWorld(world, roleIndex));
         }
-        Messages.sendPrefixed(playerRef, "&aUpdated NPC role to &f" + npcRoleSelected + "&a.");
+        Messages.sendPrefixedKey(playerRef, "shop.admin.npc_role.updated",
+                java.util.Map.of("role", npcRoleSelected));
     }
 
     private void respawnNpcRoleInWorld(@Nonnull World world, int roleIndex) {

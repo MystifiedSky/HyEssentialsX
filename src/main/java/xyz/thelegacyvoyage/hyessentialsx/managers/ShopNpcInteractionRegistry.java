@@ -110,7 +110,7 @@ public final class ShopNpcInteractionRegistry {
         }
         if (!shop.getUsePermission().isBlank()
                 && !hasPermission(store, playerEntityRef, playerRef, shop.getUsePermission())) {
-            Messages.sendPrefixed(playerRef, "&cYou don't have permission to use this shop.");
+            Messages.sendPrefixedKey(playerRef, "shop.use.no_permission", java.util.Map.of());
             return null;
         }
         return new ShopBrowseUI(playerRef, shopManager, economyManager, shop);

@@ -31,6 +31,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitsCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.ListCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.MotdCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.NearCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.misc.PlaytimeCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.RankupCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.RulesCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.SeenCommand;
@@ -425,6 +426,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (configManager.isRankupEnabled()) {
             reg.accept(new RankupCommand(rankupManager, economyManager));
         }
+        reg.accept(new PlaytimeCommand(playtimeManager, storage));
         reg.accept(new WhoisCommand(storage));
         reg.accept(new SeenCommand(storage));
         reg.accept(new TopCommand(backManager));

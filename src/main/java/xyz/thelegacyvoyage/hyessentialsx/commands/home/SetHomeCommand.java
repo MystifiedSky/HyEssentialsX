@@ -57,13 +57,13 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isHomesEnabled()) {
-            Messages.err(context, "Homes are disabled.");
+            Messages.errKey(context, "home.disabled", java.util.Map.of());
             return;
         }
 
         String name = context.get(nameArg);
         if (name == null || name.isBlank()) {
-            Messages.err(context, "Home name required.");
+            Messages.errKey(context, "home.name_required", java.util.Map.of());
             return;
         }
 
@@ -73,7 +73,7 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
             if (maxHomes >= 0) {
                 int current = homeManager.getHomeCount(playerRef.getUuid());
                 if (current >= maxHomes) {
-                    Messages.err(context, "You have reached your home limit (&f" + maxHomes + "&c).");
+                    Messages.errKey(context, "home.limit_reached", java.util.Map.of("limit", String.valueOf(maxHomes)));
                     return;
                 }
             }
@@ -81,7 +81,7 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
 
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null) {
-            Messages.err(context, "Could not read your position.");
+            Messages.errKey(context, "home.position_failed", java.util.Map.of());
             return;
         }
 
@@ -112,7 +112,7 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
                 yaw, pitch
         ));
 
-        Messages.ok(context, "Home '&f" + name + "&a' set.");
+        Messages.okKey(context, "home.set", java.util.Map.of("home", name));
     }
 
     private int resolveMaxHomes(@Nonnull com.hypixel.hytale.server.core.command.system.CommandSender sender) {

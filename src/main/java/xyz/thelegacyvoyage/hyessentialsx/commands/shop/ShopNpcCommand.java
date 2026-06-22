@@ -6,12 +6,10 @@ import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.protocol.MovementStates;
-import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractAsyncCommand;
 import com.hypixel.hytale.server.core.entity.Frozen;
-import com.hypixel.hytale.server.core.entity.nameplate.Nameplate;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.modules.entity.component.Interactable;
@@ -29,6 +27,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcNameplateUtil;
 
 import javax.annotation.Nonnull;
 import java.util.Comparator;
@@ -60,30 +59,30 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
     protected CompletableFuture<Void> executeAsync(CommandContext ctx) {
         CommandSender sender = ctx.sender();
         if (!(sender instanceof Player player)) {
-            ctx.sendMessage(Message.raw("Players only."));
+            Messages.sendKey(ctx, "shop.npc.players_only", java.util.Map.of());
             return CompletableFuture.completedFuture(null);
         }
         PlayerRef playerRef = player.getPlayerRef();
         if (playerRef == null) {
-            ctx.sendMessage(Message.raw("Could not get player reference."));
+            Messages.sendKey(ctx, "shop.npc.player_ref_failed", java.util.Map.of());
             return CompletableFuture.completedFuture(null);
         }
         World world = player.getWorld();
         if (world == null) {
-            ctx.sendMessage(Message.raw("Could not get world."));
+            Messages.sendKey(ctx, "shop.npc.world_failed", java.util.Map.of());
             return CompletableFuture.completedFuture(null);
         }
 
         List<String> args = CommandInputUtil.getArgs(ctx);
         if (args.isEmpty()) {
-            ctx.sendMessage(Message.raw("Usage: /adminshopnpc <shop> | /adminshopnpc remove <shop>"));
+            Messages.sendKey(ctx, "shop.npc.usage", java.util.Map.of());
             return CompletableFuture.completedFuture(null);
         }
 
         String action = args.get(0).toLowerCase();
         if ("remove".equals(action) || "delete".equals(action)) {
             if (args.size() < 2) {
-                ctx.sendMessage(Message.raw("Usage: /adminshopnpc remove <shop>"));
+                Messages.sendKey(ctx, "shop.npc.usage.remove", java.util.Map.of());
                 return CompletableFuture.completedFuture(null);
             }
             String shopName = args.get(1);
@@ -93,7 +92,7 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
 
         if ("list".equals(action)) {
             if (args.size() < 2) {
-                ctx.sendMessage(Message.raw("Usage: /adminshopnpc list <shop>"));
+                Messages.sendKey(ctx, "shop.npc.usage.list", java.util.Map.of());
                 return CompletableFuture.completedFuture(null);
             }
             String shopName = args.get(1);
@@ -112,18 +111,18 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
                           @Nonnull String shopName) {
         ShopModel shop = shopManager.getShop(shopName);
         if (shop == null) {
-            ctx.sendMessage(Message.raw("Shop not found."));
+            Messages.sendKey(ctx, "shop.npc.shop_not_found", java.util.Map.of());
             return;
         }
         Store<EntityStore> store = world.getEntityStore().getStore();
         Ref<EntityStore> playerEntityRef = world.getEntityStore().getRefFromUUID(playerRef.getUuid());
         if (playerEntityRef == null) {
-            ctx.sendMessage(Message.raw("Could not find player entity."));
+            Messages.sendKey(ctx, "shop.npc.player_entity_missing", java.util.Map.of());
             return;
         }
         TransformComponent transform = store.getComponent(playerEntityRef, TransformComponent.getComponentType());
         if (transform == null || transform.getPosition() == null) {
-            ctx.sendMessage(Message.raw("Could not get player position."));
+            Messages.sendKey(ctx, "shop.npc.player_pos_failed", java.util.Map.of());
             return;
         }
 
@@ -172,14 +171,14 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
         }
 
         if (selectedRole == null || roleIndex < 0) {
-            ctx.sendMessage(Message.raw("No valid NPC roles found."));
+            Messages.sendKey(ctx, "shop.npc.no_roles", java.util.Map.of());
             return;
         }
 
         Pair<Ref<EntityStore>, NPCEntity> npcPair =
                 npcPlugin.spawnEntity(store, roleIndex, spawnPos, rotation, null, null);
         if (npcPair == null) {
-            ctx.sendMessage(Message.raw("Failed to spawn shop NPC."));
+            Messages.sendKey(ctx, "shop.npc.spawn_failed", java.util.Map.of());
             return;
         }
 
@@ -201,7 +200,7 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
         shop.getNpcs().add(loc);
         shopManager.saveShop(shop);
 
-        Messages.sendPrefixed(playerRef, "&aShop NPC spawned for &f" + shop.getDisplayName() + "&a.");
+        Messages.sendPrefixedKey(playerRef, "shop.npc.spawned", java.util.Map.of("shop", shop.getDisplayName()));
     }
 
     private void removeNpc(@Nonnull CommandContext ctx,
@@ -210,23 +209,23 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
                            @Nonnull String shopName) {
         ShopModel shop = shopManager.getShop(shopName);
         if (shop == null) {
-            ctx.sendMessage(Message.raw("Shop not found."));
+            Messages.sendKey(ctx, "shop.npc.shop_not_found", java.util.Map.of());
             return;
         }
         if (shop.getNpcs().isEmpty()) {
-            Messages.sendPrefixed(playerRef, "&cNo NPCs registered for this shop.");
+            Messages.sendPrefixedKey(playerRef, "shop.npc.none_registered", java.util.Map.of());
             return;
         }
 
         Store<EntityStore> store = world.getEntityStore().getStore();
         Ref<EntityStore> playerEntityRef = world.getEntityStore().getRefFromUUID(playerRef.getUuid());
         if (playerEntityRef == null) {
-            ctx.sendMessage(Message.raw("Could not find player entity."));
+            Messages.sendKey(ctx, "shop.npc.player_entity_missing", java.util.Map.of());
             return;
         }
         TransformComponent transform = store.getComponent(playerEntityRef, TransformComponent.getComponentType());
         if (transform == null || transform.getPosition() == null) {
-            ctx.sendMessage(Message.raw("Could not get player position."));
+            Messages.sendKey(ctx, "shop.npc.player_pos_failed", java.util.Map.of());
             return;
         }
         Vector3d playerPos = transform.getPosition();
@@ -235,33 +234,33 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
                 .min(Comparator.comparingDouble(npc -> distance(playerPos, npc.getPosition())))
                 .orElse(null);
         if (nearest == null) {
-            Messages.sendPrefixed(playerRef, "&cNo NPCs found.");
+            Messages.sendPrefixedKey(playerRef, "shop.npc.none_found", java.util.Map.of());
             return;
         }
 
         if (distance(playerPos, nearest.getPosition()) > 5.0D) {
-            Messages.sendPrefixed(playerRef, "&cNo shop NPC nearby (within 5 blocks).");
+            Messages.sendPrefixedKey(playerRef, "shop.npc.none_nearby", java.util.Map.of());
             return;
         }
 
         despawnNpc(world, store, nearest.getNpcId());
         shop.getNpcs().removeIf(npc -> nearest.getNpcId().equalsIgnoreCase(npc.getNpcId()));
         shopManager.saveShop(shop);
-        Messages.sendPrefixed(playerRef, "&cShop NPC removed.");
+        Messages.sendPrefixedKey(playerRef, "shop.npc.removed", java.util.Map.of());
     }
 
     private void listNpcs(@Nonnull CommandContext ctx, @Nonnull String shopName) {
         ShopModel shop = shopManager.getShop(shopName);
         if (shop == null) {
-            ctx.sendMessage(Message.raw("Shop not found."));
+            Messages.sendKey(ctx, "shop.npc.shop_not_found", java.util.Map.of());
             return;
         }
         if (shop.getNpcs().isEmpty()) {
-            ctx.sendMessage(Message.raw("No NPCs registered for this shop."));
+            Messages.sendKey(ctx, "shop.npc.none_registered", java.util.Map.of());
             return;
         }
         String ids = String.join(", ", shop.getNpcs().stream().map(ShopNpcModel::getNpcId).toList());
-        ctx.sendMessage(Message.raw("NPCs: " + ids));
+        Messages.sendKey(ctx, "shop.npc.list", java.util.Map.of("ids", ids));
     }
 
     private void despawnNpc(@Nonnull World world, @Nonnull Store<EntityStore> store, @Nonnull String npcId) {
@@ -300,12 +299,7 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
         }
         store.addComponent(npcRef, Invulnerable.getComponentType(), Invulnerable.INSTANCE);
         store.addComponent(npcRef, Frozen.getComponentType(), Frozen.get());
-        Nameplate nameplate = store.getComponent(npcRef, Nameplate.getComponentType());
-        if (nameplate == null) {
-            store.addComponent(npcRef, Nameplate.getComponentType(), new Nameplate(displayName));
-        } else {
-            nameplate.setText(displayName);
-        }
+        ShopNpcNameplateUtil.apply(store, npcRef, displayName);
         MovementStatesComponent movementStates = store.getComponent(npcRef, MovementStatesComponent.getComponentType());
         if (movementStates != null) {
             MovementStates states = movementStates.getMovementStates();

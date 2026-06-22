@@ -76,16 +76,16 @@ public final class ShopCommand extends AbstractPlayerCommand {
                 return;
             }
             if (args.size() < 2) {
-                Messages.send(context, "&cUsage: /adminshop create <name>");
+                Messages.sendKey(context, "shop.admin.usage.create", java.util.Map.of());
                 return;
             }
             String name = args.get(1);
             ShopModel created = shopManager.createShop(name);
             if (created == null) {
-                Messages.send(context, "&cShop already exists or name invalid.");
+                Messages.sendKey(context, "shop.admin.exists_or_invalid", java.util.Map.of());
                 return;
             }
-            Messages.send(context, "&aShop created: &f" + created.getDisplayName());
+            Messages.sendKey(context, "shop.admin.created", java.util.Map.of("shop", created.getDisplayName()));
             return;
         }
 
@@ -95,21 +95,21 @@ public final class ShopCommand extends AbstractPlayerCommand {
                 return;
             }
             if (args.size() < 2) {
-                Messages.send(context, "&cUsage: /adminshop delete <name>");
+                Messages.sendKey(context, "shop.admin.usage.delete", java.util.Map.of());
                 return;
             }
             String name = args.get(1);
             if (shopManager.deleteShop(name)) {
-                Messages.send(context, "&cShop deleted.");
+                Messages.sendKey(context, "shop.admin.deleted", java.util.Map.of());
             } else {
-                Messages.send(context, "&cShop not found.");
+                Messages.sendKey(context, "shop.admin.not_found", java.util.Map.of());
             }
             return;
         }
 
         if ("edit".equals(sub)) {
             if (args.size() < 2) {
-                Messages.send(context, "&cUsage: /adminshop edit <name>");
+                Messages.sendKey(context, "shop.admin.usage.edit", java.util.Map.of());
                 return;
             }
             String name = args.get(1);
@@ -123,7 +123,7 @@ public final class ShopCommand extends AbstractPlayerCommand {
     private void listShops(@Nonnull CommandContext context) {
         List<String> names = shopManager.listShops();
         if (names.isEmpty()) {
-            Messages.send(context, "&cNo shops configured.");
+            Messages.sendKey(context, "shop.admin.none_configured", java.util.Map.of());
             return;
         }
         List<String> display = new ArrayList<>();
@@ -135,7 +135,7 @@ public final class ShopCommand extends AbstractPlayerCommand {
                 display.add(name);
             }
         }
-        Messages.send(context, "&aShops: &f" + String.join(", ", display));
+        Messages.sendKey(context, "shop.admin.list", java.util.Map.of("shops", String.join(", ", display)));
     }
 
     private void openBrowse(@Nonnull CommandContext context,
@@ -145,7 +145,7 @@ public final class ShopCommand extends AbstractPlayerCommand {
                             @Nonnull String name) {
         ShopModel shop = shopManager.getShop(name);
         if (shop == null) {
-            Messages.send(context, "&cShop not found.");
+            Messages.sendKey(context, "shop.admin.not_found", java.util.Map.of());
             return;
         }
         if (!shop.getUsePermission().isBlank()
@@ -155,7 +155,7 @@ public final class ShopCommand extends AbstractPlayerCommand {
         }
         Player player = store.getComponent(ref, Player.getComponentType());
         if (player == null) {
-            Messages.send(context, "&cCould not open shop UI.");
+            Messages.sendKey(context, "shop.admin.ui_failed", java.util.Map.of());
             return;
         }
         ShopBrowseUI ui = new ShopBrowseUI(playerRef, shopManager, economy, shop);
@@ -169,7 +169,7 @@ public final class ShopCommand extends AbstractPlayerCommand {
                            @Nonnull String name) {
         ShopModel shop = shopManager.getShop(name);
         if (shop == null) {
-            Messages.send(context, "&cShop not found.");
+            Messages.sendKey(context, "shop.admin.not_found", java.util.Map.of());
             return;
         }
         if (!shop.getEditPermission().isBlank()
@@ -179,7 +179,7 @@ public final class ShopCommand extends AbstractPlayerCommand {
         }
         Player player = store.getComponent(ref, Player.getComponentType());
         if (player == null) {
-            Messages.send(context, "&cCould not open shop UI.");
+            Messages.sendKey(context, "shop.admin.ui_failed", java.util.Map.of());
             return;
         }
         ShopAdminUI ui = new ShopAdminUI(playerRef, shopManager, economy, shop, draftCache);

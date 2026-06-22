@@ -1,10 +1,10 @@
 package xyz.thelegacyvoyage.hyessentialsx.commands.economy;
 
-import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
-import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.universe.world.World;
@@ -13,12 +13,10 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyAuditManager;
 import xyz.thelegacyvoyage.hyessentialsx.ui.PayUI;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.Map;
 
 public final class PayCommand extends AbstractPlayerCommand {
@@ -28,6 +26,8 @@ public final class PayCommand extends AbstractPlayerCommand {
     private final EconomyManager economy;
     @Nullable
     private final EconomyAuditManager audit;
+    private final OptionalArg<PlayerRef> targetArg;
+    private final OptionalArg<String> amountArg;
 
     public PayCommand(@Nonnull EconomyManager economy) {
         this(economy, null);
@@ -39,8 +39,9 @@ public final class PayCommand extends AbstractPlayerCommand {
         this.economy = economy;
         this.audit = audit;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        this.targetArg = withOptionalArg("player", "Player to pay", ArgTypes.PLAYER_REF);
+        this.amountArg = withOptionalArg("amount", "Amount to pay", ArgTypes.STRING);
     }
 
     @Override
@@ -65,8 +66,7 @@ public final class PayCommand extends AbstractPlayerCommand {
             return;
         }
 
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (args.isEmpty()) {
+        if (!context.provided(targetArg) && !context.provided(amountArg)) {
             Player player = store.getComponent(ref, Player.getComponentType());
             if (player == null || audit == null) {
                 Messages.errKey(context, "economy.pay.usage", Map.of());
@@ -76,20 +76,19 @@ public final class PayCommand extends AbstractPlayerCommand {
             ui.open(player, ref, store);
             return;
         }
-        if (args.size() < 2) {
+        if (!context.provided(targetArg) || !context.provided(amountArg)) {
             Messages.errKey(context, "economy.pay.usage", Map.of());
             return;
         }
 
-        String targetName = args.get(0);
-        String amountRaw = args.get(1);
+        PlayerRef target = context.get(targetArg);
+        String amountRaw = context.get(amountArg);
         long amount = economy.parseAmount(amountRaw);
         if (amount <= 0L) {
             Messages.errKey(context, "economy.invalid_amount", Map.of());
             return;
         }
 
-        PlayerRef target = Universe.get().getPlayerByUsername(targetName, NameMatching.EXACT_IGNORE_CASE);
         if (target == null) {
             Messages.errKey(context, "player.not_found", Map.of());
             return;

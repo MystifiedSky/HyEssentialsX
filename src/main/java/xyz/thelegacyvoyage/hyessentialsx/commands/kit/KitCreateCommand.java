@@ -15,7 +15,6 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitItemModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -75,7 +74,7 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
         }
 
         int cooldownSeconds = 0;
-        String raw = context.provided(cooldownArg) ? context.get(cooldownArg) : CommandInputUtil.getArg(context, 1);
+        String raw = context.provided(cooldownArg) ? context.get(cooldownArg) : null;
         if (raw != null && !raw.isBlank()) {
             long secs = TimeUtil.parseDurationSeconds(raw);
             if (secs < 0) {
@@ -86,17 +85,6 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
         }
         int maxUses = 0;
         Integer maxUsesInput = context.provided(maxUsesArg) ? context.get(maxUsesArg) : null;
-        if (maxUsesInput == null) {
-            String rawMaxUses = CommandInputUtil.getArg(context, 2);
-            if (rawMaxUses != null && !rawMaxUses.isBlank()) {
-                try {
-                    maxUsesInput = Integer.parseInt(rawMaxUses.trim());
-                } catch (NumberFormatException ignored) {
-                    Messages.errKey(context, "kit.max_uses_invalid", java.util.Map.of());
-                    return;
-                }
-            }
-        }
         if (maxUsesInput != null) {
             if (maxUsesInput < 0) {
                 Messages.errKey(context, "kit.max_uses_invalid", java.util.Map.of());

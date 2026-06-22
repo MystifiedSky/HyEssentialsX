@@ -1,15 +1,11 @@
 package xyz.thelegacyvoyage.hyessentialsx.commands.moderation;
 
-import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.auth.ProfileServiceClient;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractAsyncCommand;
-import com.hypixel.hytale.server.core.universe.PlayerRef;
-import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.VanillaBanUtil;
@@ -54,16 +50,6 @@ public final class UnbanCommand extends AbstractAsyncCommand {
         if (profile != null) {
             uuid = profile.getUuid();
             name = profile.getUsername();
-        }
-        if (uuid == null) {
-            String fallbackName = CommandInputUtil.getArg(context, 0);
-            if (fallbackName != null && !fallbackName.isBlank()) {
-                PlayerRef online = Universe.get().getPlayerByUsername(fallbackName, NameMatching.EXACT_IGNORE_CASE);
-                uuid = online != null ? online.getUuid() : storage.resolvePlayerIdByName(fallbackName);
-                if (name == null) {
-                    name = (online != null) ? online.getUsername() : fallbackName;
-                }
-            }
         }
         if (uuid == null || name == null || name.isBlank()) {
             Messages.errKey(context, "player.not_found", java.util.Map.of());

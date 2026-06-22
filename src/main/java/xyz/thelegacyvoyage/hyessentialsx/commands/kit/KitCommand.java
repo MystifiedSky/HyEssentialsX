@@ -3,6 +3,8 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.kit;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.inventory.Inventory;
@@ -13,7 +15,6 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.KitsUI;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -31,13 +32,15 @@ public final class KitCommand extends AbstractPlayerCommand {
 
     private final KitManager kitManager;
     private final ConfigManager config;
+    private final OptionalArg<String> nameArg;
+
     public KitCommand(@Nonnull KitManager kitManager,
                       @Nonnull ConfigManager config) {
         super("kit", "Claims a kit");
         this.kitManager = kitManager;
         this.config = config;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.nameArg = withOptionalArg("name", "Kit name", ArgTypes.STRING);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -63,8 +66,7 @@ public final class KitCommand extends AbstractPlayerCommand {
             return;
         }
 
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (args.isEmpty()) {
+        if (!context.provided(nameArg)) {
             List<String> kits = kitManager.listKits();
             if (kits.isEmpty()) {
                 Messages.warnKey(context, "kit.none_available", java.util.Map.of());
@@ -86,7 +88,7 @@ public final class KitCommand extends AbstractPlayerCommand {
             return;
         }
 
-        String name = args.get(0);
+        String name = context.get(nameArg);
         if (name == null || name.trim().isEmpty()) {
             Messages.errKey(context, "kit.not_found", java.util.Map.of());
             return;

@@ -2,9 +2,10 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.chat;
 
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.universe.Universe;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -17,13 +18,15 @@ public final class BroadcastCommand extends CommandBase {
     private static final String PERMISSION_NODE = "hyessentialsx.broadcast";
 
     private final ConfigManager config;
+    private final RequiredArg<List<String>> messageArg;
+
     public BroadcastCommand(@Nonnull ConfigManager config) {
         super("broadcast", "Broadcasts message");
         this.config = config;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"bc", "alert", "bcast"});
+        this.messageArg = withListRequiredArg("message", "Message to broadcast", ArgTypes.STRING);
     }
 
     @Override
@@ -42,8 +45,7 @@ public final class BroadcastCommand extends CommandBase {
             return;
         }
 
-        List<String> parts = CommandInputUtil.getArgs(context);
-        String message = String.join(" ", parts);
+        String message = String.join(" ", context.get(messageArg));
         if (message.isBlank()) {
             Messages.errKey(context, "broadcast.message_required", Map.of());
             return;

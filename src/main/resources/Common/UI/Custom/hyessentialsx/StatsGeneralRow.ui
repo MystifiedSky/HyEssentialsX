@@ -1,0 +1,21 @@
+Group #StatsGeneralRow {
+  LayoutMode: Left;
+  Background: (Color: #16283f);
+  Padding: (Top: 7, Bottom: 7, Left: 10, Right: 10);
+  Anchor: (Left: 0, Right: 0, Height: 38, Bottom: 4);
+  OutlineColor: #2f4f78;
+  OutlineSize: 1;
+
+  Label #StatName {
+    Text: "Statistic";
+    Style: (FontSize: 13, TextColor: #f4f8ff, RenderBold: true);
+    FlexWeight: 1;
+    Anchor: (Vertical: 0);
+  }
+
+  Label #StatValue {
+    Text: "0";
+    Style: (FontSize: 13, TextColor: #54e39e, RenderBold: true, HorizontalAlignment: End);
+    Anchor: (Width: 210, Vertical: 0);
+  }
+}

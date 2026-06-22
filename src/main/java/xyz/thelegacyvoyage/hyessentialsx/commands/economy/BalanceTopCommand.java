@@ -3,6 +3,8 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.economy;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -12,7 +14,6 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.BalTopUI;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
@@ -32,6 +33,7 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
     private final EconomyManager economy;
     private final StorageManager storage;
     private final ConfigManager config;
+    private final OptionalArg<Integer> limitArg;
 
     public BalanceTopCommand(@Nonnull EconomyManager economy, @Nonnull StorageManager storage, @Nonnull ConfigManager config) {
         super("baltop", "Shows the top balances");
@@ -39,7 +41,7 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
         this.storage = storage;
         this.config = config;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.limitArg = withOptionalArg("limit", "Number of balances to show", ArgTypes.INTEGER);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"balancetop"});
     }
@@ -112,17 +114,10 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
     }
 
     private int resolveLimit(@Nonnull CommandContext context, int max) {
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (!args.isEmpty()) {
-            String raw = args.get(0);
-            if (raw != null && raw.matches("\\d+")) {
-                try {
-                    int value = Integer.parseInt(raw);
-                    if (value > 0) {
-                        return Math.min(value, max);
-                    }
-                } catch (NumberFormatException ignored) {
-                }
+        if (context.provided(limitArg)) {
+            Integer value = context.get(limitArg);
+            if (value != null && value > 0) {
+                return Math.min(value, max);
             }
         }
         return Math.min(DEFAULT_LIMIT, max);

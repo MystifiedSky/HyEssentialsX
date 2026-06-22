@@ -10,6 +10,8 @@ import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.protocol.MovementStates;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.CommandSender;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractAsyncCommand;
 import com.hypixel.hytale.server.core.entity.Frozen;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -29,7 +31,6 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopNpcInteractionRegistry;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
@@ -37,6 +38,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.ShopPlacementUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcNameplateUtil;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -56,6 +58,8 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
     private final ShopManager shopManager;
     private final EconomyManager economy;
     private final ConfigManager config;
+    private final OptionalArg<String> actionArg;
+    private final OptionalArg<String> shopArg;
 
     public PlayerShopNpcCommand(@Nonnull ShopManager shopManager,
                                 @Nonnull EconomyManager economy,
@@ -65,7 +69,8 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
         this.economy = economy;
         this.config = config;
         this.requirePermission(PERMISSION_NODE);
-        this.setAllowsExtraArguments(true);
+        this.actionArg = withOptionalArg("action", "shop, remove, or list", ArgTypes.STRING);
+        this.shopArg = withOptionalArg("shop", "Shop name", ArgTypes.STRING);
     }
 
     @Override
@@ -90,7 +95,9 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
             return CompletableFuture.completedFuture(null);
         }
 
-        List<String> args = CommandInputUtil.getArgs(ctx);
+        List<String> args = new ArrayList<>();
+        if (ctx.provided(actionArg)) args.add(ctx.get(actionArg));
+        if (ctx.provided(shopArg)) args.add(ctx.get(shopArg));
         handleNpcCommand(ctx, playerRef, world, args, false);
         return CompletableFuture.completedFuture(null);
     }

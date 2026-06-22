@@ -45,6 +45,7 @@ public final class PlayerDataModel {
     private List<IpHistoryModel> ipHistory = new ArrayList<>();
     private List<String> ignoredPlayerIds = new ArrayList<>();
     private List<String> claimedPlaytimeRewards = new ArrayList<>();
+    private Map<String, Map<String, Long>> stats = new HashMap<>();
 
     @SuppressWarnings("unused")
     public PlayerDataModel() {}
@@ -404,6 +405,48 @@ public final class PlayerDataModel {
         this.claimedPlaytimeRewards = claimedPlaytimeRewards;
     }
 
+    @Nonnull
+    public Map<String, Map<String, Long>> getStats() {
+        if (stats == null) {
+            stats = new HashMap<>();
+        }
+        return stats;
+    }
+
+    public void setStats(@Nonnull Map<String, Map<String, Long>> stats) {
+        this.stats = stats;
+    }
+
+    public long getStat(@Nonnull String category, @Nonnull String stat) {
+        Map<String, Long> categoryStats = getStats().get(category);
+        if (categoryStats == null) {
+            return 0L;
+        }
+        return Math.max(0L, categoryStats.getOrDefault(stat, 0L));
+    }
+
+    public void incrementStat(@Nonnull String category, @Nonnull String stat, long amount) {
+        if (amount == 0L) return;
+        Map<String, Long> categoryStats = getStats().computeIfAbsent(category, ignored -> new HashMap<>());
+        long current = Math.max(0L, categoryStats.getOrDefault(stat, 0L));
+        long updated;
+        try {
+            updated = Math.addExact(current, amount);
+        } catch (ArithmeticException overflow) {
+            updated = amount < 0L ? 0L : Long.MAX_VALUE;
+        }
+        categoryStats.put(stat, Math.max(0L, updated));
+    }
+
+    @Nonnull
+    public Map<String, Long> getStatCategory(@Nonnull String category) {
+        Map<String, Long> categoryStats = getStats().get(category);
+        if (categoryStats == null) {
+            return Map.of();
+        }
+        return Map.copyOf(categoryStats);
+    }
+
     public boolean hasClaimedPlaytimeReward(@Nonnull String rewardId) {
         String key = rewardId.trim();
         if (key.isBlank()) {
@@ -474,6 +517,22 @@ public final class PlayerDataModel {
                 }
             }
             claimedPlaytimeRewards = sanitizedRewards;
+        }
+
+        if (stats == null) {
+            stats = new HashMap<>();
+        } else {
+            stats.entrySet().removeIf(entry -> entry == null
+                    || entry.getKey() == null
+                    || entry.getKey().isBlank()
+                    || entry.getValue() == null);
+            for (Map<String, Long> categoryStats : stats.values()) {
+                categoryStats.entrySet().removeIf(entry -> entry == null
+                        || entry.getKey() == null
+                        || entry.getKey().isBlank()
+                        || entry.getValue() == null
+                        || entry.getValue() <= 0L);
+            }
         }
     }
 

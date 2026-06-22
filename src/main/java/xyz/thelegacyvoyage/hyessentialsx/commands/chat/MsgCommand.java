@@ -28,6 +28,7 @@ public final class MsgCommand extends AbstractPlayerCommand {
     private final SocialSpyManager socialSpyManager;
     private final ConfigManager config;
     private final RequiredArg<PlayerRef> targetArg;
+    private final RequiredArg<List<String>> messageArg;
 
     public MsgCommand(@Nonnull MessageManager messages,
                       @Nonnull IgnoreManager ignoreManager,
@@ -39,10 +40,10 @@ public final class MsgCommand extends AbstractPlayerCommand {
         this.socialSpyManager = socialSpyManager;
         this.config = config;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"w", "m", "t", "pm", "tell", "whisper", "sendmessage"});
         this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+        this.messageArg = withListRequiredArg("message", "Message", ArgTypes.STRING);
     }
 
     @Override
@@ -73,11 +74,7 @@ public final class MsgCommand extends AbstractPlayerCommand {
             return;
         }
 
-        List<String> parts = xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil.getArgs(context);
-        if (!parts.isEmpty()) {
-            parts = parts.subList(1, parts.size());
-        }
-        String message = String.join(" ", parts);
+        String message = String.join(" ", context.get(messageArg));
         if (message.isBlank()) {
             Messages.errKey(context, "msg.message_required", Map.of());
             return;

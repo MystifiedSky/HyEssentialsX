@@ -3,15 +3,15 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.tpa;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
-import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.ui.TpaUI;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
@@ -27,6 +27,8 @@ public final class TpaCommand extends AbstractPlayerCommand {
     private final TPManager tpManager;
     private final ConfigManager config;
     private final CommandCooldownManager cooldowns;
+    private final OptionalArg<PlayerRef> targetArg;
+
     public TpaCommand(@Nonnull TPManager tpManager,
                       @Nonnull ConfigManager config,
                       @Nonnull CommandCooldownManager cooldowns) {
@@ -35,7 +37,7 @@ public final class TpaCommand extends AbstractPlayerCommand {
         this.config = config;
         this.cooldowns = cooldowns;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -60,8 +62,7 @@ public final class TpaCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "tpa.disabled", java.util.Map.of());
             return;
         }
-        var args = CommandInputUtil.getArgs(context);
-        if (args.isEmpty()) {
+        if (!context.provided(targetArg)) {
             if (config.isTpaGuiEnabled()) {
                 Player player = store.getComponent(ref, Player.getComponentType());
                 if (player == null) {
@@ -80,8 +81,7 @@ public final class TpaCommand extends AbstractPlayerCommand {
             return;
         }
 
-        String targetName = args.get(0);
-        PlayerRef target = findOnlinePlayer(targetName);
+        PlayerRef target = context.get(targetArg);
         if (target == null) {
             Messages.errKey(context, "player.not_found", java.util.Map.of());
             return;
@@ -106,17 +106,6 @@ public final class TpaCommand extends AbstractPlayerCommand {
         Messages.okKey(context, "tpa.request.sent", java.util.Map.of("player", target.getUsername()));
         Messages.sendKey(target, "tpa.request.received", java.util.Map.of("player", playerRef.getUsername()));
         cooldowns.apply(playerRef, CooldownKeys.TPA);
-    }
-
-    private static PlayerRef findOnlinePlayer(@Nonnull String name) {
-        for (PlayerRef ref : Universe.get().getPlayers()) {
-            if (ref == null) continue;
-            String username = ref.getUsername();
-            if (username != null && username.equalsIgnoreCase(name)) {
-                return ref;
-            }
-        }
-        return null;
     }
 }
 

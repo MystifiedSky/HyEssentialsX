@@ -1,18 +1,18 @@
 package xyz.thelegacyvoyage.hyessentialsx.commands.moderation;
 
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.entity.entities.player.HiddenPlayersManager;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.MapVisibilityUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 
 public final class VanishCommand extends CommandBase {
 
@@ -20,6 +20,7 @@ public final class VanishCommand extends CommandBase {
     private static final String OTHERS_PERMISSION = "hyessentialsx.vanish.others";
 
     private final VanishManager vanishManager;
+    private final OptionalArg<PlayerRef> targetArg;
 
     public VanishCommand(@Nonnull VanishManager vanishManager) {
         super("vanish", "Toggle vanish");
@@ -27,7 +28,7 @@ public final class VanishCommand extends CommandBase {
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"v"});
-        this.setAllowsExtraArguments(true);
+        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
     }
 
     @Override
@@ -42,18 +43,16 @@ public final class VanishCommand extends CommandBase {
             return;
         }
 
-        List<String> args = CommandInputUtil.getArgs(context);
         PlayerRef self = CommandSenderUtil.resolvePlayer(context);
         PlayerRef target;
-        if (args.isEmpty()) {
+        if (!context.provided(targetArg)) {
             if (self == null) {
                 Messages.errKey(context, "error.player_only", java.util.Map.of());
                 return;
             }
             target = self;
         } else {
-            String targetName = args.get(0);
-            target = findOnlinePlayer(targetName);
+            target = context.get(targetArg);
         }
         if (target == null) {
             Messages.errKey(context, "player.not_found", java.util.Map.of());
@@ -102,15 +101,5 @@ public final class VanishCommand extends CommandBase {
         return "Console";
     }
 
-    private static PlayerRef findOnlinePlayer(@Nonnull String name) {
-        for (PlayerRef ref : Universe.get().getPlayers()) {
-            if (ref == null) continue;
-            String username = ref.getUsername();
-            if (username != null && username.equalsIgnoreCase(name)) {
-                return ref;
-            }
-        }
-        return null;
-    }
 }
 

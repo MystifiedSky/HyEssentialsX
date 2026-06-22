@@ -1,11 +1,14 @@
 package xyz.thelegacyvoyage.hyessentialsx.ui;
 
-import com.google.gson.Gson;
+import com.hypixel.hytale.codec.Codec;
+import com.hypixel.hytale.codec.KeyedCodec;
+import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -30,7 +33,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entities.player.pages.CustomUIPage {
+public final class WarpsUI extends InteractiveCustomUIPage<WarpsUI.UIEventData> {
 
     private static final String LAYOUT = "hyessentialsx/WarpPage.ui";
     private static final String ROW_LAYOUT = "hyessentialsx/WarpRow.ui";
@@ -44,7 +47,6 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
     private final ConfigManager config;
     private final CommandCooldownManager cooldowns;
     private final BackManager backManager;
-    private final Gson gson = new Gson();
 
     public WarpsUI(@Nonnull PlayerRef playerRef,
                    @Nonnull WarpManager warpManager,
@@ -52,7 +54,7 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
                    @Nonnull ConfigManager config,
                    @Nonnull CommandCooldownManager cooldowns,
                    @Nonnull BackManager backManager) {
-        super(playerRef, CustomPageLifetime.CanDismiss);
+        super(playerRef, CustomPageLifetime.CanDismiss, UIEventData.CODEC);
         this.playerRef = playerRef;
         this.warpManager = warpManager;
         this.tpManager = tpManager;
@@ -78,7 +80,7 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
         evt.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 "#CloseButton",
-                EventData.of("action", "close"),
+                EventData.of("Action", "Close"),
                 false
         );
     }
@@ -87,38 +89,18 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
     public void handleDataEvent(
             @Nonnull Ref<EntityStore> ref,
             @Nonnull Store<EntityStore> store,
-            String data
+            @Nonnull UIEventData data
     ) {
-        if (data == null || data.isEmpty()) {
+        if (data.action == null || data.action.isEmpty()) {
             return;
         }
-
-        Map<?, ?> payload;
-        try {
-            payload = gson.fromJson(data, Map.class);
-        } catch (Exception e) {
-            return;
-        }
-        if (payload == null) {
-            return;
-        }
-        Object actionObj = payload.get("action");
-        if (!(actionObj instanceof String)) {
-            return;
-        }
-        String action = (String) actionObj;
-        if (action.isEmpty()) {
-            return;
-        }
-
-        if (action.equals("close")) {
+        if (data.action.equals("Close")) {
             close();
             return;
         }
 
-        if (action.startsWith("warp:")) {
-            String name = action.substring("warp:".length());
-            teleportToWarp(ref, store, name);
+        if (data.action.equals("Warp")) {
+            teleportToWarp(ref, store, data.warp);
         }
     }
 
@@ -145,7 +127,7 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
             evt.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     selector,
-                    EventData.of("action", "warp:" + name),
+                    EventData.of("Action", "Warp").append("Warp", name),
                     false
             );
         }
@@ -291,6 +273,17 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
     @Nonnull
     private String normalizePermissionSegment(@Nonnull String value) {
         return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    public static final class UIEventData {
+        public static final BuilderCodec<UIEventData> CODEC = BuilderCodec
+                .builder(UIEventData.class, UIEventData::new)
+                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
+                .addField(new KeyedCodec<>("Warp", Codec.STRING), (d, v) -> d.warp = v, d -> d.warp)
+                .build();
+
+        private String action;
+        private String warp;
     }
 }
 

@@ -2,6 +2,9 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.moderation;
 
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
@@ -9,7 +12,6 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.IpBanManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.IpUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -25,13 +27,16 @@ public final class IpBanCommand extends CommandBase {
 
     private final IpBanManager ipBans;
     private final StorageManager storage;
+    private final RequiredArg<String> playerArg;
+    private final OptionalArg<List<String>> reasonArg;
 
     public IpBanCommand(@Nonnull IpBanManager ipBans, @Nonnull StorageManager storage) {
         super("ipban", "Ban a player's IP address");
         this.ipBans = ipBans;
         this.storage = storage;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.playerArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
+        this.reasonArg = withListOptionalArg("reason", "Reason", ArgTypes.STRING);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -47,13 +52,7 @@ public final class IpBanCommand extends CommandBase {
             return;
         }
 
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (args.isEmpty()) {
-            Messages.errKey(context, "ipban.usage", Map.of());
-            return;
-        }
-
-        String targetName = args.get(0);
+        String targetName = context.get(playerArg);
         PlayerRef online = Universe.get().getPlayerByUsername(targetName, NameMatching.EXACT_IGNORE_CASE);
         UUID uuid = online != null ? online.getUuid() : storage.resolvePlayerIdByName(targetName);
         if (uuid == null) {
@@ -78,7 +77,7 @@ public final class IpBanCommand extends CommandBase {
             return;
         }
 
-        String reason = args.size() > 1 ? String.join(" ", args.subList(1, args.size())).trim() : "";
+        String reason = context.provided(reasonArg) ? String.join(" ", context.get(reasonArg)).trim() : "";
         if (reason.isBlank()) {
             reason = "No reason";
         }

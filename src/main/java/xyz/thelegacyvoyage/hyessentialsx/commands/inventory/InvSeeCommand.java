@@ -4,6 +4,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.Page;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
@@ -17,7 +18,6 @@ import com.hypixel.hytale.server.core.inventory.container.filter.FilterType;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -30,12 +30,13 @@ public final class InvSeeCommand extends AbstractPlayerCommand {
     private static final String PERMISSION_EDIT = "hyessentialsx.invsee.edit";
 
     private final RequiredArg<PlayerRef> targetArg;
+    private final OptionalArg<String> sectionArg;
 
     public InvSeeCommand() {
         super("invsee", "View a player's inventory");
         this.setPermissionGroups();
         this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
-        this.setAllowsExtraArguments(true);
+        this.sectionArg = withOptionalArg("section", "Inventory section", ArgTypes.STRING);
     }
 
     @Override
@@ -71,14 +72,7 @@ public final class InvSeeCommand extends AbstractPlayerCommand {
             return;
         }
 
-        boolean viewBackpack = false;
-        java.util.List<String> args = CommandInputUtil.getArgs(context);
-        for (int i = 1; i < args.size(); i++) {
-            if (isBackpackSection(args.get(i))) {
-                viewBackpack = true;
-                break;
-            }
-        }
+        boolean viewBackpack = context.provided(sectionArg) && isBackpackSection(context.get(sectionArg));
         final boolean finalViewBackpack = viewBackpack;
 
         Store<EntityStore> targetStore = targetRef.getStore();

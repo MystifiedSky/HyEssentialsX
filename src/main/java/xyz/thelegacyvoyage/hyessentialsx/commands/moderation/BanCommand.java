@@ -11,7 +11,6 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.BanModel;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -34,7 +33,6 @@ public final class BanCommand extends CommandBase {
         this.banManager = banManager;
         this.storage = storage;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
         this.reasonArg = withListOptionalArg("reason", "Reason", ArgTypes.STRING);
@@ -70,11 +68,6 @@ public final class BanCommand extends CommandBase {
         if (context.provided(reasonArg)) {
             List<String> parts = context.get(reasonArg);
             reason = String.join(" ", parts).trim();
-        } else {
-            List<String> args = CommandInputUtil.getArgs(context);
-            if (args.size() > 1) {
-                reason = String.join(" ", args.subList(1, args.size())).trim();
-            }
         }
 
         String actor = resolveActorName(context);

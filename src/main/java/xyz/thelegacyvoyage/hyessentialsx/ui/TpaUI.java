@@ -1,11 +1,14 @@
 package xyz.thelegacyvoyage.hyessentialsx.ui;
 
-import com.google.gson.Gson;
+import com.hypixel.hytale.codec.Codec;
+import com.hypixel.hytale.codec.KeyedCodec;
+import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -26,7 +29,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-public final class TpaUI extends com.hypixel.hytale.server.core.entity.entities.player.pages.CustomUIPage {
+public final class TpaUI extends InteractiveCustomUIPage<TpaUI.UIEventData> {
 
     private static final String LAYOUT = "hyessentialsx/TpaPage.ui";
     private static final String ROW_LAYOUT = "hyessentialsx/TpaRow.ui";
@@ -38,14 +41,13 @@ public final class TpaUI extends com.hypixel.hytale.server.core.entity.entities.
     private final CommandCooldownManager cooldowns;
     private final ConfigManager config;
     private final String initialQuery;
-    private final Gson gson = new Gson();
 
     public TpaUI(@Nonnull PlayerRef playerRef,
                  @Nonnull TPManager tpManager,
                  @Nonnull CommandCooldownManager cooldowns,
                  @Nonnull ConfigManager config,
                  String initialQuery) {
-        super(playerRef, CustomPageLifetime.CanDismiss);
+        super(playerRef, CustomPageLifetime.CanDismiss, UIEventData.CODEC);
         this.playerRef = playerRef;
         this.tpManager = tpManager;
         this.cooldowns = cooldowns;
@@ -72,13 +74,13 @@ public final class TpaUI extends com.hypixel.hytale.server.core.entity.entities.
         evt.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 "#CloseButton",
-                EventData.of("action", "close"),
+                EventData.of("Action", "Close"),
                 false
         );
         evt.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 "#SearchButton",
-                EventData.of("action", "search").append("query", "@SearchInput.Value"),
+                EventData.of("Action", "Search").append("@Query", "@SearchInput.Value"),
                 false
         );
     }
@@ -87,37 +89,18 @@ public final class TpaUI extends com.hypixel.hytale.server.core.entity.entities.
     public void handleDataEvent(
             @Nonnull Ref<EntityStore> ref,
             @Nonnull Store<EntityStore> store,
-            String data
+            @Nonnull UIEventData data
     ) {
-        if (data == null || data.isEmpty()) {
+        if (data.action == null || data.action.isEmpty()) {
             return;
         }
-
-        Map<?, ?> payload;
-        try {
-            payload = gson.fromJson(data, Map.class);
-        } catch (Exception e) {
-            return;
-        }
-        if (payload == null) {
-            return;
-        }
-        Object actionObj = payload.get("action");
-        if (!(actionObj instanceof String)) {
-            return;
-        }
-        String action = (String) actionObj;
-        if (action.isEmpty()) {
-            return;
-        }
-
-        if (action.equals("close")) {
+        if (data.action.equals("Close")) {
             close();
             return;
         }
 
-        if (action.equals("search")) {
-            String query = extractQuery(payload);
+        if (data.action.equals("Search")) {
+            String query = data.query == null ? "" : data.query.trim();
             Player player = store.getComponent(ref, Player.getComponentType());
             if (player == null) {
                 return;
@@ -127,9 +110,8 @@ public final class TpaUI extends com.hypixel.hytale.server.core.entity.entities.
             return;
         }
 
-        if (action.startsWith("tpa:")) {
-            String id = action.substring("tpa:".length());
-            handleTpa(ref, id);
+        if (data.action.equals("Tpa")) {
+            handleTpa(ref, data.target);
         }
     }
 
@@ -173,7 +155,7 @@ public final class TpaUI extends com.hypixel.hytale.server.core.entity.entities.
             evt.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     selector,
-                    EventData.of("action", "tpa:" + target.getUuid()),
+                    EventData.of("Action", "Tpa").append("Target", target.getUuid().toString()),
                     false
             );
         }
@@ -221,12 +203,17 @@ public final class TpaUI extends com.hypixel.hytale.server.core.entity.entities.
         close();
     }
 
-    private String extractQuery(@Nonnull Map<?, ?> payload) {
-        Object value = payload.get("query");
-        if (!(value instanceof String)) {
-            return "";
-        }
-        return ((String) value).trim();
+    public static final class UIEventData {
+        public static final BuilderCodec<UIEventData> CODEC = BuilderCodec
+                .builder(UIEventData.class, UIEventData::new)
+                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
+                .addField(new KeyedCodec<>("Target", Codec.STRING), (d, v) -> d.target = v, d -> d.target)
+                .addField(new KeyedCodec<>("@Query", Codec.STRING), (d, v) -> d.query = v, d -> d.query)
+                .build();
+
+        private String action;
+        private String target;
+        private String query;
     }
 }
 

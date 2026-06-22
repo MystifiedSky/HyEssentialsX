@@ -7,6 +7,8 @@ import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.Entity;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -28,7 +30,6 @@ import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopAdminUI;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopBrowseUI;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcRemovalUtil;
@@ -47,6 +48,8 @@ public final class ShopCommand extends AbstractPlayerCommand {
     private final ShopManager shopManager;
     private final EconomyManager economy;
     private final ShopAdminDraftCache draftCache;
+    private final OptionalArg<String> actionArg;
+    private final OptionalArg<String> nameArg;
 
     public ShopCommand(@Nonnull ShopManager shopManager,
                        @Nonnull EconomyManager economy,
@@ -56,7 +59,8 @@ public final class ShopCommand extends AbstractPlayerCommand {
         this.economy = economy;
         this.draftCache = draftCache;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.actionArg = withOptionalArg("action", "list, create, delete, edit, move, or shop", ArgTypes.STRING);
+        this.nameArg = withOptionalArg("name", "Shop name", ArgTypes.STRING);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -71,7 +75,9 @@ public final class ShopCommand extends AbstractPlayerCommand {
                            @Nonnull Ref<EntityStore> ref,
                            @Nonnull PlayerRef playerRef,
                            @Nonnull World world) {
-        List<String> args = CommandInputUtil.getArgs(context);
+        List<String> args = new ArrayList<>();
+        if (context.provided(actionArg)) args.add(context.get(actionArg));
+        if (context.provided(nameArg)) args.add(context.get(nameArg));
         if (args.isEmpty()) {
             if (!hasPermission(context.sender(), playerRef, PERMISSION_NODE)
                     && !hasPermission(context.sender(), playerRef, LEGACY_PERMISSION_NODE)) {

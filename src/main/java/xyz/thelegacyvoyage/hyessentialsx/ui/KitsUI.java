@@ -1,12 +1,15 @@
 package xyz.thelegacyvoyage.hyessentialsx.ui;
 
-import com.google.gson.Gson;
+import com.hypixel.hytale.codec.Codec;
+import com.hypixel.hytale.codec.KeyedCodec;
+import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.Page;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
 import com.hypixel.hytale.server.core.entity.entities.player.windows.ContainerWindow;
 import com.hypixel.hytale.server.core.entity.entities.player.windows.Window;
 import com.hypixel.hytale.server.core.inventory.Inventory;
@@ -38,7 +41,7 @@ import java.util.Locale;
 import java.util.Map;
 
 @SuppressWarnings("removal")
-public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities.player.pages.CustomUIPage {
+public final class KitsUI extends InteractiveCustomUIPage<KitsUI.UIEventData> {
 
     private static final String LAYOUT = "hyessentialsx/KitsPage.ui";
     private static final String ROW_LAYOUT = "hyessentialsx/KitRow.ui";
@@ -49,7 +52,6 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
     private final KitManager kitManager;
     private final ConfigManager config;
     private final String initialQuery;
-    private final Gson gson = new Gson();
 
     public KitsUI(@Nonnull PlayerRef playerRef,
                   @Nonnull KitManager kitManager,
@@ -61,7 +63,7 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
                   @Nonnull KitManager kitManager,
                   @Nonnull ConfigManager config,
                   String initialQuery) {
-        super(playerRef, CustomPageLifetime.CanDismiss);
+        super(playerRef, CustomPageLifetime.CanDismiss, UIEventData.CODEC);
         this.playerRef = playerRef;
         this.kitManager = kitManager;
         this.config = config;
@@ -89,13 +91,13 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
         evt.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 "#CloseButton",
-                EventData.of("action", "close"),
+                EventData.of("Action", "Close"),
                 false
         );
         evt.addEventBinding(
                 CustomUIEventBindingType.ValueChanged,
                 "#SearchBar #SearchInput",
-                EventData.of("action", "search").append("query", "#SearchBar #SearchInput.Value"),
+                EventData.of("Action", "Search").append("@Query", "#SearchBar #SearchInput.Value"),
                 false
         );
     }
@@ -104,37 +106,18 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
     public void handleDataEvent(
             @Nonnull Ref<EntityStore> ref,
             @Nonnull Store<EntityStore> store,
-            String data
+            @Nonnull UIEventData data
     ) {
-        if (data == null || data.isEmpty()) {
+        if (data.action == null || data.action.isEmpty()) {
             return;
         }
-
-        Map<?, ?> payload;
-        try {
-            payload = gson.fromJson(data, Map.class);
-        } catch (Exception e) {
-            return;
-        }
-        if (payload == null) {
-            return;
-        }
-        Object actionObj = payload.get("action");
-        if (!(actionObj instanceof String)) {
-            return;
-        }
-        String action = (String) actionObj;
-        if (action.isEmpty()) {
-            return;
-        }
-
-        if (action.equals("close")) {
+        if (data.action.equals("Close")) {
             close();
             return;
         }
 
-        if (action.equals("search")) {
-            String query = extractQuery(payload);
+        if (data.action.equals("Search")) {
+            String query = data.query == null ? "" : data.query.trim();
             Player player = store.getComponent(ref, Player.getComponentType());
             if (player == null) {
                 return;
@@ -144,15 +127,13 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
             return;
         }
 
-        if (action.startsWith("kit:")) {
-            String name = action.substring("kit:".length());
-            claimKit(ref, store, name);
+        if (data.action.equals("Claim")) {
+            claimKit(ref, store, data.kit);
             return;
         }
 
-        if (action.startsWith("preview:")) {
-            String name = action.substring("preview:".length());
-            previewKit(ref, store, name);
+        if (data.action.equals("Preview")) {
+            previewKit(ref, store, data.kit);
         }
     }
 
@@ -251,14 +232,14 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
                 evt.addEventBinding(
                         CustomUIEventBindingType.Activating,
                         row + " #ClaimButton",
-                        EventData.of("action", "kit:" + name),
+                        EventData.of("Action", "Claim").append("Kit", name),
                         false
                 );
             }
             evt.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     row + " #PreviewButton",
-                    EventData.of("action", "preview:" + name),
+                    EventData.of("Action", "Preview").append("Kit", name),
                     false
             );
         }
@@ -450,12 +431,17 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
         );
     }
 
-    private String extractQuery(@Nonnull Map<?, ?> payload) {
-        Object value = payload.get("query");
-        if (!(value instanceof String)) {
-            return "";
-        }
-        return ((String) value).trim();
+    public static final class UIEventData {
+        public static final BuilderCodec<UIEventData> CODEC = BuilderCodec
+                .builder(UIEventData.class, UIEventData::new)
+                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
+                .addField(new KeyedCodec<>("Kit", Codec.STRING), (d, v) -> d.kit = v, d -> d.kit)
+                .addField(new KeyedCodec<>("@Query", Codec.STRING), (d, v) -> d.query = v, d -> d.query)
+                .build();
+
+        private String action;
+        private String kit;
+        private String query;
     }
 }
 

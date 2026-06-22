@@ -2,6 +2,8 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.moderation;
 
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
@@ -9,7 +11,6 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpHistoryModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.IpUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
@@ -30,12 +31,13 @@ public final class IpHistoryCommand extends CommandBase {
     private static final String PERMISSION_NODE = "hyessentialsx.iphistory";
 
     private final StorageManager storage;
+    private final RequiredArg<String> playerArg;
 
     public IpHistoryCommand(@Nonnull StorageManager storage) {
         super("iphistory", "Show a player's IP history");
         this.storage = storage;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.playerArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -53,13 +55,7 @@ public final class IpHistoryCommand extends CommandBase {
 
         PlayerRef viewer = CommandSenderUtil.resolvePlayer(context);
 
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (args.isEmpty()) {
-            Messages.errKey(context, "iphistory.usage", Map.of());
-            return;
-        }
-
-        String targetName = args.get(0);
+        String targetName = context.get(playerArg);
         PlayerRef online = Universe.get().getPlayerByUsername(targetName, NameMatching.EXACT_IGNORE_CASE);
         UUID uuid = online != null ? online.getUuid() : storage.resolvePlayerIdByName(targetName);
         if (uuid == null) {

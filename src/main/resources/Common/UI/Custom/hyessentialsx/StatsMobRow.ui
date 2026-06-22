@@ -1,0 +1,37 @@
+Group #StatsMobRow {
+  LayoutMode: Left;
+  Background: (Color: #16283f);
+  Padding: (Top: 7, Bottom: 7, Left: 10, Right: 10);
+  Anchor: (Left: 0, Right: 0, Height: 50, Bottom: 5);
+  OutlineColor: #2f4f78;
+  OutlineSize: 1;
+
+  Group #MobBadge {
+    Anchor: (Width: 34, Height: 34, Vertical: 0, Right: 10);
+    Background: (Color: #1f4b73);
+
+    Label #MobInitial {
+      Text: "?";
+      Style: (FontSize: 15, TextColor: #f4f8ff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+      Anchor: (Left: 0, Top: 0, Right: 0, Bottom: 0);
+    }
+  }
+
+  Group {
+    LayoutMode: Top;
+    FlexWeight: 1;
+    Anchor: (Vertical: 0);
+
+    Label #MobName {
+      Text: "Mob";
+      Style: (FontSize: 14, TextColor: #f4f8ff, RenderBold: true);
+      Anchor: (Bottom: 2);
+    }
+
+    Label #MobDetails {
+      Text: "Killed 0   Died To 0";
+      Style: (FontSize: 11, TextColor: #8da8cc);
+      Anchor: (Left: 0, Right: 0);
+    }
+  }
+}

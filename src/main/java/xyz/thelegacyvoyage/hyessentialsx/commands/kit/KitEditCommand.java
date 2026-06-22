@@ -19,7 +19,6 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitItemModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
@@ -84,9 +83,8 @@ public final class KitEditCommand extends AbstractPlayerCommand {
             return;
         }
 
-        String rawCooldown = context.provided(cooldownArg) ? context.get(cooldownArg) : CommandInputUtil.getArg(context, 1);
-        String rawMaxUses = context.provided(maxUsesArg) ? null : CommandInputUtil.getArg(context, 2);
-        if ((rawCooldown == null || rawCooldown.isBlank()) && (rawMaxUses == null || rawMaxUses.isBlank()) && !context.provided(maxUsesArg)) {
+        String rawCooldown = context.provided(cooldownArg) ? context.get(cooldownArg) : null;
+        if ((rawCooldown == null || rawCooldown.isBlank()) && !context.provided(maxUsesArg)) {
             openKitEditor(context, store, ref, playerRef, existing);
             return;
         }
@@ -101,18 +99,8 @@ public final class KitEditCommand extends AbstractPlayerCommand {
             cooldownSeconds = (int) Math.min(Integer.MAX_VALUE, secs);
         }
 
-        int maxUses = 0;
+        int maxUses = existing.getMaxUses();
         Integer maxUsesInput = context.provided(maxUsesArg) ? context.get(maxUsesArg) : null;
-        if (maxUsesInput == null) {
-            if (rawMaxUses != null && !rawMaxUses.isBlank()) {
-                try {
-                    maxUsesInput = Integer.parseInt(rawMaxUses.trim());
-                } catch (NumberFormatException ignored) {
-                    Messages.errKey(context, "kit.max_uses_invalid", Map.of());
-                    return;
-                }
-            }
-        }
         if (maxUsesInput != null) {
             if (maxUsesInput < 0) {
                 Messages.errKey(context, "kit.max_uses_invalid", Map.of());

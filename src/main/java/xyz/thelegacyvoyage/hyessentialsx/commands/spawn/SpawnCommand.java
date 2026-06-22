@@ -2,8 +2,9 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.spawn;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
@@ -16,7 +17,6 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -24,7 +24,6 @@ import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.Map;
 
 public final class SpawnCommand extends AbstractPlayerCommand {
@@ -51,7 +50,8 @@ public final class SpawnCommand extends AbstractPlayerCommand {
         this.configManager = configManager;
         this.cooldowns = cooldowns;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.addUsageVariant(new SpawnOtherCommand());
+        this.addSubCommand(new SpawnAllCommand());
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -76,42 +76,23 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "spawn.disabled", Map.of());
             return;
         }
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (args.isEmpty()) {
-            spawnSelf(context, store, ref, playerRef, world);
+        spawnSelf(context, store, ref, playerRef, world);
+    }
+
+    private void spawnTarget(@Nonnull CommandContext context,
+                             @Nonnull Store<EntityStore> store,
+                             @Nonnull Ref<EntityStore> ref,
+                             @Nonnull PlayerRef playerRef,
+                             @Nonnull World world,
+                             PlayerRef target) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+            Messages.noPerm(context, "/spawn");
             return;
         }
-
-        String firstArg = args.get(0);
-        if ("all".equalsIgnoreCase(firstArg)) {
-            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), ALL_PERMISSION)) {
-                Messages.noPerm(context, "/spawn all");
-                return;
-            }
-            int success = 0;
-            int skipped = 0;
-            for (PlayerRef target : Universe.get().getPlayers()) {
-                if (target == null) continue;
-                SpawnResult result = spawnOther(context, target, world, false);
-                if (result == SpawnResult.IMMEDIATE || result == SpawnResult.QUEUED) {
-                    success++;
-                } else {
-                    skipped++;
-                }
-            }
-            String msg = Messages.tr(null, "spawn.all.success", Map.of(
-                    "count", String.valueOf(success)
-            ));
-            if (skipped > 0) {
-                msg += " " + Messages.tr(null, "spawn.all.skipped", Map.of(
-                        "count", String.valueOf(skipped)
-                ));
-            }
-            Messages.ok(context, msg);
+        if (!configManager.isSpawnEnabled()) {
+            Messages.errKey(context, "spawn.disabled", Map.of());
             return;
         }
-
-        PlayerRef target = Universe.get().getPlayerByUsername(firstArg, NameMatching.EXACT_IGNORE_CASE);
         if (target == null) {
             Messages.errKey(context, "player.not_found", Map.of());
             return;
@@ -121,7 +102,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             return;
         }
         if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
-            Messages.noPerm(context, "/spawn " + target.getUsername());
+            Messages.noPerm(context, "/spawn <player>");
             return;
         }
         SpawnResult result = spawnOther(context, target, world, true);
@@ -355,6 +336,88 @@ public final class SpawnCommand extends AbstractPlayerCommand {
         IMMEDIATE,
         QUEUED,
         FAILED
+    }
+
+    private final class SpawnOtherCommand extends AbstractPlayerCommand {
+
+        private final RequiredArg<PlayerRef> targetArg;
+
+        private SpawnOtherCommand() {
+            super("Teleport a player to spawn");
+            this.setPermissionGroups();
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(
+                @Nonnull CommandContext context,
+                @Nonnull Store<EntityStore> store,
+                @Nonnull Ref<EntityStore> ref,
+                @Nonnull PlayerRef playerRef,
+                @Nonnull World world
+        ) {
+            spawnTarget(context, store, ref, playerRef, world, context.get(targetArg));
+        }
+    }
+
+    private final class SpawnAllCommand extends AbstractPlayerCommand {
+
+        private SpawnAllCommand() {
+            super("all", "Teleport all players to spawn");
+            this.setPermissionGroups();
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(
+                @Nonnull CommandContext context,
+                @Nonnull Store<EntityStore> store,
+                @Nonnull Ref<EntityStore> ref,
+                @Nonnull PlayerRef playerRef,
+                @Nonnull World world
+        ) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/spawn");
+                return;
+            }
+            if (!configManager.isSpawnEnabled()) {
+                Messages.errKey(context, "spawn.disabled", Map.of());
+                return;
+            }
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), ALL_PERMISSION)) {
+                Messages.noPerm(context, "/spawn all");
+                return;
+            }
+            int success = 0;
+            int skipped = 0;
+            for (PlayerRef target : Universe.get().getPlayers()) {
+                if (target == null) continue;
+                SpawnResult result = spawnOther(context, target, world, false);
+                if (result == SpawnResult.IMMEDIATE || result == SpawnResult.QUEUED) {
+                    success++;
+                } else {
+                    skipped++;
+                }
+            }
+            String msg = Messages.tr(null, "spawn.all.success", Map.of(
+                    "count", String.valueOf(success)
+            ));
+            if (skipped > 0) {
+                msg += " " + Messages.tr(null, "spawn.all.skipped", Map.of(
+                        "count", String.valueOf(skipped)
+                ));
+            }
+            Messages.ok(context, msg);
+        }
     }
 }
 

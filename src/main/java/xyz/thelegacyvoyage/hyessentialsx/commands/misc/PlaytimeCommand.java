@@ -4,6 +4,8 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -18,7 +20,6 @@ import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlaytimeRewardModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.PlaytimeAdminUI;
 import xyz.thelegacyvoyage.hyessentialsx.ui.PlaytimeUI;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
@@ -45,6 +46,7 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
     private final RankupManager rankups;
     private final StorageManager storage;
     private final ConfigManager config;
+    private final OptionalArg<String> actionArg;
 
     public PlaytimeCommand(@Nonnull PlaytimeManager playtime,
                            @Nonnull PlaytimeRewardManager rewards,
@@ -60,7 +62,7 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"pt"});
-        this.setAllowsExtraArguments(true);
+        this.actionArg = withOptionalArg("action", "rewards, top, admin, help, or player", ArgTypes.STRING);
     }
 
     @Override
@@ -79,8 +81,7 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
             return;
         }
 
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (args.isEmpty()) {
+        if (!context.provided(actionArg)) {
             if (tryOpenPlaytimeUi(playerRef, store, ref, PlaytimeUI.Tab.OVERVIEW)) {
                 return;
             }
@@ -88,7 +89,7 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
             return;
         }
 
-        String sub = args.get(0);
+        String sub = context.get(actionArg);
         if (sub == null || sub.isBlank()) {
             Messages.errKey(context, "playtime.usage", Map.of());
             return;

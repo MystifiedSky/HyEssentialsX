@@ -8,7 +8,6 @@ import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.MuteModel;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
@@ -58,9 +57,6 @@ public final class MuteCommand extends CommandBase {
         String reason = null;
 
         String timeToken = context.provided(timeArg) ? context.get(timeArg) : null;
-        if (timeToken == null || timeToken.isBlank()) {
-            timeToken = CommandInputUtil.getArg(context, 1);
-        }
         if (timeToken != null && !timeToken.isBlank()) {
             long seconds = TimeUtil.parseDurationSeconds(timeToken);
             if (seconds >= 0) {
@@ -75,14 +71,6 @@ public final class MuteCommand extends CommandBase {
             String tail = String.join(" ", parts).trim();
             if (!tail.isBlank()) {
                 reason = (reason == null || reason.isBlank()) ? tail : (reason + " " + tail);
-            }
-        } else {
-            List<String> args = CommandInputUtil.getArgs(context);
-            if (args.size() > 2) {
-                String tail = String.join(" ", args.subList(2, args.size())).trim();
-                if (!tail.isBlank()) {
-                    reason = (reason == null || reason.isBlank()) ? tail : (reason + " " + tail);
-                }
             }
         }
 

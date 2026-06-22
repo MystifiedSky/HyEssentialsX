@@ -118,6 +118,8 @@ public final class ConfigManager {
     private boolean rulesEnabled = true;
     private boolean rulesGuiEnabled = true;
     private boolean rtpEnabled = true;
+    private boolean statsEnabled = true;
+    private boolean statsTrackMovement = true;
     private boolean broadcastEnabled = true;
     private boolean spawnEnabled = true;
     private double flySpeedMin = 0.1;
@@ -137,6 +139,11 @@ public final class ConfigManager {
     private boolean spawnProtectionAllowDamage = false;
     private boolean spawnProtectionAllowInteract = true;
     private List<String> spawnProtectionWorlds = new ArrayList<>(DEFAULT_SPAWN_PROTECTION_WORLDS);
+    private boolean worldBorderEnabled = false;
+    private int worldBorderRadius = 10000;
+    private int worldBorderCenterX = 0;
+    private int worldBorderCenterZ = 0;
+    private int worldBorderTeleportPadding = 2;
     private List<String> spawnRespawnPriority = DEFAULT_SPAWN_RESPAWN_PRIORITY;
     private boolean combatLogEnabled = false;
     private boolean combatLogOnlyPlayerDamage = true;
@@ -407,6 +414,19 @@ public final class ConfigManager {
         spawnProtection.addProperty("allowDamage", false);
         spawnProtection.addProperty("allowInteract", true);
         root.add("spawnProtection", spawnProtection);
+
+        JsonObject worldBorder = new JsonObject();
+        worldBorder.addProperty("enabled", false);
+        worldBorder.addProperty("radius", 10000);
+        worldBorder.addProperty("centerX", 0);
+        worldBorder.addProperty("centerZ", 0);
+        worldBorder.addProperty("teleportPadding", 2);
+        root.add("worldBorder", worldBorder);
+
+        JsonObject stats = new JsonObject();
+        stats.addProperty("enabled", true);
+        stats.addProperty("trackMovement", true);
+        root.add("stats", stats);
 
         JsonObject scoreboard = new JsonObject();
         scoreboard.addProperty("enabled", scoreboardEnabled);
@@ -974,6 +994,17 @@ public final class ConfigManager {
                 spawnProtection.add("worlds", toArray(spawnProtectionWorlds));
                 changed = true;
             }
+
+            JsonObject worldBorder = obj(root, "worldBorder");
+            worldBorderEnabled = bool(worldBorder, "enabled", worldBorderEnabled);
+            worldBorderRadius = Math.max(1, intVal(worldBorder, "radius", worldBorderRadius));
+            worldBorderCenterX = intVal(worldBorder, "centerX", worldBorderCenterX);
+            worldBorderCenterZ = intVal(worldBorder, "centerZ", worldBorderCenterZ);
+            worldBorderTeleportPadding = Math.max(0, intVal(worldBorder, "teleportPadding", worldBorderTeleportPadding));
+
+            JsonObject stats = obj(root, "stats");
+            statsEnabled = bool(stats, "enabled", statsEnabled);
+            statsTrackMovement = bool(stats, "trackMovement", statsTrackMovement);
 
             JsonObject economy = obj(root, "economy");
             economyEnabled = bool(economy, "enabled", economyEnabled);
@@ -1753,6 +1784,50 @@ public final class ConfigManager {
         save();
     }
 
+    public boolean isWorldBorderEnabled() {
+        return worldBorderEnabled;
+    }
+
+    public int getWorldBorderRadius() {
+        return Math.max(1, worldBorderRadius);
+    }
+
+    public int getWorldBorderCenterX() {
+        return worldBorderCenterX;
+    }
+
+    public int getWorldBorderCenterZ() {
+        return worldBorderCenterZ;
+    }
+
+    public int getWorldBorderTeleportPadding() {
+        return Math.max(0, worldBorderTeleportPadding);
+    }
+
+    public void setWorldBorderEnabled(boolean enabled) {
+        worldBorderEnabled = enabled;
+        save();
+    }
+
+    public void setWorldBorderRadius(int radius) {
+        worldBorderRadius = Math.max(1, radius);
+        save();
+    }
+
+    public void setWorldBorderCenter(int x, int z) {
+        worldBorderCenterX = x;
+        worldBorderCenterZ = z;
+        save();
+    }
+
+    public boolean isStatsEnabled() {
+        return statsEnabled;
+    }
+
+    public boolean isStatsTrackMovement() {
+        return statsTrackMovement;
+    }
+
     public boolean isEconomyEnabled() {
         return economyEnabled;
     }
@@ -2507,6 +2582,17 @@ public final class ConfigManager {
         spawnProtection.addProperty("allowDamage", spawnProtectionAllowDamage);
         spawnProtection.addProperty("allowInteract", spawnProtectionAllowInteract);
         spawnProtection.add("worlds", toArray(spawnProtectionWorlds));
+
+        JsonObject worldBorder = obj(root, "worldBorder");
+        worldBorder.addProperty("enabled", worldBorderEnabled);
+        worldBorder.addProperty("radius", Math.max(1, worldBorderRadius));
+        worldBorder.addProperty("centerX", worldBorderCenterX);
+        worldBorder.addProperty("centerZ", worldBorderCenterZ);
+        worldBorder.addProperty("teleportPadding", Math.max(0, worldBorderTeleportPadding));
+
+        JsonObject stats = obj(root, "stats");
+        stats.addProperty("enabled", statsEnabled);
+        stats.addProperty("trackMovement", statsTrackMovement);
 
         JsonObject economy = obj(root, "economy");
         economy.addProperty("enabled", economyEnabled);

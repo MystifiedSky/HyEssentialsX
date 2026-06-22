@@ -2,13 +2,14 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.moderation;
 
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.IpBanManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.IpUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -23,13 +24,14 @@ public final class UnipBanCommand extends CommandBase {
 
     private final IpBanManager ipBans;
     private final StorageManager storage;
+    private final RequiredArg<String> targetArg;
 
     public UnipBanCommand(@Nonnull IpBanManager ipBans, @Nonnull StorageManager storage) {
         super("unipban", "Unban an IP address");
         this.ipBans = ipBans;
         this.storage = storage;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.targetArg = withRequiredArg("target", "IP address or player name", ArgTypes.STRING);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -45,13 +47,7 @@ public final class UnipBanCommand extends CommandBase {
             return;
         }
 
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (args.isEmpty()) {
-            Messages.errKey(context, "unipban.usage", Map.of());
-            return;
-        }
-
-        String target = args.get(0);
+        String target = context.get(targetArg);
         String ip = null;
         if (isLikelyIp(target)) {
             ip = IpUtil.normalizeIp(target);

@@ -1,12 +1,14 @@
 package xyz.thelegacyvoyage.hyessentialsx.ui;
 
-import com.google.gson.Gson;
+import com.hypixel.hytale.codec.Codec;
+import com.hypixel.hytale.codec.KeyedCodec;
+import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.entity.entities.player.pages.CustomUIPage;
+import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -22,10 +24,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 
-public final class BalTopUI extends CustomUIPage {
+public final class BalTopUI extends InteractiveCustomUIPage<BalTopUI.UIEventData> {
 
     private static final String LAYOUT = "hyessentialsx/BalTopPage.ui";
     private static final String ROW_LAYOUT = "hyessentialsx/BalTopRow.ui";
@@ -34,12 +35,11 @@ public final class BalTopUI extends CustomUIPage {
     private final PlayerRef playerRef;
     private final EconomyManager economy;
     private final StorageManager storage;
-    private final Gson gson = new Gson();
 
     public BalTopUI(@Nonnull PlayerRef playerRef,
                     @Nonnull EconomyManager economy,
                     @Nonnull StorageManager storage) {
-        super(playerRef, CustomPageLifetime.CanDismiss);
+        super(playerRef, CustomPageLifetime.CanDismiss, UIEventData.CODEC);
         this.playerRef = playerRef;
         this.economy = economy;
         this.storage = storage;
@@ -68,7 +68,7 @@ public final class BalTopUI extends CustomUIPage {
         evt.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 "#CloseButton",
-                EventData.of("action", "close"),
+                EventData.of("Action", "Close"),
                 false
         );
     }
@@ -77,30 +77,12 @@ public final class BalTopUI extends CustomUIPage {
     public void handleDataEvent(
             @Nonnull Ref<EntityStore> ref,
             @Nonnull Store<EntityStore> store,
-            String data
+            @Nonnull UIEventData data
     ) {
-        if (data == null || data.isEmpty()) {
+        if (data.action == null || data.action.isEmpty()) {
             return;
         }
-        Map<?, ?> payload;
-        try {
-            payload = gson.fromJson(data, Map.class);
-        } catch (Exception e) {
-            return;
-        }
-        if (payload == null) {
-            return;
-        }
-        Object actionObj = payload.get("action");
-        if (!(actionObj instanceof String)) {
-            return;
-        }
-        String action = (String) actionObj;
-        if (action.isEmpty()) {
-            return;
-        }
-
-        if (action.equals("close")) {
+        if (data.action.equals("Close")) {
             close();
         }
     }
@@ -198,6 +180,15 @@ public final class BalTopUI extends CustomUIPage {
             this.name = name;
             this.balance = balance;
         }
+    }
+
+    public static final class UIEventData {
+        public static final BuilderCodec<UIEventData> CODEC = BuilderCodec
+                .builder(UIEventData.class, UIEventData::new)
+                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
+                .build();
+
+        private String action;
     }
 }
 

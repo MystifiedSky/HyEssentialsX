@@ -5,6 +5,8 @@ import com.hypixel.hytale.component.Store;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -12,7 +14,6 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -23,13 +24,14 @@ public final class SetSpawnCommand extends AbstractPlayerCommand {
     private static final String PERMISSION_NODE = "hyessentialsx.setspawn";
     private final SpawnManager spawnManager;
     private final ConfigManager config;
+    private final OptionalArg<String> nameArg;
 
     public SetSpawnCommand(@Nonnull SpawnManager spawnManager, @Nonnull ConfigManager config) {
         super("setspawn", "Set the server spawn (or a named spawn) to your current location");
         this.spawnManager = spawnManager;
         this.config = config;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.nameArg = withOptionalArg("name", "Spawn name", ArgTypes.STRING);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -71,9 +73,8 @@ public final class SetSpawnCommand extends AbstractPlayerCommand {
                 yaw, pitch
         );
 
-        java.util.List<String> args = CommandInputUtil.getArgs(context);
-        if (!args.isEmpty()) {
-            String rawName = args.get(0);
+        if (context.provided(nameArg)) {
+            String rawName = context.get(nameArg);
             String spawnName = SpawnManager.normalizeSpawnName(rawName);
             if (spawnName == null) {
                 Messages.errKey(context, "spawn.named.invalid_name", java.util.Map.of());

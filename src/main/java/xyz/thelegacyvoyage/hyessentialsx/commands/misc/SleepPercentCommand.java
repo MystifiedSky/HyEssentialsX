@@ -1,13 +1,13 @@
 package xyz.thelegacyvoyage.hyessentialsx.commands.misc;
 
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 import java.util.Map;
 
 public final class SleepPercentCommand extends CommandBase {
@@ -15,12 +15,13 @@ public final class SleepPercentCommand extends CommandBase {
     private static final String PERMISSION_NODE = "hyessentialsx.sleeppercent";
 
     private final ConfigManager config;
+    private final OptionalArg<Integer> percentArg;
 
     public SleepPercentCommand(@Nonnull ConfigManager config) {
         super("sleeppercent", "Sets or views the sleep percentage");
         this.config = config;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.percentArg = withOptionalArg("percent", "Sleep percentage", ArgTypes.INTEGER);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"sp"});
     }
@@ -37,17 +38,19 @@ public final class SleepPercentCommand extends CommandBase {
             return;
         }
 
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (args.isEmpty()) {
+        if (!context.provided(percentArg)) {
             Messages.okKey(context, "sleeppercent.current", Map.of(
                     "percent", String.valueOf(config.getSleepPercentage())
             ));
             return;
         }
 
-        String raw = args.get(0);
-        Integer value = parsePercent(raw);
+        Integer value = context.get(percentArg);
         if (value == null) {
+            Messages.errKey(context, "sleeppercent.usage", Map.of());
+            return;
+        }
+        if (value < 0 || value > 100) {
             Messages.errKey(context, "sleeppercent.usage", Map.of());
             return;
         }
@@ -58,16 +61,5 @@ public final class SleepPercentCommand extends CommandBase {
         ));
     }
 
-    private static Integer parsePercent(@Nonnull String raw) {
-        String trimmed = raw.trim();
-        if (!trimmed.matches("\\d+")) return null;
-        try {
-            int value = Integer.parseInt(trimmed);
-            if (value < 0 || value > 100) return null;
-            return value;
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
-    }
 }
 

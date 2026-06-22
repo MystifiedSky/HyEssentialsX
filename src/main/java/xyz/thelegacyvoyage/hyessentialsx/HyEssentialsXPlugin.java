@@ -47,7 +47,9 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.misc.RankupCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.RulesCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.SeenCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.SleepPercentCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.misc.StatsCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.WhoisCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.misc.WorldBorderCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.DayCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.NightCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.AfkCommand;
@@ -116,7 +118,9 @@ import xyz.thelegacyvoyage.hyessentialsx.listeners.RespawnTeleportListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.ScoreboardListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.ShopNpcListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.SpawnProtectionListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.StatsListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.TeleportWarmupListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.WorldBorderListener;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AfkManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
@@ -148,9 +152,11 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.ScoreboardManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopNpcFixTask;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopNpcInteractionRegistry;
+import xyz.thelegacyvoyage.hyessentialsx.managers.StatsManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.WorldBorderManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.hologram.HologramService;
 import xyz.thelegacyvoyage.hyessentialsx.placeholders.HyEssentialsXPlaceholderExpansion;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
@@ -191,6 +197,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private HomeManager homeManager;
     private WarpManager warpManager;
     private KitManager kitManager;
+    private WorldBorderManager worldBorderManager;
     private MessageManager messageManager;
     private SocialSpyManager socialSpyManager;
     private IgnoreManager ignoreManager;
@@ -213,6 +220,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private PlaytimeRewardManager playtimeRewardManager;
     private ScoreboardManager scoreboardManager;
     private RankupManager rankupManager;
+    private StatsManager statsManager;
     private CustomCommandManager customCommandManager;
     private AutoBroadcastManager autoBroadcastManager;
     private CommandCooldownManager cooldownManager;
@@ -258,6 +266,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         if (tpManager != null && configManager != null) {
             tpManager.setTpaRequestTimeoutMs(configManager.getTpaRequestTimeoutSeconds() * 1000L);
+        }
+        if (worldBorderManager != null) {
+            worldBorderManager.clearWarningState();
         }
         if (storage != null) {
             storage.reloadCaches();
@@ -342,6 +353,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         homeManager = new HomeManager(storage);
         warpManager = new WarpManager(storage);
         kitManager = new KitManager(storage);
+        worldBorderManager = new WorldBorderManager(configManager);
         messageManager = new MessageManager();
         socialSpyManager = new SocialSpyManager();
         ignoreManager = new IgnoreManager(storage);
@@ -364,6 +376,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         paycheckManager = new PaycheckManager(configManager, economyManager, storage, playtimeManager);
         scoreboardManager = new ScoreboardManager(configManager, storage, economyManager, playtimeManager, dataDirectory);
         rankupManager = new RankupManager(configManager, economyManager, storage, playtimeManager);
+        statsManager = new StatsManager(storage, configManager);
         customCommandManager = new CustomCommandManager(dataDirectory);
         autoBroadcastManager = new AutoBroadcastManager(configManager);
         shopManager = new ShopManager(storage, configManager);
@@ -534,6 +547,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             reg.accept(new KitsCommand(kitManager, configManager));
             reg.accept(new KitDeleteCommand(kitManager, configManager));
         }
+        reg.accept(new WorldBorderCommand(worldBorderManager));
         if (configManager.isMsgEnabled()) {
             reg.accept(new MsgCommand(messageManager, ignoreManager, socialSpyManager, configManager));
             reg.accept(new ReplyCommand(messageManager, ignoreManager, socialSpyManager, configManager));
@@ -598,6 +612,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new NightCommand());
         reg.accept(new RankupCommand(rankupManager, economyManager, playtimeManager, playtimeRewardManager, storage, configManager));
         reg.accept(new PlaytimeCommand(playtimeManager, playtimeRewardManager, rankupManager, storage, configManager));
+        if (configManager.isStatsEnabled()) {
+            reg.accept(new StatsCommand(statsManager, storage));
+        }
         if (scoreboardManager != null && configManager.isScoreboardEnabled()) {
             reg.accept(new ScoreboardCommand(scoreboardManager, configManager));
         }
@@ -678,6 +695,10 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         AfkListener afkListener = new AfkListener(afkManager);
         afkListener.register(bus);
         new CombatLogListener(combatLogManager, configManager).register(bus);
+        StatsListener statsListener = statsManager != null ? new StatsListener(statsManager) : null;
+        if (statsManager != null) {
+            statsListener.register(bus);
+        }
         new SpawnProtectionListener(spawnManager, configManager).register(bus);
         RespawnTeleportListener respawnTeleportListener = new RespawnTeleportListener(spawnManager);
         respawnTeleportListener.register(bus);
@@ -694,6 +715,10 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         new PlayerVisibilityListener(vanishManager).register(getEntityStoreRegistry());
         new TeleportWarmupListener(tpManager).register(getEntityStoreRegistry());
         new SpawnProtectionListener(spawnManager, configManager).register(getEntityStoreRegistry());
+        new WorldBorderListener(worldBorderManager).register(getEntityStoreRegistry());
+        if (statsListener != null) {
+            statsListener.register(getEntityStoreRegistry());
+        }
         new EconomyRewardListener(economyManager, configManager).register(getEntityStoreRegistry());
         new CombatLogListener(combatLogManager, configManager).register(getEntityStoreRegistry());
         new FreezeListener(freezeManager).register(getEntityStoreRegistry());

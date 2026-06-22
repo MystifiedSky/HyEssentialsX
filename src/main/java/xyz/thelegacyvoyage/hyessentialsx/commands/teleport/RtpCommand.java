@@ -6,8 +6,9 @@ import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Transform;
 import org.joml.Vector3d;
 import com.hypixel.hytale.protocol.BlockMaterial;
-import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.modules.collision.WorldUtil;
@@ -23,14 +24,12 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.function.Consumer;
@@ -49,6 +48,8 @@ public final class RtpCommand extends CommandBase {
     private final TPManager tpManager;
     private final BackManager backManager;
     private final Random random = new Random();
+    private final OptionalArg<PlayerRef> targetArg;
+    private final OptionalArg<String> worldArg;
 
     public RtpCommand(@Nonnull ConfigManager config,
                       @Nonnull CommandCooldownManager cooldowns,
@@ -60,7 +61,8 @@ public final class RtpCommand extends CommandBase {
         this.tpManager = tpManager;
         this.backManager = backManager;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
+        this.worldArg = withOptionalArg("world", "Target world", ArgTypes.STRING);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"randomtp", "wild"});
     }
@@ -81,25 +83,20 @@ public final class RtpCommand extends CommandBase {
             return;
         }
         PlayerRef senderPlayer = CommandSenderUtil.resolvePlayer(context);
-        List<String> args = CommandInputUtil.getArgs(context);
         PlayerRef target = senderPlayer;
-        String worldArg = null;
-        if (args.isEmpty()) {
+        String requestedWorld = null;
+        if (!context.provided(targetArg)) {
             if (senderPlayer == null) {
                 Messages.errKey(context, "rtp.usage", Map.of());
                 return;
             }
         } else {
-            String targetName = args.get(0);
-            PlayerRef resolved = Universe.get().getPlayerByUsername(targetName, NameMatching.EXACT_IGNORE_CASE);
-            if (resolved == null) {
+            target = context.get(targetArg);
+            if (target == null) {
                 Messages.errKey(context, "player.not_found", Map.of());
                 return;
             }
-            target = resolved;
-            if (args.size() >= 2) {
-                worldArg = args.get(1);
-            }
+            requestedWorld = context.provided(worldArg) ? context.get(worldArg) : null;
         }
         if (target == null) {
             Messages.errKey(context, "player.not_found", Map.of());
@@ -135,10 +132,10 @@ public final class RtpCommand extends CommandBase {
             Messages.errKey(context, "error.world_not_loaded", Map.of());
             return;
         }
-        if (worldArg != null && !worldArg.isBlank()) {
-            World specified = Universe.get().getWorld(worldArg);
+        if (requestedWorld != null && !requestedWorld.isBlank()) {
+            World specified = Universe.get().getWorld(requestedWorld);
             if (specified == null) {
-                Messages.errKey(context, "error.world_not_loaded_named", Map.of("world", worldArg));
+                Messages.errKey(context, "error.world_not_loaded_named", Map.of("world", requestedWorld));
                 return;
             }
             chosenWorld = specified;

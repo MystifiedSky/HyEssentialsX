@@ -42,7 +42,6 @@ public final class EcoAdminCommand extends AbstractPlayerCommand {
         this.hudManager = hudManager;
         this.audit = audit;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 

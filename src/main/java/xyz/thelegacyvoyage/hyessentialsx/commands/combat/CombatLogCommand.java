@@ -5,13 +5,11 @@ import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import xyz.thelegacyvoyage.hyessentialsx.HyEssentialsXPlugin;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CombatLogManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.PluginInfoUtil;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 
 public final class CombatLogCommand extends CommandBase {
 
@@ -24,6 +22,7 @@ public final class CombatLogCommand extends CommandBase {
         this.combatManager = combatManager;
         this.config = config;
         this.setPermissionGroups();
+        this.addSubCommand(new ReloadCommand());
     }
 
     @Override
@@ -33,8 +32,29 @@ public final class CombatLogCommand extends CommandBase {
 
     @Override
     protected void executeSync(@Nonnull CommandContext context) {
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (!args.isEmpty() && args.get(0).equalsIgnoreCase("reload")) {
+        String version = PluginInfoUtil.getVersion();
+        context.sendMessage(combatManager.buildPrefixedMessage(null,
+                config.getCombatLogCommandInfoMessage(), java.util.Map.of("version", version)));
+        context.sendMessage(Messages.m(Messages.tr(null, "combatlog.command_hint", java.util.Map.of())));
+        if (!combatManager.isEnabled()) {
+            context.sendMessage(Messages.m(Messages.tr(null, "combatlog.disabled", java.util.Map.of())));
+        }
+    }
+
+    private final class ReloadCommand extends CommandBase {
+
+        private ReloadCommand() {
+            super("reload", "Reload combat log settings");
+            this.setPermissionGroups();
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
             if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), RELOAD_PERMISSION)) {
                 Messages.noPerm(context, "/combatlog reload");
                 return;
@@ -55,15 +75,6 @@ public final class CombatLogCommand extends CommandBase {
                         config.getCombatLogReloadFailedMessage(),
                         java.util.Map.of("error", ex.getMessage())));
             }
-            return;
-        }
-
-        String version = PluginInfoUtil.getVersion();
-        context.sendMessage(combatManager.buildPrefixedMessage(null,
-                config.getCombatLogCommandInfoMessage(), java.util.Map.of("version", version)));
-        context.sendMessage(Messages.m(Messages.tr(null, "combatlog.command_hint", java.util.Map.of())));
-        if (!combatManager.isEnabled()) {
-            context.sendMessage(Messages.m(Messages.tr(null, "combatlog.disabled", java.util.Map.of())));
         }
     }
 }

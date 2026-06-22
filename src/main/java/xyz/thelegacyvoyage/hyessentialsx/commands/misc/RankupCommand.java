@@ -15,7 +15,6 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.RankupManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.RankupTier;
 import xyz.thelegacyvoyage.hyessentialsx.ui.PlaytimeAdminUI;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
@@ -50,7 +49,8 @@ public final class RankupCommand extends AbstractPlayerCommand {
         this.storage = storage;
         this.config = config;
         this.setPermissionGroups();
-        setAllowsExtraArguments(true);
+        this.addSubCommand(new ConfirmCommand());
+        this.addSubCommand(new AdminCommand());
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -67,30 +67,12 @@ public final class RankupCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef player,
             @Nonnull World world
     ) {
-        var args = CommandInputUtil.getArgs(context);
-        if (!args.isEmpty() && "admin".equalsIgnoreCase(args.get(0))) {
-            openAdminPanel(context, player, store, ref);
-            return;
-        }
         if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/rankup");
             return;
         }
         if (!rankups.isEnabled()) {
             Messages.warnKey(context, "rankup.disabled", Map.of());
-            return;
-        }
-
-        if (!args.isEmpty() && "confirm".equalsIgnoreCase(args.get(0))) {
-            RankupTier pending = rankups.getPendingTier(player.getUuid());
-            if (pending == null) {
-                Messages.warnKey(context, "rankup.confirm.expired", Map.of());
-                return;
-            }
-            if (!rankups.performRankup(player, pending, true)) {
-                Messages.warnKey(context, "rankup.not_ready", Map.of());
-            }
-            rankups.clearPending(player.getUuid());
             return;
         }
 
@@ -131,6 +113,26 @@ public final class RankupCommand extends AbstractPlayerCommand {
         }
     }
 
+    private void confirmRankup(@Nonnull CommandContext context, @Nonnull PlayerRef player) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+            Messages.noPerm(context, "/rankup");
+            return;
+        }
+        if (!rankups.isEnabled()) {
+            Messages.warnKey(context, "rankup.disabled", Map.of());
+            return;
+        }
+            RankupTier pending = rankups.getPendingTier(player.getUuid());
+            if (pending == null) {
+                Messages.warnKey(context, "rankup.confirm.expired", Map.of());
+                return;
+            }
+            if (!rankups.performRankup(player, pending, true)) {
+                Messages.warnKey(context, "rankup.not_ready", Map.of());
+            }
+            rankups.clearPending(player.getUuid());
+    }
+
     private void openAdminPanel(@Nonnull CommandContext context,
                                 @Nonnull PlayerRef playerRef,
                                 @Nonnull Store<EntityStore> store,
@@ -159,6 +161,40 @@ public final class RankupCommand extends AbstractPlayerCommand {
             return String.format(Locale.US, "%.1f", hours);
         }
         return String.format(Locale.US, "%.0f", hours);
+    }
+
+    private final class ConfirmCommand extends AbstractPlayerCommand {
+        private ConfirmCommand() {
+            super("confirm", "Confirm rankup");
+            this.setPermissionGroups();
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef player, @Nonnull World world) {
+            confirmRankup(context, player);
+        }
+    }
+
+    private final class AdminCommand extends AbstractPlayerCommand {
+        private AdminCommand() {
+            super("admin", "Open playtime admin panel");
+            this.setPermissionGroups();
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef player, @Nonnull World world) {
+            openAdminPanel(context, player, store, ref);
+        }
     }
 }
 

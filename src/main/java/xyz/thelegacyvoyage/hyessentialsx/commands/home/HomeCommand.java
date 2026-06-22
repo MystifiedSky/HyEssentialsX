@@ -4,6 +4,9 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -14,7 +17,6 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.HomeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.HomeModel;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
@@ -42,6 +44,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
     private final CommandCooldownManager cooldowns;
     private final BackManager backManager;
     private final StorageManager storage;
+
     public HomeCommand(@Nonnull HomeManager homeManager,
                        @Nonnull TPManager tpManager,
                        @Nonnull ConfigManager config,
@@ -56,7 +59,8 @@ public final class HomeCommand extends AbstractPlayerCommand {
         this.backManager = backManager;
         this.storage = storage;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.addUsageVariant(new NamedHomeCommand());
+        this.addSubCommand(new PlayerHomesCommand());
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -81,30 +85,40 @@ public final class HomeCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "home.disabled", Map.of());
             return;
         }
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (args.isEmpty()) {
-            List<String> homes = homeManager.listHomes(playerRef.getUuid());
-            if (homes.isEmpty()) {
-                Messages.errKey(context, "home.none", Map.of());
-                return;
-            }
-            Player player = store.getComponent(ref, Player.getComponentType());
-            if (player == null) {
-                Messages.errKey(context, "home.ui_failed", Map.of());
-                return;
-            }
-            HomesUI page = new HomesUI(playerRef, homeManager, tpManager, config, cooldowns, backManager);
-            page.open(player, ref, store);
+        List<String> homes = homeManager.listHomes(playerRef.getUuid());
+        if (homes.isEmpty()) {
+            Messages.errKey(context, "home.none", Map.of());
             return;
         }
-
-        String firstArg = args.get(0);
-        if ("player".equalsIgnoreCase(firstArg) && args.size() >= 2) {
-            handlePlayerHomes(context, store, ref, playerRef, world, args);
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            Messages.errKey(context, "home.ui_failed", Map.of());
             return;
         }
+        HomesUI page = new HomesUI(playerRef, homeManager, tpManager, config, cooldowns, backManager);
+        page.open(player, ref, store);
+    }
 
-        String name = firstArg;
+    private void handleNamedHome(
+            @Nonnull CommandContext context,
+            @Nonnull Store<EntityStore> store,
+            @Nonnull Ref<EntityStore> ref,
+            @Nonnull PlayerRef playerRef,
+            @Nonnull World world,
+            @Nonnull String name
+    ) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+            Messages.noPerm(context, "/home");
+            return;
+        }
+        if (!config.isHomesEnabled()) {
+            Messages.errKey(context, "home.disabled", Map.of());
+            return;
+        }
+        if (name.isBlank()) {
+            Messages.errKey(context, "home.name_required", Map.of());
+            return;
+        }
         if (!cooldowns.canUse(context, playerRef, CooldownKeys.HOME, "/home", BYPASS_PERMISSION)) {
             return;
         }
@@ -196,21 +210,45 @@ public final class HomeCommand extends AbstractPlayerCommand {
         Messages.okKey(context, "teleport.success.home", Map.of("home", homeName));
     }
 
+    private final class NamedHomeCommand extends AbstractPlayerCommand {
+
+        private final RequiredArg<String> homeNameArg;
+
+        private NamedHomeCommand() {
+            super("Teleports to a named home");
+            this.setPermissionGroups();
+            this.homeNameArg = withRequiredArg("home", "Home name", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(
+                @Nonnull CommandContext context,
+                @Nonnull Store<EntityStore> store,
+                @Nonnull Ref<EntityStore> ref,
+                @Nonnull PlayerRef playerRef,
+                @Nonnull World world
+        ) {
+            String homeName = context.get(homeNameArg);
+            handleNamedHome(context, store, ref, playerRef, world, homeName == null ? "" : homeName);
+        }
+    }
+
     private void handlePlayerHomes(@Nonnull CommandContext context,
                                    @Nonnull Store<EntityStore> store,
                                    @Nonnull Ref<EntityStore> ref,
                                    @Nonnull PlayerRef playerRef,
                                    @Nonnull World world,
-                                   @Nonnull List<String> args) {
+                                   @Nonnull String targetName,
+                                   @Nullable String requestedHomeName) {
         if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
             Messages.noPerm(context, "/home player");
             return;
         }
-        if (args.size() < 2) {
-            Messages.errKey(context, "home.usage.player", Map.of());
-            return;
-        }
-        String targetName = args.get(1);
         if (targetName == null || targetName.isBlank()) {
             Messages.errKey(context, "player.not_found", Map.of());
             return;
@@ -224,7 +262,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
         }
 
         String displayName = resolveDisplayName(online, targetId, targetName);
-        if (args.size() < 3) {
+        if (requestedHomeName == null || requestedHomeName.isBlank()) {
             List<String> homes = homeManager.listHomes(targetId);
             if (homes.isEmpty()) {
                 Messages.errKey(context, "home.other.none", Map.of("player", displayName));
@@ -238,7 +276,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
             return;
         }
 
-        String homeName = String.join(" ", args.subList(2, args.size())).trim();
+        String homeName = requestedHomeName.trim();
         if (homeName.isEmpty()) {
             Messages.errKey(context, "home.name_required", Map.of());
             return;
@@ -349,6 +387,38 @@ public final class HomeCommand extends AbstractPlayerCommand {
         String name = storage.getPlayerData(uuid).getLastKnownName();
         if (name != null && !name.isBlank()) return name;
         return fallback;
+    }
+
+    private final class PlayerHomesCommand extends AbstractPlayerCommand {
+
+        private final RequiredArg<String> playerArg;
+        private final OptionalArg<List<String>> otherHomeArg;
+
+        private PlayerHomesCommand() {
+            super("player", "View or use another player's homes");
+            this.setPermissionGroups();
+            this.playerArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
+            this.otherHomeArg = withListOptionalArg("home", "Home name", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(
+                @Nonnull CommandContext context,
+                @Nonnull Store<EntityStore> store,
+                @Nonnull Ref<EntityStore> ref,
+                @Nonnull PlayerRef playerRef,
+                @Nonnull World world
+        ) {
+            String requestedHomeName = context.provided(otherHomeArg)
+                    ? String.join(" ", context.get(otherHomeArg))
+                    : null;
+            handlePlayerHomes(context, store, ref, playerRef, world, context.get(playerArg), requestedHomeName);
+        }
     }
 }
 

@@ -2,21 +2,19 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.cheat;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
-import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 import java.util.Map;
 
 public final class FlySpeedCommand extends AbstractPlayerCommand {
@@ -27,6 +25,8 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
     private final FlyManager flyManager;
     private final StorageManager storage;
     private final ConfigManager config;
+    private final OptionalArg<Float> speedArg;
+    private final OptionalArg<PlayerRef> targetArg;
 
     public FlySpeedCommand(@Nonnull FlyManager flyManager,
                            @Nonnull StorageManager storage,
@@ -36,7 +36,8 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
         this.storage = storage;
         this.config = config;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.speedArg = withOptionalArg("speed", "Fly speed multiplier", ArgTypes.FLOAT);
+        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -56,24 +57,18 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
             return;
         }
 
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (args.isEmpty()) {
+        if (!context.provided(speedArg)) {
             float current = flyManager.getFlySpeedMultiplier(playerRef.getUuid());
             Messages.sendKey(context, "flyspeed.current", Map.of("speed", formatSpeed(current)));
             return;
         }
 
-        float requested;
-        try {
-            requested = Float.parseFloat(args.get(0));
-        } catch (NumberFormatException ex) {
+        Float speed = context.get(speedArg);
+        if (speed == null || !Float.isFinite(speed)) {
             Messages.errKey(context, "flyspeed.invalid", Map.of());
             return;
         }
-        if (!Float.isFinite(requested)) {
-            Messages.errKey(context, "flyspeed.invalid", Map.of());
-            return;
-        }
+        float requested = speed;
 
         float min = (float) config.getFlySpeedMin();
         float max = (float) config.getFlySpeedMax();
@@ -86,17 +81,16 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
         }
 
         PlayerRef target = playerRef;
-        if (args.size() >= 2) {
+        if (context.provided(targetArg)) {
             if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
                 Messages.noPerm(context, "/flyspeed <speed> <player>");
                 return;
             }
-            PlayerRef found = Universe.get().getPlayerByUsername(args.get(1), NameMatching.EXACT_IGNORE_CASE);
-            if (found == null) {
+            target = context.get(targetArg);
+            if (target == null) {
                 Messages.errKey(context, "player.not_found", Map.of());
                 return;
             }
-            target = found;
         }
 
         flyManager.setFlySpeedMultiplier(target.getUuid(), requested);

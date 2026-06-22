@@ -2,6 +2,9 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.chat;
 
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
@@ -9,7 +12,6 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.MailManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.MailMessageModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -39,8 +41,14 @@ public final class MailCommand extends CommandBase {
         this.storage = storage;
         this.config = config;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        this.addSubCommand(new SendSubCommand());
+        this.addSubCommand(new SendAllSubCommand());
+        this.addSubCommand(new ReadSubCommand());
+        this.addSubCommand(new ListSubCommand());
+        this.addSubCommand(new DeleteSubCommand());
+        this.addSubCommand(new ClearSubCommand());
+        this.addSubCommand(new ReplySubCommand());
     }
 
     @Override
@@ -50,44 +58,192 @@ public final class MailCommand extends CommandBase {
 
     @Override
     protected void executeSync(@Nonnull CommandContext context) {
-        if (!mail.isEnabled()) {
-            Messages.errKey(context, "mail.disabled", Map.of());
+        if (!checkBaseAccess(context)) {
             return;
         }
-        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
-            Messages.noPerm(context, "/mail");
-            return;
+        handleList(context, List.of());
+    }
+
+    private final class SendSubCommand extends CommandBase {
+        private final RequiredArg<String> targetArg;
+        private final RequiredArg<List<String>> messageArg;
+
+        private SendSubCommand() {
+            super("send", "Send mail to a player");
+            this.targetArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
+            this.messageArg = withListRequiredArg("message", "Message", ArgTypes.STRING);
+            this.targetArg.suggest(MailCommand.this::suggestKnownPlayers);
         }
 
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (args.isEmpty()) {
-            handleList(context, List.of());
-            return;
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
         }
 
-        String sub = args.get(0).toLowerCase();
-        switch (sub) {
-            case "send" -> handleSend(context, args);
-            case "sendall" -> handleSendAll(context, args);
-            case "read" -> handleRead(context, args);
-            case "list" -> handleList(context, args.subList(1, args.size()));
-            case "delete" -> handleDelete(context, args);
-            case "clear" -> handleClear(context);
-            case "reply" -> handleReply(context, args);
-            default -> Messages.errKey(context, "mail.usage", Map.of());
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!checkBaseAccess(context)) {
+                return;
+            }
+            handleSend(context, context.get(targetArg), context.get(messageArg));
         }
     }
 
-    private void handleSend(@Nonnull CommandContext context, @Nonnull List<String> args) {
+    private final class SendAllSubCommand extends CommandBase {
+        private final RequiredArg<List<String>> messageArg;
+
+        private SendAllSubCommand() {
+            super("sendall", "Send mail to every known player");
+            this.messageArg = withListRequiredArg("message", "Message", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!checkBaseAccess(context)) {
+                return;
+            }
+            handleSendAll(context, context.get(messageArg));
+        }
+    }
+
+    private final class ReadSubCommand extends CommandBase {
+        private final RequiredArg<Integer> idArg;
+
+        private ReadSubCommand() {
+            super("read", "Read a mail message");
+            this.idArg = withRequiredArg("id", "Inbox message id", ArgTypes.INTEGER);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!checkBaseAccess(context)) {
+                return;
+            }
+            handleRead(context, context.get(idArg));
+        }
+    }
+
+    private final class ListSubCommand extends CommandBase {
+        private final OptionalArg<List<String>> optionsArg;
+
+        private ListSubCommand() {
+            super("list", "List mail messages");
+            this.optionsArg = withListOptionalArg("options", "Filter/page: inbox, sent, read, unread, page <n>", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!checkBaseAccess(context)) {
+                return;
+            }
+            List<String> options = context.provided(optionsArg) ? context.get(optionsArg) : List.of();
+            handleList(context, options);
+        }
+    }
+
+    private final class DeleteSubCommand extends CommandBase {
+        private final RequiredArg<String> targetArg;
+
+        private DeleteSubCommand() {
+            super("delete", "Delete an inbox message or all inbox messages");
+            this.targetArg = withRequiredArg("id", "Inbox message id or all", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!checkBaseAccess(context)) {
+                return;
+            }
+            handleDelete(context, context.get(targetArg));
+        }
+    }
+
+    private final class ClearSubCommand extends CommandBase {
+        private ClearSubCommand() {
+            super("clear", "Clear your inbox");
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!checkBaseAccess(context)) {
+                return;
+            }
+            handleClear(context);
+        }
+    }
+
+    private final class ReplySubCommand extends CommandBase {
+        private final RequiredArg<Integer> idArg;
+        private final RequiredArg<List<String>> messageArg;
+
+        private ReplySubCommand() {
+            super("reply", "Reply to a mail message");
+            this.idArg = withRequiredArg("id", "Inbox message id", ArgTypes.INTEGER);
+            this.messageArg = withListRequiredArg("message", "Message", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!checkBaseAccess(context)) {
+                return;
+            }
+            handleReply(context, context.get(idArg), context.get(messageArg));
+        }
+    }
+
+    private boolean checkBaseAccess(@Nonnull CommandContext context) {
+        if (!mail.isEnabled()) {
+            Messages.errKey(context, "mail.disabled", Map.of());
+            return false;
+        }
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+            Messages.noPerm(context, "/mail");
+            return false;
+        }
+        return true;
+    }
+
+    private void handleSend(@Nonnull CommandContext context,
+                            @Nullable String targetName,
+                            @Nullable List<String> messageParts) {
         PlayerRef sender = requirePlayer(context);
         if (sender == null) return;
 
-        if (args.size() < 3) {
+        if (targetName == null || targetName.isBlank()) {
             Messages.errKey(context, "mail.usage.send", Map.of());
             return;
         }
 
-        String targetName = args.get(1);
         PlayerRef online = Universe.get().getPlayerByUsername(targetName, NameMatching.EXACT_IGNORE_CASE);
         UUID targetId = online != null ? online.getUuid() : storage.resolvePlayerIdByName(targetName);
         if (targetId == null) {
@@ -95,7 +251,7 @@ public final class MailCommand extends CommandBase {
             return;
         }
 
-        String message = join(args, 2);
+        String message = join(messageParts);
         if (message.isBlank()) {
             Messages.errKey(context, "mail.message_required", Map.of());
             return;
@@ -110,30 +266,15 @@ public final class MailCommand extends CommandBase {
                 message,
                 false
         );
-
-        switch (result.getStatus()) {
-            case OK -> Messages.okKey(context, "mail.sent", Map.of("player", targetDisplay));
-            case DISABLED -> Messages.errKey(context, "mail.disabled", Map.of());
-            case MESSAGE_TOO_LONG -> Messages.errKey(context, "mail.message_too_long", Map.of(
-                    "max", String.valueOf(config.getMailMaxMessageLength())
-            ));
-            case COOLDOWN -> Messages.errKey(context, "mail.spam.cooldown", Map.of(
-                    "seconds", String.valueOf(result.getRetrySeconds())
-            ));
-            case SIMILAR -> Messages.errKey(context, "mail.spam.similar", Map.of());
-        }
+        reportSendResult(context, result, targetDisplay, false);
     }
 
-    private void handleSendAll(@Nonnull CommandContext context, @Nonnull List<String> args) {
+    private void handleSendAll(@Nonnull CommandContext context, @Nullable List<String> messageParts) {
         if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), SENDALL_PERMISSION)) {
             Messages.noPerm(context, "/mail sendall");
             return;
         }
-        if (args.size() < 2) {
-            Messages.errKey(context, "mail.usage.sendall", Map.of());
-            return;
-        }
-        String message = join(args, 1);
+        String message = join(messageParts);
         if (message.isBlank()) {
             Messages.errKey(context, "mail.message_required", Map.of());
             return;
@@ -159,21 +300,14 @@ public final class MailCommand extends CommandBase {
                 sent++;
             }
         }
-
         Messages.okKey(context, "mail.sent_all", Map.of("count", String.valueOf(sent)));
     }
 
-    private void handleRead(@Nonnull CommandContext context, @Nonnull List<String> args) {
+    private void handleRead(@Nonnull CommandContext context, @Nullable Integer id) {
         PlayerRef player = requirePlayer(context);
         if (player == null) return;
 
-        if (args.size() < 2) {
-            Messages.errKey(context, "mail.usage.read", Map.of());
-            return;
-        }
-
-        int id = parsePositiveInt(args.get(1));
-        if (id <= 0) {
+        if (id == null || id <= 0) {
             Messages.errKey(context, "mail.usage.read", Map.of());
             return;
         }
@@ -266,16 +400,15 @@ public final class MailCommand extends CommandBase {
         }
     }
 
-    private void handleDelete(@Nonnull CommandContext context, @Nonnull List<String> args) {
+    private void handleDelete(@Nonnull CommandContext context, @Nullable String raw) {
         PlayerRef player = requirePlayer(context);
         if (player == null) return;
 
-        if (args.size() < 2) {
+        if (raw == null || raw.isBlank()) {
             Messages.errKey(context, "mail.usage.delete", Map.of());
             return;
         }
 
-        String raw = args.get(1);
         if (raw.equalsIgnoreCase("all")) {
             int cleared = mail.clearInbox(player.getUuid());
             Messages.okKey(context, "mail.deleted_all", Map.of("count", String.valueOf(cleared)));
@@ -303,17 +436,13 @@ public final class MailCommand extends CommandBase {
         Messages.okKey(context, "mail.cleared", Map.of("count", String.valueOf(cleared)));
     }
 
-    private void handleReply(@Nonnull CommandContext context, @Nonnull List<String> args) {
+    private void handleReply(@Nonnull CommandContext context,
+                             @Nullable Integer id,
+                             @Nullable List<String> messageParts) {
         PlayerRef player = requirePlayer(context);
         if (player == null) return;
 
-        if (args.size() < 3) {
-            Messages.errKey(context, "mail.usage.reply", Map.of());
-            return;
-        }
-
-        int id = parsePositiveInt(args.get(1));
-        if (id <= 0) {
+        if (id == null || id <= 0) {
             Messages.errKey(context, "mail.usage.reply", Map.of());
             return;
         }
@@ -330,7 +459,7 @@ public final class MailCommand extends CommandBase {
             return;
         }
 
-        String message = join(args, 2);
+        String message = join(messageParts);
         if (message.isBlank()) {
             Messages.errKey(context, "mail.message_required", Map.of());
             return;
@@ -345,9 +474,21 @@ public final class MailCommand extends CommandBase {
                 message,
                 false
         );
+        reportSendResult(context, result, targetName, true);
+    }
 
+    private void reportSendResult(@Nonnull CommandContext context,
+                                  @Nonnull MailManager.SendResult result,
+                                  @Nonnull String targetName,
+                                  boolean reply) {
         switch (result.getStatus()) {
-            case OK -> Messages.okKey(context, "mail.reply.sent", Map.of("player", targetName));
+            case OK -> {
+                if (reply) {
+                    Messages.okKey(context, "mail.reply.sent", Map.of("player", targetName));
+                } else {
+                    Messages.okKey(context, "mail.sent", Map.of("player", targetName));
+                }
+            }
             case DISABLED -> Messages.errKey(context, "mail.disabled", Map.of());
             case MESSAGE_TOO_LONG -> Messages.errKey(context, "mail.message_too_long", Map.of(
                     "max", String.valueOf(config.getMailMaxMessageLength())
@@ -377,15 +518,24 @@ public final class MailCommand extends CommandBase {
         return fallback;
     }
 
-    @Nonnull
-    private static String join(@Nonnull List<String> args, int start) {
-        if (start >= args.size()) return "";
-        StringBuilder sb = new StringBuilder();
-        for (int i = start; i < args.size(); i++) {
-            if (i > start) sb.append(' ');
-            sb.append(args.get(i));
+    private void suggestKnownPlayers(com.hypixel.hytale.server.core.command.system.CommandSender sender,
+                                     String input,
+                                     int offset,
+                                     com.hypixel.hytale.server.core.command.system.suggestion.SuggestionResult result) {
+        String normalized = input == null ? "" : input.trim().toLowerCase();
+        for (UUID uuid : storage.listPlayerIds()) {
+            PlayerRef online = Universe.get().getPlayer(uuid);
+            String name = online != null ? online.getUsername() : storage.getPlayerData(uuid).getLastKnownName();
+            if (name == null || name.isBlank()) continue;
+            if (!normalized.isEmpty() && !name.toLowerCase().startsWith(normalized)) continue;
+            result.suggest(name);
         }
-        return sb.toString().trim();
+    }
+
+    @Nonnull
+    private static String join(@Nullable List<String> args) {
+        if (args == null || args.isEmpty()) return "";
+        return String.join(" ", args).trim();
     }
 
     private static int parsePositiveInt(@Nullable String raw) {
@@ -482,9 +632,8 @@ public final class MailCommand extends CommandBase {
         if (raw == null) return null;
         String lower = raw.trim().toLowerCase();
         return switch (lower) {
-            case "sent", "read", "unread" -> lower;
+            case "inbox", "sent", "read", "unread" -> lower;
             default -> null;
         };
     }
 }
-

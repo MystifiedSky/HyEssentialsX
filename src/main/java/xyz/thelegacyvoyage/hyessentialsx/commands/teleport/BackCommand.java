@@ -3,6 +3,8 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.teleport;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
@@ -12,7 +14,6 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -32,6 +33,7 @@ public final class BackCommand extends CommandBase {
     private final TPManager tpManager;
     private final CommandCooldownManager cooldowns;
     private final ConfigManager config;
+    private final OptionalArg<PlayerRef> targetArg;
 
     public BackCommand(@Nonnull BackManager backManager,
                        @Nonnull TPManager tpManager,
@@ -44,7 +46,7 @@ public final class BackCommand extends CommandBase {
         this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
-        this.setAllowsExtraArguments(true);
+        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
     }
 
     @Override
@@ -58,20 +60,14 @@ public final class BackCommand extends CommandBase {
             Messages.noPerm(context, "/back");
             return;
         }
-        java.util.List<String> args = CommandInputUtil.getArgs(context);
         PlayerRef senderPlayer = CommandSenderUtil.resolvePlayer(context);
         PlayerRef target = senderPlayer;
-        if (!args.isEmpty()) {
+        if (context.provided(targetArg)) {
             if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
                 Messages.noPerm(context, "/back <player>");
                 return;
             }
-            String targetName = args.get(0);
-            if (targetName == null || targetName.isBlank()) {
-                Messages.errKey(context, "player.not_found", Map.of());
-                return;
-            }
-            target = Universe.get().getPlayerByUsername(targetName, com.hypixel.hytale.server.core.NameMatching.EXACT_IGNORE_CASE);
+            target = context.get(targetArg);
             if (target == null) {
                 Messages.errKey(context, "player.not_found", Map.of());
                 return;

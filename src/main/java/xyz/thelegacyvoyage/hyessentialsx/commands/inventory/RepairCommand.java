@@ -2,23 +2,22 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.inventory;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.inventory.Inventory;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
-import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 
 @SuppressWarnings("removal")
 public final class RepairCommand extends AbstractPlayerCommand {
@@ -36,7 +35,8 @@ public final class RepairCommand extends AbstractPlayerCommand {
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"fix"});
-        this.setAllowsExtraArguments(true);
+        this.addUsageVariant(new RepairOtherCommand());
+        this.addSubCommand(new RepairAllCommand());
     }
 
     @Override
@@ -60,35 +60,18 @@ public final class RepairCommand extends AbstractPlayerCommand {
             return;
         }
 
-        List<String> args = CommandInputUtil.getArgs(context);
-        boolean repairAll = false;
-        String targetName = null;
+        repair(context, store, playerRef, playerRef, false);
+    }
 
-        if (!args.isEmpty()) {
-            String first = args.get(0);
-            if (isAllToken(first)) {
-                repairAll = true;
-                if (args.size() >= 2) {
-                    targetName = args.get(1);
-                }
-            } else {
-                targetName = first;
-                if (args.size() >= 2 && isAllToken(args.get(1))) {
-                    repairAll = true;
-                }
-            }
+    private void repair(@Nonnull CommandContext context,
+                        @Nonnull Store<EntityStore> store,
+                        @Nonnull PlayerRef playerRef,
+                        PlayerRef target,
+                        boolean repairAll) {
+        if (target == null) {
+            Messages.errKey(context, "player.not_found", java.util.Map.of());
+            return;
         }
-
-        PlayerRef target = playerRef;
-        if (targetName != null && !targetName.isBlank()) {
-            PlayerRef resolved = Universe.get().getPlayerByUsername(targetName, NameMatching.EXACT_IGNORE_CASE);
-            if (resolved == null) {
-                Messages.errKey(context, "player.not_found", java.util.Map.of());
-                return;
-            }
-            target = resolved;
-        }
-
         boolean isSelf = playerRef.getUuid().equals(target.getUuid());
         if (!isSelf && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
             Messages.noPerm(context, "/repair " + target.getUsername());
@@ -98,7 +81,6 @@ public final class RepairCommand extends AbstractPlayerCommand {
             Messages.noPerm(context, "/repair all");
             return;
         }
-
         if (!isSelf && playerRef.getWorldUuid() != null && target.getWorldUuid() != null
                 && !playerRef.getWorldUuid().equals(target.getWorldUuid())) {
             Messages.errKey(context, "error.target_world", java.util.Map.of());
@@ -136,9 +118,66 @@ public final class RepairCommand extends AbstractPlayerCommand {
         }
     }
 
-    private boolean isAllToken(@Nonnull String token) {
-        String lowered = token.toLowerCase();
-        return lowered.equals("all") || lowered.equals("--all");
+    private final class RepairOtherCommand extends AbstractPlayerCommand {
+        private final RequiredArg<PlayerRef> targetArg;
+
+        private RepairOtherCommand() {
+            super("Repairs a player's held item");
+            this.setPermissionGroups();
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/repair");
+                return;
+            }
+            if (!cooldowns.canUse(context, playerRef, CooldownKeys.REPAIR, "/repair", BYPASS_PERMISSION)) {
+                return;
+            }
+            repair(context, store, playerRef, context.get(targetArg), false);
+        }
+    }
+
+    private final class RepairAllCommand extends AbstractPlayerCommand {
+        private final OptionalArg<PlayerRef> targetArg;
+
+        private RepairAllCommand() {
+            super("all", "Repairs all items");
+            this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/repair");
+                return;
+            }
+            if (!cooldowns.canUse(context, playerRef, CooldownKeys.REPAIR, "/repair", BYPASS_PERMISSION)) {
+                return;
+            }
+            PlayerRef target = context.provided(targetArg) ? context.get(targetArg) : playerRef;
+            repair(context, store, playerRef, target, true);
+        }
     }
 }
 

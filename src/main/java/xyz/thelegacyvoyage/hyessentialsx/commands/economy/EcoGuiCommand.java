@@ -3,19 +3,19 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.economy;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyHudManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -26,6 +26,7 @@ public final class EcoGuiCommand extends AbstractPlayerCommand {
     private final EconomyManager economy;
     private final EconomyHudManager hudManager;
     private final ConfigManager config;
+    private final RequiredArg<String> modeArg;
 
     public EcoGuiCommand(@Nonnull EconomyManager economy,
                          @Nonnull EconomyHudManager hudManager,
@@ -35,7 +36,7 @@ public final class EcoGuiCommand extends AbstractPlayerCommand {
         this.hudManager = hudManager;
         this.config = config;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.modeArg = withRequiredArg("mode", "on, off, or toggle", ArgTypes.STRING);
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -59,13 +60,7 @@ public final class EcoGuiCommand extends AbstractPlayerCommand {
             return;
         }
 
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (args.isEmpty()) {
-            Messages.warnKey(context, "economy.hud.usage", Map.of());
-            return;
-        }
-
-        String mode = args.get(0).trim().toLowerCase(Locale.ROOT);
+        String mode = context.get(modeArg).trim().toLowerCase(Locale.ROOT);
         boolean hidden;
         switch (mode) {
             case "on", "show" -> hidden = false;

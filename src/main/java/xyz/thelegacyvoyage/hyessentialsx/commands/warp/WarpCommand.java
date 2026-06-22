@@ -2,8 +2,9 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.warp;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -16,7 +17,6 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.WarpsUI;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
@@ -42,6 +42,9 @@ public final class WarpCommand extends CommandBase {
     private final ConfigManager config;
     private final CommandCooldownManager cooldowns;
     private final BackManager backManager;
+    private final OptionalArg<String> warpArg;
+    private final OptionalArg<PlayerRef> targetArg;
+
     public WarpCommand(@Nonnull WarpManager warpManager,
                        @Nonnull TPManager tpManager,
                        @Nonnull ConfigManager config,
@@ -54,7 +57,8 @@ public final class WarpCommand extends CommandBase {
         this.cooldowns = cooldowns;
         this.backManager = backManager;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.warpArg = withOptionalArg("warp", "Warp name", ArgTypes.STRING);
+        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
     }
 
     @Override
@@ -70,13 +74,12 @@ public final class WarpCommand extends CommandBase {
         }
 
         PlayerRef senderPlayer = CommandSenderUtil.resolvePlayer(context);
-        List<String> args = CommandInputUtil.getArgs(context);
-        if (args.isEmpty()) {
+        if (!context.provided(warpArg)) {
             handleWarpList(context, senderPlayer);
             return;
         }
 
-        String name = args.get(0);
+        String name = context.get(warpArg);
         if (name == null || name.trim().isEmpty()) {
             Messages.errKey(context, "warp.not_found", Map.of());
             return;
@@ -96,13 +99,8 @@ public final class WarpCommand extends CommandBase {
         }
 
         PlayerRef target = senderPlayer;
-        if (args.size() >= 2) {
-            String targetName = args.get(1);
-            if (targetName == null || targetName.isBlank()) {
-                Messages.errKey(context, "player.not_found", Map.of());
-                return;
-            }
-            target = Universe.get().getPlayerByUsername(targetName, NameMatching.EXACT_IGNORE_CASE);
+        if (context.provided(targetArg)) {
+            target = context.get(targetArg);
             if (target == null) {
                 Messages.errKey(context, "player.not_found", Map.of());
                 return;

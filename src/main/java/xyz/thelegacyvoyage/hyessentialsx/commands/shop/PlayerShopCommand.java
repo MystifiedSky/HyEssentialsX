@@ -7,6 +7,8 @@ import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.Entity;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -29,7 +31,6 @@ import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.PlayerShopBrowseUI;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopAdminUI;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
@@ -54,6 +55,8 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
     private final ShopAdminDraftCache draftCache;
     private final ConfigManager config;
     private final StorageManager storage;
+    private final OptionalArg<String> actionArg;
+    private final OptionalArg<String> nameArg;
 
     public PlayerShopCommand(@Nonnull ShopManager shopManager,
                              @Nonnull EconomyManager economy,
@@ -67,7 +70,8 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         this.config = config;
         this.storage = storage;
         this.setPermissionGroups();
-        this.setAllowsExtraArguments(true);
+        this.actionArg = withOptionalArg("action", "list, create, delete, edit, move, link, or shop", ArgTypes.STRING);
+        this.nameArg = withOptionalArg("name", "Shop name", ArgTypes.STRING);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -87,7 +91,9 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             return;
         }
 
-        List<String> args = CommandInputUtil.getArgs(context);
+        List<String> args = new ArrayList<>();
+        if (context.provided(actionArg)) args.add(context.get(actionArg));
+        if (context.provided(nameArg)) args.add(context.get(nameArg));
         if (args.isEmpty()) {
             if (!hasUsePermission(context.sender(), playerRef)) {
                 Messages.noPerm(context, "/shop");

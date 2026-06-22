@@ -1,11 +1,14 @@
 package xyz.thelegacyvoyage.hyessentialsx.ui;
 
-import com.google.gson.Gson;
+import com.hypixel.hytale.codec.Codec;
+import com.hypixel.hytale.codec.KeyedCodec;
+import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -29,7 +32,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-public final class BanListUI extends com.hypixel.hytale.server.core.entity.entities.player.pages.CustomUIPage {
+public final class BanListUI extends InteractiveCustomUIPage<BanListUI.UIEventData> {
 
     private static final String LAYOUT = "hyessentialsx/BanListPage.ui";
     private static final String ROW_LAYOUT = "hyessentialsx/BanRow.ui";
@@ -41,13 +44,12 @@ public final class BanListUI extends com.hypixel.hytale.server.core.entity.entit
     private final BanManager banManager;
     private final IpBanManager ipBanManager;
     private final StorageManager storage;
-    private final Gson gson = new Gson();
 
     public BanListUI(@Nonnull PlayerRef playerRef,
                      @Nonnull BanManager banManager,
                      @Nonnull IpBanManager ipBanManager,
                      @Nonnull StorageManager storage) {
-        super(playerRef, CustomPageLifetime.CanDismiss);
+        super(playerRef, CustomPageLifetime.CanDismiss, UIEventData.CODEC);
         this.playerRef = playerRef;
         this.banManager = banManager;
         this.ipBanManager = ipBanManager;
@@ -70,7 +72,7 @@ public final class BanListUI extends com.hypixel.hytale.server.core.entity.entit
         evt.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 "#CloseButton",
-                EventData.of("action", "close"),
+                EventData.of("Action", "Close"),
                 false
         );
     }
@@ -79,44 +81,23 @@ public final class BanListUI extends com.hypixel.hytale.server.core.entity.entit
     public void handleDataEvent(
             @Nonnull Ref<EntityStore> ref,
             @Nonnull Store<EntityStore> store,
-            String data
+            @Nonnull UIEventData data
     ) {
-        if (data == null || data.isEmpty()) {
+        if (data.action == null || data.action.isEmpty()) {
             return;
         }
-
-        Map<?, ?> payload;
-        try {
-            payload = gson.fromJson(data, Map.class);
-        } catch (Exception e) {
-            return;
-        }
-        if (payload == null) {
-            return;
-        }
-        Object actionObj = payload.get("action");
-        if (!(actionObj instanceof String)) {
-            return;
-        }
-        String action = (String) actionObj;
-        if (action.isEmpty()) {
-            return;
-        }
-
-        if (action.equals("close")) {
+        if (data.action.equals("Close")) {
             close();
             return;
         }
 
-        if (action.startsWith("unban:")) {
-            String id = action.substring("unban:".length());
-            handleUnban(ref, store, id);
+        if (data.action.equals("Unban")) {
+            handleUnban(ref, store, data.target);
             return;
         }
 
-        if (action.startsWith("unip:")) {
-            String ip = action.substring("unip:".length());
-            handleUnipBan(ref, store, ip);
+        if (data.action.equals("UnipBan")) {
+            handleUnipBan(ref, store, data.target);
         }
     }
 
@@ -147,7 +128,7 @@ public final class BanListUI extends com.hypixel.hytale.server.core.entity.entit
             evt.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     rowBase + " #Actions #UnbanBtn",
-                    EventData.of("action", entry.action),
+                    EventData.of("Action", entry.action).append("Target", entry.target),
                     false
             );
             rowIndex++;
@@ -291,21 +272,37 @@ public final class BanListUI extends com.hypixel.hytale.server.core.entity.entit
 
     private static final class BanEntry {
         private final String action;
+        private final String target;
         private final String displayName;
         private final String reason;
 
-        private BanEntry(@Nonnull String action, @Nonnull String displayName, @Nonnull String reason) {
+        private BanEntry(@Nonnull String action,
+                         @Nonnull String target,
+                         @Nonnull String displayName,
+                         @Nonnull String reason) {
             this.action = action;
+            this.target = target;
             this.displayName = displayName;
             this.reason = reason;
         }
 
         private static BanEntry player(@Nonnull UUID uuid, @Nonnull String displayName, @Nonnull String reason) {
-            return new BanEntry("unban:" + uuid, displayName, reason);
+            return new BanEntry("Unban", uuid.toString(), displayName, reason);
         }
 
         private static BanEntry ip(@Nonnull String ip, @Nonnull String displayName, @Nonnull String reason) {
-            return new BanEntry("unip:" + ip, displayName, reason);
+            return new BanEntry("UnipBan", ip, displayName, reason);
         }
+    }
+
+    public static final class UIEventData {
+        public static final BuilderCodec<UIEventData> CODEC = BuilderCodec
+                .builder(UIEventData.class, UIEventData::new)
+                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
+                .addField(new KeyedCodec<>("Target", Codec.STRING), (d, v) -> d.target = v, d -> d.target)
+                .build();
+
+        private String action;
+        private String target;
     }
 }

@@ -23,6 +23,8 @@ import javax.annotation.Nonnull;
 public final class SetHomeCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.sethome";
+    private static final String MAX_PERMISSION_PREFIX = "hyessentialsx.sethome.max.";
+    private static final int MAX_PERMISSION_SCAN = 1000;
 
     private final HomeManager homeManager;
     private final ConfigManager config;
@@ -65,6 +67,18 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
             return;
         }
 
+        boolean alreadyExists = homeManager.hasHome(playerRef.getUuid(), name);
+        if (!alreadyExists) {
+            int maxHomes = resolveMaxHomes(context.sender());
+            if (maxHomes >= 0) {
+                int current = homeManager.getHomeCount(playerRef.getUuid());
+                if (current >= maxHomes) {
+                    Messages.err(context, "You have reached your home limit (&f" + maxHomes + "&c).");
+                    return;
+                }
+            }
+        }
+
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null) {
             Messages.err(context, "Could not read your position.");
@@ -97,6 +111,21 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
         ));
 
         Messages.ok(context, "Home '&f" + name + "&a' set.");
+    }
+
+    private int resolveMaxHomes(@Nonnull com.hypixel.hytale.server.core.command.system.CommandSender sender) {
+        if (sender.hasPermission(MAX_PERMISSION_PREFIX + "*")
+                || sender.hasPermission(MAX_PERMISSION_PREFIX + "unlimited")) {
+            return -1;
+        }
+
+        int max = -1;
+        for (int i = 1; i <= MAX_PERMISSION_SCAN; i++) {
+            if (sender.hasPermission(MAX_PERMISSION_PREFIX + i)) {
+                max = i;
+            }
+        }
+        return max;
     }
 }
 

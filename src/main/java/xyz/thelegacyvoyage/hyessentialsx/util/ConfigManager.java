@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.PluginInfoUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -44,6 +45,14 @@ public final class ConfigManager {
 
     private double nearRadius = 50.0;
     private boolean nearShowDistance = true;
+
+    private boolean autoBroadcastEnabled = true;
+    private int autoBroadcastIntervalSeconds = 300;
+    private boolean autoBroadcastRandom = false;
+    private List<String> autoBroadcastMessages = List.of(
+            "&c[Broadcast]&f Welcome to the server!",
+            "&c[Broadcast]&f Use &e/rules&f to read the rules."
+    );
 
     private boolean welcomeEnabled = true;
     private boolean welcomeBroadcastToAll = true;
@@ -171,6 +180,13 @@ public final class ConfigManager {
         tpa.addProperty("timeoutSeconds", tpaRequestTimeoutSeconds);
         root.add("tpa", tpa);
 
+        JsonObject autoBroadcast = new JsonObject();
+        autoBroadcast.addProperty("enabled", true);
+        autoBroadcast.addProperty("intervalSeconds", autoBroadcastIntervalSeconds);
+        autoBroadcast.addProperty("random", autoBroadcastRandom);
+        autoBroadcast.add("messages", toArray(autoBroadcastMessages));
+        root.add("autoBroadcast", autoBroadcast);
+
         JsonObject spawn = new JsonObject();
         spawn.addProperty("set", false);
         spawn.addProperty("world", "");
@@ -203,6 +219,12 @@ public final class ConfigManager {
             String content = Files.readString(configPath, StandardCharsets.UTF_8);
             root = gson.fromJson(content, JsonObject.class);
             if (root == null) root = buildDefaultConfig();
+            JsonObject defaults = buildDefaultConfig();
+            boolean changed = mergeDefaults(root, defaults);
+            if (!root.has("autoBroadcast") || !root.get("autoBroadcast").isJsonObject()) {
+                root.add("autoBroadcast", defaults.get("autoBroadcast"));
+                changed = true;
+            }
 
             JsonObject general = obj(root, "general");
             useWorldDefaultSpawnIfUnset = bool(general, "spawnFallbackToWorldDefault", true);
@@ -216,6 +238,12 @@ public final class ConfigManager {
             JsonObject near = obj(root, "near");
             nearRadius = dbl(near, "radius", nearRadius);
             nearShowDistance = bool(near, "showDistance", nearShowDistance);
+
+            JsonObject autoBroadcast = obj(root, "autoBroadcast");
+            autoBroadcastEnabled = bool(autoBroadcast, "enabled", autoBroadcastEnabled);
+            autoBroadcastIntervalSeconds = intVal(autoBroadcast, "intervalSeconds", autoBroadcastIntervalSeconds);
+            autoBroadcastRandom = bool(autoBroadcast, "random", autoBroadcastRandom);
+            autoBroadcastMessages = list(autoBroadcast, "messages", autoBroadcastMessages);
 
             JsonObject features = obj(root, "features");
             homesEnabled = bool(features, "homes", true);
@@ -289,6 +317,13 @@ public final class ConfigManager {
             if (storage.has("mariadbPassword") && !storage.has("mysqlPassword")) {
                 mysqlPassword = str(storage, "mariadbPassword", mysqlPassword);
             }
+
+            if (changed) {
+                applyFieldsToRoot();
+                save();
+                Log.info("Updated config.json with new defaults at: " + configPath);
+            }
+            setVersionFromPlugin();
         } catch (Exception e) {
             Log.warn("Failed to load config.json, using defaults: " + e.getMessage());
             root = buildDefaultConfig();
@@ -365,6 +400,27 @@ public final class ConfigManager {
 
     public boolean isNearShowDistance() {
         return nearShowDistance;
+    }
+
+    public boolean isAutoBroadcastEnabled() {
+        return autoBroadcastEnabled;
+    }
+
+    public int getAutoBroadcastIntervalSeconds() {
+        return autoBroadcastIntervalSeconds;
+    }
+
+    public boolean isAutoBroadcastRandom() {
+        return autoBroadcastRandom;
+    }
+
+    public boolean hasAutoBroadcastSection() {
+        return root != null && root.has("autoBroadcast") && root.get("autoBroadcast").isJsonObject();
+    }
+
+    @Nonnull
+    public List<String> getAutoBroadcastMessages() {
+        return Collections.unmodifiableList(autoBroadcastMessages);
     }
 
     public boolean isWelcomeEnabled() {
@@ -482,31 +538,40 @@ public final class ConfigManager {
 
     private void save() {
         try {
-            Files.writeString(configPath, gson.toJson(buildCurrentConfig()), StandardCharsets.UTF_8);
+            applyFieldsToRoot();
+            Files.writeString(configPath, gson.toJson(root), StandardCharsets.UTF_8);
         } catch (Exception e) {
             Log.warn("Failed to save config.json: " + e.getMessage());
         }
     }
 
-    private JsonObject buildCurrentConfig() {
-        JsonObject out = buildDefaultConfig();
+    private void applyFieldsToRoot() {
+        if (root == null) root = buildDefaultConfig();
 
-        JsonObject general = obj(out, "general");
+        root.addProperty("version", PluginInfoUtil.getVersion());
+
+        JsonObject general = obj(root, "general");
         general.addProperty("spawnFallbackToWorldDefault", useWorldDefaultSpawnIfUnset);
 
-        JsonObject tpa = obj(out, "tpa");
+        JsonObject tpa = obj(root, "tpa");
         tpa.addProperty("timeoutSeconds", tpaRequestTimeoutSeconds);
 
-        JsonObject rtp = obj(out, "rtp");
+        JsonObject rtp = obj(root, "rtp");
         rtp.addProperty("radius", rtpMaxDistance);
         rtp.addProperty("enabled", rtpEnabled);
 
-        JsonObject near = obj(out, "near");
+        JsonObject near = obj(root, "near");
         near.addProperty("enabled", nearEnabled);
         near.addProperty("radius", nearRadius);
         near.addProperty("showDistance", nearShowDistance);
 
-        JsonObject features = obj(out, "features");
+        JsonObject autoBroadcast = obj(root, "autoBroadcast");
+        autoBroadcast.addProperty("enabled", autoBroadcastEnabled);
+        autoBroadcast.addProperty("intervalSeconds", autoBroadcastIntervalSeconds);
+        autoBroadcast.addProperty("random", autoBroadcastRandom);
+        autoBroadcast.add("messages", toArray(autoBroadcastMessages));
+
+        JsonObject features = obj(root, "features");
         features.addProperty("homes", homesEnabled);
         features.addProperty("warps", warpsEnabled);
         features.addProperty("kits", kitsEnabled);
@@ -520,26 +585,26 @@ public final class ConfigManager {
         features.addProperty("tpa", tpaEnabled);
         features.addProperty("adminChat", adminChatEnabled);
 
-        JsonObject welcome = obj(out, "welcomeMessage");
+        JsonObject welcome = obj(root, "welcomeMessage");
         welcome.addProperty("enabled", welcomeEnabled);
         welcome.addProperty("broadcastToAll", welcomeBroadcastToAll);
         welcome.add("messages", toArray(welcomeMessages));
 
-        JsonObject joinQuit = obj(out, "joinAndQuit");
+        JsonObject joinQuit = obj(root, "joinAndQuit");
         joinQuit.addProperty("enabled", joinQuitEnabled);
         joinQuit.add("joinMessages", toArray(joinMessages));
         joinQuit.add("quitMessages", toArray(quitMessages));
 
-        JsonObject motd = obj(out, "motd");
+        JsonObject motd = obj(root, "motd");
         motd.addProperty("enabled", motdEnabled);
         motd.addProperty("showOnJoin", motdShowOnJoin);
         motd.add("messages", toArray(motdMessages));
 
-        JsonObject rulesObj = obj(out, "rules");
+        JsonObject rulesObj = obj(root, "rules");
         rulesObj.addProperty("enabled", rulesEnabled);
         rulesObj.add("messages", toArray(rules));
 
-        JsonObject spawn = obj(out, "spawn");
+        JsonObject spawn = obj(root, "spawn");
         spawn.addProperty("set", spawnSet);
         spawn.addProperty("world", spawnWorld);
         spawn.addProperty("x", spawnX);
@@ -548,7 +613,7 @@ public final class ConfigManager {
         spawn.addProperty("yaw", spawnYaw);
         spawn.addProperty("pitch", spawnPitch);
 
-        JsonObject storage = obj(out, "storage");
+        JsonObject storage = obj(root, "storage");
         storage.addProperty("type", storageType);
         storage.addProperty("sqliteFile", sqliteFile);
         storage.addProperty("mysqlHost", mysqlHost);
@@ -556,8 +621,12 @@ public final class ConfigManager {
         storage.addProperty("mysqlDatabase", mysqlDatabase);
         storage.addProperty("mysqlUser", mysqlUser);
         storage.addProperty("mysqlPassword", mysqlPassword);
+    }
 
-        return out;
+    private void setVersionFromPlugin() {
+        if (root == null) return;
+        root.addProperty("version", PluginInfoUtil.getVersion());
+        save();
     }
 
     private JsonObject obj(@Nonnull JsonObject parent, @Nonnull String key) {
@@ -620,5 +689,24 @@ public final class ConfigManager {
         JsonArray arr = new JsonArray();
         for (String value : values) arr.add(value);
         return arr;
+    }
+
+    private boolean mergeDefaults(@Nonnull JsonObject target, @Nonnull JsonObject defaults) {
+        boolean changed = false;
+        for (String key : defaults.keySet()) {
+            JsonElement defVal = defaults.get(key);
+            if (!target.has(key)) {
+                target.add(key, defVal);
+                changed = true;
+                continue;
+            }
+            JsonElement curVal = target.get(key);
+            if (defVal.isJsonObject() && curVal.isJsonObject()) {
+                if (mergeDefaults(curVal.getAsJsonObject(), defVal.getAsJsonObject())) {
+                    changed = true;
+                }
+            }
+        }
+        return changed;
     }
 }

@@ -26,6 +26,16 @@ public final class HomeManager {
         storage.savePlayerDataAsync(playerId, data);
     }
 
+    public boolean hasHome(@Nonnull UUID playerId, @Nonnull String name) {
+        PlayerDataModel data = storage.getPlayerData(playerId);
+        return data.getHomes().containsKey(name.toLowerCase());
+    }
+
+    public int getHomeCount(@Nonnull UUID playerId) {
+        PlayerDataModel data = storage.getPlayerData(playerId);
+        return data.getHomes().size();
+    }
+
     @Nullable
     public HomeModel getHome(@Nonnull UUID playerId, @Nonnull String name) {
         PlayerDataModel data = storage.getPlayerData(playerId);

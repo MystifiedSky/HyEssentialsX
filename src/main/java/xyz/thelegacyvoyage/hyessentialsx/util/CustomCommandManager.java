@@ -4,6 +4,7 @@ import org.yaml.snakeyaml.Yaml;
 import xyz.thelegacyvoyage.hyessentialsx.models.CustomCommandDefinition;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,9 +26,18 @@ public final class CustomCommandManager {
         load();
     }
 
+    public void reload() {
+        load();
+    }
+
     @Nonnull
     public Map<String, CustomCommandDefinition> getCommands() {
         return Collections.unmodifiableMap(commands);
+    }
+
+    @Nullable
+    public CustomCommandDefinition getCommandOrNull(@Nonnull String name) {
+        return commands.get(name.toLowerCase());
     }
 
     private void ensureExists() {

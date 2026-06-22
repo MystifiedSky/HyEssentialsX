@@ -80,6 +80,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.AutoBroadcastManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CustomCommandManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.StorageManager;
@@ -108,6 +109,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private BanManager banManager;
     private FreecamManager freecamManager;
     private CustomCommandManager customCommandManager;
+    private AutoBroadcastManager autoBroadcastManager;
 
 
     public HyEssentialsXPlugin(@Nonnull JavaPluginInit init) {
@@ -123,11 +125,35 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         return spawnManager;
     }
 
+    public synchronized void reloadPlugin() {
+        Log.info("[HyEssentialsX] Reloading...");
+        if (configManager != null) {
+            configManager.reload();
+        }
+        if (customCommandManager != null) {
+            customCommandManager.reload();
+        }
+        if (storage != null) {
+            storage.reloadCaches();
+        }
+        if (spawnManager != null) {
+            spawnManager.syncWorldSpawnProvider();
+        }
+        if (autoBroadcastManager != null) {
+            autoBroadcastManager.shutdown();
+        }
+        autoBroadcastManager = new AutoBroadcastManager(configManager);
+        autoBroadcastManager.start();
+        Log.info("[HyEssentialsX] Reload complete.");
+    }
+
     @Override
     protected void setup() {
         Log.init(LOGGER);
         Log.info("[HyEssentialsX] Setting up...");
         configManager = new ConfigManager(getDataDirectory());
+        Log.info("[HyEssentialsX] Config path: " + getDataDirectory().resolve("config.json"));
+        Log.info("[HyEssentialsX] AutoBroadcast present: " + configManager.hasAutoBroadcastSection());
 
         storage = new StorageManager(getDataDirectory(), configManager);
         spawnManager = new SpawnManager(configManager);
@@ -145,6 +171,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         banManager = new BanManager(storage);
         freecamManager = new FreecamManager();
         customCommandManager = new CustomCommandManager(getDataDirectory());
+        autoBroadcastManager = new AutoBroadcastManager(configManager);
 
         Log.info("[HyEssentialsX] Setup complete!");
     }
@@ -158,6 +185,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
 
         godManager.clearAll();
         staminaManager.clearAll();
+        autoBroadcastManager.start();
 
         Log.info("[HyEssentialsX] Started! Use /essentials help");
     }
@@ -165,6 +193,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     @Override
     protected void shutdown() {
         Log.info("[HyEssentialsX] Shutting down...");
+        if (autoBroadcastManager != null) autoBroadcastManager.shutdown();
         if (storage != null) storage.shutdown();
         instance = null;
     }
@@ -220,7 +249,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         getCommandRegistry().registerCommand(new TempBanCommand(banManager, storage));
         getCommandRegistry().registerCommand(new UnbanCommand(banManager, storage));
         for (var entry : customCommandManager.getCommands().values()) {
-            getCommandRegistry().registerCommand(new CustomTextCommand(entry));
+            getCommandRegistry().registerCommand(
+                    new CustomTextCommand(customCommandManager, entry.getName(), entry.getPermission(), entry.getAliases())
+            );
         }
         Log.info("[HyEssentialsX] Commands registered");
     }

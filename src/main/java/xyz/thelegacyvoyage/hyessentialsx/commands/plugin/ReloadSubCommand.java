@@ -34,9 +34,9 @@ public class ReloadSubCommand extends CommandBase {
 
         context.sendMessage(Message.raw("Reloading HyEssentialsX..."));
 
-        // TODO: Add your reload logic here
-        // Example: Reload config files, refresh caches, etc.
+        plugin.reloadPlugin();
 
         context.sendMessage(Message.raw("HyEssentialsX reloaded successfully!"));
+        context.sendMessage(Message.raw("Note: adding/removing custom commands or changing storage type requires a server restart."));
     }
 }

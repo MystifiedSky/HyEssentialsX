@@ -85,6 +85,11 @@ public final class StorageManager {
         rebuildNameIndex();
     }
 
+    public void reloadCaches() {
+        playerCache.clear();
+        loadAll();
+    }
+
     private void rebuildNameIndex() {
         nameIndex.clear();
         Set<UUID> ids = backend.listPlayerIds();

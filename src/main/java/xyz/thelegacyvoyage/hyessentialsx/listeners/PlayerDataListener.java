@@ -27,6 +27,7 @@ public final class PlayerDataListener {
     private final FreecamManager freecam;
     private final GodManager god;
     private final InfiniteStaminaManager stamina;
+    private final xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager economy;
 
     public PlayerDataListener(@Nonnull StorageManager storage,
                               @Nonnull BanManager bans,
@@ -34,7 +35,8 @@ public final class PlayerDataListener {
                               @Nonnull AdminChatManager adminChat,
                               @Nonnull FreecamManager freecam,
                               @Nonnull GodManager god,
-                              @Nonnull InfiniteStaminaManager stamina) {
+                              @Nonnull InfiniteStaminaManager stamina,
+                              @Nonnull xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager economy) {
         this.storage = storage;
         this.bans = bans;
         this.messages = messages;
@@ -42,6 +44,7 @@ public final class PlayerDataListener {
         this.freecam = freecam;
         this.god = god;
         this.stamina = stamina;
+        this.economy = economy;
     }
 
     public void register(@Nonnull EventRegistry events) {
@@ -49,6 +52,7 @@ public final class PlayerDataListener {
             PlayerRef player = event.getPlayerRef();
             if (player == null) return;
 
+            economy.ensureStartingBalance(player.getUuid());
             storage.updatePlayerName(player.getUuid(), player.getUsername());
             god.clear(player.getUuid());
             stamina.clear(player.getUuid());

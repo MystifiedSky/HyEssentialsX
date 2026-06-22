@@ -1,0 +1,41 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {
+  $C.@Container {
+    @CloseButton = true;
+    Anchor: (Width: 520, Height: 420);
+
+    #Title {
+      $C.@Title {
+        @Text = "Kits";
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15);
+
+      Group #HeaderRow {
+        Anchor: (Height: 24, Bottom: 10);
+        LayoutMode: Left;
+
+        Label #KitCount {
+          Text: "0 Kits";
+          Style: (FontSize: 12, TextColor: #888888);
+        }
+      }
+
+      Group #KitListContainer {
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        FlexWeight: 1;
+
+        Group #KitList {
+          LayoutMode: Top;
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

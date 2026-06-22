@@ -48,15 +48,19 @@ public final class ConfigManager {
 
     private boolean homesEnabled = true;
     private boolean warpsEnabled = true;
+    private boolean warpsGuiEnabled = true;
     private boolean kitsEnabled = true;
+    private boolean kitsGuiEnabled = true;
     private boolean msgEnabled = true;
     private boolean nearEnabled = true;
     private boolean motdEnabled = true;
     private boolean rulesEnabled = true;
+    private boolean rulesGuiEnabled = true;
     private boolean rtpEnabled = true;
     private boolean broadcastEnabled = true;
     private boolean spawnEnabled = true;
     private boolean tpaEnabled = true;
+    private boolean tpaGuiEnabled = true;
     private boolean adminChatEnabled = true;
     private boolean afkEnabled = true;
     private boolean chatEnabled = false;
@@ -67,6 +71,20 @@ public final class ConfigManager {
     private boolean spawnProtectionAllowPlace = false;
     private boolean spawnProtectionAllowDamage = false;
     private boolean spawnProtectionAllowInteract = true;
+    private boolean economyEnabled = true;
+    private String economyCurrencySymbol = "$";
+    private long economyStartingBalance = 0L;
+    private boolean economyRewardsEnabled = true;
+    private boolean economyBlockRewardsEnabled = true;
+    private boolean economyMobRewardsEnabled = true;
+    private boolean economyRewardsDebug = false;
+    private boolean economyRewardsPopupEnabled = true;
+    private String economyRewardsPopupStyle = "Success";
+    private boolean economyBaltopGuiEnabled = true;
+    private long economyMobDefaultReward = 0L;
+    private Map<String, Long> economyBlockRewards = defaultBlockRewards();
+    private Map<String, Long> economyBlockGroupRewards = defaultBlockGroupRewards();
+    private Map<String, Long> economyMobRewards = defaultMobRewards();
     private String defaultKit = "";
 
     private double nearRadius = 50.0;
@@ -189,6 +207,31 @@ public final class ConfigManager {
         spawnProtection.addProperty("allowInteract", true);
         root.add("spawnProtection", spawnProtection);
 
+        JsonObject economy = new JsonObject();
+        economy.addProperty("enabled", true);
+        economy.addProperty("currencySymbol", "$");
+        economy.addProperty("startingBalance", 0);
+        economy.addProperty("baltopGui", true);
+        JsonObject rewards = new JsonObject();
+        rewards.addProperty("enabled", true);
+        rewards.addProperty("debug", false);
+        JsonObject popup = new JsonObject();
+        popup.addProperty("enabled", true);
+        popup.addProperty("style", "Success");
+        rewards.add("popup", popup);
+        JsonObject blockRewards = new JsonObject();
+        blockRewards.addProperty("enabled", true);
+        blockRewards.add("rewards", toLongMapObject(economyBlockRewards));
+        blockRewards.add("groupRewards", toLongMapObject(economyBlockGroupRewards));
+        rewards.add("blocks", blockRewards);
+        JsonObject mobRewards = new JsonObject();
+        mobRewards.addProperty("enabled", true);
+        mobRewards.addProperty("defaultReward", 0);
+        mobRewards.add("rewards", toLongMapObject(economyMobRewards));
+        rewards.add("mobs", mobRewards);
+        economy.add("rewards", rewards);
+        root.add("economy", economy);
+
         JsonObject groupPriorities = new JsonObject();
         for (Map.Entry<String, Integer> entry : chatGroupPriorities.entrySet()) {
             groupPriorities.addProperty(entry.getKey(), entry.getValue());
@@ -212,6 +255,7 @@ public final class ConfigManager {
 
         JsonObject kits = new JsonObject();
         kits.addProperty("defaultKit", "");
+        kits.addProperty("gui", true);
         root.add("kits", kits);
 
         JsonObject motd = new JsonObject();
@@ -222,6 +266,7 @@ public final class ConfigManager {
 
         JsonObject rulesObj = new JsonObject();
         rulesObj.addProperty("enabled", true);
+        rulesObj.addProperty("gui", true);
         rulesObj.add("messages", toArray(rules));
         root.add("rules", rulesObj);
 
@@ -244,6 +289,7 @@ public final class ConfigManager {
         JsonObject warps = new JsonObject();
         warps.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
         warps.addProperty("warmupSeconds", warpWarmupSeconds);
+        warps.addProperty("gui", true);
         root.add("warps", warps);
 
         JsonObject back = new JsonObject();
@@ -278,6 +324,7 @@ public final class ConfigManager {
         tpa.addProperty("timeoutSeconds", tpaRequestTimeoutSeconds);
         tpa.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
         tpa.addProperty("warmupSeconds", tpaWarmupSeconds);
+        tpa.addProperty("gui", true);
         root.add("tpa", tpa);
 
         JsonObject autoBroadcast = new JsonObject();
@@ -349,6 +396,7 @@ public final class ConfigManager {
             JsonObject tpa = obj(root, "tpa");
             tpaRequestTimeoutSeconds = intVal(tpa, "timeoutSeconds", 60);
             tpaWarmupSeconds = intVal(tpa, "warmupSeconds", tpaWarmupSeconds);
+            tpaGuiEnabled = bool(tpa, "gui", tpaGuiEnabled);
 
             JsonObject rtp = obj(root, "rtp");
             rtpMaxDistance = intVal(rtp, "radius", 5000);
@@ -379,6 +427,7 @@ public final class ConfigManager {
             homeWarmupSeconds = intVal(homesSection, "warmupSeconds", homeWarmupSeconds);
             JsonObject warpsSection = obj(root, "warps");
             warpWarmupSeconds = intVal(warpsSection, "warmupSeconds", warpWarmupSeconds);
+            warpsGuiEnabled = bool(warpsSection, "gui", true);
             JsonObject backSection = obj(root, "back");
             backWarmupSeconds = intVal(backSection, "warmupSeconds", backWarmupSeconds);
 
@@ -449,6 +498,26 @@ public final class ConfigManager {
             spawnProtectionAllowDamage = bool(spawnProtection, "allowDamage", spawnProtectionAllowDamage);
             spawnProtectionAllowInteract = bool(spawnProtection, "allowInteract", spawnProtectionAllowInteract);
 
+            JsonObject economy = obj(root, "economy");
+            economyEnabled = bool(economy, "enabled", economyEnabled);
+            economyCurrencySymbol = str(economy, "currencySymbol", economyCurrencySymbol);
+            economyStartingBalance = Math.max(0L, longVal(economy, "startingBalance", economyStartingBalance));
+            economyBaltopGuiEnabled = bool(economy, "baltopGui", economyBaltopGuiEnabled);
+            JsonObject rewards = obj(economy, "rewards");
+            economyRewardsEnabled = bool(rewards, "enabled", economyRewardsEnabled);
+            economyRewardsDebug = bool(rewards, "debug", economyRewardsDebug);
+            JsonObject popup = obj(rewards, "popup");
+            economyRewardsPopupEnabled = bool(popup, "enabled", economyRewardsPopupEnabled);
+            economyRewardsPopupStyle = str(popup, "style", economyRewardsPopupStyle);
+            JsonObject blockRewards = obj(rewards, "blocks");
+            economyBlockRewardsEnabled = bool(blockRewards, "enabled", economyBlockRewardsEnabled);
+            economyBlockRewards = normalizeKeyedMap(readLongMap(blockRewards, "rewards", economyBlockRewards));
+            economyBlockGroupRewards = normalizeKeyedMap(readLongMap(blockRewards, "groupRewards", economyBlockGroupRewards));
+            JsonObject mobRewards = obj(rewards, "mobs");
+            economyMobRewardsEnabled = bool(mobRewards, "enabled", economyMobRewardsEnabled);
+            economyMobDefaultReward = Math.max(0L, longVal(mobRewards, "defaultReward", economyMobDefaultReward));
+            economyMobRewards = normalizeKeyedMap(readLongMap(mobRewards, "rewards", economyMobRewards));
+
             JsonObject kits = obj(root, "kits");
             defaultKit = str(kits, "defaultKit", defaultKit).trim();
 
@@ -459,7 +528,10 @@ public final class ConfigManager {
 
             JsonObject rulesObj = obj(root, "rules");
             rulesEnabled = bool(rulesObj, "enabled", rulesEnabled);
+            rulesGuiEnabled = bool(rulesObj, "gui", rulesGuiEnabled);
             rules = list(rulesObj, "messages", rules);
+            JsonObject kitsSection = obj(root, "kits");
+            kitsGuiEnabled = bool(kitsSection, "gui", kitsGuiEnabled);
 
             JsonObject afk = obj(root, "afk");
             afkEnabled = bool(afk, "enabled", afkEnabled);
@@ -540,6 +612,10 @@ public final class ConfigManager {
         return Math.max(0, tpaWarmupSeconds);
     }
 
+    public boolean isTpaGuiEnabled() {
+        return tpaGuiEnabled;
+    }
+
     public int getRtpMaxDistance() {
         return rtpMaxDistance;
     }
@@ -581,8 +657,16 @@ public final class ConfigManager {
         return warpsEnabled;
     }
 
+    public boolean isWarpsGuiEnabled() {
+        return warpsGuiEnabled;
+    }
+
     public boolean isKitsEnabled() {
         return kitsEnabled;
+    }
+
+    public boolean isKitsGuiEnabled() {
+        return kitsGuiEnabled;
     }
 
     public boolean isMsgEnabled() {
@@ -599,6 +683,10 @@ public final class ConfigManager {
 
     public boolean isRulesEnabled() {
         return rulesEnabled;
+    }
+
+    public boolean isRulesGuiEnabled() {
+        return rulesGuiEnabled;
     }
 
     public boolean isRtpEnabled() {
@@ -705,6 +793,67 @@ public final class ConfigManager {
 
     public boolean isSpawnProtectionAllowInteract() {
         return spawnProtectionAllowInteract;
+    }
+
+    public boolean isEconomyEnabled() {
+        return economyEnabled;
+    }
+
+    @Nonnull
+    public String getEconomyCurrencySymbol() {
+        return economyCurrencySymbol;
+    }
+
+    public long getEconomyStartingBalance() {
+        return economyStartingBalance;
+    }
+
+    public boolean isEconomyRewardsEnabled() {
+        return economyRewardsEnabled;
+    }
+
+    public boolean isEconomyBlockRewardsEnabled() {
+        return economyBlockRewardsEnabled;
+    }
+
+    public boolean isEconomyMobRewardsEnabled() {
+        return economyMobRewardsEnabled;
+    }
+
+    public boolean isEconomyRewardsDebug() {
+        return economyRewardsDebug;
+    }
+
+    public boolean isEconomyRewardsPopupEnabled() {
+        return economyRewardsPopupEnabled;
+    }
+
+    @Nonnull
+    public String getEconomyRewardsPopupStyle() {
+        return economyRewardsPopupStyle;
+    }
+
+    public boolean isEconomyBaltopGuiEnabled() {
+        return economyBaltopGuiEnabled;
+    }
+
+    public long getEconomyMobDefaultReward() {
+        return economyMobDefaultReward;
+    }
+
+    @Nonnull
+    public Map<String, Long> getEconomyBlockRewards() {
+        return Collections.unmodifiableMap(economyBlockRewards);
+    }
+
+    @Nonnull
+    public Map<String, Long> getEconomyBlockGroupRewards() {
+        return Collections.unmodifiableMap(economyBlockGroupRewards);
+    }
+
+    @Nonnull
+    public Map<String, Long> getEconomyMobRewards() {
+        return Collections.unmodifiableMap(economyMobRewards);
     }
 
     @Nonnull
@@ -905,6 +1054,7 @@ public final class ConfigManager {
         tpa.addProperty("timeoutSeconds", tpaRequestTimeoutSeconds);
         tpa.addProperty("warmupSeconds", tpaWarmupSeconds);
         tpa.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.TPA));
+        tpa.addProperty("gui", tpaGuiEnabled);
 
         JsonObject rtp = obj(root, "rtp");
         rtp.addProperty("radius", rtpMaxDistance);
@@ -964,6 +1114,26 @@ public final class ConfigManager {
         spawnProtection.addProperty("allowDamage", spawnProtectionAllowDamage);
         spawnProtection.addProperty("allowInteract", spawnProtectionAllowInteract);
 
+        JsonObject economy = obj(root, "economy");
+        economy.addProperty("enabled", economyEnabled);
+        economy.addProperty("currencySymbol", economyCurrencySymbol);
+        economy.addProperty("startingBalance", Math.max(0L, economyStartingBalance));
+        economy.addProperty("baltopGui", economyBaltopGuiEnabled);
+        JsonObject rewards = obj(economy, "rewards");
+        rewards.addProperty("enabled", economyRewardsEnabled);
+        rewards.addProperty("debug", economyRewardsDebug);
+        JsonObject popup = obj(rewards, "popup");
+        popup.addProperty("enabled", economyRewardsPopupEnabled);
+        popup.addProperty("style", economyRewardsPopupStyle);
+        JsonObject blockRewards = obj(rewards, "blocks");
+        blockRewards.addProperty("enabled", economyBlockRewardsEnabled);
+        blockRewards.add("rewards", toLongMapObject(economyBlockRewards));
+        blockRewards.add("groupRewards", toLongMapObject(economyBlockGroupRewards));
+        JsonObject mobRewards = obj(rewards, "mobs");
+        mobRewards.addProperty("enabled", economyMobRewardsEnabled);
+        mobRewards.addProperty("defaultReward", Math.max(0L, economyMobDefaultReward));
+        mobRewards.add("rewards", toLongMapObject(economyMobRewards));
+
         JsonObject groupPriorities = new JsonObject();
         for (Map.Entry<String, Integer> entry : chatGroupPriorities.entrySet()) {
             groupPriorities.addProperty(entry.getKey(), entry.getValue());
@@ -975,8 +1145,13 @@ public final class ConfigManager {
         motd.addProperty("showOnJoin", motdShowOnJoin);
         motd.add("messages", toArray(motdMessages));
 
+        JsonObject kits = obj(root, "kits");
+        kits.addProperty("defaultKit", defaultKit);
+        kits.addProperty("gui", kitsGuiEnabled);
+
         JsonObject rulesObj = obj(root, "rules");
         rulesObj.addProperty("enabled", rulesEnabled);
+        rulesObj.addProperty("gui", rulesGuiEnabled);
         rulesObj.add("messages", toArray(rules));
 
         JsonObject afk = obj(root, "afk");
@@ -996,6 +1171,7 @@ public final class ConfigManager {
         JsonObject warps = obj(root, "warps");
         warps.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.WARP));
         warps.addProperty("warmupSeconds", warpWarmupSeconds);
+        warps.addProperty("gui", warpsGuiEnabled);
 
         JsonObject back = obj(root, "back");
         back.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.BACK));
@@ -1100,6 +1276,11 @@ public final class ConfigManager {
         return el != null && el.isJsonPrimitive() ? el.getAsInt() : def;
     }
 
+    private long longVal(@Nonnull JsonObject obj, @Nonnull String key, long def) {
+        JsonElement el = obj.get(key);
+        return el != null && el.isJsonPrimitive() ? el.getAsLong() : def;
+    }
+
     private double dbl(@Nonnull JsonObject obj, @Nonnull String key, double def) {
         JsonElement el = obj.get(key);
         return el != null && el.isJsonPrimitive() ? el.getAsDouble() : def;
@@ -1184,6 +1365,36 @@ public final class ConfigManager {
         return out.isEmpty() ? def : out;
     }
 
+    @Nonnull
+    private Map<String, Long> readLongMap(@Nonnull JsonObject obj, @Nonnull String key, @Nonnull Map<String, Long> def) {
+        JsonElement el = obj.get(key);
+        if (el == null || !el.isJsonObject()) return def;
+        Map<String, Long> out = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonElement> entry : el.getAsJsonObject().entrySet()) {
+            JsonElement value = entry.getValue();
+            if (value != null && value.isJsonPrimitive()) {
+                try {
+                    out.put(entry.getKey(), Math.max(0L, value.getAsLong()));
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return out.isEmpty() ? def : out;
+    }
+
+    @Nonnull
+    private Map<String, Long> normalizeKeyedMap(@Nonnull Map<String, Long> input) {
+        Map<String, Long> out = new LinkedHashMap<>();
+        for (Map.Entry<String, Long> entry : input.entrySet()) {
+            String key = entry.getKey();
+            if (key == null) continue;
+            String trimmed = key.trim();
+            if (trimmed.isBlank()) continue;
+            out.put(trimmed.toLowerCase(), entry.getValue());
+        }
+        return out;
+    }
+
     private boolean hasGroupFormat(@Nonnull Map<String, String> groups, @Nonnull String groupName) {
         for (String key : groups.keySet()) {
             if (key.equalsIgnoreCase(groupName)) return true;
@@ -1196,6 +1407,15 @@ public final class ConfigManager {
         JsonArray arr = new JsonArray();
         for (String value : values) arr.add(value);
         return arr;
+    }
+
+    @Nonnull
+    private JsonObject toLongMapObject(@Nonnull Map<String, Long> values) {
+        JsonObject obj = new JsonObject();
+        for (Map.Entry<String, Long> entry : values.entrySet()) {
+            obj.addProperty(entry.getKey(), entry.getValue());
+        }
+        return obj;
     }
 
     @Nonnull
@@ -1248,5 +1468,44 @@ public final class ConfigManager {
         priorities.put("Admin", 90);
         priorities.put("OP", 100);
         return priorities;
+    }
+
+    @Nonnull
+    private static Map<String, Long> defaultBlockRewards() {
+        Map<String, Long> rewards = new LinkedHashMap<>();
+        rewards.put("oak_log", 1L);
+        rewards.put("spruce_log", 1L);
+        rewards.put("birch_log", 1L);
+        rewards.put("jungle_log", 1L);
+        rewards.put("acacia_log", 1L);
+        rewards.put("dark_oak_log", 1L);
+        rewards.put("coal_ore", 2L);
+        rewards.put("copper_ore", 3L);
+        rewards.put("iron_ore", 4L);
+        rewards.put("gold_ore", 6L);
+        rewards.put("diamond_ore", 12L);
+        rewards.put("emerald_ore", 15L);
+        return rewards;
+    }
+
+    @Nonnull
+    private static Map<String, Long> defaultBlockGroupRewards() {
+        Map<String, Long> rewards = new LinkedHashMap<>();
+        rewards.put("wood", 1L);
+        rewards.put("ore", 5L);
+        return rewards;
+    }
+
+    @Nonnull
+    private static Map<String, Long> defaultMobRewards() {
+        Map<String, Long> rewards = new LinkedHashMap<>();
+        rewards.put("goblin", 2L);
+        rewards.put("goblin_duke", 25L);
+        rewards.put("goblin_duke_large", 40L);
+        rewards.put("skeleton_fighter", 6L);
+        rewards.put("scarak_broodmother", 50L);
+        rewards.put("wraith_lantern", 12L);
+        rewards.put("bear_grizzly", 8L);
+        return rewards;
     }
 }

@@ -1,0 +1,7 @@
+$C = "../Common.ui";
+
+Label {
+  Text: "Entry";
+  Anchor: (Height: 26, Bottom: 4);
+  Style: (FontSize: 13, TextColor: #ffffff);
+}

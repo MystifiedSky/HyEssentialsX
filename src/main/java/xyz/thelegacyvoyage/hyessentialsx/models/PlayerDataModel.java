@@ -15,6 +15,7 @@ public final class PlayerDataModel {
     private MuteModel mute;
     private BanModel ban;
     private String language;
+    private long balance;
 
     @SuppressWarnings("unused")
     public PlayerDataModel() {}
@@ -88,5 +89,13 @@ public final class PlayerDataModel {
 
     public void setLanguage(@Nullable String language) {
         this.language = language;
+    }
+
+    public long getBalance() {
+        return balance;
+    }
+
+    public void setBalance(long balance) {
+        this.balance = balance;
     }
 }

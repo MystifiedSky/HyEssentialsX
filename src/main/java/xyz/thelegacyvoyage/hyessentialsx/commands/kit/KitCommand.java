@@ -3,8 +3,6 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.kit;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
-import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.inventory.Inventory;
@@ -14,6 +12,8 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
+import xyz.thelegacyvoyage.hyessentialsx.ui.KitsUI;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -30,16 +30,14 @@ public final class KitCommand extends AbstractPlayerCommand {
 
     private final KitManager kitManager;
     private final ConfigManager config;
-    private final RequiredArg<String> nameArg;
-
     public KitCommand(@Nonnull KitManager kitManager,
                       @Nonnull ConfigManager config) {
         super("kit", "Claims a kit");
         this.kitManager = kitManager;
         this.config = config;
         this.setPermissionGroup(null);
+        this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
-        this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
     }
 
     @Override
@@ -64,7 +62,33 @@ public final class KitCommand extends AbstractPlayerCommand {
             return;
         }
 
-        String name = context.get(nameArg);
+        List<String> args = CommandInputUtil.getArgs(context);
+        if (args.isEmpty()) {
+            List<String> kits = kitManager.listKits();
+            if (kits.isEmpty()) {
+                Messages.warn(context, "No kits available.");
+                return;
+            }
+            if (config.isKitsGuiEnabled()) {
+                Player player = store.getComponent(ref, Player.getComponentType());
+                if (player == null) {
+                    Messages.errKey(context, "kit.ui_failed", java.util.Map.of());
+                    return;
+                }
+                KitsUI page = new KitsUI(playerRef, kitManager);
+                page.open(player, ref, store);
+                return;
+            }
+            Messages.send(context, "&aKits: &f" + String.join(", ", kits));
+            return;
+        }
+
+        String name = args.get(0);
+        if (name == null || name.trim().isEmpty()) {
+            Messages.err(context, "Kit not found.");
+            return;
+        }
+        name = name.trim();
         KitModel kit = kitManager.getKit(name);
         if (kit == null) {
             Messages.err(context, "Kit not found.");

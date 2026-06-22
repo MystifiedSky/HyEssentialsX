@@ -1,0 +1,7 @@
+$C = "../Common.ui";
+
+Label {
+  Text: "Rule";
+  Anchor: (Bottom: 6);
+  Style: (FontSize: 13, TextColor: #ffffff, Wrap: true);
+}

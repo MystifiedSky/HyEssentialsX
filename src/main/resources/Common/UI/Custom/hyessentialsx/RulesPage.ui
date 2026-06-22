@@ -1,0 +1,41 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {
+  $C.@Container {
+    @CloseButton = true;
+    Anchor: (Width: 520, Height: 440);
+
+    #Title {
+      $C.@Title {
+        @Text = "Rules";
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15);
+
+      Group #HeaderRow {
+        Anchor: (Height: 24, Bottom: 10);
+        LayoutMode: Left;
+
+        Label #RuleCount {
+          Text: "0 Rules";
+          Style: (FontSize: 12, TextColor: #888888);
+        }
+      }
+
+      Group #RuleListContainer {
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        FlexWeight: 1;
+
+        Group #RuleList {
+          LayoutMode: Top;
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

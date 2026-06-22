@@ -59,10 +59,14 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.warp.SetWarpCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.warp.WarpCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.warp.WarpsCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.custom.CustomTextCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.economy.BalanceTopCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.economy.MoneyCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.economy.PayCommand;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.ChatModerationListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.CleanupListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.DeathBackListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.DeathSpawnListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.EconomyRewardListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.FlyNoFallListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.GodHealthListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.InfiniteStaminaListener;
@@ -76,6 +80,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AfkManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FreecamManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.GodManager;
@@ -122,6 +127,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private BanManager banManager;
     private FreecamManager freecamManager;
     private VanishManager vanishManager;
+    private EconomyManager economyManager;
     private CustomCommandManager customCommandManager;
     private AutoBroadcastManager autoBroadcastManager;
     private CommandCooldownManager cooldownManager;
@@ -199,6 +205,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         banManager = new BanManager(storage);
         freecamManager = new FreecamManager();
         vanishManager = new VanishManager();
+        economyManager = new EconomyManager(storage, configManager);
         customCommandManager = new CustomCommandManager(getDataDirectory());
         autoBroadcastManager = new AutoBroadcastManager(configManager);
 
@@ -240,7 +247,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         getCommandRegistry().registerCommand(new DelHomeCommand(homeManager, configManager));
         getCommandRegistry().registerCommand(new SetWarpCommand(warpManager, configManager));
         getCommandRegistry().registerCommand(new WarpCommand(warpManager, tpManager, configManager, cooldownManager));
-        getCommandRegistry().registerCommand(new WarpsCommand(warpManager, configManager));
+        getCommandRegistry().registerCommand(new WarpsCommand(warpManager, tpManager, configManager, cooldownManager));
         getCommandRegistry().registerCommand(new DelWarpCommand(warpManager, configManager));
         getCommandRegistry().registerCommand(new KitCreateCommand(kitManager, configManager));
         getCommandRegistry().registerCommand(new KitCommand(kitManager, configManager));
@@ -251,6 +258,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         getCommandRegistry().registerCommand(new AdminChatCommand(adminChatManager, configManager));
         getCommandRegistry().registerCommand(new BroadcastCommand(configManager));
         getCommandRegistry().registerCommand(new ClearChatCommand());
+        getCommandRegistry().registerCommand(new PayCommand(economyManager));
+        getCommandRegistry().registerCommand(new MoneyCommand(economyManager, storage));
+        getCommandRegistry().registerCommand(new BalanceTopCommand(economyManager, storage, configManager));
         getCommandRegistry().registerCommand(new ImportHomesCommand(storage, getDataDirectory()));
         getCommandRegistry().registerCommand(new TpaCommand(tpManager, configManager, cooldownManager));
         getCommandRegistry().registerCommand(new TpaAcceptCommand(tpManager, backManager, configManager));
@@ -294,7 +304,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private void registerListeners() {
         EventRegistry bus = getEventRegistry();
         new PlayerListener(configManager, storage, vanishManager).register(bus);
-        new PlayerDataListener(storage, banManager, messageManager, adminChatManager, freecamManager, godManager, staminaManager).register(bus);
+        new PlayerDataListener(storage, banManager, messageManager, adminChatManager, freecamManager, godManager, staminaManager, economyManager).register(bus);
         new ChatModerationListener(muteManager, adminChatManager, configManager).register(bus);
         new CleanupListener(tpManager, backManager, flyManager, godManager, staminaManager, vanishManager).register(bus);
         new AfkListener(afkManager).register(bus);
@@ -309,6 +319,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         new PlayerVisibilityListener(vanishManager).register(getEntityStoreRegistry());
         new TeleportWarmupListener(tpManager).register(getEntityStoreRegistry());
         new SpawnProtectionListener(spawnManager, configManager).register(getEntityStoreRegistry());
+        new EconomyRewardListener(economyManager, configManager).register(getEntityStoreRegistry());
     }
 
     private void registerWorldHooks() {

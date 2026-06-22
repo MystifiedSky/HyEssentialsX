@@ -4,10 +4,12 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
+import xyz.thelegacyvoyage.hyessentialsx.ui.KitsUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -48,6 +50,17 @@ public final class KitsCommand extends AbstractPlayerCommand {
         }
         if (!config.isKitsEnabled()) {
             Messages.err(context, "Kits are disabled.");
+            return;
+        }
+
+        if (config.isKitsGuiEnabled()) {
+            Player player = store.getComponent(ref, Player.getComponentType());
+            if (player == null) {
+                Messages.errKey(context, "kit.ui_failed", java.util.Map.of());
+                return;
+            }
+            KitsUI page = new KitsUI(playerRef, kitManager);
+            page.open(player, ref, store);
             return;
         }
 

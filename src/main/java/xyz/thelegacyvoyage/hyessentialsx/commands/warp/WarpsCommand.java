@@ -4,10 +4,14 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
+import xyz.thelegacyvoyage.hyessentialsx.ui.WarpsUI;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -21,11 +25,18 @@ public final class WarpsCommand extends AbstractPlayerCommand {
 
     private final WarpManager warpManager;
     private final ConfigManager config;
+    private final TPManager tpManager;
+    private final CommandCooldownManager cooldowns;
 
-    public WarpsCommand(@Nonnull WarpManager warpManager, @Nonnull ConfigManager config) {
+    public WarpsCommand(@Nonnull WarpManager warpManager,
+                        @Nonnull TPManager tpManager,
+                        @Nonnull ConfigManager config,
+                        @Nonnull CommandCooldownManager cooldowns) {
         super("warps", "Lists all warps");
         this.warpManager = warpManager;
         this.config = config;
+        this.tpManager = tpManager;
+        this.cooldowns = cooldowns;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
@@ -49,6 +60,17 @@ public final class WarpsCommand extends AbstractPlayerCommand {
         }
         if (!config.isWarpsEnabled()) {
             Messages.err(context, "Warps are disabled.");
+            return;
+        }
+
+        if (config.isWarpsGuiEnabled()) {
+            Player player = store.getComponent(ref, Player.getComponentType());
+            if (player == null) {
+                Messages.errKey(context, "warp.ui_failed", Map.of());
+                return;
+            }
+            WarpsUI page = new WarpsUI(playerRef, warpManager, tpManager, config, cooldowns);
+            page.open(player, ref, store);
             return;
         }
 

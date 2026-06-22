@@ -1,0 +1,58 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {
+  $C.@Container {
+    @CloseButton = true;
+    Anchor: (Width: 560, Height: 460);
+
+    #Title {
+      $C.@Title {
+        @Text = "Teleport Request";
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15);
+
+      Group #HeaderRow {
+        Anchor: (Height: 32, Bottom: 10);
+        LayoutMode: Left;
+
+        $C.@TextField #SearchInput {
+          FlexWeight: 1;
+          PlaceholderText: "Search player...";
+        }
+
+        Group { Anchor: (Width: 8); }
+
+        $C.@SecondaryTextButton #SearchButton {
+          @Text = "Search";
+          Anchor: (Width: 90, Height: 32);
+        }
+      }
+
+      Group #PlayerCountRow {
+        Anchor: (Height: 20, Bottom: 8);
+        LayoutMode: Left;
+
+        Label #PlayerCount {
+          Text: "0 Players";
+          Style: (FontSize: 12, TextColor: #888888);
+        }
+      }
+
+      Group #PlayerListContainer {
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        FlexWeight: 1;
+
+        Group #PlayerList {
+          LayoutMode: Top;
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

@@ -134,6 +134,13 @@ public final class StorageManager {
     }
 
     @Nonnull
+    public Set<UUID> listPlayerIds() {
+        Set<UUID> ids = new java.util.HashSet<>(backend.listPlayerIds());
+        ids.addAll(playerCache.keySet());
+        return Set.copyOf(ids);
+    }
+
+    @Nonnull
     public Map<String, WarpModel> getWarps() {
         return Map.copyOf(warps);
     }

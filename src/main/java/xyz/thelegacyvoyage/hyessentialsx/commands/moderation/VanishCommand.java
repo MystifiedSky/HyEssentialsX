@@ -8,6 +8,7 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.MapVisibilityUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -67,6 +68,7 @@ public final class VanishCommand extends CommandBase {
 
         boolean enabled = vanishManager.toggle(target.getUuid());
         updateVisibility(target, enabled);
+        MapVisibilityUtil.refreshAll(vanishManager);
 
         if (isSelf) {
             Messages.okKey(context, enabled ? "vanish.enabled" : "vanish.disabled", java.util.Map.of());

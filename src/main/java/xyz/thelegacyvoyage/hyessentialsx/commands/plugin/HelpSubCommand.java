@@ -36,7 +36,7 @@ public class HelpSubCommand extends CommandBase {
         context.sendMessage(Message.raw("Kits: /kitcreate [name] [cooldown], /kit [name], /kits, /kitdelete [name]"));
         context.sendMessage(Message.raw("Chat: /msg <player> <msg>, /r <msg>, /clearchat, /adminchat [msg], /broadcast <msg>"));
         context.sendMessage(Message.raw("Teleport: /spawn, /back, /tpa <player>, /tpahere <player>, /tpahereall, /top, /jumpto, /rtp"));
-        context.sendMessage(Message.raw("Moderation: /mute <player> [time] [reason], /unmute <player>, /tempban <player> [time] [reason], /unban <player>, /vanish [player]"));
+        context.sendMessage(Message.raw("Moderation: /mute <player> [time] [reason], /unmute <player>, /ban <player> [reason], /tempban <player> [time] [reason], /unban <player>, /banlist, /ipbans, /vanish [player]"));
         context.sendMessage(Message.raw("Misc: /list, /rules, /motd, /near, /whois <player>, /seen <player>, /clearinventory, /repair, /freecam"));
         context.sendMessage(Message.raw("Admin: /import <file>, /hyessentialsx migrate <mod> [merge]"));
         context.sendMessage(Message.raw("========================"));

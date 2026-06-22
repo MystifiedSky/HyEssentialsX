@@ -1,5 +1,6 @@
 package xyz.thelegacyvoyage.hyessentialsx.ui.scoreboard;
 
+import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.hud.CustomUIHud;
 import com.hypixel.hytale.server.core.ui.Anchor;
@@ -13,6 +14,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class ScoreboardHud extends CustomUIHud {
@@ -130,26 +132,25 @@ public final class ScoreboardHud extends CustomUIHud {
             itemAnchor.setHeight(Value.of(rowHeight));
             builder.setObject(selector + ".Anchor", itemAnchor);
 
-            List<LineSegment> segments = parseSegments(lineText, lineColor);
+            CenteredLine centered = parseCenteredLine(lineText);
+            String resolvedLine = centered.text;
+            if (resolvedLine.isEmpty()) {
+                resolvedLine = " ";
+            }
+            List<LineSegment> segments = parseSegments(resolvedLine, lineColor);
             if (segments.isEmpty()) {
                 segments = List.of(new LineSegment(" ", lineColor, false));
             }
-            int segmentIndex = 0;
-            for (LineSegment segment : segments) {
-                if (segment.text.isEmpty()) {
-                    continue;
-                }
-                builder.appendInline(selector,
-                        "Label { Anchor: (Height: " + rowHeight + "); Style: (VerticalAlignment: Center); }");
-                String segmentSelector = selector + "[" + segmentIndex + "]";
-                builder.set(segmentSelector + ".Text", segment.text);
-                builder.set(segmentSelector + ".Style.TextColor", segment.color);
-                builder.set(segmentSelector + ".Style.FontSize", fontSize);
-                if (segment.bold) {
-                    builder.set(segmentSelector + ".Style.RenderBold", true);
-                }
-                segmentIndex++;
+
+            builder.appendInline(selector,
+                    "Label { Anchor: (Height: " + rowHeight + ", Width: " + contentWidth + "); " +
+                            "Style: (VerticalAlignment: Center); }");
+            String labelSelector = selector + "[0]";
+            builder.set(labelSelector + ".Style.FontSize", fontSize);
+            if (centered.center) {
+                builder.set(labelSelector + ".Style.HorizontalAlignment", "Center");
             }
+            builder.set(labelSelector + ".TextSpans", buildMessage(segments, lineColor));
         }
     }
 
@@ -259,6 +260,47 @@ public final class ScoreboardHud extends CustomUIHud {
     }
 
     @Nonnull
+    private static CenteredLine parseCenteredLine(@Nonnull String text) {
+        String lower = text.toLowerCase(Locale.ROOT);
+        int open = lower.indexOf("<center>");
+        int close = lower.indexOf("</center>");
+        if (open >= 0 && close > open) {
+            String inner = text.substring(open + "<center>".length(), close);
+            String before = text.substring(0, open);
+            String after = text.substring(close + "</center>".length());
+            return new CenteredLine(true, before + inner + after);
+        }
+        return new CenteredLine(false, text);
+    }
+
+    @Nonnull
+    private static Message buildMessage(@Nonnull List<LineSegment> segments, @Nonnull String fallbackColor) {
+        List<Message> parts = new ArrayList<>(segments.size());
+        for (LineSegment segment : segments) {
+            if (segment.text.isEmpty()) {
+                continue;
+            }
+            Message msg = Message.raw(segment.text);
+            if (segment.color != null && !segment.color.isBlank()) {
+                msg = msg.color(segment.color);
+            } else if (fallbackColor != null && !fallbackColor.isBlank()) {
+                msg = msg.color(fallbackColor);
+            }
+            if (segment.bold) {
+                msg = msg.bold(true);
+            }
+            parts.add(msg);
+        }
+        if (parts.isEmpty()) {
+            return Message.raw(" ");
+        }
+        if (parts.size() == 1) {
+            return parts.get(0);
+        }
+        return Message.join(parts.toArray(new Message[0]));
+    }
+
+    @Nonnull
     private static String normalizeMiniTags(@Nonnull String text) {
         String out = text;
         out = out.replaceAll("<#([0-9a-fA-F]{6})>", "&#$1");
@@ -364,6 +406,16 @@ public final class ScoreboardHud extends CustomUIHud {
             this.text = text;
             this.color = color;
             this.bold = bold;
+        }
+    }
+
+    private static final class CenteredLine {
+        private final boolean center;
+        private final String text;
+
+        private CenteredLine(boolean center, @Nonnull String text) {
+            this.center = center;
+            this.text = text;
         }
     }
 

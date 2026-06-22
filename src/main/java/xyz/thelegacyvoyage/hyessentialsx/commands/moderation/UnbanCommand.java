@@ -1,26 +1,30 @@
 package xyz.thelegacyvoyage.hyessentialsx.commands.moderation;
 
 import com.hypixel.hytale.server.core.NameMatching;
+import com.hypixel.hytale.server.core.auth.ProfileServiceClient;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
-import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
+import com.hypixel.hytale.server.core.command.system.basecommands.AbstractAsyncCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.VanillaBanUtil;
 
 import javax.annotation.Nonnull;
+import java.util.concurrent.CompletableFuture;
 import java.util.UUID;
 
-public final class UnbanCommand extends CommandBase {
+public final class UnbanCommand extends AbstractAsyncCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.unban";
 
     private final BanManager banManager;
     private final StorageManager storage;
-    private final RequiredArg<String> nameArg;
+    private final RequiredArg<ProfileServiceClient.PublicGameProfile> profileArg;
 
     public UnbanCommand(@Nonnull BanManager banManager, @Nonnull StorageManager storage) {
         super("unban", "Unbans a player");
@@ -29,7 +33,7 @@ public final class UnbanCommand extends CommandBase {
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"pardon"});
-        this.nameArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
+        this.profileArg = withRequiredArg("player", "Player name", ArgTypes.GAME_PROFILE_LOOKUP);
     }
 
     @Override
@@ -38,22 +42,40 @@ public final class UnbanCommand extends CommandBase {
     }
 
     @Override
-    protected void executeSync(@Nonnull CommandContext context) {
+    protected CompletableFuture<Void> executeAsync(@Nonnull CommandContext context) {
         if (!context.sender().hasPermission(PERMISSION_NODE)) {
             Messages.noPerm(context, "/unban");
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
-        String name = context.get(nameArg);
-        PlayerRef online = Universe.get().getPlayerByUsername(name, NameMatching.EXACT_IGNORE_CASE);
-        UUID uuid = online != null ? online.getUuid() : storage.resolvePlayerIdByName(name);
+        ProfileServiceClient.PublicGameProfile profile = context.get(profileArg);
+        UUID uuid = null;
+        String name = null;
+        if (profile != null) {
+            uuid = profile.getUuid();
+            name = profile.getUsername();
+        }
         if (uuid == null) {
+            String fallbackName = CommandInputUtil.getArg(context, 0);
+            if (fallbackName != null && !fallbackName.isBlank()) {
+                PlayerRef online = Universe.get().getPlayerByUsername(fallbackName, NameMatching.EXACT_IGNORE_CASE);
+                uuid = online != null ? online.getUuid() : storage.resolvePlayerIdByName(fallbackName);
+                if (name == null) {
+                    name = (online != null) ? online.getUsername() : fallbackName;
+                }
+            }
+        }
+        if (uuid == null || name == null || name.isBlank()) {
             Messages.errKey(context, "player.not_found", java.util.Map.of());
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
-        banManager.unban(uuid);
+        if (banManager.isBanned(uuid)) {
+            banManager.unban(uuid);
+        }
+        VanillaBanUtil.unbanVanilla(uuid);
         Messages.okKey(context, "ban.unbanned", java.util.Map.of("player", name));
+        return CompletableFuture.completedFuture(null);
     }
 }
 

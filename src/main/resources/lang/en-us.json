@@ -468,6 +468,7 @@
     "ban.temp.success":  "\u0026aBanned {player} for {time}.",
     "ban.kick":  "Banned: {reason} ({time})",
     "ban.unbanned":  "\u0026aUnbanned {player}.",
+    "ban.permanent":  "Permanent",
     "spawn.deleted":  "\u0026aCustom spawn deleted. Using world default spawn.",
     "spawn.set":  "\u0026aSpawn set.",
     "spawn.all.success":  "Teleported {count} player(s) to spawn.",

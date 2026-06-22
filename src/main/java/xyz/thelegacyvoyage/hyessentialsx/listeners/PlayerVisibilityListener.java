@@ -11,6 +11,7 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.MapVisibilityUtil;
 
 import javax.annotation.Nonnull;
 
@@ -73,6 +74,9 @@ public final class PlayerVisibilityListener {
                     }
                 }
             }
+
+            // Ensure map/compass markers respect vanish state for this player.
+            MapVisibilityUtil.applyForViewer(component, vanishManager);
 
             // If this player is vanished (should be rare), hide them from others.
             if (vanishManager.isEnabled(component.getUuid())) {

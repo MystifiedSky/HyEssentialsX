@@ -1,0 +1,51 @@
+$C = "../Common.ui";
+
+@CustomLabelStyle = LabelStyle(
+  FontSize: 12,
+  TextColor: #bfcdd5,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@CustomStyle = TextButtonStyle(
+  Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @CustomLabelStyle),
+  Hovered: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @CustomLabelStyle),
+  Pressed: (Background: $C.@DefaultSquareButtonPressedBackground, LabelStyle: @CustomLabelStyle),
+  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @CustomLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
+Group #BanRow {
+  LayoutMode: Left;
+  Background: $C.@InputBoxBackground;
+  Padding: (Top: 8, Bottom: 8, Left: 12, Right: 12);
+  Anchor: (Bottom: 5, Height: 60);
+
+  Group #Info {
+    LayoutMode: Top;
+    FlexWeight: 1;
+    Padding: (Top: 2);
+
+    Label #PlayerName {
+      Style: (FontSize: 14, RenderBold: true, TextColor: #ffffff);
+    }
+
+    Label #BanReason {
+      Style: (FontSize: 10, TextColor: #6a6a8a, Wrap: true);
+      Anchor: (Top: 4);
+    }
+  }
+
+  Group #Actions {
+    LayoutMode: Left;
+    Anchor: (Width: 70);
+
+    $C.@TextButton #UnbanBtn {
+      Anchor: (Height: 20, Width: 60);
+      Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4);
+      Text: "Unban";
+      Style: @CustomStyle;
+    }
+  }
+}

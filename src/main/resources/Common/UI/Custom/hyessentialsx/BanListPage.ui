@@ -1,0 +1,67 @@
+$C = "../Common.ui";
+
+@CustomLabelStyle = LabelStyle(
+  FontSize: 12,
+  TextColor: #bfcdd5,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@CustomStyle = TextButtonStyle(
+  Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @CustomLabelStyle),
+  Hovered: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @CustomLabelStyle),
+  Pressed: (Background: $C.@DefaultSquareButtonPressedBackground, LabelStyle: @CustomLabelStyle),
+  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @CustomLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
+$C.@PageOverlay {}
+
+$C.@Container {
+  Anchor: (Width: 520, Height: 460);
+
+  #Title {
+    $C.@Title {
+      @Text = "Ban List";
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+    Padding: (Left: 15, Right: 15);
+
+    Group #BanHeader {
+      Anchor: (Height: 30, Bottom: 10);
+      LayoutMode: Left;
+
+      Label #BanCount {
+        Text: "0 Bans";
+        Style: (FontSize: 12, TextColor: #888888);
+      }
+
+      Label {
+        FlexWeight: 1;
+      }
+
+      $C.@TextButton #CloseButton {
+        Anchor: (Height: 20, Width: 70);
+        Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4);
+        Text: "Close";
+        Style: @CustomStyle;
+      }
+    }
+
+    Group #BanListContainer {
+      LayoutMode: TopScrolling;
+      ScrollbarStyle: $C.@DefaultScrollbarStyle;
+      FlexWeight: 1;
+
+      Group #BanList {
+        LayoutMode: Top;
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

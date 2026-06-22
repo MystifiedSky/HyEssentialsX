@@ -24,6 +24,7 @@ import java.util.List;
 public final class ChatModerationListener {
 
     private static final String ADMINCHAT_PERMISSION = "hyessentialsx.adminchat";
+    private static final String MESSAGE_TOKEN = "__HX_MESSAGE__";
 
     private final MuteManager muteManager;
     private final AdminChatManager adminChatManager;
@@ -72,7 +73,7 @@ public final class ChatModerationListener {
 
                 String formatted = "&c[Admin] &f" + sender.getUsername() + "&7: &f" + msg;
                 for (PlayerRef target : targets) {
-                    Messages.send(target, formatted);
+                    target.sendMessage(Messages.m(formatted));
                 }
                 return;
             }
@@ -87,13 +88,16 @@ public final class ChatModerationListener {
                 String formattedBase = buildFormattedBase(sender);
                 event.setFormatter((playerRef, message) -> {
                     String content = message != null ? message : "";
-                    return PlaceholderApiUtil.apply(sender, formattedBase.replace("{message}", content), config);
+                    String baseWithToken = formattedBase.replace("{message}", MESSAGE_TOKEN);
+                    String resolvedBase = PlaceholderApiUtil.applyString(sender, baseWithToken, config);
+                    String resolved = resolvedBase.replace(MESSAGE_TOKEN, content);
+                    return Messages.m(resolved);
                 });
                 return;
             }
 
             if (hasColorCodes(raw)) {
-                Message formatted = PlaceholderApiUtil.apply(sender, raw, config);
+                Message formatted = Messages.m(raw);
                 if (trySetMessage(event, formatted)) {
                     return;
                 }
@@ -109,7 +113,10 @@ public final class ChatModerationListener {
             String formattedBase = buildFormattedBase(sender);
             event.setFormatter((playerRef, message) -> {
                 String content = message != null ? message : "";
-                return PlaceholderApiUtil.apply(sender, formattedBase.replace("{message}", content), config);
+                String baseWithToken = formattedBase.replace("{message}", MESSAGE_TOKEN);
+                String resolvedBase = PlaceholderApiUtil.applyString(sender, baseWithToken, config);
+                String resolved = resolvedBase.replace(MESSAGE_TOKEN, content);
+                return Messages.m(resolved);
             });
         });
     }

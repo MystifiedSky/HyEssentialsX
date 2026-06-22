@@ -5,6 +5,10 @@ import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.ComponentRegistryProxy;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.SystemGroup;
+import com.hypixel.hytale.component.dependency.Dependency;
+import com.hypixel.hytale.component.dependency.Order;
+import com.hypixel.hytale.component.dependency.SystemDependency;
+import com.hypixel.hytale.component.dependency.SystemGroupDependency;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.tick.EntityTickingSystem;
 import com.hypixel.hytale.protocol.MovementSettings;
@@ -13,12 +17,14 @@ import com.hypixel.hytale.server.core.entity.entities.player.movement.MovementMa
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageEventSystem;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageModule;
+import com.hypixel.hytale.server.core.modules.entity.damage.DamageSystems;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Method;
+import java.util.Set;
 
 public final class FlyNoFallListener {
 
@@ -29,8 +35,54 @@ public final class FlyNoFallListener {
     }
 
     public void register(@Nonnull ComponentRegistryProxy<EntityStore> registry) {
+        registry.registerSystem(new FlyNoFallPreDamageSystem(flyManager));
         registry.registerSystem(new FlyNoFallTickSystem(flyManager));
         registry.registerSystem(new FlyNoFallDamageSystem(flyManager));
+    }
+
+    private static final class FlyNoFallPreDamageSystem extends EntityTickingSystem<EntityStore> {
+
+        private final FlyManager flyManager;
+
+        private FlyNoFallPreDamageSystem(@Nonnull FlyManager flyManager) {
+            this.flyManager = flyManager;
+        }
+
+        @Override
+        public Query<EntityStore> getQuery() {
+            return Query.any();
+        }
+
+        @Override
+        public SystemGroup<EntityStore> getGroup() {
+            return DamageModule.get().getGatherDamageGroup();
+        }
+
+        @Override
+        public Set<Dependency<EntityStore>> getDependencies() {
+            return Set.of(
+                    new SystemDependency<>(Order.BEFORE, DamageSystems.FallDamagePlayers.class),
+                    new SystemDependency<>(Order.BEFORE, DamageSystems.FallDamageNPCs.class)
+            );
+        }
+
+        @Override
+        public void tick(float deltaTime,
+                         int index,
+                         ArchetypeChunk<EntityStore> chunk,
+                         @Nonnull Store<EntityStore> store,
+                         @Nonnull CommandBuffer<EntityStore> buffer) {
+            PlayerRef playerRef = chunk.getComponent(index, PlayerRef.getComponentType());
+            if (playerRef == null) return;
+            if (!flyManager.isEnabled(playerRef.getUuid())) return;
+
+            Player player = chunk.getComponent(index, Player.getComponentType());
+            if (player == null) return;
+
+            if (player.getCurrentFallDistance() > 0d) {
+                player.setCurrentFallDistance(0d);
+            }
+        }
     }
 
     private static final class FlyNoFallTickSystem extends EntityTickingSystem<EntityStore> {
@@ -102,8 +154,11 @@ public final class FlyNoFallListener {
         }
 
         @Override
-        public SystemGroup<EntityStore> getGroup() {
-            return DamageModule.get().getFilterDamageGroup();
+        public Set<Dependency<EntityStore>> getDependencies() {
+            return Set.of(
+                    new SystemGroupDependency<>(Order.AFTER, DamageModule.get().getFilterDamageGroup()),
+                    new SystemDependency<>(Order.BEFORE, DamageSystems.ApplyDamage.class)
+            );
         }
 
         @Override

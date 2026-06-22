@@ -722,6 +722,7 @@ public final class ScoreboardManager {
                 + "  \"Group\": \"" + SCOREBOARD_ASSET_GROUP + "\",\n"
                 + "  \"Version\": \"1.0.0\",\n"
                 + "  \"Description\": \"HyEssentialsX scoreboard UI assets\",\n"
+                + "  \"ServerVersion\": \"2026.02.17-255364b8e\",\n"
                 + "  \"IncludesAssetPack\": true\n"
                 + "}\n";
     }

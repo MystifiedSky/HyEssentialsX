@@ -453,7 +453,7 @@ public class ImageManager {
    }
 
    private String createManifestJson() {
-      return "{\n  \"Name\": \"" + ASSET_PACK_NAME + "\",\n  \"Group\": \"xyz.thelegacyvoyage.hyessentialsx.assets\",\n  \"Version\": \"1.0.0\",\n  \"Description\": \"HyEssentialsX combined assets\",\n  \"IncludesAssetPack\": true\n}\n";
+      return "{\n  \"Name\": \"" + ASSET_PACK_NAME + "\",\n  \"Group\": \"xyz.thelegacyvoyage.hyessentialsx.assets\",\n  \"Version\": \"1.0.0\",\n  \"Description\": \"HyEssentialsX combined assets\",\n  \"ServerVersion\": \"2026.02.17-255364b8e\",\n  \"IncludesAssetPack\": true\n}\n";
    }
 
    private boolean isModelAssetLoaded(@Nonnull String modelAssetId) {

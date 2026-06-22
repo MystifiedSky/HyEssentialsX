@@ -2,8 +2,8 @@ package xyz.thelegacyvoyage.hyessentialsx.managers;
 
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
-import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandBypassUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
@@ -30,7 +30,8 @@ public final class CommandCooldownManager {
         if (cooldownSeconds <= 0) {
             return true;
         }
-        if (context.sender().hasPermission(bypassPermission)) {
+        if (CommandBypassUtil.hasCooldownBypass(context.sender(), key, bypassPermission)
+                || CommandBypassUtil.hasCooldownBypass(playerRef, key, bypassPermission)) {
             return true;
         }
 
@@ -61,7 +62,7 @@ public final class CommandCooldownManager {
         if (cooldownSeconds <= 0) {
             return true;
         }
-        if (PermissionsModule.get().hasPermission(playerRef.getUuid(), bypassPermission)) {
+        if (CommandBypassUtil.hasCooldownBypass(playerRef, key, bypassPermission)) {
             return true;
         }
 
@@ -92,6 +93,20 @@ public final class CommandCooldownManager {
         PlayerDataModel data = storage.getPlayerData(playerRef.getUuid());
         data.getCommandCooldowns().put(key, System.currentTimeMillis());
         storage.savePlayerDataAsync(playerRef.getUuid(), data);
+    }
+
+    public boolean hasWarmupBypass(@Nonnull CommandContext context,
+                                   @Nonnull PlayerRef playerRef,
+                                   @Nonnull String key,
+                                   @Nonnull String commandBypassPermission) {
+        return CommandBypassUtil.hasWarmupBypass(context.sender(), key, commandBypassPermission)
+                || CommandBypassUtil.hasWarmupBypass(playerRef, key, commandBypassPermission);
+    }
+
+    public boolean hasWarmupBypass(@Nonnull PlayerRef playerRef,
+                                   @Nonnull String key,
+                                   @Nonnull String commandBypassPermission) {
+        return CommandBypassUtil.hasWarmupBypass(playerRef, key, commandBypassPermission);
     }
 }
 

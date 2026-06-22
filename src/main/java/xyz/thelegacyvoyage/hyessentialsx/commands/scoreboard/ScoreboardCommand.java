@@ -5,6 +5,7 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.AbstractCommand;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
@@ -39,6 +40,7 @@ public final class ScoreboardCommand extends AbstractCommand {
         this.addSubCommand(new EditCommand(scoreboardManager, config));
         this.addSubCommand(new ShowCommand(scoreboardManager, config));
         this.addSubCommand(new HideCommand(scoreboardManager, config));
+        this.addSubCommand(new ReloadCommand(scoreboardManager, config));
     }
 
     @Override
@@ -302,6 +304,45 @@ public final class ScoreboardCommand extends AbstractCommand {
             scoreboardManager.setPlayerHidden(playerRef.getUuid(), true);
             scoreboardManager.refreshPlayer(playerRef);
             Messages.okKey(context, "scoreboard.hidden", Map.of());
+        }
+    }
+
+    private static final class ReloadCommand extends CommandBase {
+
+        private static final String PERMISSION_NODE = "hyessentialsx.scoreboard.reload";
+        private final ScoreboardManager scoreboardManager;
+        private final ConfigManager config;
+
+        private ReloadCommand(@Nonnull ScoreboardManager scoreboardManager,
+                              @Nonnull ConfigManager config) {
+            super("reload", "Reload scoreboard configuration");
+            this.scoreboardManager = scoreboardManager;
+            this.config = config;
+            this.setPermissionGroup(null);
+            CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/scoreboard reload");
+                return;
+            }
+            if (!config.isScoreboardEnabled()) {
+                Messages.errKey(context, "scoreboard.disabled", Map.of());
+                return;
+            }
+            try {
+                scoreboardManager.reloadConfiguration();
+                Messages.okKey(context, "scoreboard.reloaded", Map.of());
+            } catch (Exception e) {
+                Messages.err(context, "Failed to reload scoreboard config: " + e.getMessage());
+            }
         }
     }
 }

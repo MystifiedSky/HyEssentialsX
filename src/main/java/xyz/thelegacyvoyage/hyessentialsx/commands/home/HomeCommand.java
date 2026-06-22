@@ -117,6 +117,9 @@ public final class HomeCommand extends AbstractPlayerCommand {
 
         final String homeName = name.trim();
         int warmupSeconds = config.getHomeWarmupSeconds();
+        if (cooldowns.hasWarmupBypass(context, playerRef, CooldownKeys.HOME, BYPASS_PERMISSION)) {
+            warmupSeconds = 0;
+        }
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(playerRef.getUuid())) {
                 Messages.errKey(context, "teleport.pending", Map.of());
@@ -262,6 +265,9 @@ public final class HomeCommand extends AbstractPlayerCommand {
                                 @Nonnull String homeName,
                                 @Nonnull HomeModel home) {
         int warmupSeconds = config.getHomeWarmupSeconds();
+        if (cooldowns.hasWarmupBypass(context, playerRef, CooldownKeys.HOME, BYPASS_PERMISSION)) {
+            warmupSeconds = 0;
+        }
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(playerRef.getUuid())) {
                 Messages.errKey(context, "teleport.pending", Map.of());

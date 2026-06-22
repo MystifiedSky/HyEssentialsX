@@ -160,6 +160,9 @@ public final class SpawnCommand extends AbstractPlayerCommand {
 
         final SpawnModel finalSpawn = spawn;
         int warmupSeconds = configManager.getSpawnWarmupSeconds();
+        if (cooldowns.hasWarmupBypass(context, playerRef, CooldownKeys.SPAWN, BYPASS_PERMISSION)) {
+            warmupSeconds = 0;
+        }
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(playerRef.getUuid())) {
                 Messages.errKey(context, "teleport.pending", Map.of());
@@ -265,6 +268,9 @@ public final class SpawnCommand extends AbstractPlayerCommand {
 
         final SpawnModel finalSpawn = spawn;
         int warmupSeconds = configManager.getSpawnWarmupSeconds();
+        if (cooldowns.hasWarmupBypass(context, target, CooldownKeys.SPAWN, BYPASS_PERMISSION)) {
+            warmupSeconds = 0;
+        }
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(target.getUuid())) {
                 if (notifySender) {

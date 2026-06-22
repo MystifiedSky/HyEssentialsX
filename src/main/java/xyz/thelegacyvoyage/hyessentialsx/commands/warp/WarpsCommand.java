@@ -13,16 +13,21 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.ui.WarpsUI;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public final class WarpsCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.warps";
+    private static final String WARP_GLOBAL_PERMISSION = "hyessentialsx.warp";
+    private static final String WARP_PERMISSION_PREFIX = WARP_GLOBAL_PERMISSION + ".";
 
     private final WarpManager warpManager;
     private final ConfigManager config;
@@ -84,7 +89,43 @@ public final class WarpsCommand extends AbstractPlayerCommand {
             return;
         }
 
-        Messages.sendKey(context, "warp.list", Map.of("warps", String.join(", ", warps)));
+        List<String> visibleWarps = filterAccessibleWarps(playerRef, warps);
+        if (visibleWarps.isEmpty()) {
+            Messages.warnKey(context, "warp.none", Map.of());
+            return;
+        }
+
+        Messages.sendKey(context, "warp.list", Map.of("warps", String.join(", ", visibleWarps)));
+    }
+
+    @Nonnull
+    private List<String> filterAccessibleWarps(@Nonnull PlayerRef playerRef, @Nonnull List<String> warps) {
+        if (CommandPermissionUtil.hasPermission(playerRef, WARP_GLOBAL_PERMISSION)) {
+            return warps;
+        }
+        List<String> visible = new ArrayList<>();
+        for (String warpName : warps) {
+            if (hasWarpPermission(playerRef, warpName)) {
+                visible.add(warpName);
+            }
+        }
+        return visible;
+    }
+
+    private boolean hasWarpPermission(@Nonnull PlayerRef playerRef, @Nonnull String warpName) {
+        if (CommandPermissionUtil.hasPermission(playerRef, WARP_GLOBAL_PERMISSION)) {
+            return true;
+        }
+        String normalized = normalizePermissionSegment(warpName);
+        if (normalized.isEmpty()) {
+            return false;
+        }
+        return CommandPermissionUtil.hasPermission(playerRef, WARP_PERMISSION_PREFIX + normalized);
+    }
+
+    @Nonnull
+    private String normalizePermissionSegment(@Nonnull String value) {
+        return value.trim().toLowerCase(Locale.ROOT);
     }
 }
 

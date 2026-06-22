@@ -10,10 +10,13 @@ import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
+import com.hypixel.hytale.server.core.modules.collision.WorldUtil;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
+import com.hypixel.hytale.server.core.universe.world.chunk.ChunkColumn;
 import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
+import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
@@ -30,12 +33,16 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Consumer;
 
 public final class RtpCommand extends CommandBase {
 
     private static final String PERMISSION_NODE = "hyessentialsx.rtp";
     private static final String BYPASS_PERMISSION = "hyessentialsx.rtp.bypass";
     private static final String OTHER_PERMISSION = "hyessentialsx.rtp.other";
+    private static final int MAX_ATTEMPTS = 20;
+    private static final int MIN_WORLD_Y = 0;
+    private static final int MAX_WORLD_Y = 319;
 
     private final ConfigManager config;
     private final CommandCooldownManager cooldowns;
@@ -154,74 +161,74 @@ public final class RtpCommand extends CommandBase {
         }
 
         Vector3d pos = transform.getPosition();
+        if (pos == null) {
+            Messages.errKey(context, "teleport.position_unavailable", Map.of());
+            return;
+        }
         int minDist = Math.max(0, config.getRtpMinDistance());
         int maxDist = Math.max(10, config.getRtpMaxDistance());
         if (minDist > maxDist) {
             minDist = maxDist;
         }
-
-        Double targetX = null;
-        Double targetZ = null;
-        Double targetY = null;
-
-        for (int i = 0; i < 10; i++) {
-            double angle = random.nextDouble() * Math.PI * 2.0;
-            double distance = minDist + (random.nextDouble() * (maxDist - minDist));
-            double dx = Math.cos(angle) * distance;
-            double dz = Math.sin(angle) * distance;
-            int blockX = (int) Math.floor(pos.getX() + dx);
-            int blockZ = (int) Math.floor(pos.getZ() + dz);
-            long chunkIndex = ChunkUtil.indexChunkFromBlock(blockX, blockZ);
-            WorldChunk chunk = targetWorld.getChunk(chunkIndex);
-            if (chunk == null) continue;
-
-            int localX = ChunkUtil.localCoordinate(blockX);
-            int localZ = ChunkUtil.localCoordinate(blockZ);
-            short height = chunk.getHeight(localX, localZ);
-            if (isLiquidAt(chunk, blockX, height, blockZ)) {
-                continue;
-            }
-
-            for (int y = height; y >= 1; y--) {
-                if (!isSolidBlock(chunk, blockX, y, blockZ)) {
-                    continue;
-                }
-                if (!isSafeAbove(chunk, blockX, y, blockZ)) {
-                    continue;
-                }
-                targetX = blockX + 0.5;
-                targetZ = blockZ + 0.5;
-                targetY = y + 1.0;
-                break;
-            }
-            if (targetX != null) {
-                break;
-            }
+        Vector3d searchOrigin = pos.clone();
+        int warmupSeconds = config.getRtpWarmupSeconds();
+        if (cooldowns.hasWarmupBypass(context, target, CooldownKeys.RTP, BYPASS_PERMISSION)) {
+            warmupSeconds = 0;
         }
+        final int finalWarmupSeconds = warmupSeconds;
+        PlayerRef finalTarget = target;
+        boolean finalIsOther = isOther;
+        int finalMinDist = minDist;
+        int finalMaxDist = maxDist;
+        runOnWorldThread(targetWorld, () -> findRandomSafeLocationAsync(
+                targetWorld,
+                searchOrigin,
+                finalMinDist,
+                finalMaxDist,
+                MAX_ATTEMPTS,
+                0,
+                destination -> onSafeDestinationFound(
+                        context,
+                        finalTarget,
+                        targetWorld,
+                        destination,
+                        finalWarmupSeconds,
+                        finalIsOther
+                )
+        ));
+    }
 
-        if (targetX == null || targetY == null || targetZ == null) {
+    private void onSafeDestinationFound(@Nonnull CommandContext context,
+                                        @Nonnull PlayerRef target,
+                                        @Nonnull World targetWorld,
+                                        @Nullable Vector3d destination,
+                                        int warmupSeconds,
+                                        boolean isOther) {
+        if (destination == null) {
             Messages.errKey(context, "rtp.no_safe_location", Map.of());
             return;
         }
 
-        int warmupSeconds = config.getRtpWarmupSeconds();
         if (warmupSeconds > 0) {
             Transform transformNow = target.getTransform();
             if (transformNow == null || transformNow.getPosition() == null) {
                 Messages.errKey(context, "teleport.position_unavailable", Map.of());
                 return;
             }
-            PlayerRef warmupTarget = target;
-            Ref<EntityStore> warmupRef = warmupTarget.getReference();
+            Ref<EntityStore> warmupRef = target.getReference();
+            if (warmupRef == null || !warmupRef.isValid()) {
+                Messages.errKey(context, "player.not_found", Map.of());
+                return;
+            }
             com.hypixel.hytale.math.vector.Vector3f rot = transformNow.getRotation();
             float startYaw = (rot != null) ? rot.getY() : 0f;
             float startPitch = (rot != null) ? rot.getX() : 0f;
             Vector3d startPos = transformNow.getPosition().clone();
-            double finalTargetX = targetX;
-            double finalTargetY = targetY;
-            double finalTargetZ = targetZ;
+            double targetX = destination.getX();
+            double targetY = destination.getY();
+            double targetZ = destination.getZ();
             tpManager.queue(
-                    warmupTarget.getUuid(),
+                    target.getUuid(),
                     startPos,
                     warmupSeconds,
                     buffer -> {
@@ -229,24 +236,24 @@ public final class RtpCommand extends CommandBase {
                                 buffer,
                                 warmupRef,
                                 targetWorld.getName(),
-                                finalTargetX, finalTargetY, finalTargetZ,
+                                targetX, targetY, targetZ,
                                 0f, 0f
                         );
                         if (err != null) {
-                            Messages.sendPrefixed(warmupTarget, err);
+                            Messages.sendPrefixed(target, err);
                             return;
                         }
                         backManager.recordLocation(
-                                warmupTarget.getUuid(),
+                                target.getUuid(),
                                 targetWorld.getName(),
                                 startPos.getX(), startPos.getY(), startPos.getZ(),
                                 startYaw, startPitch
                         );
-                        cooldowns.apply(warmupTarget, CooldownKeys.RTP);
-                        Messages.sendPrefixedKey(warmupTarget, "teleport.success.rtp", Map.of());
+                        cooldowns.apply(target, CooldownKeys.RTP);
+                        Messages.sendPrefixedKey(target, "teleport.success.rtp", Map.of());
                     }
             );
-            Messages.sendPrefixedKey(warmupTarget, "teleport.warmup", Map.of("seconds", String.valueOf(warmupSeconds)));
+            Messages.sendPrefixedKey(target, "teleport.warmup", Map.of("seconds", String.valueOf(warmupSeconds)));
             if (isOther) {
                 Messages.okKey(context, "rtp.other.warmup", Map.of("player", target.getUsername()));
             }
@@ -264,19 +271,17 @@ public final class RtpCommand extends CommandBase {
             return;
         }
 
-        double finalTargetX = targetX;
-        double finalTargetY = targetY;
-        double finalTargetZ = targetZ;
-        boolean finalIsOther = isOther;
-        PlayerRef finalTarget = target;
+        double targetX = destination.getX();
+        double targetY = destination.getY();
+        double targetZ = destination.getZ();
         targetStore.getExternalData().getWorld().execute(() -> {
-            Transform transformNow = finalTarget.getTransform();
+            Transform transformNow = target.getTransform();
             if (transformNow != null && transformNow.getPosition() != null) {
                 com.hypixel.hytale.math.vector.Vector3f rot = transformNow.getRotation();
                 float startYaw = (rot != null) ? rot.getY() : 0f;
                 float startPitch = (rot != null) ? rot.getX() : 0f;
                 backManager.recordLocation(
-                        finalTarget.getUuid(),
+                        target.getUuid(),
                         targetWorld.getName(),
                         transformNow.getPosition().getX(),
                         transformNow.getPosition().getY(),
@@ -289,7 +294,7 @@ public final class RtpCommand extends CommandBase {
                     targetStore,
                     targetRef,
                     targetWorld.getName(),
-                    finalTargetX, finalTargetY, finalTargetZ,
+                    targetX, targetY, targetZ,
                     0f, 0f
             );
             if (err != null) {
@@ -297,10 +302,10 @@ public final class RtpCommand extends CommandBase {
                 return;
             }
 
-            cooldowns.apply(finalTarget, CooldownKeys.RTP);
-            Messages.sendPrefixedKey(finalTarget, "teleport.success.rtp", Map.of());
-            if (finalIsOther) {
-                Messages.okKey(context, "rtp.other.success", Map.of("player", finalTarget.getUsername()));
+            cooldowns.apply(target, CooldownKeys.RTP);
+            Messages.sendPrefixedKey(target, "teleport.success.rtp", Map.of());
+            if (isOther) {
+                Messages.okKey(context, "rtp.other.success", Map.of("player", target.getUsername()));
             } else {
                 Messages.okKey(context, "teleport.success.rtp", Map.of());
             }
@@ -324,46 +329,143 @@ public final class RtpCommand extends CommandBase {
         return fallback;
     }
 
-    private boolean isSolidBlock(@Nonnull WorldChunk chunk, int x, int y, int z) {
-        BlockType type = chunk.getBlockType(x, y, z);
+    private void findRandomSafeLocationAsync(@Nonnull World world,
+                                             @Nonnull Vector3d center,
+                                             int minRadius,
+                                             int maxRadius,
+                                             int maxChecks,
+                                             int currentAttempt,
+                                             @Nonnull Consumer<Vector3d> callback) {
+        if (currentAttempt >= maxChecks) {
+            callback.accept(null);
+            return;
+        }
+        double angle = random.nextDouble() * Math.PI * 2.0;
+        double distance = minRadius + random.nextDouble() * (maxRadius - minRadius);
+        int randomX = (int) (center.getX() + distance * Math.cos(angle));
+        int randomZ = (int) (center.getZ() + distance * Math.sin(angle));
+        long chunkIndex = ChunkUtil.indexChunkFromBlock(randomX, randomZ);
+        WorldChunk existingChunk = world.getChunkIfLoaded(chunkIndex);
+        if (existingChunk == null) {
+            existingChunk = world.getChunkIfInMemory(chunkIndex);
+        }
+
+        if (existingChunk != null) {
+            Vector3d safePosition = findHighestSolidBlock(world, randomX, randomZ);
+            if (safePosition != null) {
+                callback.accept(safePosition);
+            } else {
+                findRandomSafeLocationAsync(world, center, minRadius, maxRadius, maxChecks, currentAttempt + 1, callback);
+            }
+            return;
+        }
+
+        world.getChunkAsync(chunkIndex).whenComplete((chunk, error) ->
+                runOnWorldThread(world, () -> {
+                    if (error == null && chunk != null) {
+                        Vector3d safePosition = findHighestSolidBlock(world, randomX, randomZ);
+                        if (safePosition != null) {
+                            callback.accept(safePosition);
+                        } else {
+                            findRandomSafeLocationAsync(world, center, minRadius, maxRadius, maxChecks, currentAttempt + 1, callback);
+                        }
+                    } else {
+                        findRandomSafeLocationAsync(world, center, minRadius, maxRadius, maxChecks, currentAttempt + 1, callback);
+                    }
+                })
+        );
+    }
+
+    @Nullable
+    private Vector3d findHighestSolidBlock(@Nonnull World world, int x, int z) {
+        for (int y = MAX_WORLD_Y; y >= MIN_WORLD_Y; y--) {
+            if (isWaterOrLava(world, x, y, z)) {
+                return null;
+            }
+            if (isSolidBlock(world, x, y, z)
+                    && !isSolidBlock(world, x, y + 1, z)
+                    && !isSolidBlock(world, x, y + 2, z)
+                    && isSafeGround(world, x, y, z)) {
+                return new Vector3d(x + 0.5, y + 1.0, z + 0.5);
+            }
+        }
+        return null;
+    }
+
+    private boolean isSolidBlock(@Nonnull World world, int x, int y, int z) {
+        if (!isValidY(y)) {
+            return false;
+        }
+        BlockType type = getBlockType(world, x, y, z);
         return type != null && type.getMaterial() == BlockMaterial.Solid;
     }
 
-    private boolean isSafeAbove(@Nonnull WorldChunk chunk, int x, int y, int z) {
-        return isClearBlock(chunk, x, y + 1, z) && isClearBlock(chunk, x, y + 2, z);
+    private boolean isSafeGround(@Nonnull World world, int x, int y, int z) {
+        return isSolidBlock(world, x, y, z);
     }
 
-    private boolean isClearBlock(@Nonnull WorldChunk chunk, int x, int y, int z) {
-        BlockType type = chunk.getBlockType(x, y, z);
-        if (type != null && type.getMaterial() == BlockMaterial.Solid) {
+    private boolean isWaterOrLava(@Nonnull World world, int x, int y, int z) {
+        if (!isValidY(y)) {
             return false;
         }
-        return !isLiquidAt(chunk, x, y, z) && !isLiquidBlock(type);
+        int fluidId = getBlockFluidId(world, x, y, z);
+        return fluidId == 7 || fluidId == 8 || fluidId == 6 || fluidId == 11;
     }
 
-    private boolean isLiquidAt(@Nonnull WorldChunk chunk, int x, int y, int z) {
+    private int getBlockFluidId(@Nonnull World world, int x, int y, int z) {
+        if (!isValidY(y)) {
+            return 0;
+        }
         try {
-            return chunk.getFluidLevel(x, y, z) > 0 || chunk.getFluidId(x, y, z) != 0;
+            long chunkIndex = ChunkUtil.indexChunkFromBlock(x, z);
+            WorldChunk worldChunk = world.getChunk(chunkIndex);
+            if (worldChunk == null) {
+                return 0;
+            }
+            Ref<ChunkStore> chunkRef = worldChunk.getReference();
+            if (chunkRef == null) {
+                return 0;
+            }
+            ChunkColumn chunkColumn = world.getChunkStore().getStore().getComponent(chunkRef, ChunkColumn.getComponentType());
+            if (chunkColumn == null) {
+                return 0;
+            }
+            return WorldUtil.getFluidIdAtPosition(world.getChunkStore().getStore(), chunkColumn, x, y, z);
         } catch (RuntimeException ex) {
-            return false;
+            return 0;
         }
     }
 
-    private boolean isLiquidBlock(BlockType type) {
-        if (type == null) {
-            return false;
+    @Nullable
+    private BlockType getBlockType(@Nonnull World world, int x, int y, int z) {
+        if (!isValidY(y)) {
+            return null;
         }
-        String id = type.getId();
-        String group = type.getGroup();
-        StringBuilder combined = new StringBuilder();
-        if (id != null) {
-            combined.append(id);
+        try {
+            long chunkIndex = ChunkUtil.indexChunkFromBlock(x, z);
+            WorldChunk worldChunk = world.getChunk(chunkIndex);
+            if (worldChunk == null) {
+                return null;
+            }
+            return worldChunk.getBlockType(x, y, z);
+        } catch (RuntimeException ex) {
+            return null;
         }
-        if (group != null) {
-            combined.append(' ').append(group);
+    }
+
+    private boolean isValidY(int y) {
+        return y >= MIN_WORLD_Y && y <= MAX_WORLD_Y;
+    }
+
+    private void runOnWorldThread(@Nonnull World world, @Nonnull Runnable task) {
+        if (world.isInThread()) {
+            task.run();
+            return;
         }
-        String lowered = combined.toString().toLowerCase();
-        return lowered.contains("water") || lowered.contains("lava") || lowered.contains("fluid");
+        try {
+            world.execute(task);
+        } catch (IllegalThreadStateException ignored) {
+        }
     }
 }
 

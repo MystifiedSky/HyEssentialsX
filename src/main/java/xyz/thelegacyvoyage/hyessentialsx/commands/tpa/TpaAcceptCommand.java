@@ -13,7 +13,9 @@ import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.math.vector.Vector3f;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandBypassUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
@@ -25,6 +27,7 @@ import java.util.UUID;
 public final class TpaAcceptCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.tpaaccept";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.tpa.bypass";
 
     private final TPManager tpManager;
     private final BackManager backManager;
@@ -91,6 +94,10 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
         int warmupSeconds = config.getTpaWarmupSeconds();
         UUID teleportedId = isHere ? playerRef.getUuid() : requester.getUuid();
         PlayerRef teleportedPlayer = isHere ? playerRef : requester;
+        if (CommandBypassUtil.hasWarmupBypass(context.sender(), CooldownKeys.TPA, BYPASS_PERMISSION)
+                || CommandBypassUtil.hasWarmupBypass(teleportedPlayer, CooldownKeys.TPA, BYPASS_PERMISSION)) {
+            warmupSeconds = 0;
+        }
         BackSnapshot backSnapshot = captureBackSnapshot(teleportedPlayer, teleportedRef, teleportedStore);
 
         if (warmupSeconds > 0) {

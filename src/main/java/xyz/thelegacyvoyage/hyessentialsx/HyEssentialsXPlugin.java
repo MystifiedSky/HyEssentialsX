@@ -371,6 +371,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         HyEssentialsXApiProvider.register(new DefaultHyEssentialsXApi(economyManager, playtimeManager, shopManager));
         hologramService = new HologramService(this, dataDirectory, configManager);
         VaultUnlockedIntegration.configure(economyManager, storage);
+        VaultUnlockedIntegration.refresh();
 
         Log.info("[HyEssentialsX] Setup complete!");
     }

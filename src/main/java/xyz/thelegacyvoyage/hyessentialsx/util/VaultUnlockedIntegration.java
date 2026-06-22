@@ -43,7 +43,6 @@ public final class VaultUnlockedIntegration {
     private static volatile EconomyManager economyManager;
     private static volatile StorageManager storageManager;
 
-    private static volatile boolean initialized;
     private static volatile boolean available;
     private static volatile boolean registered;
     private static volatile Object manager;
@@ -135,28 +134,37 @@ public final class VaultUnlockedIntegration {
     }
 
     private static void ensureInitialized() {
-        if (initialized) {
+        if (available) {
             return;
         }
         synchronized (LOCK) {
-            if (initialized) {
+            if (available) {
                 return;
             }
-            initialized = true;
+            manager = null;
+            registerMethod = null;
+            unregisterMethod = null;
+            providerNamesMethod = null;
             try {
                 ClassLoader loader = VaultUnlockedIntegration.class.getClassLoader();
                 Class<?> managerClass = Class.forName(VAULT_MANAGER_CLASS, true, loader);
                 Method getMethod = managerClass.getMethod("get");
-                manager = getMethod.invoke(null);
-                if (manager == null) {
+                Object candidateManager = getMethod.invoke(null);
+                if (candidateManager == null) {
                     available = false;
                     return;
                 }
                 Class<?> economyInterface = Class.forName(ECONOMY_INTERFACE_CLASS, true, loader);
-                registerMethod = managerClass.getMethod("economy", economyInterface);
-                unregisterMethod = managerClass.getMethod("unregister", economyInterface);
-                providerNamesMethod = managerClass.getMethod("economyProviderNames");
-                available = registerMethod != null && unregisterMethod != null;
+                Method candidateRegisterMethod = managerClass.getMethod("economy", economyInterface);
+                Method candidateUnregisterMethod = managerClass.getMethod("unregister", economyInterface);
+                Method candidateProviderNamesMethod = managerClass.getMethod("economyProviderNames");
+                manager = candidateManager;
+                registerMethod = candidateRegisterMethod;
+                unregisterMethod = candidateUnregisterMethod;
+                providerNamesMethod = candidateProviderNamesMethod;
+                available = candidateRegisterMethod != null
+                        && candidateUnregisterMethod != null
+                        && candidateProviderNamesMethod != null;
             } catch (Throwable t) {
                 available = false;
             }

@@ -17,6 +17,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -24,13 +25,17 @@ import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entities.player.pages.CustomUIPage {
 
     private static final String LAYOUT = "hyessentialsx/WarpPage.ui";
     private static final String ROW_LAYOUT = "hyessentialsx/WarpRow.ui";
+    private static final String PERMISSION_NODE = "hyessentialsx.warp";
+    private static final String PER_WARP_PERMISSION_PREFIX = PERMISSION_NODE + ".";
     private static final String BYPASS_PERMISSION = "hyessentialsx.warp.bypass";
 
     private final PlayerRef playerRef;
@@ -65,7 +70,7 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
     ) {
         cmd.append(LAYOUT);
 
-        List<String> warps = warpManager.listWarps();
+        List<String> warps = filterAccessibleWarps(warpManager.listWarps());
         cmd.set("#WarpCount.Text", warps.size() + " Warps");
 
         buildWarpsList(cmd, evt, warps);
@@ -159,10 +164,18 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
             Messages.sendPrefixedKey(playerRef, "warp.not_found", Map.of());
             return;
         }
+        String displayWarpName = (warp.getName() == null || warp.getName().isBlank()) ? name : warp.getName();
+        if (!hasWarpPermission(displayWarpName)) {
+            Messages.sendPrefixedKey(playerRef, "error.no_permission", Map.of("command", "/warp " + displayWarpName));
+            return;
+        }
 
         close();
 
         int warmupSeconds = config.getWarpWarmupSeconds();
+        if (cooldowns.hasWarmupBypass(playerRef, CooldownKeys.WARP, BYPASS_PERMISSION)) {
+            warmupSeconds = 0;
+        }
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(playerRef.getUuid())) {
                 Messages.sendPrefixedKey(playerRef, "teleport.pending", Map.of());
@@ -203,7 +216,7 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
                             );
                         }
                         cooldowns.apply(playerRef, CooldownKeys.WARP);
-                        Messages.sendPrefixedKey(playerRef, "teleport.success.warp", Map.of("warp", name));
+                        Messages.sendPrefixedKey(playerRef, "teleport.success.warp", Map.of("warp", displayWarpName));
                     }
             );
             Messages.sendPrefixedKey(playerRef, "teleport.warmup", Map.of("seconds", String.valueOf(warmupSeconds)));
@@ -241,13 +254,43 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
         }
 
         cooldowns.apply(playerRef, CooldownKeys.WARP);
-        Messages.sendPrefixedKey(playerRef, "teleport.success.warp", Map.of("warp", name));
+        Messages.sendPrefixedKey(playerRef, "teleport.success.warp", Map.of("warp", displayWarpName));
     }
 
     @Nullable
     private String resolveWorldName(@Nonnull Store<EntityStore> store) {
         World world = store.getExternalData().getWorld();
         return world != null ? world.getName() : null;
+    }
+
+    @Nonnull
+    private List<String> filterAccessibleWarps(@Nonnull List<String> warps) {
+        if (CommandPermissionUtil.hasPermission(playerRef, PERMISSION_NODE)) {
+            return warps;
+        }
+        List<String> visible = new ArrayList<>();
+        for (String warpName : warps) {
+            if (hasWarpPermission(warpName)) {
+                visible.add(warpName);
+            }
+        }
+        return visible;
+    }
+
+    private boolean hasWarpPermission(@Nonnull String warpName) {
+        if (CommandPermissionUtil.hasPermission(playerRef, PERMISSION_NODE)) {
+            return true;
+        }
+        String normalized = normalizePermissionSegment(warpName);
+        if (normalized.isEmpty()) {
+            return false;
+        }
+        return CommandPermissionUtil.hasPermission(playerRef, PER_WARP_PERMISSION_PREFIX + normalized);
+    }
+
+    @Nonnull
+    private String normalizePermissionSegment(@Nonnull String value) {
+        return value.trim().toLowerCase(Locale.ROOT);
     }
 }
 

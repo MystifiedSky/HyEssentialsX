@@ -64,7 +64,8 @@ public final class CommandPermissionUtil {
     );
 
     private static final List<String> PLAYER_PERMISSION_PREFIXES = List.of(
-            "hyessentialsx.kit."
+            "hyessentialsx.kit.",
+            "hyessentialsx.warp."
     );
 
     private static final List<String> ADMIN_PERMISSION_PREFIXES = List.of(
@@ -120,6 +121,7 @@ public final class CommandPermissionUtil {
             "hyessentialsx.sleeppercent",
             "hyessentialsx.scoreboard.edit",
             "hyessentialsx.scoreboard.adminmove",
+            "hyessentialsx.scoreboard.reload",
             "hyessentialsx.adminshop.admin",
             "hyessentialsx.adminshop.npc",
             "hyessentialsx.shop.admin",
@@ -137,6 +139,7 @@ public final class CommandPermissionUtil {
             "hyessentialsx.hologram",
             "hologramservice.",
             "hyessentialsx.back.other",
+            "hyessentialsx.warp.other",
             "hyessentialsx.home.other",
             "hyessentialsx.mail.sendall",
             "hyessentialsx.rtp.other"

@@ -434,9 +434,9 @@ public final class KitsUI extends InteractiveCustomUIPage<KitsUI.UIEventData> {
     public static final class UIEventData {
         public static final BuilderCodec<UIEventData> CODEC = BuilderCodec
                 .builder(UIEventData.class, UIEventData::new)
-                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
-                .addField(new KeyedCodec<>("Kit", Codec.STRING), (d, v) -> d.kit = v, d -> d.kit)
-                .addField(new KeyedCodec<>("@Query", Codec.STRING), (d, v) -> d.query = v, d -> d.query)
+                .append(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action).add()
+                .append(new KeyedCodec<>("Kit", Codec.STRING), (d, v) -> d.kit = v, d -> d.kit).add()
+                .append(new KeyedCodec<>("@Query", Codec.STRING), (d, v) -> d.query = v, d -> d.query).add()
                 .build();
 
         private String action;

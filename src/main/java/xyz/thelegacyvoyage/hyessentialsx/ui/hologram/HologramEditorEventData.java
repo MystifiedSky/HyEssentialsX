@@ -9,18 +9,18 @@ import javax.annotation.Nullable;
 public class HologramEditorEventData {
 
     public static final BuilderCodec<HologramEditorEventData> CODEC = BuilderCodec.builder(HologramEditorEventData.class, HologramEditorEventData::new)
-            .addField(new KeyedCodec<>("Action", Codec.STRING), (e, v) -> e.action = v, e -> e.action)
-            .addField(new KeyedCodec<>("LineIndex", Codec.STRING), (e, v) -> e.lineIndex = v, e -> e.lineIndex)
-            .addField(new KeyedCodec<>("LineText", Codec.STRING), (e, v) -> e.lineText = v, e -> e.lineText)
-            .addField(new KeyedCodec<>("NewLineText", Codec.STRING), (e, v) -> e.newLineText = v, e -> e.newLineText)
-            .addField(new KeyedCodec<>("@NewLineInput", Codec.STRING), (e, v) -> e.newLineInput = v, e -> e.newLineInput)
-            .addField(new KeyedCodec<>("@NewText", Codec.STRING), (e, v) -> e.newText = v, e -> e.newText)
-            .addField(new KeyedCodec<>("@LineText", Codec.STRING), (e, v) -> e.editedLineText = v, e -> e.editedLineText)
-            .addField(new KeyedCodec<>("Close", Codec.STRING), (e, v) -> e.close = "true".equalsIgnoreCase(v), e -> e.close != null && e.close ? "true" : null)
-            .addField(new KeyedCodec<>("@X", Codec.STRING), (e, v) -> e.posX = v, e -> e.posX)
-            .addField(new KeyedCodec<>("@Y", Codec.STRING), (e, v) -> e.posY = v, e -> e.posY)
-            .addField(new KeyedCodec<>("@Z", Codec.STRING), (e, v) -> e.posZ = v, e -> e.posZ)
-            .addField(new KeyedCodec<>("Dir", Codec.STRING), (e, v) -> e.direction = v, e -> e.direction)
+            .append(new KeyedCodec<>("Action", Codec.STRING), (e, v) -> e.action = v, e -> e.action).add()
+            .append(new KeyedCodec<>("LineIndex", Codec.STRING), (e, v) -> e.lineIndex = v, e -> e.lineIndex).add()
+            .append(new KeyedCodec<>("LineText", Codec.STRING), (e, v) -> e.lineText = v, e -> e.lineText).add()
+            .append(new KeyedCodec<>("NewLineText", Codec.STRING), (e, v) -> e.newLineText = v, e -> e.newLineText).add()
+            .append(new KeyedCodec<>("@NewLineInput", Codec.STRING), (e, v) -> e.newLineInput = v, e -> e.newLineInput).add()
+            .append(new KeyedCodec<>("@NewText", Codec.STRING), (e, v) -> e.newText = v, e -> e.newText).add()
+            .append(new KeyedCodec<>("@LineText", Codec.STRING), (e, v) -> e.editedLineText = v, e -> e.editedLineText).add()
+            .append(new KeyedCodec<>("Close", Codec.STRING), (e, v) -> e.close = "true".equalsIgnoreCase(v), e -> e.close != null && e.close ? "true" : null).add()
+            .append(new KeyedCodec<>("@X", Codec.STRING), (e, v) -> e.posX = v, e -> e.posX).add()
+            .append(new KeyedCodec<>("@Y", Codec.STRING), (e, v) -> e.posY = v, e -> e.posY).add()
+            .append(new KeyedCodec<>("@Z", Codec.STRING), (e, v) -> e.posZ = v, e -> e.posZ).add()
+            .append(new KeyedCodec<>("Dir", Codec.STRING), (e, v) -> e.direction = v, e -> e.direction).add()
             .build();
 
     @Nullable

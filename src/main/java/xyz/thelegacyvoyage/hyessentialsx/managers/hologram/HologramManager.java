@@ -792,6 +792,7 @@ public class HologramManager {
       this.visibilityManager.stop();
       this.billboardManager.stop();
       this.gifManager.stop();
+      this.placeholderUpdateManager.stop();
       int removedCount = 0;
       Iterator var2 = this.holograms.values().iterator();
 

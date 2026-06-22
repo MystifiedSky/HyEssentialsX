@@ -33,11 +33,12 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class ShopNpcFixTask {
 
     private final ShopManager shopManager;
-    private ScheduledFuture<?> initTask;
+    private ScheduledFuture<?> bootstrapTask;
     private ScheduledFuture<?> periodicTask;
 
     public ShopNpcFixTask(@Nonnull ShopManager shopManager) {
@@ -46,26 +47,41 @@ public final class ShopNpcFixTask {
 
     public void start() {
         stop();
-        initTask = HytaleServer.SCHEDULED_EXECUTOR.schedule(this::initialize, 5L, TimeUnit.SECONDS);
-        periodicTask = HytaleServer.SCHEDULED_EXECUTOR.scheduleAtFixedRate(this::fixAll, 10L, 30L, TimeUnit.SECONDS);
+        AtomicInteger bootstrapRuns = new AtomicInteger();
+        bootstrapTask = HytaleServer.SCHEDULED_EXECUTOR.scheduleAtFixedRate(() -> {
+            safeFixAll("bootstrap");
+            if (bootstrapRuns.incrementAndGet() >= 30) {
+                cancelBootstrap();
+            }
+        }, 1L, 2L, TimeUnit.SECONDS);
+        periodicTask = HytaleServer.SCHEDULED_EXECUTOR.scheduleAtFixedRate(
+                () -> safeFixAll("periodic"),
+                30L,
+                30L,
+                TimeUnit.SECONDS
+        );
     }
 
     public void stop() {
-        if (initTask != null) {
-            initTask.cancel(false);
-            initTask = null;
-        }
+        cancelBootstrap();
         if (periodicTask != null) {
             periodicTask.cancel(false);
             periodicTask = null;
         }
     }
 
-    private void initialize() {
+    private void cancelBootstrap() {
+        if (bootstrapTask != null) {
+            bootstrapTask.cancel(false);
+            bootstrapTask = null;
+        }
+    }
+
+    private void safeFixAll(@Nonnull String phase) {
         try {
             fixAll();
         } catch (Exception e) {
-            Log.warn("[ShopNPC] Init failed: " + e.getMessage());
+            Log.warn("[ShopNPC] " + phase + " fix failed: " + e.getMessage());
         }
     }
 
@@ -102,25 +118,29 @@ public final class ShopNpcFixTask {
                           @Nonnull java.util.Set<java.util.UUID> knownIds,
                           @Nonnull java.util.Set<String> shopNames) {
         Store<EntityStore> store = world.getEntityStore().getStore();
+        java.util.Set<Ref<EntityStore>> protectedRefs = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        Queue<NpcFixTarget> targets = new ConcurrentLinkedQueue<>();
         for (ShopNpcModel npc : npcs) {
             try {
                 if (!npc.getWorldId().equalsIgnoreCase(world.getName())) {
                     continue;
                 }
-                String id = npc.getNpcId();
-                if (id.isBlank()) continue;
-                UUID npcUuid = UUID.fromString(id);
-                findAndFixNpc(world, store, npcUuid, npc);
+                findAndFixNpc(store, parseUuid(npc.getNpcId()), npc, protectedRefs, targets);
             } catch (Exception ignored) {
             }
         }
-        removeOrphanedShopNpcEntities(store, knownIds, shopNames);
+        for (NpcFixTarget target : targets) {
+            applyFixes(world, store, target.ref, target.npc, target.loc);
+        }
+        removeLegacyShopInteractionOverrides(store);
+        removeOrphanedShopNpcEntities(store, knownIds, shopNames, protectedRefs);
     }
 
-    private void findAndFixNpc(@Nonnull World world,
-                               @Nonnull Store<EntityStore> store,
-                               @Nonnull UUID npcUuid,
-                               @Nonnull ShopNpcModel loc) {
+    private void findAndFixNpc(@Nonnull Store<EntityStore> store,
+                               UUID npcUuid,
+                               @Nonnull ShopNpcModel loc,
+                               @Nonnull java.util.Set<Ref<EntityStore>> protectedRefs,
+                               @Nonnull Queue<NpcFixTarget> targets) {
         store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
             try {
                 Ref<EntityStore> ref = chunk.getReferenceTo(index);
@@ -128,16 +148,12 @@ public final class ShopNpcFixTask {
                 if (npc == null) {
                     return;
                 }
-                boolean matched;
-                try {
-                    matched = npcUuid.equals(ServerCompatUtil.getUuid(npc));
-                } catch (Exception ignored) {
-                    matched = false;
-                }
-                if (!matched) {
+                if (!matchesStoredShopNpc(store, ref, npc, npcUuid, loc)) {
                     return;
                 }
-                world.execute(() -> applyFixes(world, store, ref, npc, loc));
+                if (protectedRefs.add(ref)) {
+                    targets.add(new NpcFixTarget(ref, npc, loc));
+                }
             } catch (Exception ignored) {
             }
         });
@@ -183,6 +199,7 @@ public final class ShopNpcFixTask {
             if (transform != null && transform.getRotation() != null) {
                 npc.setLeashHeading(transform.getRotation().yaw());
             }
+            refreshStoredNpcId(npc, loc);
             ShopNpcInteractionRegistry.applyNpcInteractions(store, npcRef);
         } catch (Exception ignored) {
         }
@@ -190,7 +207,8 @@ public final class ShopNpcFixTask {
 
     private void removeOrphanedShopNpcEntities(@Nonnull Store<EntityStore> store,
                                                @Nonnull java.util.Set<java.util.UUID> knownIds,
-                                               @Nonnull java.util.Set<String> shopNames) {
+                                               @Nonnull java.util.Set<String> shopNames,
+                                               @Nonnull java.util.Set<Ref<EntityStore>> protectedRefs) {
         if (shopNames.isEmpty()) {
             return;
         }
@@ -198,6 +216,9 @@ public final class ShopNpcFixTask {
         store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
             try {
                 Ref<EntityStore> ref = chunk.getReferenceTo(index);
+                if (protectedRefs.contains(ref)) {
+                    return;
+                }
                 NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
                 if (npc == null) return;
 
@@ -227,6 +248,123 @@ public final class ShopNpcFixTask {
                 store.removeEntity(ref, RemoveReason.REMOVE);
             } catch (Exception ignored) {
             }
+        }
+    }
+
+    private void removeLegacyShopInteractionOverrides(@Nonnull Store<EntityStore> store) {
+        store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
+            try {
+                Ref<EntityStore> ref = chunk.getReferenceTo(index);
+                Interactions interactions = store.getComponent(ref, Interactions.getComponentType());
+                if (interactions == null) {
+                    return;
+                }
+                String interactionId = interactions.getInteractionId(InteractionType.Use);
+                String hint = interactions.getInteractionHint();
+                boolean oldShopInteraction = interactionId != null
+                        && ShopNpcInteractionRegistry.ADMIN_SHOP_ROOT_INTERACTION_ID.equalsIgnoreCase(interactionId);
+                boolean oldShopHint = hint != null
+                        && hint.toLowerCase(java.util.Locale.ROOT).contains("open shop");
+                if (!oldShopInteraction && !oldShopHint) {
+                    return;
+                }
+                commandBuffer.tryRemoveComponent(ref, Interactions.getComponentType());
+                if (store.getComponent(ref, Interactable.getComponentType()) == null) {
+                    commandBuffer.addComponent(ref, Interactable.getComponentType(), Interactable.INSTANCE);
+                }
+            } catch (Exception ignored) {
+            }
+        });
+    }
+
+    private UUID parseUuid(@Nonnull String value) {
+        if (value.isBlank()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(value);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private boolean matchesStoredShopNpc(@Nonnull Store<EntityStore> store,
+                                         @Nonnull Ref<EntityStore> ref,
+                                         @Nonnull NPCEntity npc,
+                                         UUID npcUuid,
+                                         @Nonnull ShopNpcModel loc) {
+        if (npcUuid != null) {
+            try {
+                if (npcUuid.equals(ServerCompatUtil.getUuid(npc))) {
+                    return true;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        java.util.Set<String> names = shopNamesFor(loc);
+        if (!ShopNpcEntityUtil.matchesAnyShopName(store, ref, names)) {
+            return false;
+        }
+        return distanceSquared(store, ref, loc.getPosition()) <= 9.0D;
+    }
+
+    private java.util.Set<String> shopNamesFor(@Nonnull ShopNpcModel loc) {
+        java.util.Set<String> names = new java.util.HashSet<>();
+        ShopModel shop = shopManager.getShop(loc.getShopName());
+        if (shop != null) {
+            if (!shop.getName().isBlank()) {
+                names.add(shop.getName().toLowerCase(java.util.Locale.ROOT));
+            }
+            if (!shop.getDisplayName().isBlank()) {
+                names.add(shop.getDisplayName().toLowerCase(java.util.Locale.ROOT));
+            }
+        } else if (!loc.getShopName().isBlank()) {
+            names.add(loc.getShopName().toLowerCase(java.util.Locale.ROOT));
+        }
+        return names;
+    }
+
+    private double distanceSquared(@Nonnull Store<EntityStore> store,
+                                   @Nonnull Ref<EntityStore> ref,
+                                   @Nonnull Vector3i blockPos) {
+        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+        if (transform == null || transform.getPosition() == null) {
+            return Double.MAX_VALUE / 2.0D;
+        }
+        Vector3d pos = transform.getPosition();
+        double dx = pos.x() - (blockPos.x() + 0.5D);
+        double dy = pos.y() - blockPos.y();
+        double dz = pos.z() - (blockPos.z() + 0.5D);
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    private void refreshStoredNpcId(@Nonnull NPCEntity npc, @Nonnull ShopNpcModel loc) {
+        try {
+            UUID currentId = ServerCompatUtil.getUuid(npc);
+            if (currentId == null || loc.getNpcId().equalsIgnoreCase(currentId.toString())) {
+                return;
+            }
+            ShopModel shop = shopManager.getShop(loc.getShopName());
+            if (shop == null) {
+                return;
+            }
+            loc.setNpcId(currentId.toString());
+            shopManager.saveShop(shop);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static final class NpcFixTarget {
+        private final Ref<EntityStore> ref;
+        private final NPCEntity npc;
+        private final ShopNpcModel loc;
+
+        private NpcFixTarget(@Nonnull Ref<EntityStore> ref,
+                             @Nonnull NPCEntity npc,
+                             @Nonnull ShopNpcModel loc) {
+            this.ref = ref;
+            this.npc = npc;
+            this.loc = loc;
         }
     }
 }

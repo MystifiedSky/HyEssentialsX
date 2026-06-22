@@ -309,8 +309,8 @@ public final class PlaytimeUI extends InteractiveCustomUIPage<PlaytimeUI.Playtim
     public static final class PlaytimeEventData {
         public static final BuilderCodec<PlaytimeEventData> CODEC = BuilderCodec
                 .builder(PlaytimeEventData.class, PlaytimeEventData::new)
-                .addField(new KeyedCodec<>("Tab", Codec.STRING), (d, v) -> d.tab = v, d -> d.tab)
-                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
+                .append(new KeyedCodec<>("Tab", Codec.STRING), (d, v) -> d.tab = v, d -> d.tab).add()
+                .append(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action).add()
                 .build();
 
         @Nullable

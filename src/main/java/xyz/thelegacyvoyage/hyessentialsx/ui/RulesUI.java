@@ -175,7 +175,7 @@ public final class RulesUI extends InteractiveCustomUIPage<RulesUI.UIEventData> 
     public static final class UIEventData {
         public static final BuilderCodec<UIEventData> CODEC = BuilderCodec
                 .builder(UIEventData.class, UIEventData::new)
-                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
+                .append(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action).add()
                 .build();
 
         private String action;

@@ -9,7 +9,7 @@ import javax.annotation.Nullable;
 public class ScoreboardMoveEventData {
 
     public static final BuilderCodec<ScoreboardMoveEventData> CODEC = BuilderCodec.builder(ScoreboardMoveEventData.class, ScoreboardMoveEventData::new)
-            .addField(new KeyedCodec<>("Action", Codec.STRING), (e, v) -> e.action = v, e -> e.action)
+            .append(new KeyedCodec<>("Action", Codec.STRING), (e, v) -> e.action = v, e -> e.action).add()
             .build();
 
     @Nullable

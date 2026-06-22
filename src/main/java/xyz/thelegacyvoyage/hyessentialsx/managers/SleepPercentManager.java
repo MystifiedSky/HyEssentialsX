@@ -21,7 +21,6 @@ import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
 import javax.annotation.Nonnull;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -45,6 +44,7 @@ public final class SleepPercentManager {
     private ScheduledExecutorService scheduler;
     private ScheduledFuture<?> sleepCheckTask;
     private final Map<String, Set<UUID>> lastSleepingByWorld = new HashMap<>();
+    private final Set<String> skippedSleepCycleWorlds = new HashSet<>();
 
     public SleepPercentManager(@Nonnull ConfigManager config) {
         this.config = config;
@@ -69,12 +69,18 @@ public final class SleepPercentManager {
             scheduler.shutdownNow();
             scheduler = null;
         }
+        lastSleepingByWorld.clear();
+        skippedSleepCycleWorlds.clear();
     }
 
     private void checkSleepingPlayers() {
         try {
             int requiredPercentage = config.getSleepPercentage();
-            if (requiredPercentage >= 100) return;
+            if (requiredPercentage >= 100) {
+                lastSleepingByWorld.clear();
+                skippedSleepCycleWorlds.clear();
+                return;
+            }
 
             Universe universe = Universe.get();
             if (universe == null) return;
@@ -108,9 +114,6 @@ public final class SleepPercentManager {
             int sleepingPlayers = 0;
             Map<UUID, PlayerRef> playerById = new HashMap<>();
 
-            WorldTimeResource timeResource = store.getResource(WorldTimeResource.getResourceType());
-            Instant gameTime = timeResource != null ? timeResource.getGameTime() : Instant.now();
-
             Set<UUID> sleepingNow = new HashSet<>();
             Iterator<PlayerRef> it = playerRefs.iterator();
             while (it.hasNext()) {
@@ -132,14 +135,12 @@ public final class SleepPercentManager {
                         sleepingPlayers++;
                         sleepingNow.add(playerRef.getUuid());
                     }
-                } else if (sleepState instanceof MorningWakeUp) {
-                    MorningWakeUp wakeUp = (MorningWakeUp) sleepState;
-                    Instant readyTime = wakeUp.gameTimeStart().plus(Duration.ofHours(1L));
-                    if (gameTime.isAfter(readyTime)) {
-                        sleepingPlayers++;
-                        sleepingNow.add(playerRef.getUuid());
-                    }
                 }
+            }
+
+            String worldKey = world.getName();
+            if (sleepingNow.isEmpty()) {
+                skippedSleepCycleWorlds.remove(worldKey);
             }
 
             int needed = calculateNeededPlayers(totalPlayers, requiredPercentage);
@@ -147,23 +148,24 @@ public final class SleepPercentManager {
 
             if (sleepingPlayers == 0) return;
             int currentPercentage = sleepingPlayers * 100 / totalPlayers;
-            if (currentPercentage >= requiredPercentage) {
-                triggerSlumber(store, world, worldSomnolence);
+            if (currentPercentage >= requiredPercentage && !skippedSleepCycleWorlds.contains(worldKey)
+                    && triggerSlumber(store, world, worldSomnolence)) {
+                skippedSleepCycleWorlds.add(worldKey);
             }
         } catch (Exception e) {
             Log.warn("[HyEssentialsX] Sleep percentage world check failed: " + e.getMessage());
         }
     }
 
-    private void triggerSlumber(@Nonnull Store<EntityStore> store,
-                                @Nonnull World world,
-                                @Nonnull WorldSomnolence worldSomnolence) {
-        if (worldSomnolence.getState() instanceof WorldSlumber) return;
+    private boolean triggerSlumber(@Nonnull Store<EntityStore> store,
+                                   @Nonnull World world,
+                                   @Nonnull WorldSomnolence worldSomnolence) {
+        if (worldSomnolence.getState() instanceof WorldSlumber) return false;
 
         WorldTimeResource timeResource = store.getResource(WorldTimeResource.getResourceType());
         if (timeResource == null) {
             Log.warn("[HyEssentialsX] WorldTimeResource is null for sleep percentage.");
-            return;
+            return false;
         }
 
         SleepConfig sleepConfig = world.getGameplayConfig().getWorldConfig().getSleepConfig();
@@ -184,6 +186,7 @@ public final class SleepPercentManager {
         }
 
         Log.info("[HyEssentialsX] Sleep percentage: skipped to morning.");
+        return true;
     }
 
     private Instant computeWakeupInstant(@Nonnull Instant now, float wakeUpHour) {

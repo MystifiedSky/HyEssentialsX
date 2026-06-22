@@ -206,9 +206,9 @@ public final class TpaUI extends InteractiveCustomUIPage<TpaUI.UIEventData> {
     public static final class UIEventData {
         public static final BuilderCodec<UIEventData> CODEC = BuilderCodec
                 .builder(UIEventData.class, UIEventData::new)
-                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
-                .addField(new KeyedCodec<>("Target", Codec.STRING), (d, v) -> d.target = v, d -> d.target)
-                .addField(new KeyedCodec<>("@Query", Codec.STRING), (d, v) -> d.query = v, d -> d.query)
+                .append(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action).add()
+                .append(new KeyedCodec<>("Target", Codec.STRING), (d, v) -> d.target = v, d -> d.target).add()
+                .append(new KeyedCodec<>("@Query", Codec.STRING), (d, v) -> d.query = v, d -> d.query).add()
                 .build();
 
         private String action;

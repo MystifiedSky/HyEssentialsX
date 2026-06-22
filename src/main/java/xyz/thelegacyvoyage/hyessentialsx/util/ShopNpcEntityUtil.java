@@ -5,6 +5,7 @@ import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.protocol.MovementStates;
+import com.hypixel.hytale.server.core.HytaleServer;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.Frozen;
 import com.hypixel.hytale.server.core.entity.nameplate.Nameplate;
@@ -38,6 +39,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -75,6 +77,7 @@ public final class ShopNpcEntityUtil {
         npcModel.setPosition(basePos);
         npcModel.setWorldId(world.getName());
         registerRef(npcModel.getShopName(), world.getName(), npcRef);
+        scheduleInteractionCleanup(world, store, npcRef);
         return true;
     }
 
@@ -117,6 +120,7 @@ public final class ShopNpcEntityUtil {
                             roleName
                     );
                     registerRef(shop.getName(), worldName, existingRef);
+                    scheduleInteractionCleanup(world, store, existingRef);
                     int removed = removeDuplicateShopNpcs(store, shop, worldName, updated.getPosition(), npcUuid.toString());
                     if (removed > 0) {
                         Log.info("[ShopNPC] Removed " + removed + " duplicate NPC(s) for " + shop.getName() + " in " + worldName);
@@ -160,6 +164,7 @@ public final class ShopNpcEntityUtil {
                     roleName
             );
             registerRef(shop.getName(), worldName, npcRef);
+            scheduleInteractionCleanup(world, store, npcRef);
             int removed = preRemoved + removeDuplicateShopNpcs(store, shop, worldName, basePos, spawnedNpcId.toString());
             return NpcLifecycleResult.spawned(spawnedNpcId.toString(), removed);
         } finally {
@@ -213,6 +218,7 @@ public final class ShopNpcEntityUtil {
             npcModel.setWorldId(worldName);
             npcModel.setRoleName(shop.getNpcRole());
             registerRef(shop.getName(), worldName, npcRef);
+            scheduleInteractionCleanup(world, store, npcRef);
             removed += removeDuplicateShopNpcs(store, shop, worldName, npcModel.getPosition(), spawnedNpcId.toString());
             if (removed > 0) {
                 Log.info("[ShopNPC] Replaced role for " + shop.getName() + " in " + worldName + " and removed " + removed + " old NPC ref(s)");
@@ -715,6 +721,27 @@ public final class ShopNpcEntityUtil {
         ShopNpcNameplateUtil.apply(store, ref, displayName);
         ShopNpcInteractionRegistry.applyNpcInteractions(store, ref);
         applyStableShopNpcComponents(store, ref);
+    }
+
+    private static void scheduleInteractionCleanup(@Nonnull World world,
+                                                   @Nonnull Store<EntityStore> store,
+                                                   @Nonnull Ref<EntityStore> ref) {
+        for (long delay : new long[]{250L, 1_000L, 3_000L}) {
+            HytaleServer.SCHEDULED_EXECUTOR.schedule(
+                    () -> world.execute(() -> {
+                        try {
+                            if (!ref.isValid()) {
+                                return;
+                            }
+                            ShopNpcInteractionRegistry.applyNpcInteractions(store, ref);
+                            applyStableShopNpcComponents(store, ref);
+                        } catch (Exception ignored) {
+                        }
+                    }),
+                    delay,
+                    TimeUnit.MILLISECONDS
+            );
+        }
     }
 
     private static Set<String> shopNames(@Nonnull ShopModel shop) {

@@ -603,7 +603,7 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
 
     private void syncConfigDraftFromConfig() {
         cfgCurrencySymbol = config.getEconomyCurrencySymbol();
-        cfgStartingBalance = String.valueOf(config.getEconomyStartingBalance());
+        cfgStartingBalance = economy.formatAmountRaw(config.getEconomyStartingBalance());
         cfgHudLabel = config.getEconomyHudLabel();
         cfgHudInterval = String.valueOf(config.getEconomyHudUpdateIntervalMs());
         cfgHudEnabled = config.isEconomyHudEnabled();
@@ -773,18 +773,18 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
     public static final class AdminEventData {
         public static final BuilderCodec<AdminEventData> CODEC = BuilderCodec
                 .builder(AdminEventData.class, AdminEventData::new)
-                .addField(new KeyedCodec<>("Tab", Codec.STRING), (d, v) -> d.tab = v, d -> d.tab)
-                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
-                .addField(new KeyedCodec<>("PlayerAction", Codec.STRING), (d, v) -> d.playerAction = v, d -> d.playerAction)
-                .addField(new KeyedCodec<>("PlayerUuid", Codec.STRING), (d, v) -> d.playerUuid = v, d -> d.playerUuid)
-                .addField(new KeyedCodec<>("PlayerName", Codec.STRING), (d, v) -> d.playerName = v, d -> d.playerName)
-                .addField(new KeyedCodec<>("@SearchQuery", Codec.STRING), (d, v) -> d.searchQuery = v, d -> d.searchQuery)
-                .addField(new KeyedCodec<>("@LogFilter", Codec.STRING), (d, v) -> d.logFilter = v, d -> d.logFilter)
-                .addField(new KeyedCodec<>("@AmountInput", Codec.STRING), (d, v) -> d.amountInput = v, d -> d.amountInput)
-                .addField(new KeyedCodec<>("@ConfigSymbol", Codec.STRING), (d, v) -> d.cfgSymbol = v, d -> d.cfgSymbol)
-                .addField(new KeyedCodec<>("@ConfigStarting", Codec.STRING), (d, v) -> d.cfgStarting = v, d -> d.cfgStarting)
-                .addField(new KeyedCodec<>("@ConfigHudLabel", Codec.STRING), (d, v) -> d.cfgHudLabel = v, d -> d.cfgHudLabel)
-                .addField(new KeyedCodec<>("@ConfigHudInterval", Codec.STRING), (d, v) -> d.cfgHudInterval = v, d -> d.cfgHudInterval)
+                .append(new KeyedCodec<>("Tab", Codec.STRING), (d, v) -> d.tab = v, d -> d.tab).add()
+                .append(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action).add()
+                .append(new KeyedCodec<>("PlayerAction", Codec.STRING), (d, v) -> d.playerAction = v, d -> d.playerAction).add()
+                .append(new KeyedCodec<>("PlayerUuid", Codec.STRING), (d, v) -> d.playerUuid = v, d -> d.playerUuid).add()
+                .append(new KeyedCodec<>("PlayerName", Codec.STRING), (d, v) -> d.playerName = v, d -> d.playerName).add()
+                .append(new KeyedCodec<>("@SearchQuery", Codec.STRING), (d, v) -> d.searchQuery = v, d -> d.searchQuery).add()
+                .append(new KeyedCodec<>("@LogFilter", Codec.STRING), (d, v) -> d.logFilter = v, d -> d.logFilter).add()
+                .append(new KeyedCodec<>("@AmountInput", Codec.STRING), (d, v) -> d.amountInput = v, d -> d.amountInput).add()
+                .append(new KeyedCodec<>("@ConfigSymbol", Codec.STRING), (d, v) -> d.cfgSymbol = v, d -> d.cfgSymbol).add()
+                .append(new KeyedCodec<>("@ConfigStarting", Codec.STRING), (d, v) -> d.cfgStarting = v, d -> d.cfgStarting).add()
+                .append(new KeyedCodec<>("@ConfigHudLabel", Codec.STRING), (d, v) -> d.cfgHudLabel = v, d -> d.cfgHudLabel).add()
+                .append(new KeyedCodec<>("@ConfigHudInterval", Codec.STRING), (d, v) -> d.cfgHudInterval = v, d -> d.cfgHudInterval).add()
                 .build();
 
         private String tab;

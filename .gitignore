@@ -23,3 +23,19 @@ server/
 docs-cache/
 
 updater/staging/
+
+bin/main/xyz/thelegacyvoyage/hyessentialsx/managers/
+
+bin/main/xyz/thelegacyvoyage/hyessentialsx/migration/
+
+bin/main/xyz/thelegacyvoyage/hyessentialsx/models/
+
+bin/test/xyz/thelegacyvoyage/hyessentialsx/managers/
+
+bin/main/Common/UI/Custom/hyessentialsx/
+
+bin/main/lang/
+
+bin/main/
+
+bin/test/xyz/thelegacyvoyage/hyessentialsx/util/

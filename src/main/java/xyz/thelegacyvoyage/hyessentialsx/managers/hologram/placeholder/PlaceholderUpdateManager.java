@@ -87,6 +87,8 @@ public class PlaceholderUpdateManager {
 
       this.hologramsWithPlaceholders.clear();
       this.originalLines.clear();
+      this.linesWithPlayerPlaceholders.clear();
+      this.plugin.getLogger().at(Level.INFO).log("Placeholder update manager stopped");
    }
 
    public void registerHologram(@Nonnull Hologram hologram) {

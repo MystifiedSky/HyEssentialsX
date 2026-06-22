@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'xyz.thelegacyvoyage.hyessentialsx'
-version = '1.4.9'
+version = '1.5.0'
 
 repositories {
     mavenCentral()
@@ -26,9 +26,12 @@ def projectServerJar = file('server/HytaleServer.jar')
 def siblingServerJar = file('../server/HytaleServer.jar')
 def serverJarCandidates = [projectServerJar, serverJarPath, siblingServerJar]
 def existingServerJars = serverJarCandidates.findAll { it.exists() }
-def selectedServerJar = existingServerJars
-        ? existingServerJars.max { it.lastModified() }
-        : serverJarPath
+def selectedServerJar
+if (existingServerJars) {
+    selectedServerJar = existingServerJars.max { it.lastModified() }
+} else {
+    selectedServerJar = serverJarPath
+}
 
 def resolveServerVersionFromJar = { File jarFile ->
     if (jarFile == null || !jarFile.exists()) {

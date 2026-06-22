@@ -278,8 +278,8 @@ public final class WarpsUI extends InteractiveCustomUIPage<WarpsUI.UIEventData> 
     public static final class UIEventData {
         public static final BuilderCodec<UIEventData> CODEC = BuilderCodec
                 .builder(UIEventData.class, UIEventData::new)
-                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
-                .addField(new KeyedCodec<>("Warp", Codec.STRING), (d, v) -> d.warp = v, d -> d.warp)
+                .append(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action).add()
+                .append(new KeyedCodec<>("Warp", Codec.STRING), (d, v) -> d.warp = v, d -> d.warp).add()
                 .build();
 
         private String action;

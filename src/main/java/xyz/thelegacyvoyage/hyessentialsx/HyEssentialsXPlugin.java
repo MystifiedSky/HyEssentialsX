@@ -453,12 +453,18 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (economyHudManager != null) economyHudManager.shutdown();
         if (economyAuditManager != null) economyAuditManager.shutdown();
         if (shopNpcFixTask != null) shopNpcFixTask.stop();
+        ShopNpcInteractionRegistry.unregister();
         unregisterPlaceholderExpansion();
         if (hologramService != null) {
             hologramService.shutdown();
         }
+        Log.info("[HyEssentialsX] Unregistering integrations...");
         VaultUnlockedIntegration.unregister();
-        if (storage != null) storage.shutdown();
+        if (storage != null) {
+            Log.info("[HyEssentialsX] Flushing storage...");
+            storage.shutdown();
+            Log.info("[HyEssentialsX] Storage stopped.");
+        }
         HyEssentialsXApiProvider.clear();
         instance = null;
     }
@@ -630,7 +636,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (configManager.isAdminShopsEnabled()) {
             reg.accept(new ShopCommand(shopManager, economyManager, shopAdminDraftCache));
         }
-        if (configManager.isPlayerShopsEnabled()) {
+        if (configManager.isPlayerShopsEnabled() || configManager.isAdminShopsEnabled()) {
             reg.accept(new PlayerShopCommand(shopManager, economyManager, shopAdminDraftCache, configManager, storage));
         }
         reg.accept(new ClearInventoryCommand());

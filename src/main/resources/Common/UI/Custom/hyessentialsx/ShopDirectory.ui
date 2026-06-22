@@ -1,0 +1,112 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {
+  $C.@Container {
+    @CloseButton = true;
+    Anchor: (Width: 920, Height: 660);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Shops";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15, Top: 5, Bottom: 10);
+
+      Group #Tabs {
+        Anchor: (Height: 34, Bottom: 10);
+        LayoutMode: Left;
+
+        $C.@TextButton #TabPlayer {
+          Text: "Player Shops";
+          Anchor: (Width: 150, Height: 30, Right: 8);
+        }
+
+        $C.@TextButton #TabAdmin {
+          Text: "Admin Shops";
+          Anchor: (Width: 150, Height: 30, Right: 8);
+        }
+
+        $C.@TextButton #TabAuction {
+          Text: "Auction";
+          Anchor: (Width: 120, Height: 30);
+        }
+
+        Group { FlexWeight: 1; }
+      }
+
+      Group #SearchRow {
+        Anchor: (Height: 40, Bottom: 8);
+        LayoutMode: Left;
+
+        $C.@TextField #SearchInput {
+          FlexWeight: 1;
+          PlaceholderText: "Search shops or items...";
+        }
+
+        Group { Anchor: (Width: 8); }
+
+        $C.@SecondaryTextButton #ClearSearchButton {
+          Text: "Clear";
+          Anchor: (Width: 110, Height: 34, Vertical: 0);
+        }
+      }
+
+      Group {
+        Anchor: (Height: 1, Bottom: 10);
+        Background: (Color: #93844c(0.4));
+      }
+
+      Group #DirectorySection {
+        FlexWeight: 1;
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+
+        Label #EmptyLabel {
+          Anchor: (Height: 60);
+          Style: (FontSize: 15, TextColor: #777777, HorizontalAlignment: Center);
+          Text: "No shops found";
+          Visible: false;
+        }
+
+        Group #ShopRows {
+          LayoutMode: Top;
+          Padding: (Right: 10);
+        }
+      }
+
+      Group #Pager {
+        Anchor: (Height: 36, Top: 8);
+        LayoutMode: Left;
+
+        Label #ResultInfo {
+          FlexWeight: 1;
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+          Text: "";
+        }
+
+        $C.@TextButton #PrevPage {
+          Anchor: (Width: 92, Height: 28, Vertical: 0, Right: 8);
+          Text: "< Prev";
+        }
+
+        Label #PageInfo {
+          Anchor: (Width: 130, Vertical: 0, Right: 8);
+          Style: (FontSize: 12, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+          Text: "Page 1/1";
+        }
+
+        $C.@TextButton #NextPage {
+          Anchor: (Width: 92, Height: 28, Vertical: 0);
+          Text: "Next >";
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

@@ -298,8 +298,8 @@ public final class BanListUI extends InteractiveCustomUIPage<BanListUI.UIEventDa
     public static final class UIEventData {
         public static final BuilderCodec<UIEventData> CODEC = BuilderCodec
                 .builder(UIEventData.class, UIEventData::new)
-                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
-                .addField(new KeyedCodec<>("Target", Codec.STRING), (d, v) -> d.target = v, d -> d.target)
+                .append(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action).add()
+                .append(new KeyedCodec<>("Target", Codec.STRING), (d, v) -> d.target = v, d -> d.target).add()
                 .build();
 
         private String action;

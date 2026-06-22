@@ -266,10 +266,10 @@ public final class PayUI extends InteractiveCustomUIPage<PayUI.PayUIEventData> {
     public static final class PayUIEventData {
         public static final BuilderCodec<PayUIEventData> CODEC = BuilderCodec
                 .builder(PayUIEventData.class, PayUIEventData::new)
-                .addField(new KeyedCodec<>("@SearchQuery", Codec.STRING), (d, v) -> d.searchQuery = v, d -> d.searchQuery)
-                .addField(new KeyedCodec<>("@AmountInput", Codec.STRING), (d, v) -> d.amountInput = v, d -> d.amountInput)
-                .addField(new KeyedCodec<>("SelectedPlayer", Codec.STRING), (d, v) -> d.selectedPlayer = v, d -> d.selectedPlayer)
-                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
+                .append(new KeyedCodec<>("@SearchQuery", Codec.STRING), (d, v) -> d.searchQuery = v, d -> d.searchQuery).add()
+                .append(new KeyedCodec<>("@AmountInput", Codec.STRING), (d, v) -> d.amountInput = v, d -> d.amountInput).add()
+                .append(new KeyedCodec<>("SelectedPlayer", Codec.STRING), (d, v) -> d.selectedPlayer = v, d -> d.selectedPlayer).add()
+                .append(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action).add()
                 .build();
 
         private String searchQuery;

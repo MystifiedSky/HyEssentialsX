@@ -304,8 +304,8 @@ public final class StatsUI extends InteractiveCustomUIPage<StatsUI.StatsEventDat
     public static final class StatsEventData {
         public static final BuilderCodec<StatsEventData> CODEC = BuilderCodec
                 .builder(StatsEventData.class, StatsEventData::new)
-                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
-                .addField(new KeyedCodec<>("Tab", Codec.STRING), (d, v) -> d.tab = v, d -> d.tab)
+                .append(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action).add()
+                .append(new KeyedCodec<>("Tab", Codec.STRING), (d, v) -> d.tab = v, d -> d.tab).add()
                 .build();
 
         @Nullable

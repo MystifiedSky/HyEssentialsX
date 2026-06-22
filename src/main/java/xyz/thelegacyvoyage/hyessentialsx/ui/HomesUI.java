@@ -250,8 +250,8 @@ public final class HomesUI extends InteractiveCustomUIPage<HomesUI.UIEventData> 
     public static final class UIEventData {
         public static final BuilderCodec<UIEventData> CODEC = BuilderCodec
                 .builder(UIEventData.class, UIEventData::new)
-                .addField(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action)
-                .addField(new KeyedCodec<>("Home", Codec.STRING), (d, v) -> d.home = v, d -> d.home)
+                .append(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action).add()
+                .append(new KeyedCodec<>("Home", Codec.STRING), (d, v) -> d.home = v, d -> d.home).add()
                 .build();
 
         private String action;

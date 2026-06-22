@@ -1,0 +1,50 @@
+$C = "../Common.ui";
+
+Group {
+  Anchor: (Height: 78, Bottom: 8);
+  Padding: 10;
+  Background: (Color: #1a1a1a(0.75));
+  LayoutMode: Left;
+
+  Group #IconBox {
+    Anchor: (Width: 58, Height: 58, Right: 12);
+    Background: (Color: #2a2a2a(0.7));
+
+    ItemIcon #MainIcon {
+      Anchor: (Width: 48, Height: 48, Left: 5, Top: 5);
+    }
+  }
+
+  Group #TextColumn {
+    Anchor: (Width: 300, Right: 12);
+    LayoutMode: Top;
+
+    Label #ShopName {
+      Anchor: (Height: 24);
+      Style: (FontSize: 17, TextColor: #ffffff, RenderBold: true);
+      Text: "";
+    }
+
+    Label #ShopMeta {
+      Anchor: (Height: 18);
+      Style: (FontSize: 12, TextColor: #aaaaaa);
+      Text: "";
+    }
+
+    Label #ShopItems {
+      Anchor: (Height: 18);
+      Style: (FontSize: 12, TextColor: #d5c77e);
+      Text: "";
+    }
+  }
+
+  Group #PreviewItems {
+    FlexWeight: 1;
+    LayoutMode: Left;
+  }
+
+  $C.@TextButton #OpenButton {
+    Anchor: (Width: 95, Height: 34, Left: 10, Vertical: 0);
+    Text: "Open";
+  }
+}

@@ -9,10 +9,10 @@ import javax.annotation.Nullable;
 public class ScoreboardEditEventData {
 
     public static final BuilderCodec<ScoreboardEditEventData> CODEC = BuilderCodec.builder(ScoreboardEditEventData.class, ScoreboardEditEventData::new)
-            .addField(new KeyedCodec<>("Action", Codec.STRING), (e, v) -> e.action = v, e -> e.action)
-            .addField(new KeyedCodec<>("LineIndex", Codec.STRING), (e, v) -> e.lineIndex = v, e -> e.lineIndex)
-            .addField(new KeyedCodec<>("@NewText", Codec.STRING), (e, v) -> e.newText = v, e -> e.newText)
-            .addField(new KeyedCodec<>("@NewLineInput", Codec.STRING), (e, v) -> e.newLineInput = v, e -> e.newLineInput)
+            .append(new KeyedCodec<>("Action", Codec.STRING), (e, v) -> e.action = v, e -> e.action).add()
+            .append(new KeyedCodec<>("LineIndex", Codec.STRING), (e, v) -> e.lineIndex = v, e -> e.lineIndex).add()
+            .append(new KeyedCodec<>("@NewText", Codec.STRING), (e, v) -> e.newText = v, e -> e.newText).add()
+            .append(new KeyedCodec<>("@NewLineInput", Codec.STRING), (e, v) -> e.newLineInput = v, e -> e.newLineInput).add()
             .build();
 
     @Nullable

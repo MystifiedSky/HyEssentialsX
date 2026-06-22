@@ -31,6 +31,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.PlayerShopBrowseUI;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopAdminUI;
+import xyz.thelegacyvoyage.hyessentialsx.ui.ShopDirectoryUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
@@ -69,6 +70,7 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         this.config = config;
         this.storage = storage;
         this.setPermissionGroups();
+        this.addAliases(new String[]{"shops"});
         this.addSubCommand(new ListSubCommand());
         this.addSubCommand(new OpenSubCommand());
         this.addSubCommand(new CreateSubCommand());
@@ -76,7 +78,6 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         this.addSubCommand(new EditSubCommand());
         this.addSubCommand(new MoveSubCommand());
         this.addSubCommand(new LinkSubCommand());
-        xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
     @Override
@@ -90,13 +91,11 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
                            @Nonnull Ref<EntityStore> ref,
                            @Nonnull PlayerRef playerRef,
                            @Nonnull World world) {
-        if (!ensurePlayerShopsEnabled(context)) return;
-
-        if (!hasUsePermission(context.sender(), playerRef)) {
+        if (!hasDirectoryPermission(context.sender(), playerRef)) {
             Messages.noPerm(context, "/shop");
             return;
         }
-        listShops(context, playerRef);
+        openDirectory(context, store, ref, playerRef);
     }
 
     private boolean ensurePlayerShopsEnabled(@Nonnull CommandContext context) {
@@ -119,12 +118,11 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
 
         @Override
         protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
-            if (!ensurePlayerShopsEnabled(context)) return;
-            if (!hasUsePermission(context.sender(), playerRef)) {
+            if (!hasDirectoryPermission(context.sender(), playerRef)) {
                 Messages.noPerm(context, "/shop list");
                 return;
             }
-            listShops(context, playerRef);
+            openDirectory(context, store, ref, playerRef);
         }
     }
 
@@ -338,6 +336,19 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         Messages.sendKey(context, "shop.player.list", java.util.Map.of("shops", String.join(", ", display)));
     }
 
+    private void openDirectory(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef) {
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            Messages.sendKey(context, "shop.admin.ui_failed", java.util.Map.of());
+            return;
+        }
+        ShopDirectoryUI ui = new ShopDirectoryUI(playerRef, shopManager, economy, draftCache, config, storage);
+        ui.open(player, ref, store);
+    }
+
     private void openBrowse(@Nonnull CommandContext context,
                             @Nonnull Store<EntityStore> store,
                             @Nonnull Ref<EntityStore> ref,
@@ -538,6 +549,14 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         return hasNodePermission(sender, playerRef, ADMIN_PERMISSION)
                 || hasNodePermission(sender, playerRef, PERMISSION_NODE)
                 || hasNodePermission(sender, playerRef, LEGACY_PERMISSION);
+    }
+
+    private boolean hasDirectoryPermission(@Nonnull com.hypixel.hytale.server.core.command.system.CommandSender sender,
+                                           @Nonnull PlayerRef playerRef) {
+        return hasUsePermission(sender, playerRef)
+                || hasNodePermission(sender, playerRef, "hyessentialsx.adminshop.use")
+                || hasNodePermission(sender, playerRef, "hyessentialsx.shop")
+                || hasNodePermission(sender, playerRef, ShopManager.LEGACY_USE_PERMISSION);
     }
 
     private boolean hasNodePermission(@Nonnull com.hypixel.hytale.server.core.command.system.CommandSender sender,

@@ -1365,18 +1365,18 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
 
     public static class UIEventData {
         public static final BuilderCodec<UIEventData> CODEC = BuilderCodec.builder(UIEventData.class, UIEventData::new)
-                .addField(new KeyedCodec<>("Action", Codec.STRING), (e, v) -> e.action = v, e -> e.action)
-                .addField(new KeyedCodec<>("Trade", Codec.STRING), (e, v) -> e.tradeIndex = v, e -> e.tradeIndex)
-                .addField(new KeyedCodec<>("Role", Codec.STRING), (e, v) -> e.npcRole = v, e -> e.npcRole)
-                .addField(new KeyedCodec<>("@PriceInput", Codec.STRING), (e, v) -> e.priceInput = v, e -> e.priceInput)
-                .addField(new KeyedCodec<>("@ShopNameInput", Codec.STRING), (e, v) -> e.shopNameInput = v, e -> e.shopNameInput)
-                .addField(new KeyedCodec<>("@StockLimitInput", Codec.STRING), (e, v) -> e.stockLimitInput = v, e -> e.stockLimitInput)
-                .addField(new KeyedCodec<>("@StockResetInput", Codec.STRING), (e, v) -> e.stockResetInput = v, e -> e.stockResetInput)
-                .addField(new KeyedCodec<>("@MoneyStockLimitInput", Codec.STRING), (e, v) -> e.moneyStockLimitInput = v, e -> e.moneyStockLimitInput)
-                .addField(new KeyedCodec<>("@EditorInput", Codec.STRING), (e, v) -> e.editorInput = v, e -> e.editorInput)
-                .addField(new KeyedCodec<>("@CostQtyInput", Codec.STRING), (e, v) -> e.costQtyInput = v, e -> e.costQtyInput)
-                .addField(new KeyedCodec<>("@OutputQtyInput", Codec.STRING), (e, v) -> e.outputQtyInput = v, e -> e.outputQtyInput)
-                .addField(new KeyedCodec<>("@NpcRoleSearchInput", Codec.STRING), (e, v) -> e.npcRoleSearchInput = v, e -> e.npcRoleSearchInput)
+                .append(new KeyedCodec<>("Action", Codec.STRING), (e, v) -> e.action = v, e -> e.action).add()
+                .append(new KeyedCodec<>("Trade", Codec.STRING), (e, v) -> e.tradeIndex = v, e -> e.tradeIndex).add()
+                .append(new KeyedCodec<>("Role", Codec.STRING), (e, v) -> e.npcRole = v, e -> e.npcRole).add()
+                .append(new KeyedCodec<>("@PriceInput", Codec.STRING), (e, v) -> e.priceInput = v, e -> e.priceInput).add()
+                .append(new KeyedCodec<>("@ShopNameInput", Codec.STRING), (e, v) -> e.shopNameInput = v, e -> e.shopNameInput).add()
+                .append(new KeyedCodec<>("@StockLimitInput", Codec.STRING), (e, v) -> e.stockLimitInput = v, e -> e.stockLimitInput).add()
+                .append(new KeyedCodec<>("@StockResetInput", Codec.STRING), (e, v) -> e.stockResetInput = v, e -> e.stockResetInput).add()
+                .append(new KeyedCodec<>("@MoneyStockLimitInput", Codec.STRING), (e, v) -> e.moneyStockLimitInput = v, e -> e.moneyStockLimitInput).add()
+                .append(new KeyedCodec<>("@EditorInput", Codec.STRING), (e, v) -> e.editorInput = v, e -> e.editorInput).add()
+                .append(new KeyedCodec<>("@CostQtyInput", Codec.STRING), (e, v) -> e.costQtyInput = v, e -> e.costQtyInput).add()
+                .append(new KeyedCodec<>("@OutputQtyInput", Codec.STRING), (e, v) -> e.outputQtyInput = v, e -> e.outputQtyInput).add()
+                .append(new KeyedCodec<>("@NpcRoleSearchInput", Codec.STRING), (e, v) -> e.npcRoleSearchInput = v, e -> e.npcRoleSearchInput).add()
                 .build();
 
         private String action;

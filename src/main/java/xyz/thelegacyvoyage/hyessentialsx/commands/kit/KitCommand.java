@@ -26,12 +26,14 @@ import java.util.List;
 public final class KitCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.kit";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.kit.bypass";
 
     private final KitManager kitManager;
     private final ConfigManager config;
     private final RequiredArg<String> nameArg;
 
-    public KitCommand(@Nonnull KitManager kitManager, @Nonnull ConfigManager config) {
+    public KitCommand(@Nonnull KitManager kitManager,
+                      @Nonnull ConfigManager config) {
         super("kit", "Claims a kit");
         this.kitManager = kitManager;
         this.config = config;
@@ -69,10 +71,15 @@ public final class KitCommand extends AbstractPlayerCommand {
             return;
         }
 
-        long remaining = kitManager.getRemainingCooldownSeconds(playerRef.getUuid(), kit);
-        if (remaining > 0) {
-            Messages.warn(context, "You must wait " + TimeUtil.formatDurationSeconds(remaining) + " to use this kit again.");
-            return;
+        String kitBypass = "hyessentialsx.kit." + kit.getName().toLowerCase() + ".bypass";
+        boolean bypassKitCooldown = context.sender().hasPermission(BYPASS_PERMISSION)
+                || context.sender().hasPermission(kitBypass);
+        if (!bypassKitCooldown) {
+            long remaining = kitManager.getRemainingCooldownSeconds(playerRef.getUuid(), kit);
+            if (remaining > 0) {
+                Messages.warn(context, "You must wait " + TimeUtil.formatDurationSeconds(remaining) + " to use this kit again.");
+                return;
+            }
         }
 
         Player player = store.getComponent(ref, Player.getComponentType());

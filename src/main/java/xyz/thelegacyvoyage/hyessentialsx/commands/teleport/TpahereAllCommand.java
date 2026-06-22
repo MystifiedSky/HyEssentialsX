@@ -9,7 +9,9 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -17,14 +19,19 @@ import javax.annotation.Nonnull;
 public final class TpahereAllCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.tpahereall";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.tpahereall.bypass";
 
     private final TPManager tpManager;
     private final ConfigManager config;
+    private final CommandCooldownManager cooldowns;
 
-    public TpahereAllCommand(@Nonnull TPManager tpManager, @Nonnull ConfigManager config) {
+    public TpahereAllCommand(@Nonnull TPManager tpManager,
+                             @Nonnull ConfigManager config,
+                             @Nonnull CommandCooldownManager cooldowns) {
         super("tpahereall", "Requests all players to teleport");
         this.tpManager = tpManager;
         this.config = config;
+        this.cooldowns = cooldowns;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
@@ -50,6 +57,9 @@ public final class TpahereAllCommand extends AbstractPlayerCommand {
             Messages.err(context, "TPA is disabled.");
             return;
         }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.TPAHEREALL, "/tpahereall", BYPASS_PERMISSION)) {
+            return;
+        }
 
         int count = 0;
         for (PlayerRef target : Universe.get().getPlayers()) {
@@ -62,6 +72,7 @@ public final class TpahereAllCommand extends AbstractPlayerCommand {
             }
         }
 
+        cooldowns.apply(playerRef, CooldownKeys.TPAHEREALL);
         Messages.ok(context, "Teleport requests sent to " + count + " player(s).");
     }
 }

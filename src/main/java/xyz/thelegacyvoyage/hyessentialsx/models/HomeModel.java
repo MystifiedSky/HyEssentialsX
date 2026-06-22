@@ -6,6 +6,7 @@ import java.util.Objects;
 public final class HomeModel {
 
     private String name;
+    private String worldId;
     private String worldName;
     private double x;
     private double y;
@@ -20,7 +21,16 @@ public final class HomeModel {
                      @Nonnull String worldName,
                      double x, double y, double z,
                      float yaw, float pitch) {
+        this(name, null, worldName, x, y, z, yaw, pitch);
+    }
+
+    public HomeModel(@Nonnull String name,
+                     String worldId,
+                     @Nonnull String worldName,
+                     double x, double y, double z,
+                     float yaw, float pitch) {
         this.name = Objects.requireNonNull(name, "name");
+        this.worldId = worldId;
         this.worldName = Objects.requireNonNull(worldName, "worldName");
         this.x = x;
         this.y = y;
@@ -37,6 +47,10 @@ public final class HomeModel {
     @Nonnull
     public String getWorldName() {
         return worldName;
+    }
+
+    public String getWorldId() {
+        return worldId;
     }
 
     public double getX() {

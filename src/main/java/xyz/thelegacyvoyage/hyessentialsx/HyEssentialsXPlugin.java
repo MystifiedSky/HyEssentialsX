@@ -21,6 +21,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.home.HomesCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.home.SetHomeCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.inventory.ClearInventoryCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.inventory.RepairCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.importer.ImportHomesCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitCreateCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitDeleteCommand;
@@ -31,6 +32,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.misc.NearCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.RulesCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.SeenCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.WhoisCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.misc.AfkCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.MuteCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.TempBanCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnbanCommand;
@@ -62,10 +64,13 @@ import xyz.thelegacyvoyage.hyessentialsx.listeners.DeathSpawnListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.FlyNoFallListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.GodHealthListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.InfiniteStaminaListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.AfkListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerDataListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerVisibilityListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.TeleportWarmupListener;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.AfkManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
@@ -81,8 +86,11 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.AutoBroadcastManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CustomCommandManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.LanguageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
+import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.StorageManager;
 
 import javax.annotation.Nonnull;
@@ -105,11 +113,14 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private KitManager kitManager;
     private MessageManager messageManager;
     private AdminChatManager adminChatManager;
+    private AfkManager afkManager;
     private MuteManager muteManager;
     private BanManager banManager;
     private FreecamManager freecamManager;
     private CustomCommandManager customCommandManager;
     private AutoBroadcastManager autoBroadcastManager;
+    private CommandCooldownManager cooldownManager;
+    private LanguageManager languageManager;
 
 
     public HyEssentialsXPlugin(@Nonnull JavaPluginInit init) {
@@ -130,6 +141,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (configManager != null) {
             configManager.reload();
         }
+        if (languageManager != null && configManager != null) {
+            languageManager.reload(configManager.getLanguage());
+        }
         if (customCommandManager != null) {
             customCommandManager.reload();
         }
@@ -144,6 +158,11 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         autoBroadcastManager = new AutoBroadcastManager(configManager);
         autoBroadcastManager.start();
+        if (afkManager != null) {
+            afkManager.shutdown();
+        }
+        afkManager = new AfkManager(configManager);
+        afkManager.start();
         Log.info("[HyEssentialsX] Reload complete.");
     }
 
@@ -156,6 +175,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         Log.info("[HyEssentialsX] AutoBroadcast present: " + configManager.hasAutoBroadcastSection());
 
         storage = new StorageManager(getDataDirectory(), configManager);
+        languageManager = new LanguageManager(getDataDirectory(), configManager, storage);
+        Messages.setLanguageManager(languageManager);
+        cooldownManager = new CommandCooldownManager(configManager, storage);
         spawnManager = new SpawnManager(configManager);
         tpManager = new TPManager(configManager.getTpaRequestTimeoutSeconds() * 1000L);
         backManager = new BackManager();
@@ -167,6 +189,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         kitManager = new KitManager(storage);
         messageManager = new MessageManager();
         adminChatManager = new AdminChatManager();
+        afkManager = new AfkManager(configManager);
         muteManager = new MuteManager(storage);
         banManager = new BanManager(storage);
         freecamManager = new FreecamManager();
@@ -186,29 +209,31 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         godManager.clearAll();
         staminaManager.clearAll();
         autoBroadcastManager.start();
+        afkManager.start();
 
-        Log.info("[HyEssentialsX] Started! Use /essentials help");
+        Log.info("[HyEssentialsX] Started! Use /hyessentialsx help");
     }
 
     @Override
     protected void shutdown() {
         Log.info("[HyEssentialsX] Shutting down...");
         if (autoBroadcastManager != null) autoBroadcastManager.shutdown();
+        if (afkManager != null) afkManager.shutdown();
         if (storage != null) storage.shutdown();
         instance = null;
     }
 
     private void registerCommands() {
-        getCommandRegistry().registerCommand(new HyEssentialsXPluginCommand());
-        getCommandRegistry().registerCommand(new SpawnCommand(spawnManager, backManager, tpManager, configManager));
+        getCommandRegistry().registerCommand(new HyEssentialsXPluginCommand(storage, getDataDirectory(), languageManager));
+        getCommandRegistry().registerCommand(new SpawnCommand(spawnManager, backManager, tpManager, configManager, cooldownManager));
         getCommandRegistry().registerCommand(new SetSpawnCommand(spawnManager, configManager));
         getCommandRegistry().registerCommand(new DelSpawnCommand(spawnManager, configManager));
         getCommandRegistry().registerCommand(new SetHomeCommand(homeManager, configManager));
-        getCommandRegistry().registerCommand(new HomeCommand(homeManager, configManager));
+        getCommandRegistry().registerCommand(new HomeCommand(homeManager, tpManager, configManager, cooldownManager));
         getCommandRegistry().registerCommand(new HomesCommand(homeManager, configManager));
         getCommandRegistry().registerCommand(new DelHomeCommand(homeManager, configManager));
         getCommandRegistry().registerCommand(new SetWarpCommand(warpManager, configManager));
-        getCommandRegistry().registerCommand(new WarpCommand(warpManager, configManager));
+        getCommandRegistry().registerCommand(new WarpCommand(warpManager, tpManager, configManager, cooldownManager));
         getCommandRegistry().registerCommand(new WarpsCommand(warpManager, configManager));
         getCommandRegistry().registerCommand(new DelWarpCommand(warpManager, configManager));
         getCommandRegistry().registerCommand(new KitCreateCommand(kitManager, configManager));
@@ -220,29 +245,31 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         getCommandRegistry().registerCommand(new AdminChatCommand(adminChatManager, configManager));
         getCommandRegistry().registerCommand(new BroadcastCommand(configManager));
         getCommandRegistry().registerCommand(new ClearChatCommand());
-        getCommandRegistry().registerCommand(new TpaCommand(tpManager, configManager));
+        getCommandRegistry().registerCommand(new ImportHomesCommand(storage, getDataDirectory()));
+        getCommandRegistry().registerCommand(new TpaCommand(tpManager, configManager, cooldownManager));
         getCommandRegistry().registerCommand(new TpaAcceptCommand(tpManager, backManager, configManager));
         getCommandRegistry().registerCommand(new TpaDenyCommand(tpManager, configManager));
         getCommandRegistry().registerCommand(new TpaCancelCommand(tpManager, configManager));
         getCommandRegistry().registerCommand(new TpaIgnoreCommand(tpManager, configManager));
-        getCommandRegistry().registerCommand(new TpahereCommand(tpManager, configManager));
-        getCommandRegistry().registerCommand(new TpahereAllCommand(tpManager, configManager));
-        getCommandRegistry().registerCommand(new BackCommand(backManager, tpManager));
+        getCommandRegistry().registerCommand(new TpahereCommand(tpManager, configManager, cooldownManager));
+        getCommandRegistry().registerCommand(new TpahereAllCommand(tpManager, configManager, cooldownManager));
+        getCommandRegistry().registerCommand(new BackCommand(backManager, tpManager, configManager, cooldownManager));
         getCommandRegistry().registerCommand(new FlyCommand(flyManager));
         getCommandRegistry().registerCommand(new GodCommand(godManager));
-        getCommandRegistry().registerCommand(new HealCommand());
+        getCommandRegistry().registerCommand(new HealCommand(cooldownManager));
         getCommandRegistry().registerCommand(new InfiniteStaminaCommand(staminaManager));
         getCommandRegistry().registerCommand(new ListCommand());
         getCommandRegistry().registerCommand(new RulesCommand(configManager));
         getCommandRegistry().registerCommand(new MotdCommand(configManager));
-        getCommandRegistry().registerCommand(new NearCommand(configManager));
+        getCommandRegistry().registerCommand(new NearCommand(configManager, cooldownManager));
+        getCommandRegistry().registerCommand(new AfkCommand(afkManager, configManager, cooldownManager));
         getCommandRegistry().registerCommand(new WhoisCommand(storage));
         getCommandRegistry().registerCommand(new SeenCommand(storage));
         getCommandRegistry().registerCommand(new TopCommand());
-        getCommandRegistry().registerCommand(new JumpToCommand());
-        getCommandRegistry().registerCommand(new RtpCommand(configManager));
+        getCommandRegistry().registerCommand(new JumpToCommand(cooldownManager));
+        getCommandRegistry().registerCommand(new RtpCommand(configManager, cooldownManager, tpManager));
         getCommandRegistry().registerCommand(new ClearInventoryCommand());
-        getCommandRegistry().registerCommand(new RepairCommand());
+        getCommandRegistry().registerCommand(new RepairCommand(cooldownManager));
         getCommandRegistry().registerCommand(new FreecamCommand(freecamManager));
         getCommandRegistry().registerCommand(new MuteCommand(muteManager));
         getCommandRegistry().registerCommand(new UnmuteCommand(muteManager, storage));
@@ -262,6 +289,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         new PlayerDataListener(storage, banManager, messageManager, adminChatManager, freecamManager, godManager, staminaManager).register(bus);
         new ChatModerationListener(muteManager, adminChatManager, configManager).register(bus);
         new CleanupListener(tpManager, backManager, flyManager, godManager, staminaManager).register(bus);
+        new AfkListener(afkManager).register(bus);
         Log.info("[HyEssentialsX] Listeners registered");
 
         new DeathBackListener(backManager).register(getEntityStoreRegistry());
@@ -270,6 +298,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         new GodHealthListener(godManager).register(getEntityStoreRegistry());
         new InfiniteStaminaListener(staminaManager).register(getEntityStoreRegistry());
         new PlayerVisibilityListener().register(getEntityStoreRegistry());
+        new TeleportWarmupListener(tpManager).register(getEntityStoreRegistry());
     }
 
     private void registerWorldHooks() {

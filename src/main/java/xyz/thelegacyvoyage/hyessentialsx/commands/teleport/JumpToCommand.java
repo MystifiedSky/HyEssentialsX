@@ -14,6 +14,8 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
@@ -25,11 +27,15 @@ import java.util.Set;
 public final class JumpToCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.jumpto";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.jumpto.bypass";
     private static final int MAX_DISTANCE = 100;
     private static final double STEP_SIZE = 0.005;
 
-    public JumpToCommand() {
+    private final CommandCooldownManager cooldowns;
+
+    public JumpToCommand(@Nonnull CommandCooldownManager cooldowns) {
         super("jumpto", "Teleports to target block");
+        this.cooldowns = cooldowns;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"junp", "j", "jump"});
@@ -50,6 +56,9 @@ public final class JumpToCommand extends AbstractPlayerCommand {
     ) {
         if (!context.sender().hasPermission(PERMISSION_NODE)) {
             Messages.noPerm(context, "/jumpto");
+            return;
+        }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.JUMPTO, "/jumpto", BYPASS_PERMISSION)) {
             return;
         }
 
@@ -87,6 +96,7 @@ public final class JumpToCommand extends AbstractPlayerCommand {
             return;
         }
 
+        cooldowns.apply(playerRef, CooldownKeys.JUMPTO);
         Messages.ok(context, "Jumped to target.");
     }
 

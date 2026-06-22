@@ -7,6 +7,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.CustomCommandManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
+import java.util.Map;
 
 public final class CustomTextCommand extends CommandBase {
 
@@ -39,7 +40,7 @@ public final class CustomTextCommand extends CommandBase {
         }
         var definition = manager.getCommandOrNull(commandName);
         if (definition == null || definition.getMessage() == null || definition.getMessage().isBlank()) {
-            Messages.send(context, "&cThis custom command is no longer available.");
+            Messages.errKey(context, "custom.unavailable", Map.of());
             return;
         }
         Messages.send(context, definition.getMessage());

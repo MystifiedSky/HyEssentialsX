@@ -15,6 +15,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.Map;
 
 public final class MsgCommand extends AbstractPlayerCommand {
 
@@ -54,25 +55,27 @@ public final class MsgCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isMsgEnabled()) {
-            Messages.err(context, "Private messaging is disabled.");
+            Messages.errKey(context, "msg.disabled", Map.of());
             return;
         }
 
         PlayerRef target = context.get(targetArg);
         if (target == null) {
-            Messages.err(context, "Player not found.");
+            Messages.errKey(context, "msg.player_not_found", Map.of());
             return;
         }
 
         List<String> parts = context.get(msgArg);
         String message = String.join(" ", parts);
         if (message.isBlank()) {
-            Messages.err(context, "Message required.");
+            Messages.errKey(context, "msg.message_required", Map.of());
             return;
         }
 
-        Messages.send(playerRef, "&7[&fMe &7-> &f" + target.getUsername() + "&7] &f" + message);
-        Messages.send(target, "&7[&f" + playerRef.getUsername() + " &7-> &fMe&7] &f" + message);
+        Messages.send(playerRef, Messages.tr(playerRef, "msg.format_sender",
+                Map.of("player", target.getUsername(), "message", message)));
+        Messages.send(target, Messages.tr(target, "msg.format_receiver",
+                Map.of("player", playerRef.getUsername(), "message", message)));
         messages.setLastPartner(playerRef.getUuid(), target.getUuid());
     }
 }

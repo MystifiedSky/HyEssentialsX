@@ -5,8 +5,10 @@ import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * One safe messaging gateway.
@@ -33,6 +35,11 @@ public final class Messages {
     private static final String ERR_COLOR = "#FF5555";
     private static final String WHITE_COLOR = "#FFFFFF";
     private static final String COMMAND_PREFIX = "&7[HyEssentialsX]&f ";
+    private static LanguageManager languageManager;
+
+    public static void setLanguageManager(LanguageManager manager) {
+        languageManager = manager;
+    }
 
     /**
      * Builds a colored Message from the given input string.
@@ -127,31 +134,86 @@ public final class Messages {
     }
 
     public static void send(@Nonnull CommandContext ctx, @Nonnull String text) {
-        ctx.sendMessage(m(COMMAND_PREFIX + text));
+        ctx.sendMessage(m(prefix(null) + translateIfKey(null, text)));
     }
 
     public static void send(@Nonnull PlayerRef player, @Nonnull String text) {
-        player.sendMessage(m(text));
+        player.sendMessage(m(translateIfKey(player, text)));
+    }
+
+    public static void sendPrefixed(@Nonnull PlayerRef player, @Nonnull String text) {
+        player.sendMessage(m(prefix(player) + translateIfKey(player, text)));
     }
 
     public static void ok(@Nonnull CommandContext ctx, @Nonnull String text) {
-        send(ctx, "&#55FF55" + text);
+        send(ctx, "&#55FF55" + translateIfKey(null, text));
     }
 
     public static void warn(@Nonnull CommandContext ctx, @Nonnull String text) {
-        send(ctx, "&#FFFF55" + text);
+        send(ctx, "&#FFFF55" + translateIfKey(null, text));
     }
 
     public static void err(@Nonnull CommandContext ctx, @Nonnull String text) {
-        send(ctx, "&#FF5555" + text);
+        send(ctx, "&#FF5555" + translateIfKey(null, text));
     }
 
     public static void noPerm(@Nonnull CommandContext ctx, @Nonnull String commandName) {
-        err(ctx, "You don't have permission to use " + "&#FFFF55" + commandName + "&#FF5555" + ".");
+        errKey(ctx, "error.no_permission", Map.of("command", commandName));
     }
 
     public static void prefix(@Nonnull CommandContext ctx, @Nonnull String prefix, @Nonnull String text) {
         send(ctx, "&#55FF55" + prefix + "&#FFFFFF" + ": " + "&#FFFFFF" + text);
+    }
+
+    // -------------------------
+    // translation helpers
+    // -------------------------
+
+    @Nonnull
+    public static String tr(@Nonnull String key) {
+        return tr(null, key, Map.of());
+    }
+
+    @Nonnull
+    public static String tr(@Nullable PlayerRef player, @Nonnull String key, @Nonnull Map<String, String> placeholders) {
+        if (languageManager == null) return key;
+        return languageManager.translate(player, key, placeholders);
+    }
+
+    public static void sendKey(@Nonnull CommandContext ctx, @Nonnull String key, @Nonnull Map<String, String> placeholders) {
+        send(ctx, tr(null, key, placeholders));
+    }
+
+    public static void sendKey(@Nonnull PlayerRef player, @Nonnull String key, @Nonnull Map<String, String> placeholders) {
+        player.sendMessage(m(tr(player, key, placeholders)));
+    }
+
+    public static void sendPrefixedKey(@Nonnull PlayerRef player, @Nonnull String key, @Nonnull Map<String, String> placeholders) {
+        player.sendMessage(m(prefix(player) + tr(player, key, placeholders)));
+    }
+
+    public static void okKey(@Nonnull CommandContext ctx, @Nonnull String key, @Nonnull Map<String, String> placeholders) {
+        ok(ctx, tr(null, key, placeholders));
+    }
+
+    public static void warnKey(@Nonnull CommandContext ctx, @Nonnull String key, @Nonnull Map<String, String> placeholders) {
+        warn(ctx, tr(null, key, placeholders));
+    }
+
+    public static void errKey(@Nonnull CommandContext ctx, @Nonnull String key, @Nonnull Map<String, String> placeholders) {
+        err(ctx, tr(null, key, placeholders));
+    }
+
+    @Nonnull
+    private static String prefix(@Nullable PlayerRef player) {
+        return COMMAND_PREFIX;
+    }
+
+    @Nonnull
+    private static String translateIfKey(@Nullable PlayerRef player, @Nonnull String text) {
+        if (languageManager == null) return text;
+        if (!languageManager.hasKey(text)) return text;
+        return languageManager.translate(player, text, Map.of());
     }
 
     // -------------------------

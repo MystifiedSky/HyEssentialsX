@@ -10,7 +10,9 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -18,15 +20,20 @@ import javax.annotation.Nonnull;
 public final class TpahereCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.tpahere";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.tpahere.bypass";
 
     private final TPManager tpManager;
     private final ConfigManager config;
+    private final CommandCooldownManager cooldowns;
     private final RequiredArg<PlayerRef> targetArg;
 
-    public TpahereCommand(@Nonnull TPManager tpManager, @Nonnull ConfigManager config) {
+    public TpahereCommand(@Nonnull TPManager tpManager,
+                          @Nonnull ConfigManager config,
+                          @Nonnull CommandCooldownManager cooldowns) {
         super("tpahere", "Requests player to teleport to you");
         this.tpManager = tpManager;
         this.config = config;
+        this.cooldowns = cooldowns;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.targetArg = withRequiredArg("player", "Player to request", ArgTypes.PLAYER_REF);
@@ -53,6 +60,9 @@ public final class TpahereCommand extends AbstractPlayerCommand {
             Messages.err(context, "TPA is disabled.");
             return;
         }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.TPAHERE, "/tpahere", BYPASS_PERMISSION)) {
+            return;
+        }
 
         PlayerRef target = context.get(targetArg);
         if (target == null) {
@@ -75,6 +85,7 @@ public final class TpahereCommand extends AbstractPlayerCommand {
         Messages.send(target,
                 "&#FFFF55" + playerRef.getUsername()
                         + "&#FFFFFF wants you to teleport to them. Type &#FFFF55/tpaaccept&#FFFFFF to accept.");
+        cooldowns.apply(playerRef, CooldownKeys.TPAHERE);
     }
 }
 

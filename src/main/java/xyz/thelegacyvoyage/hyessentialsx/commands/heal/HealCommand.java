@@ -9,6 +9,8 @@ import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntitySta
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -16,9 +18,12 @@ import javax.annotation.Nonnull;
 public final class HealCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.heal";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.heal.bypass";
+    private final CommandCooldownManager cooldowns;
 
-    public HealCommand() {
+    public HealCommand(@Nonnull CommandCooldownManager cooldowns) {
         super("heal", "Restore health and stamina");
+        this.cooldowns = cooldowns;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
@@ -40,6 +45,9 @@ public final class HealCommand extends AbstractPlayerCommand {
             Messages.noPerm(context, "/heal");
             return;
         }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.HEAL, "/heal", BYPASS_PERMISSION)) {
+            return;
+        }
 
         EntityStatMap stats = store.getComponent(ref, EntityStatMap.getComponentType());
         if (stats == null) {
@@ -51,6 +59,7 @@ public final class HealCommand extends AbstractPlayerCommand {
         stats.maximizeStatValue(DefaultEntityStatTypes.getStamina());
         stats.update();
 
+        cooldowns.apply(playerRef, CooldownKeys.HEAL);
         Messages.ok(context, "Healed.");
     }
 }

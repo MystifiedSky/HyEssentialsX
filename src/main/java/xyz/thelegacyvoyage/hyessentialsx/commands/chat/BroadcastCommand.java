@@ -11,6 +11,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.Map;
 
 public final class BroadcastCommand extends CommandBase {
 
@@ -40,18 +41,18 @@ public final class BroadcastCommand extends CommandBase {
             return;
         }
         if (!config.isBroadcastEnabled()) {
-            Messages.err(context, "Broadcasts are disabled.");
+            Messages.errKey(context, "broadcast.disabled", Map.of());
             return;
         }
 
         List<String> parts = context.get(msgArg);
         String message = String.join(" ", parts);
         if (message.isBlank()) {
-            Messages.err(context, "Message required.");
+            Messages.errKey(context, "broadcast.message_required", Map.of());
             return;
         }
 
-        Message msg = Messages.m("&c[Broadcast] &f" + message);
+        Message msg = Messages.m(Messages.tr(null, "broadcast.format", Map.of("message", message)));
         Universe.get().sendMessage(msg);
     }
 }

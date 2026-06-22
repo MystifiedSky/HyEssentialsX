@@ -11,25 +11,37 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.HomeManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.HomeModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.Map;
 
 public final class HomeCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.home";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.home.bypass";
 
     private final HomeManager homeManager;
+    private final TPManager tpManager;
     private final ConfigManager config;
+    private final CommandCooldownManager cooldowns;
     private final RequiredArg<String> nameArg;
-    public HomeCommand(@Nonnull HomeManager homeManager, @Nonnull ConfigManager config) {
+    public HomeCommand(@Nonnull HomeManager homeManager,
+                       @Nonnull TPManager tpManager,
+                       @Nonnull ConfigManager config,
+                       @Nonnull CommandCooldownManager cooldowns) {
         super("home", "Teleports to a home");
         this.homeManager = homeManager;
+        this.tpManager = tpManager;
         this.config = config;
+        this.cooldowns = cooldowns;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("name", "Home name", ArgTypes.STRING);
@@ -53,7 +65,10 @@ public final class HomeCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isHomesEnabled()) {
-            Messages.err(context, "Homes are disabled.");
+            Messages.errKey(context, "home.disabled", Map.of());
+            return;
+        }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.HOME, "/home", BYPASS_PERMISSION)) {
             return;
         }
 
@@ -62,7 +77,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
         if (rawArgs.isEmpty()) {
             List<String> homes = homeManager.listHomes(playerRef.getUuid());
             if (homes.isEmpty()) {
-                Messages.err(context, "You have no homes set.");
+                Messages.errKey(context, "home.none", Map.of());
                 return;
             }
             if (homes.size() == 1) {
@@ -70,20 +85,58 @@ public final class HomeCommand extends AbstractPlayerCommand {
             } else if (homes.contains("home")) {
                 name = "home";
             } else {
-                Messages.err(context, "Multiple homes set. Use /home <name>.");
+                Messages.errKey(context, "home.multiple", Map.of());
                 return;
             }
         }
 
         HomeModel home = homeManager.getHome(playerRef.getUuid(), name);
         if (home == null) {
-            Messages.err(context, "Home not found.");
+            Messages.errKey(context, "home.not_found", Map.of());
+            return;
+        }
+
+        final String homeName = name;
+        int warmupSeconds = config.getHomeWarmupSeconds();
+        if (warmupSeconds > 0) {
+            if (tpManager.hasPending(playerRef.getUuid())) {
+                Messages.errKey(context, "teleport.pending", Map.of());
+                return;
+            }
+            com.hypixel.hytale.math.vector.Transform transform = playerRef.getTransform();
+            if (transform == null || transform.getPosition() == null) {
+                Messages.errKey(context, "teleport.position_unavailable", Map.of());
+                return;
+            }
+            tpManager.queue(
+                    playerRef.getUuid(),
+                    transform.getPosition().clone(),
+                    warmupSeconds,
+                    buffer -> {
+                        String err = TeleportationUtil.teleportToLocation(
+                                buffer,
+                                ref,
+                                home.getWorldId(),
+                                home.getWorldName(),
+                                home.getX(), home.getY(), home.getZ(),
+                                home.getYaw(), home.getPitch()
+                        );
+                        if (err != null) {
+                            Messages.sendPrefixed(playerRef, err);
+                            return;
+                        }
+                        cooldowns.apply(playerRef, CooldownKeys.HOME);
+                        Messages.sendPrefixedKey(playerRef, "teleport.success.home", Map.of("home", homeName));
+                    }
+            );
+            Messages.sendPrefixedKey(playerRef, "teleport.warmup", Map.of("seconds", String.valueOf(warmupSeconds)));
             return;
         }
 
         String err = TeleportationUtil.teleportToLocation(
                 store,
                 ref,
+                home.getWorldId(),
                 home.getWorldName(),
                 home.getX(), home.getY(), home.getZ(),
                 home.getYaw(), home.getPitch()
@@ -93,7 +146,8 @@ public final class HomeCommand extends AbstractPlayerCommand {
             return;
         }
 
-        Messages.ok(context, "Teleported to home '&f" + name + "&a'.");
+        cooldowns.apply(playerRef, CooldownKeys.HOME);
+        Messages.okKey(context, "teleport.success.home", Map.of("home", name));
     }
 }
 

@@ -16,6 +16,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
+import java.util.UUID;
 
 public final class TeleportationUtil {
 
@@ -41,6 +42,27 @@ public final class TeleportationUtil {
             @Nonnull SpawnModel spawn
     ) {
         return teleportToSpawn(store, ref, spawn, null);
+    }
+
+    @Nullable
+    public static String teleportToSpawn(
+            @Nonnull CommandBuffer<EntityStore> buffer,
+            @Nonnull Ref<EntityStore> ref,
+            @Nonnull SpawnModel spawn
+    ) {
+        World targetWorld = Universe.get().getWorld(spawn.getWorldName());
+        if (targetWorld == null) {
+            return "World '" + spawn.getWorldName() + "' is not loaded.";
+        }
+
+        Vector3d pos = new Vector3d(spawn.getX(), spawn.getY(), spawn.getZ());
+        Vector3f rot = new Vector3f(0, roundYawCardinal(spawn.getYaw()), 0);
+
+        Teleport tp = Teleport.createForPlayer(targetWorld, pos, rot);
+        if (!tryPutTeleport(buffer, ref, tp)) {
+            return "Teleport failed to queue.";
+        }
+        return null;
     }
 
     @Nullable
@@ -94,9 +116,32 @@ public final class TeleportationUtil {
             double x, double y, double z,
             float yaw, float pitch
     ) {
-        World targetWorld = Universe.get().getWorld(worldName);
+        return teleportToLocation(store, ref, null, worldName, x, y, z, yaw, pitch);
+    }
+
+    @Nullable
+    public static String teleportToLocation(
+            @Nonnull CommandBuffer<EntityStore> buffer,
+            @Nonnull Ref<EntityStore> ref,
+            @Nonnull String worldName,
+            double x, double y, double z,
+            float yaw, float pitch
+    ) {
+        return teleportToLocation(buffer, ref, null, worldName, x, y, z, yaw, pitch);
+    }
+
+    @Nullable
+    public static String teleportToLocation(
+            @Nonnull Store<EntityStore> store,
+            @Nonnull Ref<EntityStore> ref,
+            @Nullable String worldId,
+            @Nullable String worldName,
+            double x, double y, double z,
+            float yaw, float pitch
+    ) {
+        World targetWorld = resolveWorld(worldId, worldName);
         if (targetWorld == null) {
-            return "World '" + worldName + "' is not loaded.";
+            return "World '" + safeWorldLabel(worldId, worldName) + "' is not loaded.";
         }
 
         Vector3d pos = new Vector3d(x, y, z);
@@ -104,6 +149,51 @@ public final class TeleportationUtil {
         Teleport tp = Teleport.createForPlayer(targetWorld, pos, rot);
         store.putComponent(ref, Teleport.getComponentType(), tp);
         return null;
+    }
+
+    @Nullable
+    public static String teleportToLocation(
+            @Nonnull CommandBuffer<EntityStore> buffer,
+            @Nonnull Ref<EntityStore> ref,
+            @Nullable String worldId,
+            @Nullable String worldName,
+            double x, double y, double z,
+            float yaw, float pitch
+    ) {
+        World targetWorld = resolveWorld(worldId, worldName);
+        if (targetWorld == null) {
+            return "World '" + safeWorldLabel(worldId, worldName) + "' is not loaded.";
+        }
+
+        Vector3d pos = new Vector3d(x, y, z);
+        Vector3f rot = new Vector3f(pitch, yaw, 0f);
+        Teleport tp = Teleport.createForPlayer(targetWorld, pos, rot);
+        if (!tryPutTeleport(buffer, ref, tp)) {
+            return "Teleport failed to queue.";
+        }
+        return null;
+    }
+
+    @Nullable
+    private static World resolveWorld(@Nullable String worldId, @Nullable String worldName) {
+        if (worldId != null && !worldId.isBlank()) {
+            try {
+                World byId = Universe.get().getWorld(UUID.fromString(worldId));
+                if (byId != null) return byId;
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        if (worldName != null && !worldName.isBlank()) {
+            World byName = Universe.get().getWorld(worldName);
+            if (byName != null) return byName;
+        }
+        return Universe.get().getWorld("default");
+    }
+
+    private static String safeWorldLabel(@Nullable String worldId, @Nullable String worldName) {
+        if (worldName != null && !worldName.isBlank()) return worldName;
+        if (worldId != null && !worldId.isBlank()) return worldId;
+        return "default";
     }
 
     private static boolean tryPutTeleport(

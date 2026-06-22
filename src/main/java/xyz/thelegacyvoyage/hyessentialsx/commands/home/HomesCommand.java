@@ -13,6 +13,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.Map;
 
 public final class HomesCommand extends AbstractPlayerCommand {
 
@@ -57,7 +58,7 @@ public final class HomesCommand extends AbstractPlayerCommand {
             return;
         }
 
-        Messages.send(context, "&aHomes: &f" + String.join(", ", homes));
+        Messages.sendKey(context, "home.list", Map.of("homes", String.join(", ", homes)));
     }
 }
 

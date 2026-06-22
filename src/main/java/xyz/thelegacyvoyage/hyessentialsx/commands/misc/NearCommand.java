@@ -10,7 +10,9 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -20,12 +22,15 @@ import java.util.List;
 public final class NearCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.near";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.near.bypass";
 
     private final ConfigManager config;
+    private final CommandCooldownManager cooldowns;
 
-    public NearCommand(@Nonnull ConfigManager config) {
+    public NearCommand(@Nonnull ConfigManager config, @Nonnull CommandCooldownManager cooldowns) {
         super("near", "Shows nearby players");
         this.config = config;
+        this.cooldowns = cooldowns;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"nearby"});
@@ -50,6 +55,9 @@ public final class NearCommand extends AbstractPlayerCommand {
         }
         if (!config.isNearEnabled()) {
             Messages.err(context, "Near is disabled.");
+            return;
+        }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.NEAR, "/near", BYPASS_PERMISSION)) {
             return;
         }
 
@@ -84,6 +92,7 @@ public final class NearCommand extends AbstractPlayerCommand {
             return;
         }
 
+        cooldowns.apply(playerRef, CooldownKeys.NEAR);
         Messages.send(context, "&aNearby: &f" + String.join(", ", nearby));
     }
 }

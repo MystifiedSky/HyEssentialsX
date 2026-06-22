@@ -12,6 +12,8 @@ import com.hypixel.hytale.server.core.inventory.Inventory;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -20,12 +22,15 @@ import javax.annotation.Nonnull;
 public final class RepairCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.repair";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.repair.bypass";
 
     private final FlagArg allArg;
     private final OptionalArg<String> modeArg;
+    private final CommandCooldownManager cooldowns;
 
-    public RepairCommand() {
+    public RepairCommand(@Nonnull CommandCooldownManager cooldowns) {
         super("repair", "Repairs items");
+        this.cooldowns = cooldowns;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"fix"});
@@ -48,6 +53,9 @@ public final class RepairCommand extends AbstractPlayerCommand {
     ) {
         if (!context.sender().hasPermission(PERMISSION_NODE)) {
             Messages.noPerm(context, "/repair");
+            return;
+        }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.REPAIR, "/repair", BYPASS_PERMISSION)) {
             return;
         }
 
@@ -75,6 +83,7 @@ public final class RepairCommand extends AbstractPlayerCommand {
             return;
         }
 
+        cooldowns.apply(playerRef, CooldownKeys.REPAIR);
         Messages.ok(context, "Repaired " + repaired + " item(s).");
     }
 }

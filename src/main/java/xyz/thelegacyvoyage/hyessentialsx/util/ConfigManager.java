@@ -15,9 +15,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class ConfigManager {
+
+    private static final int DEFAULT_COMMAND_COOLDOWN_SECONDS = 30;
+    private static final int DEFAULT_TELEPORT_WARMUP_SECONDS = 5;
 
     private final Path configPath;
     private final Gson gson = new GsonBuilder()
@@ -27,8 +32,16 @@ public final class ConfigManager {
     private JsonObject root;
 
     private boolean useWorldDefaultSpawnIfUnset = true;
+    private String languageCode = "en-us";
     private int tpaRequestTimeoutSeconds = 60;
     private int rtpMaxDistance = 5000;
+    private int rtpMinDistance = 1000;
+    private final Map<String, Integer> commandCooldowns = new HashMap<>(buildDefaultCooldowns());
+    private int homeWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
+    private int warpWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
+    private int backWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
+    private int spawnWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
+    private int rtpWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
 
     private boolean homesEnabled = true;
     private boolean warpsEnabled = true;
@@ -42,6 +55,7 @@ public final class ConfigManager {
     private boolean spawnEnabled = true;
     private boolean tpaEnabled = true;
     private boolean adminChatEnabled = true;
+    private boolean afkEnabled = true;
 
     private double nearRadius = 50.0;
     private boolean nearShowDistance = true;
@@ -71,6 +85,13 @@ public final class ConfigManager {
     private List<String> quitMessages = List.of(
             "<#FCA5A5><bold>- </bold></#FCA5A5><#93C5FD><bold>{player} left the server.</bold></#93C5FD>"
     );
+
+    private int afkTimeoutSeconds = 300;
+    private boolean afkAnnounceOnAuto = true;
+    private boolean afkAnnounceOnManual = true;
+    private boolean afkAnnounceOnReturn = true;
+    private String afkMessage = "&e{player} is now AFK.";
+    private String afkBackMessage = "&e{player} is no longer AFK.";
 
     private List<String> motdMessages = List.of(
             "<#6EE7FF>------------------------------</#6EE7FF>",
@@ -165,19 +186,58 @@ public final class ConfigManager {
         rulesObj.add("messages", toArray(rules));
         root.add("rules", rulesObj);
 
+        JsonObject afk = new JsonObject();
+        afk.addProperty("enabled", true);
+        afk.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        afk.addProperty("timeoutSeconds", afkTimeoutSeconds);
+        afk.addProperty("announceOnAuto", afkAnnounceOnAuto);
+        afk.addProperty("announceOnManual", afkAnnounceOnManual);
+        afk.addProperty("announceOnReturn", afkAnnounceOnReturn);
+        afk.addProperty("afkMessage", afkMessage);
+        afk.addProperty("backMessage", afkBackMessage);
+        root.add("afk", afk);
+
+        JsonObject homes = new JsonObject();
+        homes.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        homes.addProperty("warmupSeconds", homeWarmupSeconds);
+        root.add("homes", homes);
+
+        JsonObject warps = new JsonObject();
+        warps.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        warps.addProperty("warmupSeconds", warpWarmupSeconds);
+        root.add("warps", warps);
+
+        JsonObject back = new JsonObject();
+        back.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        back.addProperty("warmupSeconds", backWarmupSeconds);
+        root.add("back", back);
+
+        JsonObject heal = new JsonObject();
+        heal.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        root.add("heal", heal);
+
+        JsonObject repair = new JsonObject();
+        repair.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        root.add("repair", repair);
+
         JsonObject rtp = new JsonObject();
         rtp.addProperty("enabled", true);
         rtp.addProperty("radius", rtpMaxDistance);
+        rtp.addProperty("minRadius", rtpMinDistance);
+        rtp.addProperty("cooldownSeconds", 600);
+        rtp.addProperty("warmupSeconds", rtpWarmupSeconds);
         root.add("rtp", rtp);
 
         JsonObject near = new JsonObject();
         near.addProperty("enabled", true);
         near.addProperty("radius", nearRadius);
         near.addProperty("showDistance", true);
+        near.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
         root.add("near", near);
 
         JsonObject tpa = new JsonObject();
         tpa.addProperty("timeoutSeconds", tpaRequestTimeoutSeconds);
+        tpa.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
         root.add("tpa", tpa);
 
         JsonObject autoBroadcast = new JsonObject();
@@ -195,7 +255,13 @@ public final class ConfigManager {
         spawn.addProperty("z", 0.0);
         spawn.addProperty("yaw", 0.0);
         spawn.addProperty("pitch", 0.0);
+        spawn.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        spawn.addProperty("warmupSeconds", spawnWarmupSeconds);
         root.add("spawn", spawn);
+
+        JsonObject jumpTo = new JsonObject();
+        jumpTo.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        root.add("jumpto", jumpTo);
 
         JsonObject storage = new JsonObject();
         storage.addProperty("type", "sqlite");
@@ -209,6 +275,7 @@ public final class ConfigManager {
 
         JsonObject general = new JsonObject();
         general.addProperty("spawnFallbackToWorldDefault", true);
+        general.addProperty("language", languageCode);
         root.add("general", general);
 
         return root;
@@ -228,12 +295,42 @@ public final class ConfigManager {
 
             JsonObject general = obj(root, "general");
             useWorldDefaultSpawnIfUnset = bool(general, "spawnFallbackToWorldDefault", true);
+            languageCode = str(general, "language", languageCode).toLowerCase();
 
             JsonObject tpa = obj(root, "tpa");
             tpaRequestTimeoutSeconds = intVal(tpa, "timeoutSeconds", 60);
 
             JsonObject rtp = obj(root, "rtp");
             rtpMaxDistance = intVal(rtp, "radius", 5000);
+            rtpMinDistance = intVal(rtp, "minRadius", rtpMinDistance);
+            rtpWarmupSeconds = intVal(rtp, "warmupSeconds", rtpWarmupSeconds);
+
+            JsonObject legacyCooldowns = root.has("cooldowns") && root.get("cooldowns").isJsonObject()
+                    ? root.getAsJsonObject("cooldowns")
+                    : null;
+            Map<String, Integer> cooldownDefaults = buildDefaultCooldowns();
+            commandCooldowns.clear();
+            commandCooldowns.put(CooldownKeys.BACK, readCooldown(obj(root, "back"), "cooldownSeconds", legacyCooldowns, CooldownKeys.BACK, cooldownDefaults.get(CooldownKeys.BACK)));
+            commandCooldowns.put(CooldownKeys.HEAL, readCooldown(obj(root, "heal"), "cooldownSeconds", legacyCooldowns, CooldownKeys.HEAL, cooldownDefaults.get(CooldownKeys.HEAL)));
+            commandCooldowns.put(CooldownKeys.REPAIR, readCooldown(obj(root, "repair"), "cooldownSeconds", legacyCooldowns, CooldownKeys.REPAIR, cooldownDefaults.get(CooldownKeys.REPAIR)));
+            commandCooldowns.put(CooldownKeys.AFK, readCooldown(obj(root, "afk"), "cooldownSeconds", legacyCooldowns, CooldownKeys.AFK, cooldownDefaults.get(CooldownKeys.AFK)));
+            commandCooldowns.put(CooldownKeys.NEAR, readCooldown(obj(root, "near"), "cooldownSeconds", legacyCooldowns, CooldownKeys.NEAR, cooldownDefaults.get(CooldownKeys.NEAR)));
+            int tpaCooldown = readCooldown(obj(root, "tpa"), "cooldownSeconds", legacyCooldowns, CooldownKeys.TPA, cooldownDefaults.get(CooldownKeys.TPA));
+            commandCooldowns.put(CooldownKeys.TPA, tpaCooldown);
+            commandCooldowns.put(CooldownKeys.TPAHERE, tpaCooldown);
+            commandCooldowns.put(CooldownKeys.TPAHEREALL, tpaCooldown);
+            commandCooldowns.put(CooldownKeys.WARP, readCooldown(obj(root, "warps"), "cooldownSeconds", legacyCooldowns, CooldownKeys.WARP, cooldownDefaults.get(CooldownKeys.WARP)));
+            commandCooldowns.put(CooldownKeys.SPAWN, readCooldown(obj(root, "spawn"), "cooldownSeconds", legacyCooldowns, CooldownKeys.SPAWN, cooldownDefaults.get(CooldownKeys.SPAWN)));
+            commandCooldowns.put(CooldownKeys.RTP, readCooldown(obj(root, "rtp"), "cooldownSeconds", legacyCooldowns, CooldownKeys.RTP, cooldownDefaults.get(CooldownKeys.RTP)));
+            commandCooldowns.put(CooldownKeys.JUMPTO, readCooldown(obj(root, "jumpto"), "cooldownSeconds", legacyCooldowns, CooldownKeys.JUMPTO, cooldownDefaults.get(CooldownKeys.JUMPTO)));
+            commandCooldowns.put(CooldownKeys.HOME, readCooldown(obj(root, "homes"), "cooldownSeconds", legacyCooldowns, CooldownKeys.HOME, cooldownDefaults.get(CooldownKeys.HOME)));
+
+            JsonObject homesSection = obj(root, "homes");
+            homeWarmupSeconds = intVal(homesSection, "warmupSeconds", homeWarmupSeconds);
+            JsonObject warpsSection = obj(root, "warps");
+            warpWarmupSeconds = intVal(warpsSection, "warmupSeconds", warpWarmupSeconds);
+            JsonObject backSection = obj(root, "back");
+            backWarmupSeconds = intVal(backSection, "warmupSeconds", backWarmupSeconds);
 
             JsonObject near = obj(root, "near");
             nearRadius = dbl(near, "radius", nearRadius);
@@ -264,6 +361,7 @@ public final class ConfigManager {
             if (!features.has("rtp")) {
                 rtpEnabled = bool(obj(root, "rtp"), "enabled", rtpEnabled);
             }
+            afkEnabled = bool(obj(root, "afk"), "enabled", afkEnabled);
 
             JsonObject welcome = obj(root, "welcomeMessage");
             welcomeEnabled = bool(welcome, "enabled", true);
@@ -284,6 +382,15 @@ public final class ConfigManager {
             rulesEnabled = bool(rulesObj, "enabled", rulesEnabled);
             rules = list(rulesObj, "messages", rules);
 
+            JsonObject afk = obj(root, "afk");
+            afkEnabled = bool(afk, "enabled", afkEnabled);
+            afkTimeoutSeconds = intVal(afk, "timeoutSeconds", afkTimeoutSeconds);
+            afkAnnounceOnAuto = bool(afk, "announceOnAuto", afkAnnounceOnAuto);
+            afkAnnounceOnManual = bool(afk, "announceOnManual", afkAnnounceOnManual);
+            afkAnnounceOnReturn = bool(afk, "announceOnReturn", afkAnnounceOnReturn);
+            afkMessage = str(afk, "afkMessage", afkMessage);
+            afkBackMessage = str(afk, "backMessage", afkBackMessage);
+
             JsonObject spawn = obj(root, "spawn");
             spawnSet = bool(spawn, "set", false);
             spawnWorld = str(spawn, "world", "");
@@ -292,6 +399,7 @@ public final class ConfigManager {
             spawnZ = dbl(spawn, "z", 0.0);
             spawnYaw = (float) dbl(spawn, "yaw", 0.0);
             spawnPitch = (float) dbl(spawn, "pitch", 0.0);
+            spawnWarmupSeconds = intVal(spawn, "warmupSeconds", spawnWarmupSeconds);
 
             JsonObject storage = obj(root, "storage");
             storageType = str(storage, "type", "sqlite");
@@ -338,12 +446,46 @@ public final class ConfigManager {
         return useWorldDefaultSpawnIfUnset;
     }
 
+    @Nonnull
+    public String getLanguage() {
+        return languageCode;
+    }
+
     public int getTpaRequestTimeoutSeconds() {
         return tpaRequestTimeoutSeconds;
     }
 
     public int getRtpMaxDistance() {
         return rtpMaxDistance;
+    }
+
+    public int getRtpMinDistance() {
+        return rtpMinDistance;
+    }
+
+    public int getCooldownSeconds(@Nonnull String key) {
+        Integer value = commandCooldowns.get(key);
+        return value != null ? value : DEFAULT_COMMAND_COOLDOWN_SECONDS;
+    }
+
+    public int getHomeWarmupSeconds() {
+        return Math.max(0, homeWarmupSeconds);
+    }
+
+    public int getWarpWarmupSeconds() {
+        return Math.max(0, warpWarmupSeconds);
+    }
+
+    public int getBackWarmupSeconds() {
+        return Math.max(0, backWarmupSeconds);
+    }
+
+    public int getSpawnWarmupSeconds() {
+        return Math.max(0, spawnWarmupSeconds);
+    }
+
+    public int getRtpWarmupSeconds() {
+        return Math.max(0, rtpWarmupSeconds);
     }
 
     public boolean isHomesEnabled() {
@@ -394,6 +536,10 @@ public final class ConfigManager {
         return adminChatEnabled;
     }
 
+    public boolean isAfkEnabled() {
+        return afkEnabled;
+    }
+
     public double getNearRadius() {
         return nearRadius;
     }
@@ -438,6 +584,32 @@ public final class ConfigManager {
 
     public boolean isJoinQuitEnabled() {
         return joinQuitEnabled;
+    }
+
+    public int getAfkTimeoutSeconds() {
+        return afkTimeoutSeconds;
+    }
+
+    public boolean isAfkAnnounceOnAuto() {
+        return afkAnnounceOnAuto;
+    }
+
+    public boolean isAfkAnnounceOnManual() {
+        return afkAnnounceOnManual;
+    }
+
+    public boolean isAfkAnnounceOnReturn() {
+        return afkAnnounceOnReturn;
+    }
+
+    @Nonnull
+    public String getAfkMessage() {
+        return afkMessage;
+    }
+
+    @Nonnull
+    public String getAfkBackMessage() {
+        return afkBackMessage;
     }
 
     @Nonnull
@@ -552,18 +724,25 @@ public final class ConfigManager {
 
         JsonObject general = obj(root, "general");
         general.addProperty("spawnFallbackToWorldDefault", useWorldDefaultSpawnIfUnset);
+        general.addProperty("language", languageCode);
 
         JsonObject tpa = obj(root, "tpa");
         tpa.addProperty("timeoutSeconds", tpaRequestTimeoutSeconds);
+        tpa.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.TPA));
 
         JsonObject rtp = obj(root, "rtp");
         rtp.addProperty("radius", rtpMaxDistance);
+        rtp.addProperty("minRadius", rtpMinDistance);
         rtp.addProperty("enabled", rtpEnabled);
+        rtp.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.RTP));
+        rtp.addProperty("warmupSeconds", rtpWarmupSeconds);
+        root.remove("cooldowns");
 
         JsonObject near = obj(root, "near");
         near.addProperty("enabled", nearEnabled);
         near.addProperty("radius", nearRadius);
         near.addProperty("showDistance", nearShowDistance);
+        near.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.NEAR));
 
         JsonObject autoBroadcast = obj(root, "autoBroadcast");
         autoBroadcast.addProperty("enabled", autoBroadcastEnabled);
@@ -604,6 +783,37 @@ public final class ConfigManager {
         rulesObj.addProperty("enabled", rulesEnabled);
         rulesObj.add("messages", toArray(rules));
 
+        JsonObject afk = obj(root, "afk");
+        afk.addProperty("enabled", afkEnabled);
+        afk.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.AFK));
+        afk.addProperty("timeoutSeconds", afkTimeoutSeconds);
+        afk.addProperty("announceOnAuto", afkAnnounceOnAuto);
+        afk.addProperty("announceOnManual", afkAnnounceOnManual);
+        afk.addProperty("announceOnReturn", afkAnnounceOnReturn);
+        afk.addProperty("afkMessage", afkMessage);
+        afk.addProperty("backMessage", afkBackMessage);
+
+        JsonObject homes = obj(root, "homes");
+        homes.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.HOME));
+        homes.addProperty("warmupSeconds", homeWarmupSeconds);
+
+        JsonObject warps = obj(root, "warps");
+        warps.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.WARP));
+        warps.addProperty("warmupSeconds", warpWarmupSeconds);
+
+        JsonObject back = obj(root, "back");
+        back.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.BACK));
+        back.addProperty("warmupSeconds", backWarmupSeconds);
+
+        JsonObject heal = obj(root, "heal");
+        heal.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.HEAL));
+
+        JsonObject repair = obj(root, "repair");
+        repair.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.REPAIR));
+
+        JsonObject jumpTo = obj(root, "jumpto");
+        jumpTo.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.JUMPTO));
+
         JsonObject spawn = obj(root, "spawn");
         spawn.addProperty("set", spawnSet);
         spawn.addProperty("world", spawnWorld);
@@ -612,6 +822,8 @@ public final class ConfigManager {
         spawn.addProperty("z", spawnZ);
         spawn.addProperty("yaw", spawnYaw);
         spawn.addProperty("pitch", spawnPitch);
+        spawn.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.SPAWN));
+        spawn.addProperty("warmupSeconds", spawnWarmupSeconds);
 
         JsonObject storage = obj(root, "storage");
         storage.addProperty("type", storageType);
@@ -635,6 +847,40 @@ public final class ConfigManager {
         JsonObject created = new JsonObject();
         parent.add(key, created);
         return created;
+    }
+
+    @Nonnull
+    private static Map<String, Integer> buildDefaultCooldowns() {
+        Map<String, Integer> defaults = new HashMap<>();
+        defaults.put(CooldownKeys.BACK, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.HEAL, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.REPAIR, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.AFK, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.NEAR, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.TPA, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.TPAHERE, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.TPAHEREALL, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.WARP, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.SPAWN, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.RTP, 600);
+        defaults.put(CooldownKeys.JUMPTO, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.HOME, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        return defaults;
+    }
+
+    private int readCooldown(@Nonnull JsonObject section,
+                             @Nonnull String key,
+                             @Nullable JsonObject legacyCooldowns,
+                             @Nonnull String legacyKey,
+                             int def) {
+        JsonElement el = section.get(key);
+        if (el != null && el.isJsonPrimitive()) {
+            return Math.max(0, el.getAsInt());
+        }
+        if (legacyCooldowns != null) {
+            return Math.max(0, intVal(legacyCooldowns, legacyKey, def));
+        }
+        return Math.max(0, def);
     }
 
     private boolean bool(@Nonnull JsonObject obj, @Nonnull String key, boolean def) {

@@ -18,6 +18,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public final class AdminChatCommand extends AbstractPlayerCommand {
 
@@ -55,7 +56,7 @@ public final class AdminChatCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isAdminChatEnabled()) {
-            Messages.err(context, "Admin chat is disabled.");
+            Messages.errKey(context, "adminchat.disabled", Map.of());
             return;
         }
 
@@ -63,7 +64,7 @@ public final class AdminChatCommand extends AbstractPlayerCommand {
             List<String> parts = context.get(msgArg);
             String message = String.join(" ", parts);
             if (message.isBlank()) {
-                Messages.err(context, "Message required.");
+                Messages.errKey(context, "adminchat.message_required", Map.of());
                 return;
             }
             sendAdminMessage(playerRef, message);
@@ -71,7 +72,7 @@ public final class AdminChatCommand extends AbstractPlayerCommand {
         }
 
         boolean enabled = adminChatManager.toggle(playerRef.getUuid());
-        Messages.ok(context, enabled ? "Admin chat enabled." : "Admin chat disabled.");
+        Messages.okKey(context, enabled ? "adminchat.enabled" : "adminchat.disabled_toggle", Map.of());
     }
 
     private void sendAdminMessage(@Nonnull PlayerRef sender, @Nonnull String message) {
@@ -82,8 +83,9 @@ public final class AdminChatCommand extends AbstractPlayerCommand {
             }
         }
 
-        String formatted = "&c[AdminChat] &f" + sender.getUsername() + "&7: &f" + message;
         for (PlayerRef target : targets) {
+            String formatted = Messages.tr(target, "adminchat.format",
+                    Map.of("player", sender.getUsername(), "message", message));
             Messages.send(target, formatted);
         }
     }

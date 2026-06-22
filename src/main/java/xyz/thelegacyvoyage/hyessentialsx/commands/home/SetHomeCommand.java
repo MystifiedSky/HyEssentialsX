@@ -103,8 +103,10 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
             }
         }
 
+        String worldId = playerRef.getWorldUuid() != null ? playerRef.getWorldUuid().toString() : null;
         homeManager.setHome(playerRef.getUuid(), new HomeModel(
                 name,
+                worldId,
                 world.getName(),
                 pos.getX(), pos.getY(), pos.getZ(),
                 yaw, pitch

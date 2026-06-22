@@ -9,7 +9,7 @@ import xyz.thelegacyvoyage.hyessentialsx.HyEssentialsXPlugin;
 import javax.annotation.Nonnull;
 
 /**
- * /essentials reload - Reload plugin configuration
+ * /hyessentialsx reload - Reload plugin configuration
  */
 public class ReloadSubCommand extends CommandBase {
 

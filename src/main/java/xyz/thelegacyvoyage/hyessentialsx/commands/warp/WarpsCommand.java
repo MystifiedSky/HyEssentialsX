@@ -13,6 +13,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.Map;
 
 public final class WarpsCommand extends AbstractPlayerCommand {
 
@@ -57,7 +58,7 @@ public final class WarpsCommand extends AbstractPlayerCommand {
             return;
         }
 
-        Messages.send(context, "&aWarps: &f" + String.join(", ", warps));
+        Messages.sendKey(context, "warp.list", Map.of("warps", String.join(", ", warps)));
     }
 }
 

@@ -10,7 +10,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.PluginInfoUtil;
 import javax.annotation.Nonnull;
 
 /**
- * /essentials info - Show plugin information
+ * /hyessentialsx info - Show plugin information
  */
 public class InfoSubCommand extends CommandBase {
 

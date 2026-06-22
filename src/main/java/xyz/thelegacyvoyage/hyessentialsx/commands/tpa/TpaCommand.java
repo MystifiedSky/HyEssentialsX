@@ -10,7 +10,9 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -18,15 +20,20 @@ import javax.annotation.Nonnull;
 public final class TpaCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.tpa";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.tpa.bypass";
 
     private final TPManager tpManager;
     private final ConfigManager config;
+    private final CommandCooldownManager cooldowns;
     private final RequiredArg<PlayerRef> targetArg;
 
-    public TpaCommand(@Nonnull TPManager tpManager, @Nonnull ConfigManager config) {
+    public TpaCommand(@Nonnull TPManager tpManager,
+                      @Nonnull ConfigManager config,
+                      @Nonnull CommandCooldownManager cooldowns) {
         super("tpa", "Request to teleport to another player");
         this.tpManager = tpManager;
         this.config = config;
+        this.cooldowns = cooldowns;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.targetArg = withRequiredArg("player", "Player to teleport to", ArgTypes.PLAYER_REF);
@@ -51,6 +58,9 @@ public final class TpaCommand extends AbstractPlayerCommand {
         }
         if (!config.isTpaEnabled()) {
             Messages.err(context, "TPA is disabled.");
+            return;
+        }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.TPA, "/tpa", BYPASS_PERMISSION)) {
             return;
         }
 
@@ -80,6 +90,7 @@ public final class TpaCommand extends AbstractPlayerCommand {
         Messages.send(target,
                 "&#FFFF55" + playerRef.getUsername()
                         + "&#FFFFFF wants to teleport to you. Type &#FFFF55/tpaaccept&#FFFFFF to accept.");
+        cooldowns.apply(playerRef, CooldownKeys.TPA);
     }
 }
 

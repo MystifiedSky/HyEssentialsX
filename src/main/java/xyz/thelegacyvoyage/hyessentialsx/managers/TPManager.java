@@ -1,6 +1,8 @@
 package xyz.thelegacyvoyage.hyessentialsx.managers;
 
+import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.math.vector.Vector3d;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -11,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class TPManager {
 
-    private static final double CANCEL_DISTANCE = 2.0;
+    private static final double CANCEL_DISTANCE = 0.25;
     private static final long DEFAULT_TPA_TIMEOUT_MS = 60_000L;
 
     private final ConcurrentHashMap<UUID, PendingTeleport> pending = new ConcurrentHashMap<>();
@@ -49,31 +51,88 @@ public final class TPManager {
     }
 
 
+    public interface TeleportAction {
+        void execute(@Nonnull CommandBuffer<EntityStore> buffer);
+    }
+
     public void queue(@Nonnull UUID playerId,
                       @Nonnull Vector3d startPos,
                       float delaySeconds,
-                      @Nonnull Runnable executeTeleport) {
+                      @Nonnull TeleportAction executeTeleport) {
         pending.put(playerId, new PendingTeleport(startPos.clone(), delaySeconds, executeTeleport));
+    }
+
+    public static final class TickResult {
+        public enum Status {
+            NONE,
+            WAITING,
+            CANCELLED,
+            READY
+        }
+
+        private final Status status;
+        private final TeleportAction action;
+
+        private TickResult(@Nonnull Status status, @Nullable TeleportAction action) {
+            this.status = status;
+            this.action = action;
+        }
+
+        @Nonnull
+        public Status status() {
+            return status;
+        }
+
+        @Nullable
+        public TeleportAction action() {
+            return action;
+        }
+
+        @Nonnull
+        public static TickResult none() {
+            return new TickResult(Status.NONE, null);
+        }
+
+        @Nonnull
+        public static TickResult waiting() {
+            return new TickResult(Status.WAITING, null);
+        }
+
+        @Nonnull
+        public static TickResult cancelled() {
+            return new TickResult(Status.CANCELLED, null);
+        }
+
+        @Nonnull
+        public static TickResult ready(@Nonnull TeleportAction action) {
+            return new TickResult(Status.READY, action);
+        }
+    }
+
+    @Nonnull
+    public TickResult tickStatus(@Nonnull UUID playerId,
+                                 @Nonnull Vector3d currentPos,
+                                 float deltaSeconds) {
+        PendingTeleport p = pending.get(playerId);
+        if (p == null) return TickResult.none();
+
+        double maxSq = CANCEL_DISTANCE * CANCEL_DISTANCE;
+        if (p.startPos.distanceSquaredTo(currentPos) > maxSq) {
+            pending.remove(playerId);
+            return TickResult.cancelled();
+        }
+
+        p.elapsed += deltaSeconds;
+        if (p.elapsed < p.delay) return TickResult.waiting();
+
+        pending.remove(playerId);
+        return TickResult.ready(p.execute);
     }
 
     public boolean tick(@Nonnull UUID playerId,
                         @Nonnull Vector3d currentPos,
                         float deltaSeconds) {
-        PendingTeleport p = pending.get(playerId);
-        if (p == null) return false;
-
-        double maxSq = CANCEL_DISTANCE * CANCEL_DISTANCE;
-        if (p.startPos.distanceSquaredTo(currentPos) > maxSq) {
-            pending.remove(playerId);
-            return false;
-        }
-
-        p.elapsed += deltaSeconds;
-        if (p.elapsed < p.delay) return false;
-
-        pending.remove(playerId);
-        p.execute.run();
-        return true;
+        return tickStatus(playerId, currentPos, deltaSeconds).status() == TickResult.Status.READY;
     }
 
     // -------------------------
@@ -190,9 +249,9 @@ public final class TPManager {
         final Vector3d startPos;
         final float delay;
         float elapsed;
-        final Runnable execute;
+        final TeleportAction execute;
 
-        PendingTeleport(Vector3d startPos, float delay, Runnable execute) {
+        PendingTeleport(Vector3d startPos, float delay, TeleportAction execute) {
             this.startPos = startPos;
             this.delay = Math.max(0f, delay);
             this.execute = execute;

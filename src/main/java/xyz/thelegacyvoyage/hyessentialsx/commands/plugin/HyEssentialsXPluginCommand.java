@@ -1,26 +1,37 @@
 package xyz.thelegacyvoyage.hyessentialsx.commands.plugin;
 
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractCommandCollection;
+import xyz.thelegacyvoyage.hyessentialsx.commands.importer.ImportHomesCommand;
+import xyz.thelegacyvoyage.hyessentialsx.util.LanguageManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.StorageManager;
+
+import javax.annotation.Nonnull;
+import java.nio.file.Path;
 
 /**
  * Main command for HyEssentialsX plugin.
  *
  * Usage:
- * - /essentials help - Show available commands
- * - /essentials info - Show plugin information
- * - /essentials reload - Reload plugin configuration
- * - /essentials ui - Open the plugin dashboard
+ * - /hyessentialsx help - Show available commands
+ * - /hyessentialsx info - Show plugin information
+ * - /hyessentialsx reload - Reload plugin configuration
+ * - /hyessentialsx ui - Open the plugin dashboard
  */
 public class HyEssentialsXPluginCommand extends AbstractCommandCollection {
 
-    public HyEssentialsXPluginCommand() {
-        super("essentials", "HyEssentialsX plugin commands");
+    public HyEssentialsXPluginCommand(@Nonnull StorageManager storage,
+                                      @Nonnull Path dataFolder,
+                                      @Nonnull LanguageManager languageManager) {
+        super("hyessentialsx", "HyEssentialsX plugin commands");
+        this.addAliases(new String[]{"essentials", "ess"});
 
         // Add subcommands
         this.addSubCommand(new HelpSubCommand());
         this.addSubCommand(new InfoSubCommand());
         this.addSubCommand(new ReloadSubCommand());
         this.addSubCommand(new UISubCommand());
+        this.addSubCommand(new ImportHomesCommand(storage, dataFolder));
+        this.addSubCommand(new LanguageSubCommand(languageManager));
     }
 
     @Override

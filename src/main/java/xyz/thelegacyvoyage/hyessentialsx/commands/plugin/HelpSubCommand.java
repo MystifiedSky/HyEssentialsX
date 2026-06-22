@@ -7,7 +7,7 @@ import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import javax.annotation.Nonnull;
 
 /**
- * /essentials help - Show available commands
+ * /hyessentialsx help - Show available commands
  */
 public class HelpSubCommand extends CommandBase {
 
@@ -25,10 +25,10 @@ public class HelpSubCommand extends CommandBase {
     protected void executeSync(@Nonnull CommandContext context) {
         context.sendMessage(Message.raw(""));
         context.sendMessage(Message.raw("=== HyEssentialsX Commands ==="));
-        context.sendMessage(Message.raw("/essentials help - Show this help message"));
-        context.sendMessage(Message.raw("/essentials info - Show plugin information"));
-        context.sendMessage(Message.raw("/essentials reload - Reload configuration"));
-        context.sendMessage(Message.raw("/essentials ui - Open the dashboard UI"));
+        context.sendMessage(Message.raw("/hyessentialsx help - Show this help message"));
+        context.sendMessage(Message.raw("/hyessentialsx info - Show plugin information"));
+        context.sendMessage(Message.raw("/hyessentialsx reload - Reload configuration"));
+        context.sendMessage(Message.raw("/hyessentialsx ui - Open the dashboard UI"));
         context.sendMessage(Message.raw(""));
         context.sendMessage(Message.raw("Homes: /sethome [name], /home [name], /homes, /delhome [name]"));
         context.sendMessage(Message.raw("Warps: /setwarp [name], /warp [name], /warps, /delwarp [name]"));
@@ -37,6 +37,7 @@ public class HelpSubCommand extends CommandBase {
         context.sendMessage(Message.raw("Teleport: /spawn, /back, /tpa <player>, /tpahere <player>, /tpahereall, /top, /jumpto, /rtp"));
         context.sendMessage(Message.raw("Moderation: /mute <player> [time] [reason], /unmute <player>, /tempban <player> [time] [reason], /unban <player>"));
         context.sendMessage(Message.raw("Misc: /list, /rules, /motd, /near, /whois <player>, /seen <player>, /clearinventory, /repair, /freecam"));
+        context.sendMessage(Message.raw("Admin: /import <file>"));
         context.sendMessage(Message.raw("========================"));
     }
 }

@@ -11,8 +11,10 @@ public final class PlayerDataModel {
     private long lastSeenAt;
     private Map<String, HomeModel> homes = new HashMap<>();
     private Map<String, Long> kitCooldowns = new HashMap<>();
+    private Map<String, Long> commandCooldowns = new HashMap<>();
     private MuteModel mute;
     private BanModel ban;
+    private String language;
 
     @SuppressWarnings("unused")
     public PlayerDataModel() {}
@@ -52,6 +54,15 @@ public final class PlayerDataModel {
         this.kitCooldowns = kitCooldowns;
     }
 
+    @Nonnull
+    public Map<String, Long> getCommandCooldowns() {
+        return commandCooldowns;
+    }
+
+    public void setCommandCooldowns(@Nonnull Map<String, Long> commandCooldowns) {
+        this.commandCooldowns = commandCooldowns;
+    }
+
     @Nullable
     public MuteModel getMute() {
         return mute;
@@ -68,5 +79,14 @@ public final class PlayerDataModel {
 
     public void setBan(@Nullable BanModel ban) {
         this.ban = ban;
+    }
+
+    @Nullable
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(@Nullable String language) {
+        this.language = language;
     }
 }

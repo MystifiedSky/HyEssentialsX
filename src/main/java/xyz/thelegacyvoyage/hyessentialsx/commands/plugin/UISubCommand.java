@@ -15,7 +15,7 @@ import xyz.thelegacyvoyage.hyessentialsx.ui.HyEssentialsXDashboardUI;
 import javax.annotation.Nonnull;
 
 /**
- * /essentials ui - Open the plugin dashboard UI
+ * /hyessentialsx ui - Open the plugin dashboard UI
  *
  * Extends AbstractPlayerCommand to ensure proper thread handling
  * when opening custom UI pages.

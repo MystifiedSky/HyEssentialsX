@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'xyz.thelegacyvoyage.hyessentialsx'
-version = '1.0.0'
+version = '1.0.1'
 
 repositories {
     mavenCentral()
@@ -33,6 +33,7 @@ dependencies {
     implementation "org.tomlj:tomlj:1.1.1"
     implementation 'org.xerial:sqlite-jdbc:3.46.0.0'
     implementation 'com.mysql:mysql-connector-j:9.0.0'
+    implementation 'org.yaml:snakeyaml:2.2'
 }
 
 java {

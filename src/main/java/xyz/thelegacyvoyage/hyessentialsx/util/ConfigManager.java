@@ -68,7 +68,7 @@ public final class ConfigManager {
             "<#F9A8D4><bold>Message of the Day</bold></#F9A8D4>",
             "<#E2E8F0>Welcome to our server!</#E2E8F0>",
             "<#E2E8F0>Have fun and follow /rules.</#E2E8F0>",
-            "<#A7F3D0>Visit us on Discord: <url:https://discord.gg/uWBfXZqS3k>https://discord.gg/uWBfXZqS3k</url></#A7F3D0>",
+            "<#A7F3D0>Visit us on Discord: <url:https://discord.gg/U58ax8cZZ2>https://discord.gg/U58ax8cZZ2</url></#A7F3D0>",
             "<#6EE7FF>------------------------------</#6EE7FF>"
     );
     private boolean motdShowOnJoin = true;

@@ -54,6 +54,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.warp.DelWarpCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.warp.SetWarpCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.warp.WarpCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.warp.WarpsCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.custom.CustomTextCommand;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.ChatModerationListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.CleanupListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.DeathBackListener;
@@ -79,6 +80,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CustomCommandManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.StorageManager;
 
@@ -105,6 +107,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private MuteManager muteManager;
     private BanManager banManager;
     private FreecamManager freecamManager;
+    private CustomCommandManager customCommandManager;
 
 
     public HyEssentialsXPlugin(@Nonnull JavaPluginInit init) {
@@ -141,6 +144,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         muteManager = new MuteManager(storage);
         banManager = new BanManager(storage);
         freecamManager = new FreecamManager();
+        customCommandManager = new CustomCommandManager(getDataDirectory());
 
         Log.info("[HyEssentialsX] Setup complete!");
     }
@@ -215,6 +219,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         getCommandRegistry().registerCommand(new UnmuteCommand(muteManager, storage));
         getCommandRegistry().registerCommand(new TempBanCommand(banManager, storage));
         getCommandRegistry().registerCommand(new UnbanCommand(banManager, storage));
+        for (var entry : customCommandManager.getCommands().values()) {
+            getCommandRegistry().registerCommand(new CustomTextCommand(entry));
+        }
         Log.info("[HyEssentialsX] Commands registered");
     }
 

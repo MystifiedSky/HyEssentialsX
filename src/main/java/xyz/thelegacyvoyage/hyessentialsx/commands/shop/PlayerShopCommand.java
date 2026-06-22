@@ -95,6 +95,7 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             Messages.noPerm(context, "/shop");
             return;
         }
+        if (!ensureShopDirectoryEnabled(context)) return;
         openDirectory(context, store, ref, playerRef);
     }
 
@@ -103,6 +104,14 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             return true;
         }
         Messages.sendKey(context, "shop.player.disabled", java.util.Map.of());
+        return false;
+    }
+
+    private boolean ensureShopDirectoryEnabled(@Nonnull CommandContext context) {
+        if (config.isPlayerShopDirectoryEnabled()) {
+            return true;
+        }
+        Messages.sendKey(context, "shop.player.directory_disabled", java.util.Map.of());
         return false;
     }
 
@@ -120,6 +129,10 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
             if (!hasDirectoryPermission(context.sender(), playerRef)) {
                 Messages.noPerm(context, "/shop list");
+                return;
+            }
+            if (!config.isPlayerShopDirectoryEnabled()) {
+                listShops(context, playerRef);
                 return;
             }
             openDirectory(context, store, ref, playerRef);

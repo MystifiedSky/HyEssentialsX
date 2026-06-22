@@ -118,6 +118,7 @@
     "shop.trade.inventory_full_canceled":  "\u0026eYour inventory was full. Trade canceled.",
     "shop.trade.completed":  "\u0026aTrade completed, you paid \u0026f{paid} \u0026aand received \u0026f{received}\u0026a.",
     "shop.player.disabled":  "\u0026cPlayer shops are disabled.",
+    "shop.player.directory_disabled":  "\u0026cThe shop directory is disabled.",
     "shop.player.usage.create":  "\u0026cUsage: /shop create \u003cname\u003e",
     "shop.player.usage.delete":  "\u0026cUsage: /shop remove \u003cname\u003e",
     "shop.player.usage.edit":  "\u0026cUsage: /shop edit \u003cname\u003e",

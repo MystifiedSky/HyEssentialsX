@@ -212,6 +212,7 @@ public final class ConfigManager {
 
     private boolean adminShopsEnabled = true;
     private boolean playerShopsEnabled = true;
+    private boolean playerShopDirectoryEnabled = true;
     private int playerShopMaxShopsPerPlayer = 1;
     private long playerShopCreationCost = 0L;
     private int playerShopChestLinkRadius = 8;
@@ -685,6 +686,7 @@ public final class ConfigManager {
 
         JsonObject playerShops = new JsonObject();
         playerShops.addProperty("enabled", playerShopsEnabled);
+        playerShops.addProperty("directoryEnabled", playerShopDirectoryEnabled);
         playerShops.addProperty("maxShopsPerPlayer", playerShopMaxShopsPerPlayer);
         playerShops.addProperty("shopCreationCost", playerShopCreationCost);
         playerShops.addProperty("chestLinkRadius", playerShopChestLinkRadius);
@@ -1221,6 +1223,7 @@ public final class ConfigManager {
 
             JsonObject playerShops = obj(root, "playerShops");
             playerShopsEnabled = bool(playerShops, "enabled", playerShopsEnabled);
+            playerShopDirectoryEnabled = bool(playerShops, "directoryEnabled", playerShopDirectoryEnabled);
             playerShopMaxShopsPerPlayer = Math.max(0, intVal(playerShops, "maxShopsPerPlayer", playerShopMaxShopsPerPlayer));
             playerShopCreationCost = Math.max(0L, moneyVal(playerShops, "shopCreationCost", playerShopCreationCost));
             playerShopChestLinkRadius = Math.max(1, intVal(playerShops, "chestLinkRadius", playerShopChestLinkRadius));
@@ -2139,6 +2142,10 @@ public final class ConfigManager {
         return playerShopsEnabled;
     }
 
+    public boolean isPlayerShopDirectoryEnabled() {
+        return playerShopDirectoryEnabled;
+    }
+
     public boolean isAdminShopsEnabled() {
         return adminShopsEnabled;
     }
@@ -2750,6 +2757,7 @@ public final class ConfigManager {
 
         JsonObject playerShops = obj(root, "playerShops");
         playerShops.addProperty("enabled", playerShopsEnabled);
+        playerShops.addProperty("directoryEnabled", playerShopDirectoryEnabled);
         playerShops.addProperty("maxShopsPerPlayer", playerShopMaxShopsPerPlayer);
         playerShops.addProperty("shopCreationCost", formatMoneyConfig(playerShopCreationCost));
         playerShops.addProperty("chestLinkRadius", playerShopChestLinkRadius);
@@ -3079,13 +3087,29 @@ public final class ConfigManager {
         if (Files.exists(rankupPath)) {
             return true;
         }
-        if (combinedRoot.has("features")
+        if (hasLegacyFeatureFlags(combinedRoot)
                 || combinedRoot.has("groupPriorities")
                 || combinedRoot.has("placeholders")) {
             return true;
         }
         JsonObject rankup = getObjectOrNull(combinedRoot, "rankup");
         return rankup != null && (rankup.has("ranks") || rankup.has("enabled"));
+    }
+
+    private boolean hasLegacyFeatureFlags(@Nonnull JsonObject combinedRoot) {
+        JsonObject features = getObjectOrNull(combinedRoot, "features");
+        if (features == null) {
+            return false;
+        }
+        return features.has("homes")
+                || features.has("warps")
+                || features.has("kits")
+                || features.has("near")
+                || features.has("motd")
+                || features.has("rtp")
+                || features.has("spawn")
+                || features.has("tpa")
+                || features.has("rules");
     }
 
     private void backupConfigFilesBeforeMigration() {

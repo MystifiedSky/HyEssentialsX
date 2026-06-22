@@ -95,6 +95,7 @@ public class HologramManager {
    private boolean hologramsSpawned = false;
    private volatile boolean imageRetryPending = false;
    private volatile long imageRetryStartTime = 0L;
+   private volatile Thread imageRetryThread;
    private final Set<UUID> spawningHolograms = ConcurrentHashMap.newKeySet();
    private static final double ITEM_SPACING_FACTOR = 1.5D;
 
@@ -793,6 +794,7 @@ public class HologramManager {
       this.billboardManager.stop();
       this.gifManager.stop();
       this.placeholderUpdateManager.stop();
+      this.cancelImageRetry();
       int removedCount = 0;
       Iterator var2 = this.holograms.values().iterator();
 
@@ -1036,7 +1038,7 @@ public class HologramManager {
          Api var10000 = this.plugin.getLogger().at(Level.INFO);
          int var10001 = unloadedImagesAtSpawn.size();
          var10000.log("Scheduling image retry for " + var10001 + " unloaded images: " + String.valueOf(unloadedImagesAtSpawn));
-         (new Thread(() -> {
+         Thread retryThread = new Thread(() -> {
             try {
                Thread.sleep(5000L);
                if (this.imageRetryStartTime != myStartTime) {
@@ -1090,7 +1092,20 @@ public class HologramManager {
                Thread.currentThread().interrupt();
             }
 
-         }, "HologramService-ImageRetry")).start();
+         }, "HologramService-ImageRetry");
+         retryThread.setDaemon(true);
+         this.imageRetryThread = retryThread;
+         retryThread.start();
+      }
+   }
+
+   private void cancelImageRetry() {
+      this.imageRetryPending = false;
+      this.imageRetryStartTime = 0L;
+      Thread retryThread = this.imageRetryThread;
+      this.imageRetryThread = null;
+      if (retryThread != null) {
+         retryThread.interrupt();
       }
    }
 

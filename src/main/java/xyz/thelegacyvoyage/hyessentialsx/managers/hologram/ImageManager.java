@@ -15,6 +15,7 @@ import java.awt.image.BufferedImage;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -63,7 +64,11 @@ public class ImageManager {
    @Nonnull
    private Path findModsFolder(@Nonnull Path pluginDataDir) {
       Path parent = pluginDataDir.getParent();
-      return parent != null ? parent : pluginDataDir;
+      if (parent == null) {
+         return pluginDataDir;
+      }
+      Path grandParent = parent.getParent();
+      return grandParent != null ? grandParent : parent;
    }
 
    public void initialize() {
@@ -204,7 +209,7 @@ public class ImageManager {
 
                ImageManager.ImageFileInfo info = (ImageManager.ImageFileInfo)var4.next();
                String textureZipPath = "Common/Characters/HologramService/" + info.modelAssetId + ".png";
-               this.addFileToZip(zos, info.path, textureZipPath);
+               this.addImageToZip(zos, info.path, textureZipPath);
                this.plugin.getLogger().at(Level.FINE).log("Added texture: " + textureZipPath);
                String blockyModelJson = this.createBlockyModelJsonString(info.width, info.height, false, false);
                String blockyModelZipPath = "Common/Characters/HologramService/" + info.modelAssetId + ".blockymodel";
@@ -302,6 +307,33 @@ public class ImageManager {
       zos.putNextEntry(new ZipEntry(zipPath));
       Files.copy(file, zos);
       zos.closeEntry();
+   }
+
+   @Nullable
+   private byte[] readImageAsPng(@Nonnull Path file) {
+      try {
+         BufferedImage image = ImageIO.read(file.toFile());
+         if (image == null) {
+            return null;
+         }
+         ByteArrayOutputStream output = new ByteArrayOutputStream();
+         ImageIO.write(image, "png", output);
+         return output.toByteArray();
+      } catch (IOException var4) {
+         this.plugin.getLogger().at(Level.WARNING).log("Failed to convert image to PNG: " + file.getFileName() + ": " + var4.getMessage());
+         return null;
+      }
+   }
+
+   private void addImageToZip(ZipOutputStream zos, Path file, String zipPath) throws IOException {
+      byte[] pngBytes = this.readImageAsPng(file);
+      if (pngBytes != null) {
+         zos.putNextEntry(new ZipEntry(zipPath));
+         zos.write(pngBytes);
+         zos.closeEntry();
+      } else {
+         this.addFileToZip(zos, file, zipPath);
+      }
    }
 
    private void addStringToZip(ZipOutputStream zos, String content, String zipPath) throws IOException {
@@ -564,7 +596,10 @@ public class ImageManager {
             ImageManager.ImageFileInfo info = (ImageManager.ImageFileInfo)var8.next();
 
             try {
-               baseTextureBytes = Files.readAllBytes(info.path);
+               baseTextureBytes = this.readImageAsPng(info.path);
+               if (baseTextureBytes == null) {
+                  baseTextureBytes = Files.readAllBytes(info.path);
+               }
                String textureName = "Characters/HologramService/" + info.modelAssetId + ".png";
                ByteArrayCommonAsset textureAsset = new ByteArrayCommonAsset(textureName, baseTextureBytes);
                commonAssetModule.addCommonAsset(packName, textureAsset, false);

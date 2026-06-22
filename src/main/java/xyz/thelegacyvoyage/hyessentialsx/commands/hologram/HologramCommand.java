@@ -22,11 +22,14 @@ import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
@@ -60,6 +63,7 @@ public class HologramCommand extends AbstractCommand {
       this.addSubCommand(new HologramCommand.ReloadCommand(plugin));
       this.addSubCommand(new HologramCommand.CleanupCommand(plugin));
       this.addSubCommand(new HologramCommand.AnimListCommand(plugin));
+      this.addSubCommand(new HologramCommand.ListImagesCommand(plugin));
    }
 
    protected boolean canGeneratePermission() {
@@ -741,6 +745,36 @@ public class HologramCommand extends AbstractCommand {
          Messages.sendKey(context, "hologram.anim.usage", Map.of());
          Messages.sendKey(context, "hologram.anim.example1", Map.of());
          Messages.sendKey(context, "hologram.anim.example2", Map.of());
+         return CompletableFuture.completedFuture(null);
+      }
+   }
+
+   private static class ListImagesCommand extends AbstractCommand {
+      private final HologramService plugin;
+
+      public ListImagesCommand(@Nonnull HologramService plugin) {
+         super("listimages", "List available hologram images");
+         this.plugin = plugin;
+      }
+
+      protected boolean canGeneratePermission() {
+         return false;
+      }
+
+      @Nullable
+      public CompletableFuture<Void> execute(@Nonnull CommandContext context) {
+         if (!HologramPermissionUtil.hasPermission(context.sender(), HologramPermissionUtil.PERMISSION_LIST)) {
+            Messages.noPerm(context, "/holo listimages");
+            return CompletableFuture.completedFuture(null);
+         }
+         Set<String> images = this.plugin.getHologramManager().getImageManager().getAvailableImages();
+         if (images.isEmpty()) {
+            Messages.ok(context, "No images found. Add PNG/JPG files to the holograms/images folder, then /holo reload and restart.");
+            return CompletableFuture.completedFuture(null);
+         }
+         List<String> sorted = new ArrayList<>(images);
+         Collections.sort(sorted);
+         Messages.ok(context, "Images (" + sorted.size() + "): " + String.join(", ", sorted));
          return CompletableFuture.completedFuture(null);
       }
    }

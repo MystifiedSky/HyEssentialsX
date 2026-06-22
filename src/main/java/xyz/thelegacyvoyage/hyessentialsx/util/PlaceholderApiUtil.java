@@ -16,9 +16,13 @@ public final class PlaceholderApiUtil {
     private static volatile boolean initialized = false;
     private static volatile boolean available = false;
     private static volatile Method setPlaceholdersMethod;
+    private static volatile Method setPlaceholdersStringMethod;
     private static volatile boolean expectsMessageFirst = true;
     private static volatile boolean expectsPlayerRef = true;
     private static volatile boolean expectsPlayerEntity = false;
+    private static volatile boolean expectsStringFirst = true;
+    private static volatile boolean expectsStringPlayerRef = true;
+    private static volatile boolean expectsStringPlayerEntity = false;
 
     private PlaceholderApiUtil() {
     }
@@ -48,11 +52,21 @@ public final class PlaceholderApiUtil {
             return base;
         }
         try {
-            Object first = expectsMessageFirst ? base : resolvePlayerArg(effectivePlayer);
-            Object second = expectsMessageFirst ? resolvePlayerArg(effectivePlayer) : base;
-            Object result = setPlaceholdersMethod.invoke(null, first, second);
-            if (result instanceof Message msg) {
-                return msg;
+            if (setPlaceholdersStringMethod != null) {
+                Object first = expectsStringFirst ? text : resolveStringPlayerArg(effectivePlayer);
+                Object second = expectsStringFirst ? resolveStringPlayerArg(effectivePlayer) : text;
+                Object result = setPlaceholdersStringMethod.invoke(null, first, second);
+                if (result instanceof String resolved) {
+                    return Messages.m(resolved);
+                }
+            }
+            if (setPlaceholdersMethod != null) {
+                Object first = expectsMessageFirst ? base : resolvePlayerArg(effectivePlayer);
+                Object second = expectsMessageFirst ? resolvePlayerArg(effectivePlayer) : base;
+                Object result = setPlaceholdersMethod.invoke(null, first, second);
+                if (result instanceof Message msg) {
+                    return msg;
+                }
             }
         } catch (Throwable ignored) {
         }
@@ -61,10 +75,22 @@ public final class PlaceholderApiUtil {
 
     @Nullable
     private static Object resolvePlayerArg(@Nullable PlayerRef playerRef) {
-        if (expectsPlayerRef) {
+        return resolvePlayerArg(playerRef, expectsPlayerRef, expectsPlayerEntity);
+    }
+
+    @Nullable
+    private static Object resolveStringPlayerArg(@Nullable PlayerRef playerRef) {
+        return resolvePlayerArg(playerRef, expectsStringPlayerRef, expectsStringPlayerEntity);
+    }
+
+    @Nullable
+    private static Object resolvePlayerArg(@Nullable PlayerRef playerRef,
+                                           boolean expectsRef,
+                                           boolean expectsEntity) {
+        if (expectsRef) {
             return playerRef;
         }
-        if (expectsPlayerEntity) {
+        if (expectsEntity) {
             return resolvePlayerEntity(playerRef);
         }
         return playerRef;
@@ -91,58 +117,80 @@ public final class PlaceholderApiUtil {
                 if (!initialized) {
                     try {
                         Class<?> apiClass = Class.forName(PLACEHOLDER_API_CLASS);
-                        Method candidate = null;
-                        boolean messageFirst = true;
-                        boolean playerRef = true;
-                        boolean playerEntity = false;
-                        for (Method method : apiClass.getMethods()) {
-                            if (!"setPlaceholders".equals(method.getName())) {
-                                continue;
-                            }
-                            Class<?>[] params = method.getParameterTypes();
-                            if (params.length != 2) {
-                                continue;
-                            }
-                            if (Message.class.equals(params[0]) && PlayerRef.class.equals(params[1])) {
-                                candidate = method;
-                                messageFirst = true;
-                                playerRef = true;
-                                playerEntity = false;
-                                break;
-                            }
-                            if (PlayerRef.class.equals(params[0]) && Message.class.equals(params[1])) {
-                                candidate = method;
-                                messageFirst = false;
-                                playerRef = true;
-                                playerEntity = false;
-                                break;
-                            }
-                            if (Message.class.equals(params[0]) && Player.class.equals(params[1])) {
-                                candidate = method;
-                                messageFirst = true;
-                                playerRef = false;
-                                playerEntity = true;
-                            } else if (Player.class.equals(params[0]) && Message.class.equals(params[1])) {
-                                candidate = method;
-                                messageFirst = false;
-                                playerRef = false;
-                                playerEntity = true;
-                            }
+                        Method messageMethod = findMethod(apiClass, PlayerRef.class, Message.class);
+                        boolean messageFirst = false;
+                        boolean messagePlayerRef = true;
+                        boolean messagePlayerEntity = false;
+                        if (messageMethod == null) {
+                            messageMethod = findMethod(apiClass, Message.class, PlayerRef.class);
+                            messageFirst = true;
+                            messagePlayerRef = true;
+                            messagePlayerEntity = false;
                         }
-                        setPlaceholdersMethod = candidate;
+                        if (messageMethod == null) {
+                            messageMethod = findMethod(apiClass, Player.class, Message.class);
+                            messageFirst = false;
+                            messagePlayerRef = false;
+                            messagePlayerEntity = true;
+                        }
+                        if (messageMethod == null) {
+                            messageMethod = findMethod(apiClass, Message.class, Player.class);
+                            messageFirst = true;
+                            messagePlayerRef = false;
+                            messagePlayerEntity = true;
+                        }
+
+                        Method stringMethod = findMethod(apiClass, PlayerRef.class, String.class);
+                        boolean stringFirst = false;
+                        boolean stringPlayerRef = true;
+                        boolean stringPlayerEntity = false;
+                        if (stringMethod == null) {
+                            stringMethod = findMethod(apiClass, String.class, PlayerRef.class);
+                            stringFirst = true;
+                            stringPlayerRef = true;
+                            stringPlayerEntity = false;
+                        }
+                        if (stringMethod == null) {
+                            stringMethod = findMethod(apiClass, Player.class, String.class);
+                            stringFirst = false;
+                            stringPlayerRef = false;
+                            stringPlayerEntity = true;
+                        }
+                        if (stringMethod == null) {
+                            stringMethod = findMethod(apiClass, String.class, Player.class);
+                            stringFirst = true;
+                            stringPlayerRef = false;
+                            stringPlayerEntity = true;
+                        }
+
+                        setPlaceholdersMethod = messageMethod;
                         expectsMessageFirst = messageFirst;
-                        expectsPlayerRef = playerRef;
-                        expectsPlayerEntity = playerEntity;
-                        available = candidate != null;
+                        expectsPlayerRef = messagePlayerRef;
+                        expectsPlayerEntity = messagePlayerEntity;
+                        setPlaceholdersStringMethod = stringMethod;
+                        expectsStringFirst = stringFirst;
+                        expectsStringPlayerRef = stringPlayerRef;
+                        expectsStringPlayerEntity = stringPlayerEntity;
+                        available = messageMethod != null || stringMethod != null;
                     } catch (Throwable ignored) {
                         available = false;
                         setPlaceholdersMethod = null;
+                        setPlaceholdersStringMethod = null;
                     }
                     initialized = true;
                 }
             }
         }
-        return available && setPlaceholdersMethod != null;
+        return available && (setPlaceholdersMethod != null || setPlaceholdersStringMethod != null);
+    }
+
+    @Nullable
+    private static Method findMethod(@Nonnull Class<?> target, @Nonnull Class<?> first, @Nonnull Class<?> second) {
+        try {
+            return target.getMethod("setPlaceholders", first, second);
+        } catch (NoSuchMethodException ignored) {
+            return null;
+        }
     }
 }
 

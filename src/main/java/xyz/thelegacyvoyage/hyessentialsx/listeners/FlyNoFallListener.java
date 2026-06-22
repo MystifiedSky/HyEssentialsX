@@ -4,14 +4,19 @@ import com.hypixel.hytale.component.ArchetypeChunk;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.ComponentRegistryProxy;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.component.SystemGroup;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.tick.EntityTickingSystem;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
+import com.hypixel.hytale.server.core.modules.entity.damage.DamageEventSystem;
+import com.hypixel.hytale.server.core.modules.entity.damage.DamageModule;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
 
 import javax.annotation.Nonnull;
+import java.lang.reflect.Method;
 
 public final class FlyNoFallListener {
 
@@ -23,6 +28,7 @@ public final class FlyNoFallListener {
 
     public void register(@Nonnull ComponentRegistryProxy<EntityStore> registry) {
         registry.registerSystem(new FlyNoFallTickSystem(flyManager));
+        registry.registerSystem(new FlyNoFallDamageSystem(flyManager));
     }
 
     private static final class FlyNoFallTickSystem extends EntityTickingSystem<EntityStore> {
@@ -54,6 +60,69 @@ public final class FlyNoFallListener {
 
             if (player.getCurrentFallDistance() > 0d) {
                 player.setCurrentFallDistance(0d);
+            }
+        }
+    }
+
+    private static final class FlyNoFallDamageSystem extends DamageEventSystem {
+
+        private final FlyManager flyManager;
+
+        private FlyNoFallDamageSystem(@Nonnull FlyManager flyManager) {
+            this.flyManager = flyManager;
+        }
+
+        @Override
+        public Query<EntityStore> getQuery() {
+            return Query.any();
+        }
+
+        @Override
+        public SystemGroup<EntityStore> getGroup() {
+            return DamageModule.get().getFilterDamageGroup();
+        }
+
+        @Override
+        public void handle(int index,
+                           @Nonnull ArchetypeChunk<EntityStore> chunk,
+                           @Nonnull Store<EntityStore> store,
+                           @Nonnull CommandBuffer<EntityStore> buffer,
+                           @Nonnull Damage event) {
+            PlayerRef playerRef = chunk.getComponent(index, PlayerRef.getComponentType());
+            if (playerRef == null) return;
+            if (!flyManager.isEnabled(playerRef.getUuid())) return;
+
+            if (!isFallDamage(event)) return;
+
+            event.setCancelled(true);
+            event.setAmount(0f);
+        }
+
+        private static boolean isFallDamage(@Nonnull Damage event) {
+            String cause = resolveCauseName(event);
+            return cause != null && cause.contains("fall");
+        }
+
+        private static String resolveCauseName(@Nonnull Damage event) {
+            Object value = tryInvoke(event, "getDamageCause");
+            if (value == null) value = tryInvoke(event, "getCause");
+            if (value == null) value = tryInvoke(event, "getDamageType");
+            if (value == null) value = tryInvoke(event, "getType");
+            if (value == null) value = tryInvoke(event, "getSource");
+            if (value == null) value = tryInvoke(event, "getReason");
+            if (value == null) return null;
+
+            String name = value.toString();
+            if (name == null) return null;
+            return name.toLowerCase();
+        }
+
+        private static Object tryInvoke(@Nonnull Object target, @Nonnull String method) {
+            try {
+                Method m = target.getClass().getMethod(method);
+                return m.invoke(target);
+            } catch (Throwable ignored) {
+                return null;
             }
         }
     }

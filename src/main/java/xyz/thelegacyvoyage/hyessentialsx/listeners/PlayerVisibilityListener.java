@@ -47,7 +47,22 @@ public final class PlayerVisibilityListener {
                 @Nonnull CommandBuffer<EntityStore> buffer
         ) {
             // Clean up legacy vanish component to avoid client crashes in third person.
-            store.removeComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType());
+            try {
+                store.removeComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType());
+            } catch (IllegalArgumentException ignored) {
+                // Component not in archetype; safe to ignore.
+            }
+
+            // If the player isn't vanished, make sure any stale hidden state is cleared.
+            if (!vanishManager.isEnabled(component.getUuid())) {
+                for (PlayerRef viewer : Universe.get().getPlayers()) {
+                    if (viewer == null) continue;
+                    HiddenPlayersManager manager = viewer.getHiddenPlayersManager();
+                    if (manager != null) {
+                        manager.showPlayer(component.getUuid());
+                    }
+                }
+            }
 
             // Hide currently vanished players from the joining player.
             HiddenPlayersManager hidden = component.getHiddenPlayersManager();

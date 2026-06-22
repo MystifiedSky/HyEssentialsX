@@ -1,28 +1,24 @@
 package xyz.thelegacyvoyage.hyessentialsx.commands.moderation;
 
-import com.hypixel.hytale.component.Ref;
-import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
-import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
-import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.entity.entities.player.HiddenPlayersManager;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
-import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
+import java.util.List;
 
-public final class VanishCommand extends AbstractPlayerCommand {
+public final class VanishCommand extends CommandBase {
 
     private static final String PERMISSION_NODE = "hyessentialsx.vanish";
     private static final String OTHERS_PERMISSION = "hyessentialsx.vanish.others";
 
     private final VanishManager vanishManager;
-    private final OptionalArg<PlayerRef> targetArg;
 
     public VanishCommand(@Nonnull VanishManager vanishManager) {
         super("vanish", "Toggle vanish");
@@ -30,7 +26,7 @@ public final class VanishCommand extends AbstractPlayerCommand {
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"v"});
-        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
+        this.setAllowsExtraArguments(true);
     }
 
     @Override
@@ -39,25 +35,31 @@ public final class VanishCommand extends AbstractPlayerCommand {
     }
 
     @Override
-    protected void execute(
-            @Nonnull CommandContext context,
-            @Nonnull Store<EntityStore> store,
-            @Nonnull Ref<EntityStore> ref,
-            @Nonnull PlayerRef playerRef,
-            @Nonnull World world
-    ) {
+    protected void executeSync(@Nonnull CommandContext context) {
         if (!context.sender().hasPermission(PERMISSION_NODE)) {
             Messages.noPerm(context, "/vanish");
             return;
         }
 
-        PlayerRef target = context.provided(targetArg) ? context.get(targetArg) : playerRef;
+        List<String> args = CommandInputUtil.getArgs(context);
+        PlayerRef self = CommandSenderUtil.resolvePlayer(context);
+        PlayerRef target;
+        if (args.isEmpty()) {
+            if (self == null) {
+                Messages.errKey(context, "error.player_only", java.util.Map.of());
+                return;
+            }
+            target = self;
+        } else {
+            String targetName = args.get(0);
+            target = findOnlinePlayer(targetName);
+        }
         if (target == null) {
-            Messages.errKey(context, "error.player_only", java.util.Map.of());
+            Messages.errKey(context, "player.not_found", java.util.Map.of());
             return;
         }
 
-        boolean isSelf = playerRef.getUuid().equals(target.getUuid());
+        boolean isSelf = self != null && self.getUuid().equals(target.getUuid());
         if (!isSelf && !context.sender().hasPermission(OTHERS_PERMISSION)) {
             Messages.noPerm(context, "/vanish");
             return;
@@ -74,7 +76,7 @@ public final class VanishCommand extends AbstractPlayerCommand {
                     java.util.Map.of("player", target.getUsername()));
             Messages.sendPrefixedKey(target,
                     enabled ? "vanish.enabled_by" : "vanish.disabled_by",
-                    java.util.Map.of("player", playerRef.getUsername()));
+                    java.util.Map.of("player", resolveSenderName(context)));
         }
     }
 
@@ -89,5 +91,23 @@ public final class VanishCommand extends AbstractPlayerCommand {
                 manager.showPlayer(target.getUuid());
             }
         }
+    }
+
+    @Nonnull
+    private static String resolveSenderName(@Nonnull CommandContext context) {
+        Object sender = context.sender();
+        if (sender instanceof PlayerRef player) return player.getUsername();
+        return "Console";
+    }
+
+    private static PlayerRef findOnlinePlayer(@Nonnull String name) {
+        for (PlayerRef ref : Universe.get().getPlayers()) {
+            if (ref == null) continue;
+            String username = ref.getUsername();
+            if (username != null && username.equalsIgnoreCase(name)) {
+                return ref;
+            }
+        }
+        return null;
     }
 }

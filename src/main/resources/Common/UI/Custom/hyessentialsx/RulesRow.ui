@@ -1,7 +1,21 @@
 $C = "../Common.ui";
 
-Label {
-  Text: "Rule";
+Group {
+  LayoutMode: Top;
   Anchor: (Bottom: 6);
-  Style: (FontSize: 13, TextColor: #ffffff, Wrap: true);
+  Background: (Color: #1a1a1a(0.65));
+  OutlineColor: #93844c(0.32);
+  OutlineSize: 1;
+  Padding: (Left: 10, Right: 10, Top: 8, Bottom: 8);
+
+  Label #RuleIndex {
+    Text: "#1";
+    Anchor: (Bottom: 4);
+    Style: (FontSize: 11, TextColor: #93844c, RenderBold: true);
+  }
+
+  Label #RuleText {
+    Text: "Rule";
+    Style: (FontSize: 13, TextColor: #ffffff, Wrap: true);
+  }
 }

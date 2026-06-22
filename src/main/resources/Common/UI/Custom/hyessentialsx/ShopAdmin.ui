@@ -1,5 +1,13 @@
 $C = "../Common.ui";
 
+@TradeToggleButtonStyle = TextButtonStyle(
+  Default: (Background: #2a2a2a(0.9), LabelStyle: (FontSize: 14, TextColor: #a5a5a5, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: #343434(0.95), LabelStyle: (FontSize: 14, TextColor: #d0d0d0, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: #222222(0.98), LabelStyle: (FontSize: 14, TextColor: #f0f0f0, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Disabled: (Background: #3a6c46(0.95), LabelStyle: (FontSize: 14, TextColor: #f4fff4, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Sounds: $C.@ButtonSounds,
+);
+
 $C.@PageOverlay {
 
   $C.@DecoratedContainer {
@@ -126,11 +134,13 @@ $C.@PageOverlay {
           $C.@TextButton #PaymentMoney {
             Text: "Money";
             Anchor: (Width: 120, Height: 28);
+            Style: @TradeToggleButtonStyle;
           }
 
           $C.@TextButton #PaymentItems {
             Text: "Items";
             Anchor: (Width: 120, Height: 28, Left: 6);
+            Style: @TradeToggleButtonStyle;
           }
         }
 
@@ -165,11 +175,13 @@ $C.@PageOverlay {
           $C.@TextButton #MoneyModeBuy {
             Text: "Buy";
             Anchor: (Width: 120, Height: 28);
+            Style: @TradeToggleButtonStyle;
           }
 
           $C.@TextButton #MoneyModeSell {
             Text: "Sell";
             Anchor: (Width: 120, Height: 28, Left: 6);
+            Style: @TradeToggleButtonStyle;
           }
         }
 

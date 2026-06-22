@@ -6,6 +6,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.storage.JsonStorageBackend;
+import xyz.thelegacyvoyage.hyessentialsx.storage.MongoStorageBackend;
 import xyz.thelegacyvoyage.hyessentialsx.storage.MysqlStorageBackend;
 import xyz.thelegacyvoyage.hyessentialsx.storage.SqliteStorageBackend;
 import xyz.thelegacyvoyage.hyessentialsx.storage.StorageBackend;
@@ -72,9 +73,26 @@ public final class StorageManager {
                 Log.warn("MySQL unavailable, falling back to JSON: " + e.getMessage());
             }
         }
+        if ("mongodb".equals(type) || "mongo".equals(type)) {
+            try {
+                StorageBackend mongo = new MongoStorageBackend(
+                        config.getMongoUri(),
+                        config.getMongoDatabase(),
+                        config.getMongoCollectionPrefix()
+                );
+                Log.info("Storage backend: mongodb (" + config.getMongoDatabase() + ")");
+                return mongo;
+            } catch (Exception e) {
+                Log.warn("MongoDB unavailable, falling back to JSON: " + e.getMessage());
+            }
+        }
         if ("json".equals(type)) {
             Log.info("Storage backend: json");
-        } else if (!"sqlite".equals(type) && !"mysql".equals(type) && !"mariadb".equals(type)) {
+        } else if (!"sqlite".equals(type)
+                && !"mysql".equals(type)
+                && !"mariadb".equals(type)
+                && !"mongodb".equals(type)
+                && !"mongo".equals(type)) {
             Log.warn("Unknown storage type '" + type + "', falling back to JSON.");
         }
         return new JsonStorageBackend(dataFolder);

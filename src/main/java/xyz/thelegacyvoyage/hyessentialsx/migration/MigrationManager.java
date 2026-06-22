@@ -40,10 +40,32 @@ public final class MigrationManager {
             parent = dataFolder;
         }
         Path primary = parent.resolve(mod.getFolderName());
-        if (mod == ModType.EASY_HOME && (!Files.exists(primary) || !Files.isDirectory(primary))) {
-            Path fallback = parent.resolve("EasyHome");
-            if (Files.exists(fallback) && Files.isDirectory(fallback)) {
-                return fallback;
+        if (Files.exists(primary) && Files.isDirectory(primary)) {
+            return primary;
+        }
+        if (mod == ModType.EASY_HOME) {
+            return resolveFromCandidates(parent, primary, "EasyHome");
+        }
+        if (mod == ModType.ECOTALE) {
+            return resolveFromCandidates(parent, primary, "Ecotale");
+        }
+        if (mod == ModType.THE_ECONOMY) {
+            return resolveFromCandidates(parent, primary,
+                    "EconomySystem",
+                    "TheEconomy",
+                    "EconomySystem_EconomySystem");
+        }
+        return primary;
+    }
+
+    @Nonnull
+    private Path resolveFromCandidates(@Nonnull Path parent,
+                                       @Nonnull Path primary,
+                                       @Nonnull String... names) {
+        for (String name : names) {
+            Path candidate = parent.resolve(name);
+            if (Files.exists(candidate) && Files.isDirectory(candidate)) {
+                return candidate;
             }
         }
         return primary;
@@ -115,7 +137,9 @@ public final class MigrationManager {
             case HOME_MANAGER -> new HomeManagerMigration(sourceDir);
             case KUKSO_HY_WARPS -> new KuksoHyWarpsMigration(sourceDir);
             case EASY_HOME -> new EasyHomeMigration(sourceDir);
+            case ECOTALE -> new EcotaleMigration(sourceDir);
             case PLAYTIME -> new PlaytimeMigration(sourceDir);
+            case THE_ECONOMY -> new EconomySystemMigration(sourceDir);
         };
     }
 
@@ -286,14 +310,18 @@ public final class MigrationManager {
         HOME_MANAGER("HomeManager", "homemanager-data"),
         KUKSO_HY_WARPS("KuksoHyWarps", "KuksoHyWarps"),
         EASY_HOME("EasyHome", "cryptobench_EasyHome"),
-        PLAYTIME("Playtime", "Playtime");
+        ECOTALE("Ecotale", "Ecotale_Ecotale"),
+        PLAYTIME("Playtime", "Playtime"),
+        THE_ECONOMY("TheEconomy", "Economy_EconomySystem", "economysystem");
 
         private final String displayName;
         private final String folderName;
+        private final String[] aliases;
 
-        ModType(@Nonnull String displayName, @Nonnull String folderName) {
+        ModType(@Nonnull String displayName, @Nonnull String folderName, @Nonnull String... aliases) {
             this.displayName = displayName;
             this.folderName = folderName;
+            this.aliases = aliases;
         }
 
         @Nonnull
@@ -317,6 +345,11 @@ public final class MigrationManager {
                 String folder = mod.folderName.toLowerCase(Locale.ROOT);
                 if (display.equals(normalized) || folder.equals(normalized)) {
                     return mod;
+                }
+                for (String alias : mod.aliases) {
+                    if (alias != null && alias.toLowerCase(Locale.ROOT).equals(normalized)) {
+                        return mod;
+                    }
                 }
             }
             return null;

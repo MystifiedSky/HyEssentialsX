@@ -292,6 +292,9 @@ public final class ConfigManager {
     private String mysqlDatabase = "hyessentialsx";
     private String mysqlUser = "root";
     private String mysqlPassword = "";
+    private String mongoUri = "mongodb://localhost:27017";
+    private String mongoDatabase = "hyessentialsx";
+    private String mongoCollectionPrefix = "hex_";
 
     private boolean needsSplitMigration = false;
 
@@ -639,6 +642,9 @@ public final class ConfigManager {
         storage.addProperty("mysqlDatabase", "hyessentialsx");
         storage.addProperty("mysqlUser", "root");
         storage.addProperty("mysqlPassword", "");
+        storage.addProperty("mongoUri", "mongodb://localhost:27017");
+        storage.addProperty("mongoDatabase", "hyessentialsx");
+        storage.addProperty("mongoCollectionPrefix", "hex_");
         root.add("storage", storage);
 
         JsonObject playerShops = new JsonObject();
@@ -692,6 +698,8 @@ public final class ConfigManager {
             if (root == null) {
                 throw new IllegalStateException("config.json parsed to null");
             }
+            boolean migrationBackupCreated = false;
+            boolean migrationBackupRequired = shouldCreatePreMigrationBackup(root);
             JsonObject existingChat = getObjectOrNull(root, "chat");
             JsonObject preservedChat = existingChat != null ? existingChat.deepCopy() : null;
             JsonObject preservedBlockRewards = null;
@@ -746,6 +754,10 @@ public final class ConfigManager {
                 changed = true;
             }
             if (changed) {
+                if (migrationBackupRequired && !migrationBackupCreated) {
+                    backupConfigFilesBeforeMigration();
+                    migrationBackupCreated = true;
+                }
                 try {
                     writeSplitConfigs();
                 } catch (Exception e) {
@@ -1093,6 +1105,19 @@ public final class ConfigManager {
             mysqlDatabase = str(storage, "mysqlDatabase", "hyessentialsx");
             mysqlUser = str(storage, "mysqlUser", "root");
             mysqlPassword = str(storage, "mysqlPassword", "");
+            mongoUri = str(storage, "mongoUri", mongoUri);
+            mongoDatabase = str(storage, "mongoDatabase", mongoDatabase);
+            mongoCollectionPrefix = str(storage, "mongoCollectionPrefix", mongoCollectionPrefix);
+
+            if (storage.has("mongodbUri") && !storage.has("mongoUri")) {
+                mongoUri = str(storage, "mongodbUri", mongoUri);
+            }
+            if (storage.has("mongodbDatabase") && !storage.has("mongoDatabase")) {
+                mongoDatabase = str(storage, "mongodbDatabase", mongoDatabase);
+            }
+            if (storage.has("mongoDb") && !storage.has("mongoDatabase")) {
+                mongoDatabase = str(storage, "mongoDb", mongoDatabase);
+            }
 
             if (storage.has("mariadbHost") && !storage.has("mysqlHost")) {
                 mysqlHost = str(storage, "mariadbHost", mysqlHost);
@@ -1133,13 +1158,20 @@ public final class ConfigManager {
             mailMaxMessageLength = Math.max(0, intVal(mail, "maxMessageLength", mailMaxMessageLength));
 
             if (changed) {
+                if (migrationBackupRequired && !migrationBackupCreated) {
+                    backupConfigFilesBeforeMigration();
+                    migrationBackupCreated = true;
+                }
                 applyFieldsToRoot();
                 save();
                 Log.info("Updated config files with new defaults.");
             }
             setVersionFromPlugin();
             if (needsSplitMigration) {
-                backupLegacyConfig();
+                if (!migrationBackupCreated) {
+                    backupConfigFilesBeforeMigration();
+                    migrationBackupCreated = true;
+                }
                 save();
                 needsSplitMigration = false;
                 Log.info("Migrated config.json into split config files.");
@@ -2217,6 +2249,21 @@ public final class ConfigManager {
         return mysqlPassword;
     }
 
+    @Nonnull
+    public String getMongoUri() {
+        return mongoUri;
+    }
+
+    @Nonnull
+    public String getMongoDatabase() {
+        return mongoDatabase;
+    }
+
+    @Nonnull
+    public String getMongoCollectionPrefix() {
+        return mongoCollectionPrefix;
+    }
+
     private void save() {
         try {
             applyFieldsToRoot();
@@ -2489,6 +2536,9 @@ public final class ConfigManager {
         storage.addProperty("mysqlDatabase", mysqlDatabase);
         storage.addProperty("mysqlUser", mysqlUser);
         storage.addProperty("mysqlPassword", mysqlPassword);
+        storage.addProperty("mongoUri", mongoUri);
+        storage.addProperty("mongoDatabase", mongoDatabase);
+        storage.addProperty("mongoCollectionPrefix", mongoCollectionPrefix);
 
         JsonObject playerShops = obj(root, "playerShops");
         playerShops.addProperty("enabled", playerShopsEnabled);
@@ -2811,6 +2861,61 @@ public final class ConfigManager {
             Log.warn("Backed up invalid config.json to: " + backupPath);
         } catch (Exception e) {
             Log.warn("Failed to backup invalid config.json: " + e.getMessage());
+        }
+    }
+
+    private boolean shouldCreatePreMigrationBackup(@Nonnull JsonObject combinedRoot) {
+        if (needsSplitMigration) {
+            return true;
+        }
+        if (Files.exists(rankupPath)) {
+            return true;
+        }
+        if (combinedRoot.has("features")
+                || combinedRoot.has("groupPriorities")
+                || combinedRoot.has("placeholders")) {
+            return true;
+        }
+        JsonObject rankup = getObjectOrNull(combinedRoot, "rankup");
+        return rankup != null && (rankup.has("ranks") || rankup.has("enabled"));
+    }
+
+    private void backupConfigFilesBeforeMigration() {
+        try {
+            Path dataFolder = configPath.getParent();
+            if (dataFolder == null) {
+                return;
+            }
+            String stamp = LocalDateTime.now()
+                    .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+            Path backupDir = dataFolder.resolve("backups").resolve("pre-migration-" + stamp);
+            Files.createDirectories(backupDir);
+
+            List<Path> paths = List.of(
+                    configPath,
+                    economyPath,
+                    rewardsPath,
+                    rankupPath,
+                    chatPath,
+                    scoreboardPath,
+                    dataFolder.resolve("commands.yml")
+            );
+            int copied = 0;
+            for (Path source : paths) {
+                if (!Files.exists(source) || !Files.isRegularFile(source)) {
+                    continue;
+                }
+                Path destination = backupDir.resolve(source.getFileName());
+                Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+                copied++;
+            }
+            if (copied > 0) {
+                Log.info("Created pre-migration config backup at: " + backupDir);
+            } else {
+                Log.warn("Pre-migration backup was requested but no config files were copied.");
+            }
+        } catch (Exception e) {
+            Log.warn("Failed to create pre-migration config backup: " + e.getMessage());
         }
     }
 

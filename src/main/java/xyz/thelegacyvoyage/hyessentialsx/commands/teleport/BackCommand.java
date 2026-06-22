@@ -5,23 +5,27 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
 import javax.annotation.Nonnull;
+import java.util.UUID;
 import java.util.Map;
 
 public final class BackCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.back";
     private static final String BYPASS_PERMISSION = "hyessentialsx.back.bypass";
+    private static final String OTHERS_PERMISSION = "hyessentialsx.back.other";
 
     private final BackManager backManager;
     private final TPManager tpManager;
@@ -39,6 +43,7 @@ public final class BackCommand extends AbstractPlayerCommand {
         this.cooldowns = cooldowns;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        this.setAllowsExtraArguments(true);
     }
 
     @Override
@@ -58,56 +63,89 @@ public final class BackCommand extends AbstractPlayerCommand {
             Messages.noPerm(context, "/back");
             return;
         }
-        if (!cooldowns.canUse(context, playerRef, CooldownKeys.BACK, "/back", BYPASS_PERMISSION)) {
+        java.util.List<String> args = CommandInputUtil.getArgs(context);
+        PlayerRef target = playerRef;
+        if (!args.isEmpty()) {
+            if (!context.sender().hasPermission(OTHERS_PERMISSION)) {
+                Messages.noPerm(context, "/back <player>");
+                return;
+            }
+            String targetName = args.get(0);
+            if (targetName == null || targetName.isBlank()) {
+                Messages.errKey(context, "player.not_found", Map.of());
+                return;
+            }
+            target = Universe.get().getPlayerByUsername(targetName, com.hypixel.hytale.server.core.NameMatching.EXACT_IGNORE_CASE);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", Map.of());
+                return;
+            }
+        }
+
+        if (!cooldowns.canUse(context, target, CooldownKeys.BACK, "/back", BYPASS_PERMISSION)) {
             return;
         }
 
-        BackManager.BackPoint back = backManager.peek(playerRef.getUuid());
+        BackManager.BackPoint back = backManager.peek(target.getUuid());
         if (back == null) {
             Messages.errKey(context, "back.none", Map.of());
             return;
         }
 
+        World targetWorld = Universe.get().getWorld(target.getWorldUuid());
+        if (targetWorld == null) {
+            Messages.err(context, "World not loaded.");
+            return;
+        }
+        Store<EntityStore> targetStore = targetWorld.getEntityStore().getStore();
+        Ref<EntityStore> targetRef = targetWorld.getEntityStore().getRefFromUUID(target.getUuid());
+        if (targetRef == null) {
+            Messages.errKey(context, "player.not_found", Map.of());
+            return;
+        }
+
         int warmupSeconds = config.getBackWarmupSeconds();
         if (warmupSeconds > 0) {
-            if (tpManager.hasPending(playerRef.getUuid())) {
+            if (tpManager.hasPending(target.getUuid())) {
                 Messages.errKey(context, "teleport.pending", Map.of());
                 return;
             }
-            com.hypixel.hytale.math.vector.Transform transform = playerRef.getTransform();
+            com.hypixel.hytale.math.vector.Transform transform = target.getTransform();
             if (transform == null || transform.getPosition() == null) {
                 Messages.errKey(context, "teleport.position_unavailable", Map.of());
                 return;
             }
+            final PlayerRef finalTarget = target;
+            final UUID finalTargetId = target.getUuid();
             tpManager.queue(
-                    playerRef.getUuid(),
+                    finalTargetId,
                     transform.getPosition().clone(),
                     warmupSeconds,
                     buffer -> {
                         String err = TeleportationUtil.teleportToLocation(
                                 buffer,
-                                ref,
+                                targetRef,
                                 back.getWorldName(),
                                 back.getX(), back.getY(), back.getZ(),
                                 back.getYaw(), back.getPitch()
                         );
                         if (err != null) {
-                            Messages.sendPrefixed(playerRef, err);
+                            Messages.sendPrefixed(finalTarget, err);
                             return;
                         }
-                        backManager.consume(playerRef.getUuid());
-                        cooldowns.apply(playerRef, CooldownKeys.BACK);
-                        Messages.sendPrefixedKey(playerRef, "teleport.success.back", Map.of());
+                        backManager.consume(finalTargetId);
+                        cooldowns.apply(finalTarget, CooldownKeys.BACK);
+                        Messages.sendPrefixedKey(finalTarget, "teleport.success.back", Map.of());
                     }
             );
-            Messages.sendPrefixedKey(playerRef, "teleport.warmup", Map.of("seconds", String.valueOf(warmupSeconds)));
+            Messages.sendPrefixedKey(target, "teleport.warmup", Map.of("seconds", String.valueOf(warmupSeconds)));
             return;
         }
 
-        tpManager.cancel(playerRef.getUuid(), null);
+        tpManager.cancel(target.getUuid(), null);
         String err = TeleportationUtil.teleportToLocation(
-                store,
-                ref,
+                targetStore,
+                targetRef,
                 back.getWorldName(),
                 back.getX(), back.getY(), back.getZ(),
                 back.getYaw(), back.getPitch()
@@ -117,8 +155,8 @@ public final class BackCommand extends AbstractPlayerCommand {
             return;
         }
 
-        backManager.consume(playerRef.getUuid());
-        cooldowns.apply(playerRef, CooldownKeys.BACK);
+        backManager.consume(target.getUuid());
+        cooldowns.apply(target, CooldownKeys.BACK);
         Messages.okKey(context, "teleport.success.back", Map.of());
     }
 }

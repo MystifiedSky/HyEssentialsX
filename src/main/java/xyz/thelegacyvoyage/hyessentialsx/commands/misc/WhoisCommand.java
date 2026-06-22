@@ -18,6 +18,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.models.BanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.MuteModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.IpUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
@@ -86,6 +87,18 @@ public final class WhoisCommand extends CommandBase {
 
         boolean isOnline = online != null;
         context.sendMessage(Messages.m("&aOnline: &f" + (isOnline ? "Yes" : "No")));
+        String currentIp = null;
+        if (online != null) {
+            currentIp = IpUtil.extractIp(online.getPacketHandler());
+            if (currentIp != null && !currentIp.isBlank()) {
+                data.addOrUpdateIp(currentIp);
+                storage.savePlayerDataAsync(uuid, data);
+            }
+        }
+        if (currentIp == null || currentIp.isBlank()) {
+            currentIp = data.getCurrentIp();
+        }
+        context.sendMessage(Messages.m("&aCurrent IP: &f" + (currentIp == null || currentIp.isBlank() ? "Unknown" : currentIp)));
 
         if (isOnline) {
             Transform t = online.getTransform();

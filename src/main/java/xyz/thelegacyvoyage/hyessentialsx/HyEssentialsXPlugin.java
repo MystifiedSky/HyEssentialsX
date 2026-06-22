@@ -45,6 +45,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.misc.NightCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.AfkCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.MuteCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.IpBanCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.IpHistoryCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.TempBanCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnipBanCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnbanCommand;
@@ -455,6 +456,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         reg.accept(new PlaytimeCommand(playtimeManager, storage));
         reg.accept(new WhoisCommand(storage));
+        reg.accept(new IpHistoryCommand(storage));
         reg.accept(new SeenCommand(storage));
         reg.accept(new TopCommand(backManager));
         reg.accept(new JumpToCommand(cooldownManager, backManager));

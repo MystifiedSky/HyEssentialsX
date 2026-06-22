@@ -33,7 +33,7 @@ public final class IpBanListener {
         if (ip != null && event.getUuid() != null) {
             UUID uuid = event.getUuid();
             PlayerDataModel data = storage.getPlayerData(uuid);
-            data.setLastKnownIp(ip);
+            data.addOrUpdateIp(ip);
             storage.savePlayerDataAsync(uuid, data);
         }
 

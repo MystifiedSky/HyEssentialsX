@@ -14,6 +14,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.MessageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.BanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.IpUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
 import javax.annotation.Nonnull;
@@ -66,6 +67,11 @@ public final class PlayerDataListener {
             stamina.clear(player.getUuid());
 
             PlayerDataModel data = storage.getPlayerData(player.getUuid());
+            String ip = IpUtil.extractIp(player.getPacketHandler());
+            if (ip != null && !ip.isBlank()) {
+                data.addOrUpdateIp(ip);
+                storage.savePlayerDataAsync(player.getUuid(), data);
+            }
             if (data.isFlyEnabled()) {
                 fly.setEnabled(player.getUuid(), true);
                 if (!fly.applyState(player, true)) {

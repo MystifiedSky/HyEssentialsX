@@ -30,6 +30,7 @@ public final class PlayerDataModel {
     private int mailNextId = 1;
     private int mailSentNextId = 1;
     private String lastKnownIp;
+    private List<IpHistoryModel> ipHistory = new ArrayList<>();
 
     @SuppressWarnings("unused")
     public PlayerDataModel() {}
@@ -218,6 +219,63 @@ public final class PlayerDataModel {
 
     public void setLastKnownIp(@Nullable String lastKnownIp) {
         this.lastKnownIp = lastKnownIp;
+    }
+
+    @Nonnull
+    public List<IpHistoryModel> getIpHistory() {
+        if (ipHistory == null) {
+            ipHistory = new ArrayList<>();
+        }
+        return ipHistory;
+    }
+
+    public void setIpHistory(@Nonnull List<IpHistoryModel> ipHistory) {
+        this.ipHistory = ipHistory;
+    }
+
+    public void addOrUpdateIp(@Nonnull String ip) {
+        String trimmed = ip.trim();
+        if (trimmed.isBlank()) return;
+        List<IpHistoryModel> history = getIpHistory();
+        long now = System.currentTimeMillis();
+        for (IpHistoryModel entry : history) {
+            if (entry == null || entry.getIp() == null) continue;
+            if (entry.getIp().equals(trimmed)) {
+                entry.setLastUsed(now);
+                this.lastKnownIp = trimmed;
+                return;
+            }
+        }
+        history.add(new IpHistoryModel(trimmed, now));
+        if (history.size() > 5) {
+            IpHistoryModel oldest = null;
+            for (IpHistoryModel entry : history) {
+                if (entry == null) continue;
+                if (oldest == null || entry.getLastUsed() < oldest.getLastUsed()) {
+                    oldest = entry;
+                }
+            }
+            if (oldest != null) {
+                history.remove(oldest);
+            }
+        }
+        this.lastKnownIp = trimmed;
+    }
+
+    @Nullable
+    public String getCurrentIp() {
+        List<IpHistoryModel> history = getIpHistory();
+        IpHistoryModel latest = null;
+        for (IpHistoryModel entry : history) {
+            if (entry == null || entry.getIp() == null || entry.getIp().isBlank()) continue;
+            if (latest == null || entry.getLastUsed() > latest.getLastUsed()) {
+                latest = entry;
+            }
+        }
+        if (latest != null) {
+            return latest.getIp();
+        }
+        return (lastKnownIp == null || lastKnownIp.isBlank()) ? null : lastKnownIp;
     }
 }
 

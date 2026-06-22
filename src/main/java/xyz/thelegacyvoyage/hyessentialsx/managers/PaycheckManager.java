@@ -80,6 +80,12 @@ public final class PaycheckManager {
             UUID uuid = ref.getUuid();
             PlayerDataModel data = storage.getPlayerData(uuid);
             long last = data.getLastPaycheckAt();
+            if (last <= 0L && data.getLastSeenAt() > 0L) {
+                // Prevent immediate paychecks after restart when historical data didn't store a timestamp.
+                data.setLastPaycheckAt(now);
+                storage.savePlayerDataAsync(uuid, data);
+                continue;
+            }
             if (last > 0L && now - last < intervalMillis) {
                 continue;
             }

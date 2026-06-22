@@ -69,7 +69,7 @@ public final class IpBanCommand extends CommandBase {
         if (ip == null || ip.isBlank()) {
             ip = data.getLastKnownIp();
         } else {
-            data.setLastKnownIp(ip);
+            data.addOrUpdateIp(ip);
             storage.savePlayerDataAsync(uuid, data);
         }
 

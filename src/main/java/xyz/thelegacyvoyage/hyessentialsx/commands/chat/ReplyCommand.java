@@ -10,6 +10,7 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MessageManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.IgnoreManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.SocialSpyManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -24,14 +25,17 @@ public final class ReplyCommand extends AbstractPlayerCommand {
 
     private final MessageManager messages;
     private final IgnoreManager ignoreManager;
+    private final SocialSpyManager socialSpyManager;
     private final ConfigManager config;
 
     public ReplyCommand(@Nonnull MessageManager messages,
                         @Nonnull IgnoreManager ignoreManager,
+                        @Nonnull SocialSpyManager socialSpyManager,
                         @Nonnull ConfigManager config) {
         super("r", "Replies to last message");
         this.messages = messages;
         this.ignoreManager = ignoreManager;
+        this.socialSpyManager = socialSpyManager;
         this.config = config;
         this.setPermissionGroup(null);
         this.setAllowsExtraArguments(true);
@@ -90,6 +94,7 @@ public final class ReplyCommand extends AbstractPlayerCommand {
         Messages.send(target, Messages.tr(target, "msg.format_receiver",
                 Map.of("player", playerRef.getUsername(), "message", message)));
         messages.setLastPartner(playerRef.getUuid(), target.getUuid());
+        socialSpyManager.notifyPrivateMessage(playerRef, target, message);
     }
 }
 

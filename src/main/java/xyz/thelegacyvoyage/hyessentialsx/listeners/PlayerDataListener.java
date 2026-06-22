@@ -11,6 +11,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.GodManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.InfiniteStaminaManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MessageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.SocialSpyManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.BanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
@@ -25,6 +26,7 @@ public final class PlayerDataListener {
     private final StorageManager storage;
     private final BanManager bans;
     private final MessageManager messages;
+    private final SocialSpyManager socialSpy;
     private final AdminChatManager adminChat;
     private final FreecamManager freecam;
     private final GodManager god;
@@ -36,6 +38,7 @@ public final class PlayerDataListener {
     public PlayerDataListener(@Nonnull StorageManager storage,
                               @Nonnull BanManager bans,
                               @Nonnull MessageManager messages,
+                              @Nonnull SocialSpyManager socialSpy,
                               @Nonnull AdminChatManager adminChat,
                               @Nonnull FreecamManager freecam,
                               @Nonnull GodManager god,
@@ -46,6 +49,7 @@ public final class PlayerDataListener {
         this.storage = storage;
         this.bans = bans;
         this.messages = messages;
+        this.socialSpy = socialSpy;
         this.adminChat = adminChat;
         this.freecam = freecam;
         this.god = god;
@@ -104,6 +108,7 @@ public final class PlayerDataListener {
 
             playtime.onQuit(uuid);
             messages.clear(uuid);
+            socialSpy.clear(uuid);
             adminChat.clear(uuid);
             freecam.clear(uuid);
         });

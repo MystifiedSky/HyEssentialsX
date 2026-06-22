@@ -15,6 +15,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.chat.IgnoreCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.MailCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.MsgCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.ReplyCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.chat.SocialSpyCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.UnignoreCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.combat.CombatLogCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.cheat.FlyCommand;
@@ -67,6 +68,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.spawn.SpawnCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.cheat.InfiniteStaminaCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.teleport.JumpToCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.teleport.RtpCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.teleport.ThruCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.tpa.TpahereAllCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.tpa.TpahereCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.tpa.TphereCommand;
@@ -131,6 +133,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.PaycheckManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.RankupManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SleepPercentManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.SocialSpyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ScoreboardManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
@@ -180,6 +183,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private WarpManager warpManager;
     private KitManager kitManager;
     private MessageManager messageManager;
+    private SocialSpyManager socialSpyManager;
     private IgnoreManager ignoreManager;
     private AdminChatManager adminChatManager;
     private MailManager mailManager;
@@ -313,6 +317,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         warpManager = new WarpManager(storage);
         kitManager = new KitManager(storage);
         messageManager = new MessageManager();
+        socialSpyManager = new SocialSpyManager();
         ignoreManager = new IgnoreManager(storage);
         adminChatManager = new AdminChatManager();
         mailManager = new MailManager(storage, configManager);
@@ -488,8 +493,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             reg.accept(new KitDeleteCommand(kitManager, configManager));
         }
         if (configManager.isMsgEnabled()) {
-            reg.accept(new MsgCommand(messageManager, ignoreManager, configManager));
-            reg.accept(new ReplyCommand(messageManager, ignoreManager, configManager));
+            reg.accept(new MsgCommand(messageManager, ignoreManager, socialSpyManager, configManager));
+            reg.accept(new ReplyCommand(messageManager, ignoreManager, socialSpyManager, configManager));
+            reg.accept(new SocialSpyCommand(socialSpyManager));
             reg.accept(new IgnoreCommand(ignoreManager));
             reg.accept(new UnignoreCommand(ignoreManager));
         }
@@ -556,6 +562,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new SeenCommand(storage));
         reg.accept(new TopCommand(backManager));
         reg.accept(new JumpToCommand(cooldownManager, backManager));
+        reg.accept(new ThruCommand(backManager));
         if (configManager.isRtpEnabled()) {
             reg.accept(new RtpCommand(configManager, cooldownManager, tpManager, backManager));
         }
@@ -596,7 +603,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private void registerListeners() {
         EventRegistry bus = getEventRegistry();
         new PlayerListener(configManager, storage, vanishManager, mailManager).register(bus);
-        new PlayerDataListener(storage, banManager, messageManager, adminChatManager, freecamManager, godManager, staminaManager, flyManager, economyManager, playtimeManager).register(bus);
+        new PlayerDataListener(storage, banManager, messageManager, socialSpyManager, adminChatManager, freecamManager, godManager, staminaManager, flyManager, economyManager, playtimeManager).register(bus);
         if (scoreboardManager != null && configManager.isScoreboardEnabled()) {
             new ScoreboardListener(scoreboardManager).register(bus);
         }

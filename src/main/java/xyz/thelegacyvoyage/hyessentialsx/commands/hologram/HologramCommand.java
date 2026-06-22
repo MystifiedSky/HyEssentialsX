@@ -153,27 +153,42 @@ public class HologramCommand extends AbstractCommand {
                   Messages.errKey(context, "hologram.exists", Map.of("name", name));
                   return CompletableFuture.completedFuture(null);
                } else {
-                  try {
-                     Vector3d playerPos = player.getTransformComponent().getPosition();
-                     Vector3f rotation = player.getTransformComponent().getRotation();
-                     double yawRadians = Math.toRadians((double)rotation.getYaw());
-                     double distance = 3.0D;
-                     double offsetX = -Math.sin(yawRadians) * distance;
-                     double offsetZ = Math.cos(yawRadians) * distance;
-                     Vec3d position = new Vec3d(playerPos.getX() + offsetX, playerPos.getY() + 1.5D, playerPos.getZ() + offsetZ);
-                     this.plugin.getHologramManager().createHologram(name, position, player.getWorld().getWorldConfig().getUuid(), player.getUuid());
-                     Messages.sendKey(context, "hologram.created", Map.of("name", name));
-                     Messages.sendKey(context, "hologram.created.position", Map.of(
-                             "x", String.format("%.1f", position.x()),
-                             "y", String.format("%.1f", position.y()),
-                             "z", String.format("%.1f", position.z())
-                     ));
-                     Messages.sendKey(context, "hologram.created.tip", Map.of("name", name));
-                  } catch (Exception var16) {
-                     Messages.errKey(context, "hologram.create_failed", Map.of("error", var16.getMessage()));
+                  World world = player.getWorld();
+                  if (world == null) {
+                     Messages.err(context, "World not available.");
+                     return CompletableFuture.completedFuture(null);
                   }
-
-                  return CompletableFuture.completedFuture(null);
+                  CompletableFuture<Void> future = new CompletableFuture<>();
+                  world.execute(() -> {
+                     try {
+                        TransformComponent transform = player.getTransformComponent();
+                        if (transform == null || transform.getPosition() == null) {
+                           Messages.err(context, "Could not read your position.");
+                           future.complete(null);
+                           return;
+                        }
+                        Vector3d playerPos = transform.getPosition();
+                        Vector3f rotation = transform.getRotation();
+                        double yawRadians = Math.toRadians((double)rotation.getYaw());
+                        double distance = 3.0D;
+                        double offsetX = -Math.sin(yawRadians) * distance;
+                        double offsetZ = Math.cos(yawRadians) * distance;
+                        Vec3d position = new Vec3d(playerPos.getX() + offsetX, playerPos.getY() + 1.5D, playerPos.getZ() + offsetZ);
+                        this.plugin.getHologramManager().createHologram(name, position, world.getWorldConfig().getUuid(), player.getUuid());
+                        Messages.sendKey(context, "hologram.created", Map.of("name", name));
+                        Messages.sendKey(context, "hologram.created.position", Map.of(
+                                "x", String.format("%.1f", position.x()),
+                                "y", String.format("%.1f", position.y()),
+                                "z", String.format("%.1f", position.z())
+                        ));
+                        Messages.sendKey(context, "hologram.created.tip", Map.of("name", name));
+                     } catch (Exception var16) {
+                        Messages.errKey(context, "hologram.create_failed", Map.of("error", var16.getMessage()));
+                     } finally {
+                        future.complete(null);
+                     }
+                  });
+                  return future;
                }
             }
          }
@@ -365,11 +380,26 @@ public class HologramCommand extends AbstractCommand {
                   return CompletableFuture.completedFuture(null);
                } else {
                   Player player = (Player)context.senderAs(Player.class);
-                  Vector3d playerPos = player.getTransformComponent().getPosition();
-                  Vec3d position = new Vec3d(playerPos.getX(), playerPos.getY() + 2.5D, playerPos.getZ());
-                  this.plugin.getHologramManager().moveHologram(hologram, position);
-                  Messages.sendKey(context, "hologram.moved", Map.of("name", name));
-                  return CompletableFuture.completedFuture(null);
+                  World world = player.getWorld();
+                  if (world == null) {
+                     Messages.err(context, "World not available.");
+                     return CompletableFuture.completedFuture(null);
+                  }
+                  CompletableFuture<Void> future = new CompletableFuture<>();
+                  world.execute(() -> {
+                     TransformComponent transform = player.getTransformComponent();
+                     if (transform == null || transform.getPosition() == null) {
+                        Messages.err(context, "Could not read your position.");
+                        future.complete(null);
+                        return;
+                     }
+                     Vector3d playerPos = transform.getPosition();
+                     Vec3d position = new Vec3d(playerPos.getX(), playerPos.getY() + 2.5D, playerPos.getZ());
+                     this.plugin.getHologramManager().moveHologram(hologram, position);
+                     Messages.sendKey(context, "hologram.moved", Map.of("name", name));
+                     future.complete(null);
+                  });
+                  return future;
                }
             }
          }

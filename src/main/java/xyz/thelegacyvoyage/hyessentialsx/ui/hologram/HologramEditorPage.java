@@ -97,7 +97,7 @@ public class HologramEditorPage extends InteractiveCustomUIPage<HologramEditorEv
       commandBuilder.clear("#LinesList");
       List<String> lines = hologram.getLines();
       if (lines.isEmpty()) {
-         commandBuilder.appendInline("#LinesList", "Label { Text: No lines yet.; Style: (Alignment: Center); }");
+         commandBuilder.appendInline("#LinesList", "Label { Text: \"No lines yet.\"; Style: (Alignment: Center, TextColor: #6e7da1); }");
       } else {
          for(int i = 0; i < lines.size(); ++i) {
             String lineText = (String)lines.get(i);

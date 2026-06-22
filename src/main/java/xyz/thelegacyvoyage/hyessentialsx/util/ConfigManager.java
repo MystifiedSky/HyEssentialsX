@@ -28,6 +28,7 @@ public final class ConfigManager {
     private static final int DEFAULT_COMMAND_COOLDOWN_SECONDS = 30;
     private static final int DEFAULT_TELEPORT_WARMUP_SECONDS = 5;
     private static final List<String> DEFAULT_SPAWN_RESPAWN_PRIORITY = List.of("bed", "setspawn", "world");
+    private static final List<String> DEFAULT_COMBAT_BLOCKED_COMMANDS = List.of("home", "spawn", "tpa", "tp", "warp");
 
     private final Path configPath;
     private final Gson gson = new GsonBuilder()
@@ -79,6 +80,23 @@ public final class ConfigManager {
     private boolean spawnProtectionAllowDamage = false;
     private boolean spawnProtectionAllowInteract = true;
     private List<String> spawnRespawnPriority = DEFAULT_SPAWN_RESPAWN_PRIORITY;
+    private boolean combatLogEnabled = false;
+    private boolean combatLogOnlyPlayerDamage = true;
+    private int combatLogTimeSeconds = 30;
+    private boolean combatLogShowTitle = true;
+    private boolean combatLogBlockCommands = true;
+    private List<String> combatLogBlockedCommands = DEFAULT_COMBAT_BLOCKED_COMMANDS;
+    private static final String COMBATLOG_PREFIX_KEY = "combatlog.prefix";
+    private static final String COMBATLOG_ENTER_KEY = "combatlog.enter";
+    private static final String COMBATLOG_EXIT_KEY = "combatlog.exit";
+    private static final String COMBATLOG_TIME_REMAINING_KEY = "combatlog.time_remaining";
+    private static final String COMBATLOG_BROADCAST_KEY = "combatlog.broadcast";
+    private static final String COMBATLOG_COMMAND_BLOCKED_KEY = "combatlog.command_blocked";
+    private static final String COMBATLOG_COMMAND_INFO_KEY = "combatlog.command_info";
+    private static final String COMBATLOG_RELOAD_SUCCESS_KEY = "combatlog.command_reload_success";
+    private static final String COMBATLOG_RELOAD_FAILED_KEY = "combatlog.command_reload_failed";
+    private static final String COMBATLOG_TITLE_MAIN_KEY = "combatlog.title_main";
+    private static final String COMBATLOG_TITLE_SUB_KEY = "combatlog.title_sub";
     private boolean economyEnabled = true;
     private String economyCurrencySymbol = "$";
     private long economyStartingBalance = 0L;
@@ -392,6 +410,15 @@ public final class ConfigManager {
         spawn.addProperty("warmupSeconds", spawnWarmupSeconds);
         spawn.add("respawnPriority", toArray(spawnRespawnPriority));
         root.add("spawn", spawn);
+
+        JsonObject combatLog = new JsonObject();
+        combatLog.addProperty("enabled", false);
+        combatLog.addProperty("onlyPlayerDamageLog", true);
+        combatLog.addProperty("combatTime", combatLogTimeSeconds);
+        combatLog.addProperty("showCombatTitle", true);
+        combatLog.addProperty("blockCommandsInCombat", true);
+        combatLog.add("blockedCommands", toArray(combatLogBlockedCommands));
+        root.add("combatLog", combatLog);
 
         JsonObject jumpTo = new JsonObject();
         jumpTo.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
@@ -711,6 +738,14 @@ public final class ConfigManager {
             spawnWarmupSeconds = intVal(spawn, "warmupSeconds", spawnWarmupSeconds);
             spawnRespawnPriority = normalizeRespawnPriority(list(spawn, "respawnPriority", spawnRespawnPriority));
 
+            JsonObject combatLog = obj(root, "combatLog");
+            combatLogEnabled = bool(combatLog, "enabled", combatLogEnabled);
+            combatLogOnlyPlayerDamage = bool(combatLog, "onlyPlayerDamageLog", combatLogOnlyPlayerDamage);
+            combatLogTimeSeconds = intVal(combatLog, "combatTime", combatLogTimeSeconds);
+            combatLogShowTitle = bool(combatLog, "showCombatTitle", combatLogShowTitle);
+            combatLogBlockCommands = bool(combatLog, "blockCommandsInCombat", combatLogBlockCommands);
+            combatLogBlockedCommands = normalizeCommandList(list(combatLog, "blockedCommands", combatLogBlockedCommands));
+
             JsonObject storage = obj(root, "storage");
             storageType = str(storage, "type", "sqlite");
             sqliteFile = str(storage, "sqliteFile", sqliteFile);
@@ -813,6 +848,86 @@ public final class ConfigManager {
     @Nonnull
     public List<String> getSpawnRespawnPriority() {
         return Collections.unmodifiableList(spawnRespawnPriority);
+    }
+
+    public boolean isCombatLogEnabled() {
+        return combatLogEnabled;
+    }
+
+    public boolean isCombatLogOnlyPlayerDamage() {
+        return combatLogOnlyPlayerDamage;
+    }
+
+    public int getCombatLogTimeSeconds() {
+        return Math.max(0, combatLogTimeSeconds);
+    }
+
+    public boolean isCombatLogShowTitle() {
+        return combatLogShowTitle;
+    }
+
+    public boolean isCombatLogBlockCommands() {
+        return combatLogBlockCommands;
+    }
+
+    @Nonnull
+    public List<String> getCombatLogBlockedCommands() {
+        return Collections.unmodifiableList(combatLogBlockedCommands);
+    }
+
+    @Nonnull
+    public String getCombatLogPrefix() {
+        return COMBATLOG_PREFIX_KEY;
+    }
+
+    @Nonnull
+    public String getCombatLogEnterMessage() {
+        return COMBATLOG_ENTER_KEY;
+    }
+
+    @Nonnull
+    public String getCombatLogExitMessage() {
+        return COMBATLOG_EXIT_KEY;
+    }
+
+    @Nonnull
+    public String getCombatLogTimeRemainingMessage() {
+        return COMBATLOG_TIME_REMAINING_KEY;
+    }
+
+    @Nonnull
+    public String getCombatLogBroadcastMessage() {
+        return COMBATLOG_BROADCAST_KEY;
+    }
+
+    @Nonnull
+    public String getCombatLogCommandBlockedMessage() {
+        return COMBATLOG_COMMAND_BLOCKED_KEY;
+    }
+
+    @Nonnull
+    public String getCombatLogCommandInfoMessage() {
+        return COMBATLOG_COMMAND_INFO_KEY;
+    }
+
+    @Nonnull
+    public String getCombatLogReloadSuccessMessage() {
+        return COMBATLOG_RELOAD_SUCCESS_KEY;
+    }
+
+    @Nonnull
+    public String getCombatLogReloadFailedMessage() {
+        return COMBATLOG_RELOAD_FAILED_KEY;
+    }
+
+    @Nonnull
+    public String getCombatLogTitleMain() {
+        return COMBATLOG_TITLE_MAIN_KEY;
+    }
+
+    @Nonnull
+    public String getCombatLogTitleSub() {
+        return COMBATLOG_TITLE_SUB_KEY;
     }
 
     public int getRtpWarmupSeconds() {
@@ -1458,6 +1573,14 @@ public final class ConfigManager {
         spawn.addProperty("warmupSeconds", spawnWarmupSeconds);
         spawn.add("respawnPriority", toArray(spawnRespawnPriority));
 
+        JsonObject combatLog = obj(root, "combatLog");
+        combatLog.addProperty("enabled", combatLogEnabled);
+        combatLog.addProperty("onlyPlayerDamageLog", combatLogOnlyPlayerDamage);
+        combatLog.addProperty("combatTime", combatLogTimeSeconds);
+        combatLog.addProperty("showCombatTitle", combatLogShowTitle);
+        combatLog.addProperty("blockCommandsInCombat", combatLogBlockCommands);
+        combatLog.add("blockedCommands", toArray(combatLogBlockedCommands));
+
         JsonObject storage = obj(root, "storage");
         storage.addProperty("type", storageType);
         storage.addProperty("sqliteFile", sqliteFile);
@@ -1693,6 +1816,24 @@ public final class ConfigManager {
             }
         }
         return out.isEmpty() ? DEFAULT_SPAWN_RESPAWN_PRIORITY : out;
+    }
+
+    @Nonnull
+    private List<String> normalizeCommandList(@Nonnull List<String> input) {
+        if (input.isEmpty()) return DEFAULT_COMBAT_BLOCKED_COMMANDS;
+        List<String> out = new ArrayList<>();
+        for (String raw : input) {
+            if (raw == null) continue;
+            String value = raw.trim().toLowerCase(Locale.ROOT);
+            while (value.startsWith("/")) {
+                value = value.substring(1);
+            }
+            if (value.isBlank()) continue;
+            if (!out.contains(value)) {
+                out.add(value);
+            }
+        }
+        return out.isEmpty() ? DEFAULT_COMBAT_BLOCKED_COMMANDS : out;
     }
 
     @Nonnull

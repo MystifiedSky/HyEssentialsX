@@ -6,6 +6,7 @@ import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Transform;
 import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.protocol.BlockMaterial;
+import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
@@ -19,10 +20,12 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
 import javax.annotation.Nonnull;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -30,6 +33,7 @@ public final class RtpCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.rtp";
     private static final String BYPASS_PERMISSION = "hyessentialsx.rtp.bypass";
+    private static final String OTHER_PERMISSION = "hyessentialsx.rtp.other";
 
     private final ConfigManager config;
     private final CommandCooldownManager cooldowns;
@@ -47,6 +51,7 @@ public final class RtpCommand extends AbstractPlayerCommand {
         this.tpManager = tpManager;
         this.backManager = backManager;
         this.setPermissionGroup(null);
+        this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"randomtp", "wild"});
     }
@@ -72,18 +77,54 @@ public final class RtpCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "rtp.disabled", Map.of());
             return;
         }
-        if (!cooldowns.canUse(context, playerRef, CooldownKeys.RTP, "/rtp", BYPASS_PERMISSION)) {
-            return;
+        List<String> args = CommandInputUtil.getArgs(context);
+        PlayerRef target = playerRef;
+        String worldArg = null;
+        boolean isOther = false;
+        if (!args.isEmpty()) {
+            String targetName = args.get(0);
+            PlayerRef resolved = Universe.get().getPlayerByUsername(targetName, NameMatching.EXACT_IGNORE_CASE);
+            if (resolved == null) {
+                Messages.errKey(context, "player.not_found", Map.of());
+                return;
+            }
+            target = resolved;
+            isOther = !target.getUuid().equals(playerRef.getUuid());
+            if (isOther && !context.sender().hasPermission(OTHER_PERMISSION)) {
+                Messages.noPerm(context, "/rtp <player>");
+                return;
+            }
+            if (args.size() >= 2) {
+                worldArg = args.get(1);
+            }
+        }
+        if (!isOther) {
+            if (!cooldowns.canUse(context, playerRef, CooldownKeys.RTP, "/rtp", BYPASS_PERMISSION)) {
+                return;
+            }
+        } else {
+            if (!cooldowns.canUse(target, CooldownKeys.RTP, "/rtp", BYPASS_PERMISSION)) {
+                Messages.err(context, "Target is on cooldown.");
+                return;
+            }
         }
 
-        if (tpManager.hasPending(playerRef.getUuid())) {
+        if (tpManager.hasPending(target.getUuid())) {
             Messages.errKey(context, "teleport.pending", Map.of());
             return;
         }
 
-        World chosenWorld = world;
-        String overrideWorldName = config.getRtpWorldOverride(world.getName());
-        if (overrideWorldName != null && !overrideWorldName.equalsIgnoreCase(world.getName())) {
+        World chosenWorld = resolveTargetWorld(target, world);
+        if (worldArg != null && !worldArg.isBlank()) {
+            World specified = Universe.get().getWorld(worldArg);
+            if (specified == null) {
+                Messages.err(context, "World '" + worldArg + "' is not loaded.");
+                return;
+            }
+            chosenWorld = specified;
+        }
+        String overrideWorldName = config.getRtpWorldOverride(chosenWorld.getName());
+        if (overrideWorldName != null && !overrideWorldName.equalsIgnoreCase(chosenWorld.getName())) {
             World overrideWorld = Universe.get().getWorld(overrideWorldName);
             if (overrideWorld != null) {
                 chosenWorld = overrideWorld;
@@ -93,7 +134,7 @@ public final class RtpCommand extends AbstractPlayerCommand {
         }
         final World targetWorld = chosenWorld;
 
-        Transform transform = playerRef.getTransform();
+        Transform transform = target.getTransform();
         if (transform == null) {
             Messages.errKey(context, "teleport.position_unavailable", Map.of());
             return;
@@ -152,11 +193,13 @@ public final class RtpCommand extends AbstractPlayerCommand {
 
         int warmupSeconds = config.getRtpWarmupSeconds();
         if (warmupSeconds > 0) {
-            Transform transformNow = playerRef.getTransform();
+            Transform transformNow = target.getTransform();
             if (transformNow == null || transformNow.getPosition() == null) {
                 Messages.errKey(context, "teleport.position_unavailable", Map.of());
                 return;
             }
+            PlayerRef warmupTarget = target;
+            Ref<EntityStore> warmupRef = warmupTarget.getReference();
             com.hypixel.hytale.math.vector.Vector3f rot = transformNow.getRotation();
             float startYaw = (rot != null) ? rot.getY() : 0f;
             float startPitch = (rot != null) ? rot.getX() : 0f;
@@ -165,43 +208,46 @@ public final class RtpCommand extends AbstractPlayerCommand {
             double finalTargetY = targetY;
             double finalTargetZ = targetZ;
             tpManager.queue(
-                    playerRef.getUuid(),
+                    warmupTarget.getUuid(),
                     startPos,
                     warmupSeconds,
                     buffer -> {
                         String err = TeleportationUtil.teleportToLocation(
                                 buffer,
-                                ref,
+                                warmupRef,
                                 targetWorld.getName(),
                                 finalTargetX, finalTargetY, finalTargetZ,
                                 0f, 0f
                         );
                         if (err != null) {
-                            Messages.sendPrefixed(playerRef, err);
+                            Messages.sendPrefixed(warmupTarget, err);
                             return;
                         }
                         backManager.recordLocation(
-                                playerRef.getUuid(),
-                                world.getName(),
+                                warmupTarget.getUuid(),
+                                targetWorld.getName(),
                                 startPos.getX(), startPos.getY(), startPos.getZ(),
                                 startYaw, startPitch
                         );
-                        cooldowns.apply(playerRef, CooldownKeys.RTP);
-                        Messages.sendPrefixedKey(playerRef, "teleport.success.rtp", Map.of());
+                        cooldowns.apply(warmupTarget, CooldownKeys.RTP);
+                        Messages.sendPrefixedKey(warmupTarget, "teleport.success.rtp", Map.of());
                     }
             );
-            Messages.sendPrefixedKey(playerRef, "teleport.warmup", Map.of("seconds", String.valueOf(warmupSeconds)));
+            Messages.sendPrefixedKey(warmupTarget, "teleport.warmup", Map.of("seconds", String.valueOf(warmupSeconds)));
+            if (isOther) {
+                Messages.ok(context, "Teleporting " + target.getUsername() + " shortly...");
+            }
             return;
         }
 
-        Transform transformNow = playerRef.getTransform();
+        Transform transformNow = target.getTransform();
         if (transformNow != null && transformNow.getPosition() != null) {
             com.hypixel.hytale.math.vector.Vector3f rot = transformNow.getRotation();
             float startYaw = (rot != null) ? rot.getY() : 0f;
             float startPitch = (rot != null) ? rot.getX() : 0f;
             backManager.recordLocation(
-                    playerRef.getUuid(),
-                    world.getName(),
+                    target.getUuid(),
+                    targetWorld.getName(),
                     transformNow.getPosition().getX(),
                     transformNow.getPosition().getY(),
                     transformNow.getPosition().getZ(),
@@ -210,8 +256,8 @@ public final class RtpCommand extends AbstractPlayerCommand {
         }
 
         String err = TeleportationUtil.teleportToLocation(
-                store,
-                ref,
+                target.getReference().getStore(),
+                target.getReference(),
                 targetWorld.getName(),
                 targetX, targetY, targetZ,
                 0f, 0f
@@ -221,8 +267,30 @@ public final class RtpCommand extends AbstractPlayerCommand {
             return;
         }
 
-        cooldowns.apply(playerRef, CooldownKeys.RTP);
-        Messages.okKey(context, "teleport.success.rtp", Map.of());
+        cooldowns.apply(target, CooldownKeys.RTP);
+        Messages.sendPrefixedKey(target, "teleport.success.rtp", Map.of());
+        if (isOther) {
+            Messages.ok(context, "Teleported " + target.getUsername() + " to a random location.");
+        } else {
+            Messages.okKey(context, "teleport.success.rtp", Map.of());
+        }
+    }
+
+    @Nonnull
+    private World resolveTargetWorld(@Nonnull PlayerRef target, @Nonnull World fallback) {
+        try {
+            Ref<EntityStore> targetRef = target.getReference();
+            Store<EntityStore> targetStore = targetRef.getStore();
+            if (targetStore != null && targetStore.getExternalData().getWorld() != null) {
+                return targetStore.getExternalData().getWorld();
+            }
+        } catch (Exception ignored) {
+        }
+        if (target.getWorldUuid() != null) {
+            World byUuid = Universe.get().getWorld(target.getWorldUuid());
+            if (byUuid != null) return byUuid;
+        }
+        return fallback;
     }
 
     private boolean isSolidBlock(@Nonnull WorldChunk chunk, int x, int y, int z) {

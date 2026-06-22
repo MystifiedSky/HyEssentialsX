@@ -2,6 +2,7 @@ package xyz.thelegacyvoyage.hyessentialsx;
 
 import com.hypixel.hytale.event.EventRegistry;
 import com.hypixel.hytale.logger.HytaleLogger;
+import com.hypixel.hytale.server.core.command.system.AbstractCommand;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.world.events.AllWorldsLoadedEvent;
@@ -12,6 +13,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.chat.BroadcastCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.ClearChatCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.MsgCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.ReplyCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.combat.CombatLogCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.cheat.FlyCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.cheat.GodCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.cheat.HealCommand;
@@ -42,6 +44,8 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.TempBanCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnbanCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnmuteCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.FreecamCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.FreezeCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnfreezeCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.VanishCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.spawn.DelSpawnCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.spawn.SetSpawnCommand;
@@ -68,6 +72,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.economy.MoneyCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.economy.PayCommand;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.ChatModerationListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.CleanupListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.CombatLogListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.DeathBackListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.DeathMessageListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.DeathSpawnListener;
@@ -75,6 +80,7 @@ import xyz.thelegacyvoyage.hyessentialsx.listeners.EconomyRewardListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.FlyNoFallListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.GodHealthListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.InfiniteStaminaListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.FreezeListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.SleepPercentListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.AfkListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerDataListener;
@@ -86,9 +92,11 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AfkManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CombatLogManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FreecamManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.FreezeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.GodManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.HomeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.InfiniteStaminaManager;
@@ -142,7 +150,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private AfkManager afkManager;
     private MuteManager muteManager;
     private BanManager banManager;
+    private CombatLogManager combatLogManager;
     private FreecamManager freecamManager;
+    private FreezeManager freezeManager;
     private VanishManager vanishManager;
     private SleepPercentManager sleepPercentManager;
     private EconomyManager economyManager;
@@ -208,6 +218,17 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         afkManager.start();
         unregisterHyCommands();
         registerCommands();
+        if (combatLogManager != null && configManager != null) {
+            combatLogManager.setConfig(configManager);
+            if (configManager.isCombatLogEnabled()) {
+                combatLogManager.wrapBlockedCommands(getCommandRegistry());
+            } else {
+                combatLogManager.unwrapBlockedCommands(getCommandRegistry());
+            }
+        }
+        if (freezeManager != null) {
+            freezeManager.wrapAllCommands(getCommandRegistry());
+        }
         Log.info("[HyEssentialsX] Reload complete.");
     }
 
@@ -238,7 +259,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         afkManager = new AfkManager(configManager);
         muteManager = new MuteManager(storage);
         banManager = new BanManager(storage);
+        combatLogManager = new CombatLogManager(configManager);
         freecamManager = new FreecamManager();
+        freezeManager = new FreezeManager(storage);
         vanishManager = new VanishManager();
         sleepPercentManager = new SleepPercentManager(configManager);
         economyManager = new EconomyManager(storage, configManager);
@@ -254,7 +277,13 @@ public class HyEssentialsXPlugin extends JavaPlugin {
 
     @Override
     protected void start() {
+        if (combatLogManager != null) {
+            combatLogManager.setShutdownInProgress(false);
+        }
         registerCommands();
+        if (freezeManager != null) {
+            freezeManager.wrapAllCommands(getCommandRegistry());
+        }
         registerListeners();
         registerWorldHooks();
 
@@ -272,6 +301,13 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     @Override
     protected void shutdown() {
         Log.info("[HyEssentialsX] Shutting down...");
+        if (combatLogManager != null) {
+            combatLogManager.setShutdownInProgress(true);
+            combatLogManager.unwrapBlockedCommands(getCommandRegistry());
+        }
+        if (freezeManager != null) {
+            freezeManager.unwrapAllCommands(getCommandRegistry());
+        }
         if (autoBroadcastManager != null) autoBroadcastManager.shutdown();
         if (afkManager != null) afkManager.shutdown();
         if (sleepPercentManager != null) sleepPercentManager.shutdown();
@@ -282,100 +318,113 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     }
 
     private void registerCommands() {
-        getCommandRegistry().registerCommand(new HyEssentialsXPluginCommand(storage, dataDirectory, languageManager));
+        var registry = getCommandRegistry();
+        java.util.function.Consumer<AbstractCommand> reg = cmd -> {
+            AbstractCommand toRegister = cmd;
+            if (combatLogManager != null) {
+                toRegister = combatLogManager.wrapIfBlocked(cmd);
+            }
+            registry.registerCommand(toRegister);
+        };
+        reg.accept(new HyEssentialsXPluginCommand(storage, dataDirectory, languageManager));
+        if (configManager.isCombatLogEnabled()) {
+            reg.accept(new CombatLogCommand(combatLogManager, configManager));
+        }
         if (configManager.isSpawnEnabled()) {
-            getCommandRegistry().registerCommand(new SpawnCommand(spawnManager, backManager, tpManager, configManager, cooldownManager));
-            getCommandRegistry().registerCommand(new SetSpawnCommand(spawnManager, configManager));
-            getCommandRegistry().registerCommand(new DelSpawnCommand(spawnManager, configManager));
+            reg.accept(new SpawnCommand(spawnManager, backManager, tpManager, configManager, cooldownManager));
+            reg.accept(new SetSpawnCommand(spawnManager, configManager));
+            reg.accept(new DelSpawnCommand(spawnManager, configManager));
         }
         if (configManager.isHomesEnabled()) {
-            getCommandRegistry().registerCommand(new SetHomeCommand(homeManager, configManager));
-            getCommandRegistry().registerCommand(new HomeCommand(homeManager, tpManager, configManager, cooldownManager, backManager));
-            getCommandRegistry().registerCommand(new HomesCommand(homeManager, tpManager, configManager, cooldownManager, backManager));
-            getCommandRegistry().registerCommand(new DelHomeCommand(homeManager, configManager));
+            reg.accept(new SetHomeCommand(homeManager, configManager));
+            reg.accept(new HomeCommand(homeManager, tpManager, configManager, cooldownManager, backManager));
+            reg.accept(new HomesCommand(homeManager, tpManager, configManager, cooldownManager, backManager));
+            reg.accept(new DelHomeCommand(homeManager, configManager));
         }
         if (configManager.isWarpsEnabled()) {
-            getCommandRegistry().registerCommand(new SetWarpCommand(warpManager, configManager));
-            getCommandRegistry().registerCommand(new WarpCommand(warpManager, tpManager, configManager, cooldownManager, backManager));
-            getCommandRegistry().registerCommand(new WarpsCommand(warpManager, tpManager, configManager, cooldownManager, backManager));
-            getCommandRegistry().registerCommand(new DelWarpCommand(warpManager, configManager));
+            reg.accept(new SetWarpCommand(warpManager, configManager));
+            reg.accept(new WarpCommand(warpManager, tpManager, configManager, cooldownManager, backManager));
+            reg.accept(new WarpsCommand(warpManager, tpManager, configManager, cooldownManager, backManager));
+            reg.accept(new DelWarpCommand(warpManager, configManager));
         }
         if (configManager.isKitsEnabled()) {
-            getCommandRegistry().registerCommand(new KitCreateCommand(kitManager, configManager));
-            getCommandRegistry().registerCommand(new KitCommand(kitManager, configManager));
-            getCommandRegistry().registerCommand(new KitsCommand(kitManager, configManager));
-            getCommandRegistry().registerCommand(new KitDeleteCommand(kitManager, configManager));
+            reg.accept(new KitCreateCommand(kitManager, configManager));
+            reg.accept(new KitCommand(kitManager, configManager));
+            reg.accept(new KitsCommand(kitManager, configManager));
+            reg.accept(new KitDeleteCommand(kitManager, configManager));
         }
         if (configManager.isMsgEnabled()) {
-            getCommandRegistry().registerCommand(new MsgCommand(messageManager, configManager));
-            getCommandRegistry().registerCommand(new ReplyCommand(messageManager, configManager));
+            reg.accept(new MsgCommand(messageManager, configManager));
+            reg.accept(new ReplyCommand(messageManager, configManager));
         }
         if (configManager.isAdminChatEnabled()) {
-            getCommandRegistry().registerCommand(new AdminChatCommand(adminChatManager, configManager));
+            reg.accept(new AdminChatCommand(adminChatManager, configManager));
         }
         if (configManager.isBroadcastEnabled()) {
-            getCommandRegistry().registerCommand(new BroadcastCommand(configManager));
+            reg.accept(new BroadcastCommand(configManager));
         }
-        getCommandRegistry().registerCommand(new ClearChatCommand());
+        reg.accept(new ClearChatCommand());
         if (configManager.isEconomyEnabled()) {
-            getCommandRegistry().registerCommand(new PayCommand(economyManager));
-            getCommandRegistry().registerCommand(new MoneyCommand(economyManager, storage));
-            getCommandRegistry().registerCommand(new BalanceTopCommand(economyManager, storage, configManager));
+            reg.accept(new PayCommand(economyManager));
+            reg.accept(new MoneyCommand(economyManager, storage));
+            reg.accept(new BalanceTopCommand(economyManager, storage, configManager));
         }
         if (configManager.isHomesEnabled()) {
-            getCommandRegistry().registerCommand(new ImportHomesCommand(storage, dataDirectory));
+            reg.accept(new ImportHomesCommand(storage, dataDirectory));
         }
         if (configManager.isTpaEnabled()) {
-            getCommandRegistry().registerCommand(new TpaCommand(tpManager, configManager, cooldownManager));
-            getCommandRegistry().registerCommand(new TpaAcceptCommand(tpManager, backManager, configManager));
-            getCommandRegistry().registerCommand(new TpaDenyCommand(tpManager, configManager));
-            getCommandRegistry().registerCommand(new TpaCancelCommand(tpManager, configManager));
-            getCommandRegistry().registerCommand(new TpaIgnoreCommand(tpManager, configManager));
-            getCommandRegistry().registerCommand(new TpahereCommand(tpManager, configManager, cooldownManager));
-            getCommandRegistry().registerCommand(new TpahereAllCommand(tpManager, configManager, cooldownManager));
-            getCommandRegistry().registerCommand(new TphereCommand(backManager));
+            reg.accept(new TpaCommand(tpManager, configManager, cooldownManager));
+            reg.accept(new TpaAcceptCommand(tpManager, backManager, configManager));
+            reg.accept(new TpaDenyCommand(tpManager, configManager));
+            reg.accept(new TpaCancelCommand(tpManager, configManager));
+            reg.accept(new TpaIgnoreCommand(tpManager, configManager));
+            reg.accept(new TpahereCommand(tpManager, configManager, cooldownManager));
+            reg.accept(new TpahereAllCommand(tpManager, configManager, cooldownManager));
+            reg.accept(new TphereCommand(backManager));
         }
-        getCommandRegistry().registerCommand(new BackCommand(backManager, tpManager, configManager, cooldownManager));
-        getCommandRegistry().registerCommand(new FlyCommand(flyManager, storage));
-        getCommandRegistry().registerCommand(new GodCommand(godManager));
-        getCommandRegistry().registerCommand(new HealCommand(cooldownManager));
-        getCommandRegistry().registerCommand(new InfiniteStaminaCommand(staminaManager));
-        getCommandRegistry().registerCommand(new ListCommand());
+        reg.accept(new BackCommand(backManager, tpManager, configManager, cooldownManager));
+        reg.accept(new FlyCommand(flyManager, storage));
+        reg.accept(new GodCommand(godManager));
+        reg.accept(new HealCommand(cooldownManager));
+        reg.accept(new InfiniteStaminaCommand(staminaManager));
+        reg.accept(new ListCommand());
         if (configManager.isRulesEnabled()) {
-            getCommandRegistry().registerCommand(new RulesCommand(configManager));
+            reg.accept(new RulesCommand(configManager));
         }
         if (configManager.isMotdEnabled()) {
-            getCommandRegistry().registerCommand(new MotdCommand(configManager));
+            reg.accept(new MotdCommand(configManager, storage));
         }
         if (configManager.isNearEnabled()) {
-            getCommandRegistry().registerCommand(new NearCommand(configManager, cooldownManager));
+            reg.accept(new NearCommand(configManager, cooldownManager));
         }
         if (configManager.isAfkEnabled()) {
-            getCommandRegistry().registerCommand(new AfkCommand(afkManager, configManager, cooldownManager));
+            reg.accept(new AfkCommand(afkManager, configManager, cooldownManager));
         }
-        getCommandRegistry().registerCommand(new SleepPercentCommand(configManager));
-        getCommandRegistry().registerCommand(new DayCommand());
-        getCommandRegistry().registerCommand(new NightCommand());
+        reg.accept(new SleepPercentCommand(configManager));
+        reg.accept(new DayCommand());
+        reg.accept(new NightCommand());
         if (configManager.isRankupEnabled()) {
-            getCommandRegistry().registerCommand(new RankupCommand(rankupManager, economyManager));
+            reg.accept(new RankupCommand(rankupManager, economyManager));
         }
-        getCommandRegistry().registerCommand(new WhoisCommand(storage));
-        getCommandRegistry().registerCommand(new SeenCommand(storage));
-        getCommandRegistry().registerCommand(new TopCommand(backManager));
-        getCommandRegistry().registerCommand(new JumpToCommand(cooldownManager, backManager));
+        reg.accept(new WhoisCommand(storage));
+        reg.accept(new SeenCommand(storage));
+        reg.accept(new TopCommand(backManager));
+        reg.accept(new JumpToCommand(cooldownManager, backManager));
         if (configManager.isRtpEnabled()) {
-            getCommandRegistry().registerCommand(new RtpCommand(configManager, cooldownManager, tpManager, backManager));
+            reg.accept(new RtpCommand(configManager, cooldownManager, tpManager, backManager));
         }
-        getCommandRegistry().registerCommand(new ClearInventoryCommand());
-        getCommandRegistry().registerCommand(new RepairCommand(cooldownManager));
-        getCommandRegistry().registerCommand(new FreecamCommand(freecamManager));
-        getCommandRegistry().registerCommand(new VanishCommand(vanishManager));
-        getCommandRegistry().registerCommand(new MuteCommand(muteManager));
-        getCommandRegistry().registerCommand(new UnmuteCommand(muteManager, storage));
-        getCommandRegistry().registerCommand(new TempBanCommand(banManager, storage));
-        getCommandRegistry().registerCommand(new UnbanCommand(banManager, storage));
+        reg.accept(new ClearInventoryCommand());
+        reg.accept(new RepairCommand(cooldownManager));
+        reg.accept(new FreecamCommand(freecamManager));
+        reg.accept(new FreezeCommand(freezeManager));
+        reg.accept(new UnfreezeCommand(freezeManager));
+        reg.accept(new VanishCommand(vanishManager));
+        reg.accept(new MuteCommand(muteManager));
+        reg.accept(new UnmuteCommand(muteManager, storage));
+        reg.accept(new TempBanCommand(banManager, storage));
+        reg.accept(new UnbanCommand(banManager, storage));
         for (var entry : customCommandManager.getCommands().values()) {
-            getCommandRegistry().registerCommand(
+            reg.accept(
                     new CustomTextCommand(customCommandManager, entry.getName(), entry.getPermission(), entry.getAliases())
             );
         }
@@ -388,7 +437,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         new PlayerDataListener(storage, banManager, messageManager, adminChatManager, freecamManager, godManager, staminaManager, flyManager, economyManager, playtimeManager).register(bus);
         new ChatModerationListener(muteManager, adminChatManager, configManager).register(bus);
         new CleanupListener(tpManager, backManager, flyManager, godManager, staminaManager, vanishManager).register(bus);
+        new FreezeListener(freezeManager).register(bus);
         new AfkListener(afkManager).register(bus);
+        new CombatLogListener(combatLogManager, configManager).register(bus);
         new SpawnProtectionListener(spawnManager, configManager).register(bus);
         new SleepPercentListener(configManager).register(bus);
         Log.info("[HyEssentialsX] Listeners registered");
@@ -403,12 +454,17 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         new TeleportWarmupListener(tpManager).register(getEntityStoreRegistry());
         new SpawnProtectionListener(spawnManager, configManager).register(getEntityStoreRegistry());
         new EconomyRewardListener(economyManager, configManager).register(getEntityStoreRegistry());
+        new CombatLogListener(combatLogManager, configManager).register(getEntityStoreRegistry());
+        new FreezeListener(freezeManager).register(getEntityStoreRegistry());
     }
 
     private void registerWorldHooks() {
         getEventRegistry().registerGlobal(AllWorldsLoadedEvent.class, event -> {
             // Only sync if a spawn exists; initialization will happen in /spawn as needed
             spawnManager.syncWorldSpawnProvider();
+            if (combatLogManager != null && configManager != null && configManager.isCombatLogEnabled()) {
+                combatLogManager.wrapBlockedCommands(getCommandRegistry());
+            }
         });
     }
 
@@ -526,6 +582,21 @@ public class HyEssentialsXPlugin extends JavaPlugin {
                     }
                 }
             }
+        } catch (Exception ignored) {
+        }
+        try {
+            Class<?> cls = Class.forName("com.hypixel.hytale.server.core.command.system.CommandManager");
+            java.lang.reflect.Method get = cls.getMethod("get");
+            Object manager = get.invoke(null);
+            if (manager != null) {
+                return manager;
+            }
+        } catch (Exception ignored) {
+        }
+        try {
+            Class<?> cls = Class.forName("com.hypixel.hytale.server.core.command.CommandManager");
+            java.lang.reflect.Method get = cls.getMethod("get");
+            return get.invoke(null);
         } catch (Exception ignored) {
         }
         return registry;

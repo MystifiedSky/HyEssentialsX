@@ -84,36 +84,14 @@ public final class ChatModerationListener {
             if (raw == null) raw = "";
 
             if (config.isChatFormatEnabled()) {
-                String groupName = LuckPermsUtil.getPrimaryGroup(sender.getUuid());
-                if (groupName == null || groupName.isBlank()) {
-                    groupName = config.getHighestPriorityGroup(
-                            LuckPermsUtil.getGroupsFallback(sender.getUuid())
-                    );
-                }
-                String format = config.getChatFormatForGroup(groupName);
-                String faction = HyFactionsUtil.getFactionName(sender.getUuid());
-                if (faction == null) faction = "";
-                if (faction.isBlank()) {
-                    format = format
-                            .replace("[{faction}]", "")
-                            .replace("({faction})", "")
-                            .replace("<{faction}>", "")
-                            .replace("{faction} ", "")
-                            .replace(" {faction}", "")
-                            .replace("{faction}", "");
-                }
-                String formattedText = format
-                        .replace("{player}", sender.getUsername())
-                        .replace("{message}", raw)
-                        .replace("{group}", groupName)
-                        .replace("{faction}", faction);
-                Message formatted = Messages.m(formattedText);
                 if (!config.isOverrideLuckPermsChatFormat()) {
                     return;
                 }
-                if (trySetMessage(event, formatted)) {
-                    return;
-                }
+                String formattedBase = buildFormattedBase(sender);
+                event.setFormatter((playerRef, message) -> {
+                    String content = message != null ? message : "";
+                    return Messages.m(formattedBase.replace("{message}", content));
+                });
                 return;
             }
 
@@ -124,6 +102,18 @@ public final class ChatModerationListener {
                 }
                 return;
             }
+        });
+
+        events.registerGlobal(EventPriority.LAST, PlayerChatEvent.class, event -> {
+            if (event.isCancelled()) return;
+            if (!config.isChatFormatEnabled() || !config.isOverrideLuckPermsChatFormat()) return;
+            PlayerRef sender = event.getSender();
+            if (sender == null) return;
+            String formattedBase = buildFormattedBase(sender);
+            event.setFormatter((playerRef, message) -> {
+                String content = message != null ? message : "";
+                return Messages.m(formattedBase.replace("{message}", content));
+            });
         });
     }
 
@@ -138,6 +128,32 @@ public final class ChatModerationListener {
         return text.contains("&") || text.contains("{#") || text.contains("<#");
     }
 
+    @Nonnull
+    private String buildFormattedBase(@Nonnull PlayerRef sender) {
+        String groupName = LuckPermsUtil.getPrimaryGroup(sender.getUuid());
+        if (groupName == null || groupName.isBlank()) {
+            groupName = config.getHighestPriorityGroup(
+                    LuckPermsUtil.getGroupsFallback(sender.getUuid())
+            );
+        }
+        String format = config.getChatFormatForGroup(groupName);
+        String faction = HyFactionsUtil.getFactionName(sender.getUuid());
+        if (faction == null) faction = "";
+        if (faction.isBlank()) {
+            format = format
+                    .replace("[{faction}]", "")
+                    .replace("({faction})", "")
+                    .replace("<{faction}>", "")
+                    .replace("{faction} ", "")
+                    .replace(" {faction}", "")
+                    .replace("{faction}", "");
+        }
+        return format
+                .replace("{player}", sender.getUsername())
+                .replace("{group}", groupName)
+                .replace("{faction}", faction);
+    }
+
     private boolean trySetMessage(@Nonnull PlayerChatEvent event, @Nonnull Message message) {
         String[] methods = {"setMessage", "setFormattedMessage", "setChatMessage"};
         for (String name : methods) {
@@ -147,6 +163,11 @@ public final class ChatModerationListener {
                 return true;
             } catch (Exception ignored) {
             }
+        }
+        try {
+            event.setFormatter((playerRef, content) -> message);
+            return true;
+        } catch (Exception ignored) {
         }
         return false;
     }

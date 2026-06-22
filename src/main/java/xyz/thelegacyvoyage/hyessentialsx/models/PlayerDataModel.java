@@ -22,6 +22,7 @@ public final class PlayerDataModel {
     private String rankupTier;
     private boolean flyEnabled;
     private long lastPaycheckAt;
+    private boolean frozen;
 
     @SuppressWarnings("unused")
     public PlayerDataModel() {}
@@ -153,5 +154,13 @@ public final class PlayerDataModel {
 
     public void setLastPaycheckAt(long lastPaycheckAt) {
         this.lastPaycheckAt = Math.max(0L, lastPaycheckAt);
+    }
+
+    public boolean isFrozen() {
+        return frozen;
+    }
+
+    public void setFrozen(boolean frozen) {
+        this.frozen = frozen;
     }
 }

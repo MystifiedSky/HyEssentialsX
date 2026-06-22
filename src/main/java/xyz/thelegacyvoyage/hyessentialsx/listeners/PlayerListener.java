@@ -18,6 +18,9 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 
 /**
@@ -95,12 +98,12 @@ public class PlayerListener {
         }
 
         if (config.isJoinQuitEnabled()) {
-            broadcastLines(config.getJoinMessages(), playerName);
+            broadcastLines(config.getJoinMessages(), playerName, player, true);
         }
 
         if (config.isMotdEnabled() && config.isMotdShowOnJoin()) {
             for (String line : config.getMotdMessages()) {
-                Messages.send(player, line);
+                Messages.send(player, applyPlaceholders(line, buildPlaceholders(playerName, player, true)));
             }
         }
     }
@@ -135,7 +138,7 @@ public class PlayerListener {
         LOGGER.at(Level.INFO).log("[HyEssentialsX] Player %s disconnected", playerName);
 
         if (config.isJoinQuitEnabled()) {
-            broadcastLines(config.getQuitMessages(), playerName);
+            broadcastLines(config.getQuitMessages(), playerName, event.getPlayerRef(), false);
         }
     }
 
@@ -147,20 +150,68 @@ public class PlayerListener {
     private void sendWelcome(@Nonnull PlayerRef player, @Nonnull String playerName) {
         if (config.getWelcomeMessages().isEmpty()) return;
         if (config.isWelcomeBroadcastToAll()) {
-            broadcastLines(config.getWelcomeMessages(), playerName);
+            broadcastLines(config.getWelcomeMessages(), playerName, player, true);
             return;
         }
+        Map<String, String> placeholders = buildPlaceholders(playerName, player, true);
         for (String line : config.getWelcomeMessages()) {
-            Messages.send(player, line.replace("{player}", playerName));
+            Messages.send(player, applyPlaceholders(line, placeholders));
         }
     }
 
-    private void broadcastLines(@Nonnull java.util.List<String> lines, @Nonnull String playerName) {
+    private void broadcastLines(@Nonnull java.util.List<String> lines,
+                                @Nonnull String playerName,
+                                @Nullable PlayerRef playerRef,
+                                boolean joining) {
         if (lines.isEmpty()) return;
+        Map<String, String> placeholders = buildPlaceholders(playerName, playerRef, joining);
         for (PlayerRef target : Universe.get().getPlayers()) {
             for (String line : lines) {
-                Messages.send(target, line.replace("{player}", playerName));
+                Messages.send(target, applyPlaceholders(line, placeholders));
             }
         }
+    }
+
+    private Map<String, String> buildPlaceholders(@Nonnull String playerName,
+                                                  @Nullable PlayerRef playerRef,
+                                                  boolean joining) {
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("player", playerName);
+        placeholders.put("total_players_online", String.valueOf(getOnlineCount(playerRef, joining)));
+        placeholders.put("total_joined_players", String.valueOf(getTotalJoinedPlayers(playerRef, joining)));
+        return placeholders;
+    }
+
+    private int getOnlineCount(@Nullable PlayerRef playerRef, boolean joining) {
+        int count = Universe.get().getPlayers().size();
+        if (playerRef == null) return count;
+        boolean listed = Universe.get().getPlayer(playerRef.getUuid()) != null;
+        if (joining && !listed) {
+            return count + 1;
+        }
+        if (!joining && listed) {
+            return Math.max(0, count - 1);
+        }
+        return count;
+    }
+
+    private int getTotalJoinedPlayers(@Nullable PlayerRef playerRef, boolean joining) {
+        java.util.Set<java.util.UUID> ids = storage.listPlayerIds();
+        int total = ids.size();
+        if (playerRef != null && joining && !ids.contains(playerRef.getUuid())) {
+            total += 1;
+        }
+        return total;
+    }
+
+    private String applyPlaceholders(@Nonnull String line, @Nonnull Map<String, String> placeholders) {
+        String out = line;
+        for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            out = out.replace("{" + key + "}", value);
+            out = out.replace("%" + key + "%", value);
+        }
+        return out;
     }
 }

@@ -1,0 +1,42 @@
+package xyz.thelegacyvoyage.hyessentialsx.commands.plugin;
+
+import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
+
+import javax.annotation.Nonnull;
+
+/**
+ * /essentials help - Show available commands
+ */
+public class HelpSubCommand extends CommandBase {
+
+    public HelpSubCommand() {
+        super("help", "Show available commands");
+        this.setPermissionGroup(null);
+    }
+
+    @Override
+    protected boolean canGeneratePermission() {
+        return false;
+    }
+
+    @Override
+    protected void executeSync(@Nonnull CommandContext context) {
+        context.sendMessage(Message.raw(""));
+        context.sendMessage(Message.raw("=== HyEssentialsX Commands ==="));
+        context.sendMessage(Message.raw("/essentials help - Show this help message"));
+        context.sendMessage(Message.raw("/essentials info - Show plugin information"));
+        context.sendMessage(Message.raw("/essentials reload - Reload configuration"));
+        context.sendMessage(Message.raw("/essentials ui - Open the dashboard UI"));
+        context.sendMessage(Message.raw(""));
+        context.sendMessage(Message.raw("Homes: /sethome [name], /home [name], /homes, /delhome [name]"));
+        context.sendMessage(Message.raw("Warps: /setwarp [name], /warp [name], /warps, /delwarp [name]"));
+        context.sendMessage(Message.raw("Kits: /kitcreate [name] [cooldown], /kit [name], /kits, /kitdelete [name]"));
+        context.sendMessage(Message.raw("Chat: /msg <player> <msg>, /r <msg>, /clearchat, /adminchat [msg], /broadcast <msg>"));
+        context.sendMessage(Message.raw("Teleport: /spawn, /back, /tpa <player>, /tpahere <player>, /tpahereall, /top, /jumpto, /rtp"));
+        context.sendMessage(Message.raw("Moderation: /mute <player> [time] [reason], /unmute <player>, /tempban <player> [time] [reason], /unban <player>"));
+        context.sendMessage(Message.raw("Misc: /list, /rules, /motd, /near, /whois <player>, /seen <player>, /clearinventory, /repair, /freecam"));
+        context.sendMessage(Message.raw("========================"));
+    }
+}

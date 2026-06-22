@@ -1,0 +1,105 @@
+package xyz.thelegacyvoyage.hyessentialsx.commands.kit;
+
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
+import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.inventory.Inventory;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.world.World;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
+import xyz.thelegacyvoyage.hyessentialsx.models.KitItemModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
+
+import javax.annotation.Nonnull;
+import java.util.List;
+
+public final class KitCreateCommand extends AbstractPlayerCommand {
+
+    private static final String PERMISSION_NODE = "hyessentialsx.kitcreate";
+
+    private final KitManager kitManager;
+    private final ConfigManager config;
+    private final RequiredArg<String> nameArg;
+    private final OptionalArg<String> cooldownArg;
+
+    public KitCreateCommand(@Nonnull KitManager kitManager, @Nonnull ConfigManager config) {
+        super("kitcreate", "Creates a kit");
+        this.kitManager = kitManager;
+        this.config = config;
+        this.setPermissionGroup(null);
+        xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
+        this.cooldownArg = withOptionalArg("cooldown", "Cooldown (e.g. 30d)", ArgTypes.STRING);
+    }
+
+    @Override
+    protected boolean canGeneratePermission() {
+        return false;
+    }
+
+    @Override
+    protected void execute(
+            @Nonnull CommandContext context,
+            @Nonnull Store<EntityStore> store,
+            @Nonnull Ref<EntityStore> ref,
+            @Nonnull PlayerRef playerRef,
+            @Nonnull World world
+    ) {
+        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+            Messages.noPerm(context, "/kitcreate");
+            return;
+        }
+        if (!config.isKitsEnabled()) {
+            Messages.err(context, "Kits are disabled.");
+            return;
+        }
+
+        String name = context.get(nameArg);
+        if (name == null || name.isBlank()) {
+            Messages.err(context, "Kit name required.");
+            return;
+        }
+
+        int cooldownSeconds = 0;
+        String raw = context.provided(cooldownArg) ? context.get(cooldownArg) : CommandInputUtil.getArg(context, 1);
+        if (raw != null && !raw.isBlank()) {
+            long secs = TimeUtil.parseDurationSeconds(raw);
+            if (secs < 0) {
+                Messages.err(context, "Invalid cooldown. Use 10m/2h/3d/1y.");
+                return;
+            }
+            cooldownSeconds = (int) Math.min(Integer.MAX_VALUE, secs);
+        }
+
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            Messages.err(context, "Could not read inventory.");
+            return;
+        }
+
+        Inventory inventory = player.getInventory();
+        if (inventory == null) {
+            Messages.err(context, "Could not read inventory.");
+            return;
+        }
+
+        List<KitItemModel> items = InventoryUtil.snapshot(inventory);
+        kitManager.setKit(new KitModel(name, cooldownSeconds, items));
+
+        Messages.ok(context, "Kit '&f" + name + "&a' created.");
+    }
+}
+
+
+

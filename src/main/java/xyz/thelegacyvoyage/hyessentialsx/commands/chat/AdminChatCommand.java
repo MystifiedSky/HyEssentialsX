@@ -1,0 +1,93 @@
+package xyz.thelegacyvoyage.hyessentialsx.commands.chat;
+
+import com.hypixel.hytale.server.core.command.system.CommandContext;
+import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.permissions.PermissionsModule;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.universe.world.World;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+
+import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.List;
+
+public final class AdminChatCommand extends AbstractPlayerCommand {
+
+    private static final String PERMISSION_NODE = "hyessentialsx.adminchat";
+
+    private final AdminChatManager adminChatManager;
+    private final ConfigManager config;
+    private final OptionalArg<List<String>> msgArg;
+
+    public AdminChatCommand(@Nonnull AdminChatManager adminChatManager, @Nonnull ConfigManager config) {
+        super("adminchat", "Sends admin message");
+        this.adminChatManager = adminChatManager;
+        this.config = config;
+        this.setPermissionGroup(null);
+        xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        this.addAliases(new String[]{"a"});
+        this.msgArg = withListOptionalArg("message", "Message", ArgTypes.STRING);
+    }
+
+    @Override
+    protected boolean canGeneratePermission() {
+        return false;
+    }
+
+    @Override
+    protected void execute(
+            @Nonnull CommandContext context,
+            @Nonnull Store<EntityStore> store,
+            @Nonnull Ref<EntityStore> ref,
+            @Nonnull PlayerRef playerRef,
+            @Nonnull World world
+    ) {
+        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+            Messages.noPerm(context, "/adminchat");
+            return;
+        }
+        if (!config.isAdminChatEnabled()) {
+            Messages.err(context, "Admin chat is disabled.");
+            return;
+        }
+
+        if (context.provided(msgArg)) {
+            List<String> parts = context.get(msgArg);
+            String message = String.join(" ", parts);
+            if (message.isBlank()) {
+                Messages.err(context, "Message required.");
+                return;
+            }
+            sendAdminMessage(playerRef, message);
+            return;
+        }
+
+        boolean enabled = adminChatManager.toggle(playerRef.getUuid());
+        Messages.ok(context, enabled ? "Admin chat enabled." : "Admin chat disabled.");
+    }
+
+    private void sendAdminMessage(@Nonnull PlayerRef sender, @Nonnull String message) {
+        List<PlayerRef> targets = new ArrayList<>();
+        for (PlayerRef ref : Universe.get().getPlayers()) {
+            if (PermissionsModule.get().hasPermission(ref.getUuid(), PERMISSION_NODE)) {
+                targets.add(ref);
+            }
+        }
+
+        String formatted = "&c[AdminChat] &f" + sender.getUsername() + "&7: &f" + message;
+        for (PlayerRef target : targets) {
+            Messages.send(target, formatted);
+        }
+    }
+}
+
+
+

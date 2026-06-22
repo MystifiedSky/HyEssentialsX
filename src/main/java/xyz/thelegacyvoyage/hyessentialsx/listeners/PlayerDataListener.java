@@ -1,0 +1,80 @@
+package xyz.thelegacyvoyage.hyessentialsx.listeners;
+
+import com.hypixel.hytale.event.EventRegistry;
+import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
+import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
+import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.FreecamManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.GodManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.InfiniteStaminaManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.MessageManager;
+import xyz.thelegacyvoyage.hyessentialsx.models.BanModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
+
+import javax.annotation.Nonnull;
+import java.util.UUID;
+
+public final class PlayerDataListener {
+
+    private final StorageManager storage;
+    private final BanManager bans;
+    private final MessageManager messages;
+    private final AdminChatManager adminChat;
+    private final FreecamManager freecam;
+    private final GodManager god;
+    private final InfiniteStaminaManager stamina;
+
+    public PlayerDataListener(@Nonnull StorageManager storage,
+                              @Nonnull BanManager bans,
+                              @Nonnull MessageManager messages,
+                              @Nonnull AdminChatManager adminChat,
+                              @Nonnull FreecamManager freecam,
+                              @Nonnull GodManager god,
+                              @Nonnull InfiniteStaminaManager stamina) {
+        this.storage = storage;
+        this.bans = bans;
+        this.messages = messages;
+        this.adminChat = adminChat;
+        this.freecam = freecam;
+        this.god = god;
+        this.stamina = stamina;
+    }
+
+    public void register(@Nonnull EventRegistry events) {
+        events.registerGlobal(PlayerConnectEvent.class, event -> {
+            PlayerRef player = event.getPlayerRef();
+            if (player == null) return;
+
+            storage.updatePlayerName(player.getUuid(), player.getUsername());
+            god.clear(player.getUuid());
+            stamina.clear(player.getUuid());
+
+            BanModel ban = bans.getBan(player.getUuid());
+            if (ban != null) {
+                String remaining = TimeUtil.formatRemaining(ban.getExpiresAt());
+                String reason = (ban.getReason() != null && !ban.getReason().isBlank())
+                        ? ban.getReason() : "Banned";
+                player.getPacketHandler().disconnect("Banned: " + reason + " (" + remaining + ")");
+            }
+        });
+
+        events.registerGlobal(PlayerDisconnectEvent.class, event -> {
+            PlayerRef player = event.getPlayerRef();
+            if (player == null) return;
+            UUID uuid = player.getUuid();
+
+            PlayerDataModel data = storage.getPlayerData(uuid);
+            data.setLastSeenAt(System.currentTimeMillis());
+            data.setLastKnownName(player.getUsername());
+            storage.savePlayerDataAsync(uuid, data);
+
+            messages.clear(uuid);
+            adminChat.clear(uuid);
+            freecam.clear(uuid);
+        });
+    }
+}

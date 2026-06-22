@@ -1,0 +1,10 @@
+{
+  "Group": "xyz.thelegacyvoyage",
+  "Name": "HyEssentialsX",
+  "Version": "${version}",
+  "Description": "HyEssentialsX is a full-featured essentials plugin for Hytale, built to be the backbone of modern survival and community servers. Inspired by the convenience and reliability of EssentialsX, HyEssentialsX bundles the core quality-of-life features players except without the bloat, while giving server owners clean configuration, strong permissions support, and performance-first design.",
+  "Authors": [{"Name": "MystifiedSky"}],
+  "Main": "xyz.thelegacyvoyage.hyessentialsx.HyEssentialsXPlugin",
+  "LoadOrder": "POSTWORLD",
+  "IncludesAssetPack": true
+}

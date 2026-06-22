@@ -27,6 +27,22 @@ This project is open source and actively developed by MystifiedSky. Expect activ
 - Integrations for PlaceholderAPI, VaultUnlocked, and LuckPerms-aware formatting.
 - Migration tooling for several essentials, economy, homes, warps, and playtime plugins.
 
+## Screenshots
+
+Screenshots live in `docs/screenshots/` so GitHub can render them directly in this README.
+
+| Admin Shop Listing | Admin Shop NPC |
+| --- | --- |
+| ![Admin shop listing UI](docs/screenshots/AdminShopListing.png) | ![Admin shop NPC](docs/screenshots/AdminShopNPC.png) |
+
+| Auction House | Economy Admin Panel |
+| --- | --- |
+| ![Auction house UI](docs/screenshots/AuctionHouse.png) | ![Economy admin panel](docs/screenshots/EconomyAdminPanel.png) |
+
+| Shop Editor | Hologram Editor |
+| --- | --- |
+| ![Shop editor UI](docs/screenshots/ShopEditor.png) | ![Hologram editor UI](docs/screenshots/HologramEditor.png) |
+
 ## Status
 
 HyEssentialsX is usable but still under active development. Public APIs, configuration shape, commands, UI layouts, and storage models may continue to change as the project matures and as Hytale server APIs stabilize.
@@ -92,17 +108,7 @@ https://wiki.thelegacyvoyage.xyz/
 
 ## Contributing
 
-Contributions are welcome although the project is actively in development. Before opening a pull request:
-
-1. Keep changes scoped and explain the server-owner impact.
-2. Follow the existing Java package structure and feature patterns.
-3. Use existing managers, storage backends, permission helpers, and message utilities instead of adding one-off systems.
-4. Add or update player-facing language keys for new messages.
-5. Update documentation when commands, permissions, config, storage behavior, UI workflows, or user-facing features change.
-6. Run `.\gradlew compileJava` before submitting Java changes.
-7. Run `.\gradlew test` when touching storage, config migration, economy logic, permissions, or non-trivial manager behavior.
-
-For larger changes, open an issue or start a discussion in Discord first so the design can be aligned before implementation work begins.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for project expectations, local setup, testing, documentation rules, and pull request guidance.
 
 ## Reporting Issues
 

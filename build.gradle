@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'xyz.thelegacyvoyage.hyessentialsx'
-version = '1.0.7'
+version = '1.0.7HF'
 
 repositories {
     mavenCentral()

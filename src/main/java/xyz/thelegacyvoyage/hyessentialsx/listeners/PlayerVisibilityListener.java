@@ -6,7 +6,8 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.RefChangeSystem;
-import com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers;
+import com.hypixel.hytale.server.core.entity.entities.player.HiddenPlayersManager;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
@@ -45,11 +46,29 @@ public final class PlayerVisibilityListener {
                 @Nonnull Store<EntityStore> store,
                 @Nonnull CommandBuffer<EntityStore> buffer
         ) {
-            if (vanishManager.isEnabled(component.getUuid())) {
-                store.addComponent(ref, HiddenFromAdventurePlayers.getComponentType());
-                return;
+            // Clean up legacy vanish component to avoid client crashes in third person.
+            store.removeComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType());
+
+            // Hide currently vanished players from the joining player.
+            HiddenPlayersManager hidden = component.getHiddenPlayersManager();
+            if (hidden != null) {
+                for (var vanishedId : vanishManager.getVanishedPlayers()) {
+                    if (!vanishedId.equals(component.getUuid())) {
+                        hidden.hidePlayer(vanishedId);
+                    }
+                }
             }
-            store.removeComponent(ref, HiddenFromAdventurePlayers.getComponentType());
+
+            // If this player is vanished (should be rare), hide them from others.
+            if (vanishManager.isEnabled(component.getUuid())) {
+                for (PlayerRef viewer : Universe.get().getPlayers()) {
+                    if (viewer == null || viewer.getUuid().equals(component.getUuid())) continue;
+                    HiddenPlayersManager manager = viewer.getHiddenPlayersManager();
+                    if (manager != null) {
+                        manager.hidePlayer(component.getUuid());
+                    }
+                }
+            }
         }
 
         @Override

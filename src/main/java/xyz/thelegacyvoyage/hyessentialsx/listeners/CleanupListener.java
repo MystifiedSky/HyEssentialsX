@@ -12,6 +12,8 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
 import javax.annotation.Nonnull;
 import java.util.UUID;
+import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.entity.entities.player.HiddenPlayersManager;
 
 public final class CleanupListener {
 
@@ -46,6 +48,13 @@ public final class CleanupListener {
             god.clear(uuid);
             stamina.clear(uuid);
             vanish.clear(uuid);
+            // Ensure no one keeps the player hidden after disconnect.
+            for (var viewer : Universe.get().getPlayers()) {
+                HiddenPlayersManager manager = viewer.getHiddenPlayersManager();
+                if (manager != null) {
+                    manager.showPlayer(uuid);
+                }
+            }
         });
 
         Log.info("Cleanup listener registered.");

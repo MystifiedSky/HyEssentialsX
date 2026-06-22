@@ -6,8 +6,9 @@ import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
-import com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers;
+import com.hypixel.hytale.server.core.entity.entities.player.HiddenPlayersManager;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
@@ -63,14 +64,7 @@ public final class VanishCommand extends AbstractPlayerCommand {
         }
 
         boolean enabled = vanishManager.toggle(target.getUuid());
-
-        Ref<EntityStore> targetRef = target.getReference();
-        Store<EntityStore> targetStore = targetRef.getStore();
-        if (enabled) {
-            targetStore.addComponent(targetRef, HiddenFromAdventurePlayers.getComponentType());
-        } else {
-            targetStore.removeComponent(targetRef, HiddenFromAdventurePlayers.getComponentType());
-        }
+        updateVisibility(target, enabled);
 
         if (isSelf) {
             Messages.okKey(context, enabled ? "vanish.enabled" : "vanish.disabled", java.util.Map.of());
@@ -81,6 +75,19 @@ public final class VanishCommand extends AbstractPlayerCommand {
             Messages.sendPrefixedKey(target,
                     enabled ? "vanish.enabled_by" : "vanish.disabled_by",
                     java.util.Map.of("player", playerRef.getUsername()));
+        }
+    }
+
+    private void updateVisibility(@Nonnull PlayerRef target, boolean enabled) {
+        for (PlayerRef viewer : Universe.get().getPlayers()) {
+            if (viewer == null || viewer.getUuid().equals(target.getUuid())) continue;
+            HiddenPlayersManager manager = viewer.getHiddenPlayersManager();
+            if (manager == null) continue;
+            if (enabled) {
+                manager.hidePlayer(target.getUuid());
+            } else {
+                manager.showPlayer(target.getUuid());
+            }
         }
     }
 }

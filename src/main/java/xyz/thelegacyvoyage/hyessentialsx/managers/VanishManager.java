@@ -3,6 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.managers;
 import javax.annotation.Nonnull;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 
 public final class VanishManager {
 
@@ -10,6 +11,11 @@ public final class VanishManager {
 
     public boolean isEnabled(@Nonnull UUID playerId) {
         return vanished.containsKey(playerId);
+    }
+
+    @Nonnull
+    public Set<UUID> getVanishedPlayers() {
+        return vanished.keySet();
     }
 
     public boolean setEnabled(@Nonnull UUID playerId, boolean enabled) {

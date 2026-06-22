@@ -1,11 +1,16 @@
 package xyz.thelegacyvoyage.hyessentialsx.listeners;
 
 import com.hypixel.hytale.event.EventRegistry;
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
+import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
+import com.hypixel.hytale.server.core.entity.entities.player.HiddenPlayersManager;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
+import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -26,10 +31,14 @@ public class PlayerListener {
     private static final HytaleLogger LOGGER = HytaleLogger.forEnclosingClass();
     private final ConfigManager config;
     private final StorageManager storage;
+    private final VanishManager vanishManager;
 
-    public PlayerListener(@Nonnull ConfigManager config, @Nonnull StorageManager storage) {
+    public PlayerListener(@Nonnull ConfigManager config,
+                          @Nonnull StorageManager storage,
+                          @Nonnull VanishManager vanishManager) {
         this.config = config;
         this.storage = storage;
+        this.vanishManager = vanishManager;
     }
 
     /**
@@ -43,6 +52,12 @@ public class PlayerListener {
             LOGGER.at(Level.INFO).log("[HyEssentialsX] Registered PlayerConnectEvent listener");
         } catch (Exception e) {
             LOGGER.at(Level.WARNING).withCause(e).log("[HyEssentialsX] Failed to register PlayerConnectEvent");
+        }
+        try {
+            eventBus.registerGlobal(PlayerReadyEvent.class, this::onPlayerReady);
+            LOGGER.at(Level.INFO).log("[HyEssentialsX] Registered PlayerReadyEvent listener");
+        } catch (Exception e) {
+            LOGGER.at(Level.WARNING).withCause(e).log("[HyEssentialsX] Failed to register PlayerReadyEvent");
         }
 
         // PlayerDisconnectEvent - When a player disconnects
@@ -79,6 +94,20 @@ public class PlayerListener {
         if (config.isMotdEnabled() && config.isMotdShowOnJoin()) {
             for (String line : config.getMotdMessages()) {
                 Messages.send(player, line);
+            }
+        }
+    }
+
+    private void onPlayerReady(PlayerReadyEvent event) {
+        Ref<com.hypixel.hytale.server.core.universe.world.storage.EntityStore> ref = event.getPlayerRef();
+        Store<com.hypixel.hytale.server.core.universe.world.storage.EntityStore> store = ref.getStore();
+        PlayerRef player = store.getComponent(ref, PlayerRef.getComponentType());
+        if (player == null) return;
+        HiddenPlayersManager hidden = player.getHiddenPlayersManager();
+        if (hidden == null) return;
+        for (var vanishedId : vanishManager.getVanishedPlayers()) {
+            if (!vanishedId.equals(player.getUuid())) {
+                hidden.hidePlayer(vanishedId);
             }
         }
     }

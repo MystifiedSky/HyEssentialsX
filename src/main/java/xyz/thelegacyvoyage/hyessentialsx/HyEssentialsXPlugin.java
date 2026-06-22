@@ -293,7 +293,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
 
     private void registerListeners() {
         EventRegistry bus = getEventRegistry();
-        new PlayerListener(configManager, storage).register(bus);
+        new PlayerListener(configManager, storage, vanishManager).register(bus);
         new PlayerDataListener(storage, banManager, messageManager, adminChatManager, freecamManager, godManager, staminaManager).register(bus);
         new ChatModerationListener(muteManager, adminChatManager, configManager).register(bus);
         new CleanupListener(tpManager, backManager, flyManager, godManager, staminaManager, vanishManager).register(bus);

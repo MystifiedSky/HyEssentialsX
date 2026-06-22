@@ -153,7 +153,8 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             String name = args.get(1);
             ShopModel shop = shopManager.getShop(name);
             if (shop == null || !shop.isPlayerShop()) {
-                Messages.sendKey(context, "shop.player.not_found", java.util.Map.of());
+                removeOrphanedShopNpcs(name, name);
+                Messages.sendKey(context, "shop.player.deleted", java.util.Map.of());
                 return;
             }
             if (!hasPermission(context.sender(), playerRef, ADMIN_PERMISSION)
@@ -290,6 +291,7 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             Messages.sendKey(context, "shop.admin.ui_failed", java.util.Map.of());
             return;
         }
+        draftCache.clear(playerRef.getUuid());
         ShopAdminUI ui = new ShopAdminUI(playerRef, shopManager, economy, shop, draftCache, storage, config);
         ui.open(player, ref, store);
     }
@@ -507,28 +509,31 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         for (World world : Universe.get().getWorlds().values()) {
             String worldName = world.getName();
             Store<EntityStore> store = world.getEntityStore().getStore();
-            for (ShopNpcModel npcModel : npcs) {
-                if (npcModel == null) continue;
-                if (!npcModel.getWorldId().equalsIgnoreCase(worldName)) continue;
-                world.execute(() -> {
+            world.execute(() -> {
+                for (ShopNpcModel npcModel : npcs) {
+                    if (npcModel == null) continue;
+                    if (!npcModel.getWorldId().equalsIgnoreCase(worldName)) continue;
                     boolean removed = despawnNpc(world, store, npcModel.getNpcId());
                     if (!removed) {
                         despawnNpcByPosition(world, store, npcModel.getPosition());
                     }
-                });
-            }
+                }
+                removeOrphanedShopNpcsInWorld(store, shop.getDisplayName(), shop.getName());
+            });
         }
-        removeOrphanedShopNpcs(shop);
-        shop.getNpcs().clear();
-        shopManager.saveShop(shop);
     }
 
-    private void removeOrphanedShopNpcs(@Nonnull ShopModel shop) {
-        String displayName = shop.getDisplayName();
-        String rawName = shop.getName();
+    private void removeOrphanedShopNpcs(@Nonnull String displayName, @Nonnull String rawName) {
         for (World world : Universe.get().getWorlds().values()) {
             Store<EntityStore> store = world.getEntityStore().getStore();
-            world.execute(() -> store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
+            world.execute(() -> removeOrphanedShopNpcsInWorld(store, displayName, rawName));
+        }
+    }
+
+    private void removeOrphanedShopNpcsInWorld(@Nonnull Store<EntityStore> store,
+                                               @Nonnull String displayName,
+                                               @Nonnull String rawName) {
+        store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
                 try {
                     Ref<EntityStore> ref = chunk.getReferenceTo(index);
                     NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
@@ -553,8 +558,7 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
                     commandBuffer.tryRemoveEntity(ref, RemoveReason.REMOVE);
                 } catch (Exception ignored) {
                 }
-            }));
-        }
+            });
     }
 
     private boolean despawnNpc(@Nonnull World world,

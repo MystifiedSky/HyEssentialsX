@@ -3,10 +3,12 @@ package xyz.thelegacyvoyage.hyessentialsx.ui;
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
+import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.math.vector.Vector3f;
+import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -14,6 +16,7 @@ import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCu
 import com.hypixel.hytale.server.core.inventory.Inventory;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.entity.Frozen;
+import com.hypixel.hytale.server.core.entity.nameplate.Nameplate;
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.protocol.MovementStates;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
@@ -26,6 +29,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.modules.entity.component.Interactable;
 import com.hypixel.hytale.server.core.modules.entity.component.Invulnerable;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
+import com.hypixel.hytale.server.core.modules.interaction.Interactions;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import com.hypixel.hytale.math.vector.Vector3i;
@@ -59,6 +63,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
     private static final String ITEM_ICON_LAYOUT = "hyessentialsx/ShopTradeItemIconSmall.ui";
     private static final String SELECTED_ITEM_LAYOUT = "hyessentialsx/ShopSelectedItem.ui";
     private static final String PREVIEW_ROW_LAYOUT = "hyessentialsx/ShopBrowseTradeItem.ui";
+    private static final String NPC_ROLE_ROW_LAYOUT = "hyessentialsx/ShopNpcRoleRow.ui";
     private static final int TRADES_PER_PAGE = 4;
 
     private final PlayerRef playerRef;
@@ -76,6 +81,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
     private List<String> npcRoles = List.of();
     private int npcRoleIndex = 0;
     private String npcRoleSelected = "";
+    private String npcRoleSearchText;
     private ShopItemModel pendingCostItem;
     private ShopItemModel pendingOutputItem;
     private String pendingPriceText = "";
@@ -151,6 +157,9 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         if (data.outputQtyInput != null) {
             pendingOutputQtyText = data.outputQtyInput;
         }
+        if (data.npcRoleSearchInput != null) {
+            npcRoleSearchText = data.npcRoleSearchInput;
+        }
 
         if (data.action == null) return;
         switch (data.action) {
@@ -173,9 +182,18 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             }
             case "money_buy" -> sellTrade = false;
             case "money_sell" -> sellTrade = true;
-            case "npc_role_prev" -> selectNpcRole(-1);
-            case "npc_role_next" -> selectNpcRole(1);
-            case "npc_role_apply" -> applyNpcRole();
+            case "npc_role_select" -> selectNpcRole(data.npcRole);
+            case "npc_role_search" -> {
+            }
+            case "npc_role_clear_search" -> {
+                npcRoleSearchText = "";
+            }
+            case "npc_role_apply" -> {
+                if (data.npcRoleSearchInput != null) {
+                    npcRoleSearchText = data.npcRoleSearchInput;
+                }
+                applyNpcRole();
+            }
             case "use_cost_hand" -> setCostFromHand(ref, store);
             case "use_output_hand" -> setOutputFromHand(ref, store);
             case "clear_cost" -> pendingCostItem = null;
@@ -227,9 +245,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         cmd.set("#StockLimitSection.Visible", showStockLimit);
         cmd.set("#CostQtyRow.Visible", (!useMoney || sellTrade) && pendingCostItem != null);
         cmd.set("#OutputQtyRow.Visible", pendingOutputItem != null && !(useMoney && sellTrade));
-        cmd.set("#NpcRoleLabel.Text", npcRoleSelected.isBlank() ? "None" : npcRoleSelected);
-        cmd.set("#NpcRolePrev.Disabled", npcRoles.size() <= 1);
-        cmd.set("#NpcRoleNext.Disabled", npcRoles.size() <= 1);
+        cmd.set("#NpcRoleLabel.Text", "Selected: " + (npcRoleSelected.isBlank() ? "None" : npcRoleSelected));
+        cmd.set("#NpcRoleSearchInput #SearchInput.Value", npcRoleSearchText == null ? "" : npcRoleSearchText);
 
         cmd.set("#PriceInput #SearchInput.Value", pendingPriceText == null ? "" : pendingPriceText);
         cmd.set("#ShopNameInput #SearchInput.Value", pendingNameText == null ? "" : pendingNameText);
@@ -245,7 +262,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
 
         buildTradeList(cmd, evt);
         buildSelectedItems(cmd);
-        buildSettings(cmd);
+        buildSettings(cmd, evt);
         buildPreview(cmd);
 
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#TabTrades",
@@ -268,12 +285,11 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                 EventData.of("Action", "money_buy"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#MoneyModeSell",
                 EventData.of("Action", "money_sell"), false);
-        evt.addEventBinding(CustomUIEventBindingType.Activating, "#NpcRolePrev",
-                EventData.of("Action", "npc_role_prev"), false);
-        evt.addEventBinding(CustomUIEventBindingType.Activating, "#NpcRoleNext",
-                EventData.of("Action", "npc_role_next"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#ApplyNpcRole",
-                EventData.of("Action", "npc_role_apply"), false);
+                EventData.of("Action", "npc_role_apply")
+                        .append("@NpcRoleSearchInput", "#NpcRoleSearchInput #SearchInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#NpcRoleClearSearch",
+                EventData.of("Action", "npc_role_clear_search"), false);
 
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#UseCostHand",
                 EventData.of("Action", "use_cost_hand"), false);
@@ -319,6 +335,9 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                 EventData.of("@CostQtyInput", "#CostQtyInput #SearchInput.Value"), false);
         evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#OutputQtyInput #SearchInput",
                 EventData.of("@OutputQtyInput", "#OutputQtyInput #SearchInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#NpcRoleSearchInput #SearchInput",
+                EventData.of("Action", "npc_role_search")
+                        .append("@NpcRoleSearchInput", "#NpcRoleSearchInput #SearchInput.Value"), false);
     }
 
     private void buildTradeList(@Nonnull UICommandBuilder cmd, @Nonnull UIEventBuilder evt) {
@@ -432,7 +451,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         }
     }
 
-    private void buildSettings(@Nonnull UICommandBuilder cmd) {
+    private void buildSettings(@Nonnull UICommandBuilder cmd, @Nonnull UIEventBuilder evt) {
         cmd.set("#CurrentShopName.Text", "Current: " + shop.getDisplayName());
         cmd.set("#ShopStatusLabel.Text", shop.isOpen() ? "Open" : "Closed");
         if (pendingStockResetDaysText == null || pendingStockResetDaysText.isBlank()) {
@@ -443,6 +462,34 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         }
         if (shop.isPlayerShop()) {
             buildPlayerSettings(cmd);
+        }
+        buildNpcRoleResults(cmd, evt);
+    }
+
+    private void buildNpcRoleResults(@Nonnull UICommandBuilder cmd, @Nonnull UIEventBuilder evt) {
+        cmd.clear("#NpcRoleResults");
+        List<String> matches = filterNpcRoles();
+        cmd.set("#NpcRoleCount.Text", matches.isEmpty() ? "0 models" : matches.size() + " models");
+        cmd.set("#NpcRoleClearSearch.Disabled", npcRoleSearchText == null || npcRoleSearchText.isBlank());
+        if (npcRoles.isEmpty()) {
+            cmd.appendInline("#NpcRoleResults",
+                    "Label { Anchor: (Height: 24); Style: (FontSize: 12, TextColor: #888888); Text: \"No NPC roles available\"; }");
+            return;
+        }
+        if (matches.isEmpty()) {
+            cmd.appendInline("#NpcRoleResults",
+                    "Label { Anchor: (Height: 24); Style: (FontSize: 12, TextColor: #888888); Text: \"No matching NPC models\"; }");
+            return;
+        }
+        for (int i = 0; i < matches.size(); i++) {
+            String role = matches.get(i);
+            String rowSelector = "#NpcRoleResults[" + i + "]";
+            boolean selected = role.equalsIgnoreCase(npcRoleSelected);
+            cmd.append("#NpcRoleResults", NPC_ROLE_ROW_LAYOUT);
+            cmd.set(rowSelector + ".Text", role);
+            cmd.set(rowSelector + ".Disabled", selected);
+            evt.addEventBinding(CustomUIEventBindingType.Activating, rowSelector,
+                    EventData.of("Action", "npc_role_select").append("Role", role), false);
         }
     }
 
@@ -966,10 +1013,16 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         if (!preferred.isBlank() && roles.contains(preferred)) {
             npcRoleIndex = roles.indexOf(preferred);
             npcRoleSelected = preferred;
+            if (npcRoleSearchText == null) {
+                npcRoleSearchText = preferred;
+            }
             return;
         }
         if (!npcRoleSelected.isBlank() && roles.contains(npcRoleSelected)) {
             npcRoleIndex = roles.indexOf(npcRoleSelected);
+            if (npcRoleSearchText == null) {
+                npcRoleSearchText = npcRoleSelected;
+            }
             return;
         }
         if (!shop.getNpcs().isEmpty()) {
@@ -977,25 +1030,41 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             if (!current.isBlank() && roles.contains(current)) {
                 npcRoleIndex = roles.indexOf(current);
                 npcRoleSelected = current;
+                if (npcRoleSearchText == null) {
+                    npcRoleSearchText = current;
+                }
                 return;
             }
         }
         if (!roles.isEmpty()) {
             npcRoleIndex = 0;
             npcRoleSelected = roles.get(0);
+            if (npcRoleSearchText == null) {
+                npcRoleSearchText = npcRoleSelected;
+            }
         } else {
             npcRoleSelected = "";
         }
     }
 
-    private void selectNpcRole(int delta) {
-        if (npcRoles.isEmpty()) return;
-        int size = npcRoles.size();
-        npcRoleIndex = ((npcRoleIndex + delta) % size + size) % size;
-        npcRoleSelected = npcRoles.get(npcRoleIndex);
+    private void selectNpcRole(@Nullable String role) {
+        if (role == null || role.isBlank()) return;
+        for (int i = 0; i < npcRoles.size(); i++) {
+            String candidate = npcRoles.get(i);
+            if (candidate.equalsIgnoreCase(role)) {
+                npcRoleIndex = i;
+                npcRoleSelected = candidate;
+                npcRoleSearchText = candidate;
+                return;
+            }
+        }
     }
 
     private void applyNpcRole() {
+        String resolved = resolveNpcRoleFromSearch();
+        if (resolved != null) {
+            selectNpcRole(resolved);
+        }
         if (npcRoleSelected.isBlank()) {
             Messages.sendPrefixedKey(playerRef, "shop.admin.npc_role.none_selected", java.util.Map.of());
             return;
@@ -1021,6 +1090,52 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         }
         Messages.sendPrefixedKey(playerRef, "shop.admin.npc_role.updated",
                 java.util.Map.of("role", npcRoleSelected));
+    }
+
+    @Nullable
+    private String resolveNpcRoleFromSearch() {
+        if (npcRoles.isEmpty()) {
+            return null;
+        }
+        String query = npcRoleSearchText == null ? "" : npcRoleSearchText.trim();
+        if (query.isBlank()) {
+            return npcRoleSelected.isBlank() ? null : npcRoleSelected;
+        }
+        for (String role : npcRoles) {
+            if (role.equalsIgnoreCase(query)) {
+                return role;
+            }
+        }
+        List<String> matches = filterNpcRoles();
+        if (matches.size() == 1) {
+            return matches.get(0);
+        }
+        if (!npcRoleSelected.isBlank()) {
+            for (String match : matches) {
+                if (match.equalsIgnoreCase(npcRoleSelected)) {
+                    return match;
+                }
+            }
+        }
+        return null;
+    }
+
+    @Nonnull
+    private List<String> filterNpcRoles() {
+        if (npcRoles.isEmpty()) {
+            return List.of();
+        }
+        String query = npcRoleSearchText == null ? "" : npcRoleSearchText.trim().toLowerCase(java.util.Locale.ROOT);
+        if (query.isBlank()) {
+            return npcRoles;
+        }
+        List<String> matches = new ArrayList<>();
+        for (String role : npcRoles) {
+            if (role.toLowerCase(java.util.Locale.ROOT).contains(query)) {
+                matches.add(role);
+            }
+        }
+        return matches;
     }
 
     private void respawnNpcRoleInWorld(@Nonnull World world, int roleIndex) {
@@ -1053,6 +1168,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             existing.setDespawnTime(0f);
             existing.setDespawnRemainingSeconds(0f);
             existing.setDespawnCheckRemainingSeconds(0f);
+            existing.setToDespawn();
             queueNpcRemoval(store, ref, existing);
 
             var pair = NPCPlugin.get().spawnEntity(store, roleIndex, pos, rotation, null, null);
@@ -1067,7 +1183,9 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                 continue;
             }
             npcModel.setNpcId(newNpcId.toString());
+            removeDuplicateShopNpcs(store, npcModel, newNpcId);
         }
+        shopManager.saveShop(shop);
     }
 
     private void queueNpcRemoval(@Nonnull Store<EntityStore> store,
@@ -1082,11 +1200,73 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                     return;
                 }
                 if (npcRef.equals(ref) || (targetUuid != null && targetUuid.equals(ServerCompatUtil.getUuid(npc)))) {
-                    commandBuffer.tryRemoveEntity(ref, com.hypixel.hytale.component.RemoveReason.REMOVE);
+                    npc.setToDespawn();
+                    npc.setDespawning(true);
+                    npc.setDespawnTime(0f);
+                    npc.setDespawnRemainingSeconds(0f);
+                    npc.setDespawnCheckRemainingSeconds(0f);
+                    commandBuffer.tryRemoveEntity(ref, RemoveReason.REMOVE);
                 }
             } catch (Exception ignored) {
             }
         });
+    }
+
+    private void removeDuplicateShopNpcs(@Nonnull Store<EntityStore> store,
+                                         @Nonnull ShopNpcModel npcModel,
+                                         @Nonnull UUID keepUuid) {
+        Vector3i expected = npcModel.getPosition();
+        String displayName = shop.getDisplayName();
+        String rawName = shop.getName();
+        store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
+            try {
+                Ref<EntityStore> ref = chunk.getReferenceTo(index);
+                NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
+                if (npc == null) return;
+                UUID currentUuid = ServerCompatUtil.getUuid(npc);
+                if (keepUuid.equals(currentUuid)) return;
+                if (!isShopNpcCandidate(store, ref, expected, displayName, rawName)) return;
+
+                npc.setToDespawn();
+                npc.setDespawning(true);
+                npc.setDespawnTime(0f);
+                npc.setDespawnRemainingSeconds(0f);
+                npc.setDespawnCheckRemainingSeconds(0f);
+                commandBuffer.tryRemoveEntity(ref, RemoveReason.REMOVE);
+            } catch (Exception ignored) {
+            }
+        });
+    }
+
+    private boolean isShopNpcCandidate(@Nonnull Store<EntityStore> store,
+                                       @Nonnull Ref<EntityStore> ref,
+                                       @Nonnull Vector3i expected,
+                                       @Nonnull String displayName,
+                                       @Nonnull String rawName) {
+        Interactions interactions = store.getComponent(ref, Interactions.getComponentType());
+        String interactionId = interactions != null
+                ? interactions.getInteractionId(InteractionType.Use)
+                : null;
+        if (interactionId == null
+                || !interactionId.equalsIgnoreCase(ShopNpcInteractionRegistry.ADMIN_SHOP_ROOT_INTERACTION_ID)) {
+            return false;
+        }
+
+        Nameplate nameplate = store.getComponent(ref, Nameplate.getComponentType());
+        String text = nameplate != null ? nameplate.getText() : null;
+        if (text == null || (!text.equalsIgnoreCase(displayName) && !text.equalsIgnoreCase(rawName))) {
+            return false;
+        }
+
+        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+        if (transform == null || transform.getPosition() == null) {
+            return false;
+        }
+        Vector3d pos = transform.getPosition();
+        double dx = Math.abs(pos.getX() - (expected.getX() + 0.5D));
+        double dy = Math.abs(pos.getY() - expected.getY());
+        double dz = Math.abs(pos.getZ() - (expected.getZ() + 0.5D));
+        return dx < 1.5D && dy < 2.0D && dz < 1.5D;
     }
 
     private void applyNpcDefaults(@Nonnull Store<EntityStore> store,
@@ -1253,6 +1433,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         public static final BuilderCodec<UIEventData> CODEC = BuilderCodec.builder(UIEventData.class, UIEventData::new)
                 .addField(new KeyedCodec<>("Action", Codec.STRING), (e, v) -> e.action = v, e -> e.action)
                 .addField(new KeyedCodec<>("Trade", Codec.STRING), (e, v) -> e.tradeIndex = v, e -> e.tradeIndex)
+                .addField(new KeyedCodec<>("Role", Codec.STRING), (e, v) -> e.npcRole = v, e -> e.npcRole)
                 .addField(new KeyedCodec<>("@PriceInput", Codec.STRING), (e, v) -> e.priceInput = v, e -> e.priceInput)
                 .addField(new KeyedCodec<>("@ShopNameInput", Codec.STRING), (e, v) -> e.shopNameInput = v, e -> e.shopNameInput)
                 .addField(new KeyedCodec<>("@StockLimitInput", Codec.STRING), (e, v) -> e.stockLimitInput = v, e -> e.stockLimitInput)
@@ -1261,10 +1442,12 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                 .addField(new KeyedCodec<>("@EditorInput", Codec.STRING), (e, v) -> e.editorInput = v, e -> e.editorInput)
                 .addField(new KeyedCodec<>("@CostQtyInput", Codec.STRING), (e, v) -> e.costQtyInput = v, e -> e.costQtyInput)
                 .addField(new KeyedCodec<>("@OutputQtyInput", Codec.STRING), (e, v) -> e.outputQtyInput = v, e -> e.outputQtyInput)
+                .addField(new KeyedCodec<>("@NpcRoleSearchInput", Codec.STRING), (e, v) -> e.npcRoleSearchInput = v, e -> e.npcRoleSearchInput)
                 .build();
 
         private String action;
         private String tradeIndex;
+        private String npcRole;
         private String priceInput;
         private String shopNameInput;
         private String stockLimitInput;
@@ -1273,6 +1456,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         private String editorInput;
         private String costQtyInput;
         private String outputQtyInput;
+        private String npcRoleSearchInput;
     }
 
     private enum Tab {

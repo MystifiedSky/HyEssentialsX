@@ -4,7 +4,6 @@ import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.ComponentAccessor;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.protocol.InteractionSyncData;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -19,7 +18,6 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import xyz.thelegacyvoyage.hyessentialsx.HyEssentialsXPlugin;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
-import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache;
 import xyz.thelegacyvoyage.hyessentialsx.ui.PlayerShopBrowseUI;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopBrowseUI;
@@ -38,7 +36,6 @@ public final class ShopNpcInteractionRegistry {
     public static final String ADMIN_SHOP_ROOT_INTERACTION_ID = "hyessentialsx/admin_shop";
     private static final String ADMIN_SHOP_INTERACTION_ID = "hyessentialsx/open_admin_shop_ui";
     private static final String ADMIN_SHOP_HINT = "Press F to open shop";
-    private static final double FALLBACK_DISTANCE_SQ = 2.25D;
     private static final String PLAYER_SHOP_USE_PERMISSION = "hyessentialsx.playershop.use";
     private static final String PLAYER_SHOP_LEGACY_PERMISSION = "hyessentialsx.playershop";
     private static final String PLAYER_SHOP_ADMIN_PERMISSION = "hyessentialsx.playershop.admin";
@@ -185,45 +182,10 @@ public final class ShopNpcInteractionRegistry {
                                                @Nonnull Ref<EntityStore> npcRef,
                                                @Nonnull NPCEntity npc) {
         java.util.UUID npcUuid = ServerCompatUtil.getUuid(npc);
-        ShopModel byId = npcUuid != null ? shopManager.findShopByNpcId(npcUuid.toString()) : null;
-        if (byId != null) {
-            return byId;
-        }
-        Vector3d pos = npc.getLeashPoint();
-        if (pos == null) {
-            var transform = store.getComponent(npcRef, com.hypixel.hytale.server.core.modules.entity.component.TransformComponent.getComponentType());
-            if (transform != null) {
-                pos = transform.getPosition();
-            }
-        }
-        if (pos == null) {
+        if (npcUuid == null) {
             return null;
         }
-        String worldName = "";
-        Object external = store.getExternalData();
-        if (external instanceof EntityStore entityStore && entityStore.getWorld() != null) {
-            worldName = entityStore.getWorld().getName();
-        }
-        ShopNpcModel best = null;
-        double bestDistSq = Double.MAX_VALUE;
-        for (ShopNpcModel npcModel : shopManager.listAllNpcs()) {
-            if (!worldName.isBlank() && !npcModel.getWorldId().equalsIgnoreCase(worldName)) {
-                continue;
-            }
-            var p = npcModel.getPosition();
-            double dx = pos.getX() - (p.getX() + 0.5D);
-            double dy = pos.getY() - p.getY();
-            double dz = pos.getZ() - (p.getZ() + 0.5D);
-            double distSq = (dx * dx) + (dy * dy) + (dz * dz);
-            if (distSq < bestDistSq) {
-                bestDistSq = distSq;
-                best = npcModel;
-            }
-        }
-        if (best == null || bestDistSq > FALLBACK_DISTANCE_SQ) {
-            return null;
-        }
-        return shopManager.getShop(best.getShopName());
+        return shopManager.findShopByNpcId(npcUuid.toString());
     }
 
     private static boolean hasPermission(@Nonnull Store<EntityStore> store,

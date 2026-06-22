@@ -1,0 +1,6 @@
+$C = "../Common.ui";
+
+$C.@SecondaryTextButton #RoleButton {
+  Text: "NPC Role";
+  Anchor: (Height: 24, Bottom: 3);
+}

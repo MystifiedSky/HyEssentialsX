@@ -357,40 +357,64 @@ $C.@PageOverlay {
           Background: (Color: #93844c(0.3));
         }
 
-        Group {
-          Anchor: (Height: 40, Bottom: 10);
-          LayoutMode: Left;
+        Group #NpcRoleSection {
+          Anchor: (Height: 220, Bottom: 14);
+          LayoutMode: Top;
 
-          Label {
-            Anchor: (Width: 120);
-            Style: (FontSize: 14, TextColor: #aaaaaa);
-            Text: "NPC Model:";
-          }
+          Group {
+            Anchor: (Height: 40, Bottom: 6);
+            LayoutMode: Left;
 
-          $C.@TextButton #NpcRolePrev {
-            Text: "<";
-            Anchor: (Width: 40, Height: 28);
+            Label {
+              Anchor: (Width: 120);
+              Style: (FontSize: 14, TextColor: #aaaaaa);
+              Text: "NPC Model:";
+            }
+
+            Group {
+              Anchor: (Width: 360);
+              $C.@HeaderSearch #NpcRoleSearchInput {}
+            }
+
+            $C.@TextButton #ApplyNpcRole {
+              Text: "Apply";
+              Anchor: (Width: 120, Height: 28, Left: 10);
+            }
           }
 
           Label #NpcRoleLabel {
-            Anchor: (Width: 200, Left: 6);
-            Style: (FontSize: 14, TextColor: #ffffff, HorizontalAlignment: Center);
-            Text: "None";
+            Anchor: (Height: 22, Bottom: 6);
+            Style: (FontSize: 13, TextColor: #ffffff);
+            Text: "Selected: None";
           }
 
-          $C.@TextButton #NpcRoleNext {
-            Text: ">";
-            Anchor: (Width: 40, Height: 28, Left: 6);
+          Group {
+            Anchor: (Height: 28, Top: 6);
+            LayoutMode: Left;
+
+            Label #NpcRoleCount {
+              Anchor: (Width: 180);
+              Style: (FontSize: 12, TextColor: #aaaaaa, VerticalAlignment: Center);
+              Text: "0 models";
+            }
+
+            $C.@TextButton #NpcRoleClearSearch {
+              Text: "Clear";
+              Anchor: (Width: 90, Height: 28, Left: 12);
+            }
           }
 
-          $C.@TextButton #ApplyNpcRole {
-            Text: "Apply";
-            Anchor: (Width: 120, Height: 28, Left: 64);
+          Group #NpcRoleResults {
+            Anchor: (Height: 108, Top: 6);
+            LayoutMode: TopScrolling;
+            ScrollbarStyle: $C.@DefaultScrollbarStyle;
+            Background: (Color: #0a0a0a(0.35));
+            Padding: 4;
           }
         }
 
         Group {
-          Anchor: (Height: 40, Top: 6);
+          Anchor: (Height: 40, Top: 10);
           LayoutMode: Left;
 
           Label {

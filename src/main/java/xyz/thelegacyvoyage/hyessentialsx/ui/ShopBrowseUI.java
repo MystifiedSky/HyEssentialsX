@@ -134,10 +134,7 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
             Messages.sendPrefixedKey(playerRef, "shop.use.no_permission", java.util.Map.of());
             return;
         }
-        ShopAdminDraftCache.Draft draft = draftCache.get(playerRef.getUuid());
-        if (draft == null || !draft.shopName.equalsIgnoreCase(shop.getName())) {
-            draft = new ShopAdminDraftCache.Draft();
-        }
+        ShopAdminDraftCache.Draft draft = new ShopAdminDraftCache.Draft();
         draft.shopName = shop.getName();
         draft.tab = "TRADES";
         draftCache.save(playerRef.getUuid(), draft);

@@ -7,7 +7,7 @@ Group {
   LayoutMode: Left;
 
   Group #PaySection {
-    Anchor: (Width: 300);
+    Anchor: (Width: 270);
     LayoutMode: Top;
 
     Label {
@@ -35,7 +35,7 @@ Group {
   }
 
   Group #GetSection {
-    Anchor: (Width: 300);
+    Anchor: (Width: 270);
     LayoutMode: Top;
 
     Label {
@@ -50,11 +50,58 @@ Group {
   }
 
   Group #ActionSection {
-    FlexWeight: 1;
+    Anchor: (Width: 150);
     LayoutMode: Top;
     Padding: (Left: 10);
 
     Group { Anchor: (Height: 10); }
+
+    Group #QuickQuantityButtons {
+      Anchor: (Height: 26, Bottom: 6);
+      LayoutMode: Left;
+
+      Button #TradeOneButton {
+        Anchor: (Width: 42, Height: 26, Right: 4);
+        Background: (Color: #263544);
+        Style: (
+          Hovered: (Background: #34495f),
+          Pressed: (Background: #1d2a36)
+        );
+
+        Label {
+          Text: "x1";
+          Style: (FontSize: 12, TextColor: #e8f0f8, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true);
+        }
+      }
+
+      Button #TradeTenButton {
+        Anchor: (Width: 42, Height: 26, Right: 4);
+        Background: (Color: #263544);
+        Style: (
+          Hovered: (Background: #34495f),
+          Pressed: (Background: #1d2a36)
+        );
+
+        Label {
+          Text: "x10";
+          Style: (FontSize: 12, TextColor: #e8f0f8, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true);
+        }
+      }
+
+      Button #TradeHundredButton {
+        Anchor: (Width: 48, Height: 26);
+        Background: (Color: #263544);
+        Style: (
+          Hovered: (Background: #34495f),
+          Pressed: (Background: #1d2a36)
+        );
+
+        Label {
+          Text: "x100";
+          Style: (FontSize: 11, TextColor: #e8f0f8, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true);
+        }
+      }
+    }
 
     $C.@TextButton #TradeButton {
       Text: "Trade";

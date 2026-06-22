@@ -116,6 +116,7 @@
     "shop.trade.payment_failed":  "\u0026cPayment failed.",
     "shop.trade.inventory_full":  "\u0026eYour inventory was full. Items were dropped.",
     "shop.trade.inventory_full_canceled":  "\u0026eYour inventory was full. Trade canceled.",
+    "shop.trade.invalid_quantity":  "\u0026cEnter a quantity from 1 to {max}.",
     "shop.trade.completed":  "\u0026aTrade completed, you paid \u0026f{paid} \u0026aand received \u0026f{received}\u0026a.",
     "shop.player.disabled":  "\u0026cPlayer shops are disabled.",
     "shop.player.directory_disabled":  "\u0026cThe shop directory is disabled.",

@@ -126,47 +126,76 @@ public final class InventoryUtil {
     }
 
     private static boolean tryAddToContainer(@Nonnull ItemContainer container, @Nonnull ItemStack stack) {
-        // 1) Try to merge into an existing similar stack.
+        return addStackWithOverflow(container, stack) == null;
+    }
+
+    @Nullable
+    private static ItemStack addStackWithOverflow(@Nonnull ItemContainer container, @Nonnull ItemStack stack) {
+        int remaining = Math.max(0, stack.getQuantity());
+        if (remaining <= 0) return null;
+
         short cap = container.getCapacity();
         for (short i = 0; i < cap; i++) {
             ItemStack existing = container.getItemStack(i);
             if (existing == null || existing.isEmpty()) continue;
             if (!canMerge(existing, stack)) continue;
-            ItemStack merged = cloneWithQuantity(existing, existing.getQuantity() + stack.getQuantity());
+            int maxStack = getMaxStack(existing);
+            int available = maxStack - Math.max(0, existing.getQuantity());
+            if (available <= 0) continue;
+            int add = Math.min(remaining, available);
+            ItemStack merged = cloneWithQuantity(existing, existing.getQuantity() + add);
             if (trySetSlot(container, i, merged)) {
-                return true;
-            }
-        }
-
-        // 2) Place into first empty slot.
-        for (short i = 0; i < cap; i++) {
-            ItemStack existing = container.getItemStack(i);
-            if (existing == null || existing.isEmpty()) {
-                if (trySetSlot(container, i, stack)) {
-                    return true;
+                remaining -= add;
+                if (remaining <= 0) {
+                    return null;
                 }
             }
         }
-        return false;
+
+        for (short i = 0; i < cap; i++) {
+            ItemStack existing = container.getItemStack(i);
+            if (existing == null || existing.isEmpty()) {
+                int add = Math.min(remaining, getMaxStack(stack));
+                ItemStack placed = cloneWithQuantity(stack, add);
+                if (trySetSlot(container, i, placed)) {
+                    remaining -= add;
+                    if (remaining <= 0) {
+                        return null;
+                    }
+                }
+            }
+        }
+        return cloneWithQuantity(stack, remaining);
     }
 
     private static boolean tryAddToPreferredOrContainer(@Nonnull ItemContainer container, int preferredSlot, @Nonnull ItemStack stack) {
+        ItemStack remaining = stack;
         if (preferredSlot >= 0 && preferredSlot < container.getCapacity()) {
             short slot = (short) preferredSlot;
             ItemStack existing = container.getItemStack(slot);
             if (existing == null || existing.isEmpty()) {
-                if (trySetSlot(container, slot, stack)) {
-                    return true;
+                int add = Math.min(stack.getQuantity(), getMaxStack(stack));
+                ItemStack placed = cloneWithQuantity(stack, add);
+                if (trySetSlot(container, slot, placed)) {
+                    if (stack.getQuantity() <= add) {
+                        return true;
+                    }
+                    remaining = cloneWithQuantity(stack, stack.getQuantity() - add);
                 }
             }
-            if (existing != null && !existing.isEmpty() && canMerge(existing, stack)) {
-                ItemStack merged = cloneWithQuantity(existing, existing.getQuantity() + stack.getQuantity());
+            if (existing != null && !existing.isEmpty() && canMerge(existing, remaining)) {
+                int add = Math.min(remaining.getQuantity(), getMaxStack(existing) - existing.getQuantity());
+                if (add <= 0) return tryAddToContainer(container, remaining);
+                ItemStack merged = cloneWithQuantity(existing, existing.getQuantity() + add);
                 if (trySetSlot(container, slot, merged)) {
-                    return true;
+                    if (remaining.getQuantity() <= add) {
+                        return true;
+                    }
+                    remaining = cloneWithQuantity(remaining, remaining.getQuantity() - add);
                 }
             }
         }
-        return tryAddToContainer(container, stack);
+        return tryAddToContainer(container, remaining);
     }
 
     private static boolean canMerge(@Nonnull ItemStack left, @Nonnull ItemStack right) {
@@ -276,8 +305,9 @@ public final class InventoryUtil {
             int qty = item.getQuantity();
             if (itemId.isBlank() || qty <= 0) continue;
             ItemStack stack = new ItemStack(itemId, qty, 0, 0, null);
-            if (!tryAddToContainer(container, stack)) {
-                overflow.add(stack);
+            ItemStack remainder = addStackWithOverflow(container, stack);
+            if (remainder != null && !remainder.isEmpty()) {
+                overflow.addAll(splitIntoMaxStacks(remainder));
             }
         }
         return overflow;
@@ -319,6 +349,33 @@ public final class InventoryUtil {
                 stack.getMaxDurability(),
                 stack.getMetadata()
         );
+    }
+
+    private static int getMaxStack(@Nonnull ItemStack stack) {
+        if (stack.getMaxDurability() > 0) {
+            return 1;
+        }
+        try {
+            var item = stack.getItem();
+            if (item != null && item.getMaxStack() > 0) {
+                return item.getMaxStack();
+            }
+        } catch (Exception ignored) {
+        }
+        return Math.max(1, stack.getQuantity());
+    }
+
+    @Nonnull
+    private static List<ItemStack> splitIntoMaxStacks(@Nonnull ItemStack stack) {
+        List<ItemStack> out = new ArrayList<>();
+        int remaining = Math.max(0, stack.getQuantity());
+        int maxStack = getMaxStack(stack);
+        while (remaining > 0) {
+            int amount = Math.min(remaining, maxStack);
+            out.add(cloneWithQuantity(stack, amount));
+            remaining -= amount;
+        }
+        return out;
     }
 
     private static void setSlotEmpty(@Nonnull ItemContainer container, short slot) {

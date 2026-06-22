@@ -24,6 +24,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.ShopTradeModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.ShopTradeQuantityUtil;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -92,7 +93,12 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                 if (data.tradeIndex != null) {
                     int idx = parseIndex(data.tradeIndex);
                     if (idx >= 0) {
-                        executeTrade(ref, store, idx);
+                        int quantity = parseQuantity(data.quantity);
+                        if (quantity < 0) {
+                            sendInvalidQuantity();
+                            return;
+                        }
+                        executeTrade(ref, store, idx, quantity);
                         refresh(ref, store);
                     }
                 }
@@ -214,11 +220,11 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
             String cardSelector = "#TradeCards[" + (idx - start) + "]";
             cmd.append("#TradeCards", ROW_LAYOUT);
 
-            buildCostSection(cmd, cardSelector, trade, inventory);
-            buildRewardSection(cmd, cardSelector, trade);
+            buildCostSection(cmd, cardSelector, trade, inventory, 1);
+            buildRewardSection(cmd, cardSelector, trade, 1);
 
-            boolean moneyStockOk = hasMoneyStock(trade);
-            boolean canTrade = shop.isOpen() && trade.isEnabled() && canAfford(trade, inventory) && hasStock(trade) && moneyStockOk;
+            boolean moneyStockOk = hasMoneyStock(trade, 1);
+            boolean canTrade = shop.isOpen() && trade.isEnabled() && canAfford(trade, inventory, 1) && hasStock(trade, 1) && moneyStockOk;
             String statusText;
             String statusColor;
             if (!shop.isOpen()) {
@@ -229,7 +235,7 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                 statusText = "Out of funds";
                 statusColor = "#888888";
                 canTrade = false;
-            } else if (!hasStock(trade)) {
+            } else if (!hasStock(trade, 1)) {
                 statusText = "Out of stock";
                 statusColor = "#888888";
                 canTrade = false;
@@ -237,7 +243,7 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                 statusText = "Economy disabled";
                 statusColor = "#888888";
                 canTrade = false;
-            } else if (!canAfford(trade, inventory)) {
+            } else if (!canAfford(trade, inventory, 1)) {
                 statusText = (trade.isMoneyTrade() && !trade.isSellTrade()) ? "Need funds" : "Need items";
                 statusColor = "#ffaa66";
             } else {
@@ -248,29 +254,40 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
             cmd.set(cardSelector + " #StatusLabel.Text", statusText);
             cmd.set(cardSelector + " #StatusLabel.Style.TextColor", statusColor);
             cmd.set(cardSelector + " #TradeButton.Disabled", !canTrade);
+            cmd.set(cardSelector + " #TradeOneButton.Disabled", !canTrade);
+            cmd.set(cardSelector + " #TradeTenButton.Disabled", !canTrade);
+            cmd.set(cardSelector + " #TradeHundredButton.Disabled", !canTrade);
 
             evt.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     cardSelector + " #TradeButton",
-                    new EventData().append("Action", "buy").append("Trade", String.valueOf(idx)),
+                    new EventData()
+                            .append("Action", "buy")
+                            .append("Trade", String.valueOf(idx))
+                            .append("Quantity", "1"),
                     false
             );
+            bindQuickTrade(evt, cardSelector, idx, "TradeOneButton", 1);
+            bindQuickTrade(evt, cardSelector, idx, "TradeTenButton", 10);
+            bindQuickTrade(evt, cardSelector, idx, "TradeHundredButton", 100);
         }
     }
 
     private void buildCostSection(@Nonnull UICommandBuilder cmd,
                                   @Nonnull String cardSelector,
                                   @Nonnull ShopTradeModel trade,
-                                  Inventory inventory) {
+                                  Inventory inventory,
+                                  int quantity) {
+        ShopTradeModel scaled = ShopTradeQuantityUtil.scaleTrade(trade, quantity);
         cmd.clear(cardSelector + " #PayItems");
-        if (trade.isMoneyTrade() && !trade.isSellTrade()) {
-            String text = "Price: " + economy.formatAmount(trade.getMoneyCost());
+        if (scaled.isMoneyTrade() && !scaled.isSellTrade()) {
+            String text = "Price: " + economy.formatAmount(scaled.getMoneyCost());
             cmd.appendInline(cardSelector + " #PayItems",
                     "Label { Anchor: (Height: 24); Style: (FontSize: 14, TextColor: #ffffff); Text: \"" + text + "\"; }");
             return;
         }
 
-        List<ShopItemModel> items = trade.getCostItems();
+        List<ShopItemModel> items = scaled.getCostItems();
         if (items.isEmpty()) {
             cmd.appendInline(cardSelector + " #PayItems",
                     "Label { Anchor: (Height: 24); Style: (FontSize: 14, TextColor: #888888); Text: \"No cost\"; }");
@@ -296,15 +313,17 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
 
     private void buildRewardSection(@Nonnull UICommandBuilder cmd,
                                     @Nonnull String cardSelector,
-                                    @Nonnull ShopTradeModel trade) {
+                                    @Nonnull ShopTradeModel trade,
+                                    int quantity) {
+        ShopTradeModel scaled = ShopTradeQuantityUtil.scaleTrade(trade, quantity);
         cmd.clear(cardSelector + " #GetItems");
-        if (trade.isMoneyTrade() && trade.isSellTrade()) {
-            String text = "You receive: " + economy.formatAmount(trade.getMoneyCost());
+        if (scaled.isMoneyTrade() && scaled.isSellTrade()) {
+            String text = "You receive: " + economy.formatAmount(scaled.getMoneyCost());
             cmd.appendInline(cardSelector + " #GetItems",
                     "Label { Anchor: (Height: 24); Style: (FontSize: 14, TextColor: #ffffff); Text: \"" + text + "\"; }");
             return;
         }
-        List<ShopItemModel> rewards = trade.getRewardItems();
+        List<ShopItemModel> rewards = scaled.getRewardItems();
         if (rewards.isEmpty()) {
             cmd.appendInline(cardSelector + " #GetItems",
                     "Label { Anchor: (Height: 24); Style: (FontSize: 14, TextColor: #888888); Text: \"No rewards\"; }");
@@ -329,23 +348,44 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
         }
     }
 
-    private boolean canAfford(@Nonnull ShopTradeModel trade, Inventory inventory) {
-        if (!trade.isEnabled()) return false;
-        if (trade.isMoneyTrade() && !trade.isSellTrade()) {
-            if (!economy.isEnabled()) return false;
-            return economy.getBalance(playerRef.getUuid()) >= trade.getMoneyCost();
-        }
-        if (inventory == null) return false;
-        return InventoryUtil.hasItems(inventory, trade.getCostItems());
+    private void bindQuickTrade(@Nonnull UIEventBuilder evt,
+                                @Nonnull String cardSelector,
+                                int tradeIndex,
+                                @Nonnull String buttonId,
+                                int quantity) {
+        evt.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                cardSelector + " #" + buttonId,
+                new EventData()
+                        .append("Action", "buy")
+                        .append("Trade", String.valueOf(tradeIndex))
+                        .append("Quantity", String.valueOf(Math.min(quantity, getMaxTradeQuantity()))),
+                false
+        );
     }
 
-    private void executeTrade(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store, int tradeIndex) {
+    private boolean canAfford(@Nonnull ShopTradeModel trade, Inventory inventory, int quantity) {
+        if (!trade.isEnabled()) return false;
+        ShopTradeModel scaled = ShopTradeQuantityUtil.scaleTrade(trade, quantity);
+        if (trade.isMoneyTrade() && !trade.isSellTrade()) {
+            if (!economy.isEnabled()) return false;
+            return economy.getBalance(playerRef.getUuid()) >= scaled.getMoneyCost();
+        }
+        if (inventory == null) return false;
+        return InventoryUtil.hasItems(inventory, scaled.getCostItems());
+    }
+
+    private void executeTrade(@Nonnull Ref<EntityStore> ref,
+                              @Nonnull Store<EntityStore> store,
+                              int tradeIndex,
+                              int quantity) {
         if (tradeIndex < 0 || tradeIndex >= shop.getTrades().size()) return;
         ShopTradeModel trade = shop.getTrades().get(tradeIndex);
+        ShopTradeModel scaledTrade = ShopTradeQuantityUtil.scaleTrade(trade, quantity);
         if (shouldResetStock(shop)) {
             resetStock(shop);
         }
-        if (!hasStock(trade)) {
+        if (!hasStock(trade, quantity)) {
             Messages.sendPrefixedKey(playerRef, "shop.trade.out_of_stock", java.util.Map.of());
             return;
         }
@@ -374,24 +414,24 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                 Messages.sendPrefixedKey(playerRef, "shop.trade.economy_disabled", java.util.Map.of());
                 return;
             }
-            if (!hasMoneyStock(trade)) {
+            if (!hasMoneyStock(trade, quantity)) {
                 Messages.sendPrefixedKey(playerRef, "shop.trade.out_of_funds", java.util.Map.of());
                 return;
             }
-            if (!InventoryUtil.hasItems(inventory, trade.getCostItems())) {
+            if (!InventoryUtil.hasItems(inventory, scaledTrade.getCostItems())) {
                 Messages.sendPrefixedKey(playerRef, "shop.trade.missing_items", java.util.Map.of());
                 return;
             }
-            if (!InventoryUtil.removeItems(inventory, trade.getCostItems())) {
+            if (!InventoryUtil.removeItems(inventory, scaledTrade.getCostItems())) {
                 Messages.sendPrefixedKey(playerRef, "shop.trade.remove_failed", java.util.Map.of());
                 return;
             }
-            economy.deposit(playerRef.getUuid(), trade.getMoneyCost());
-            applyMoneyStockChange(trade, false);
-            applyStockChange(trade, true);
-            restockMatchingTrades(trade);
+            economy.deposit(playerRef.getUuid(), scaledTrade.getMoneyCost());
+            applyMoneyStockChange(trade, false, quantity);
+            applyStockChange(trade, true, quantity);
+            restockMatchingTrades(trade, quantity);
             shopManager.saveShop(shop);
-            Messages.sendPrefixed(playerRef, formatTradeMessage(trade));
+            Messages.sendPrefixed(playerRef, formatTradeMessage(scaledTrade));
             return;
         }
 
@@ -400,7 +440,7 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                 Messages.sendPrefixedKey(playerRef, "shop.trade.economy_disabled", java.util.Map.of());
                 return;
             }
-            long cost = trade.getMoneyCost();
+            long cost = scaledTrade.getMoneyCost();
             if (economy.getBalance(playerRef.getUuid()) < cost) {
                 Messages.sendPrefixedKey(playerRef, "shop.trade.insufficient_funds", java.util.Map.of());
                 return;
@@ -409,37 +449,37 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                 Messages.sendPrefixedKey(playerRef, "shop.trade.payment_failed", java.util.Map.of());
                 return;
             }
-            applyMoneyStockChange(trade, true);
+            applyMoneyStockChange(trade, true, quantity);
             List<com.hypixel.hytale.server.core.inventory.ItemStack> overflow =
-                    InventoryUtil.addItemsWithOverflow(inventory, trade.getRewardItems());
+                    InventoryUtil.addItemsWithOverflow(inventory, scaledTrade.getRewardItems());
             if (!overflow.isEmpty()) {
                 dropOverflow(player, overflow);
                 Messages.sendPrefixedKey(playerRef, "shop.trade.inventory_full", java.util.Map.of());
             }
-            applyStockChange(trade, false);
+            applyStockChange(trade, false, quantity);
             shopManager.saveShop(shop);
-            Messages.sendPrefixed(playerRef, formatTradeMessage(trade));
+            Messages.sendPrefixed(playerRef, formatTradeMessage(scaledTrade));
             return;
         }
 
-        if (!InventoryUtil.hasItems(inventory, trade.getCostItems())) {
+        if (!InventoryUtil.hasItems(inventory, scaledTrade.getCostItems())) {
             Messages.sendPrefixedKey(playerRef, "shop.trade.missing_items", java.util.Map.of());
             return;
         }
-        if (!InventoryUtil.removeItems(inventory, trade.getCostItems())) {
+        if (!InventoryUtil.removeItems(inventory, scaledTrade.getCostItems())) {
             Messages.sendPrefixedKey(playerRef, "shop.trade.remove_failed", java.util.Map.of());
             return;
         }
 
         List<com.hypixel.hytale.server.core.inventory.ItemStack> overflow =
-                InventoryUtil.addItemsWithOverflow(inventory, trade.getRewardItems());
+                InventoryUtil.addItemsWithOverflow(inventory, scaledTrade.getRewardItems());
         if (!overflow.isEmpty()) {
             dropOverflow(player, overflow);
             Messages.sendPrefixedKey(playerRef, "shop.trade.inventory_full", java.util.Map.of());
         }
-        applyStockChange(trade, false);
+        applyStockChange(trade, false, quantity);
         shopManager.saveShop(shop);
-        Messages.sendPrefixed(playerRef, formatTradeMessage(trade));
+        Messages.sendPrefixed(playerRef, formatTradeMessage(scaledTrade));
     }
 
     private void dropOverflow(@Nonnull Player player,
@@ -476,6 +516,19 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
         } catch (NumberFormatException ignored) {
             return -1;
         }
+    }
+
+    private int parseQuantity(String raw) {
+        return ShopTradeQuantityUtil.parseQuantity(raw, getMaxTradeQuantity());
+    }
+
+    private int getMaxTradeQuantity() {
+        return ShopTradeQuantityUtil.normalizeMaxQuantity(shopManager.getAdminShopMaxTradeQuantity());
+    }
+
+    private void sendInvalidQuantity() {
+        Messages.sendPrefixedKey(playerRef, "shop.trade.invalid_quantity",
+                java.util.Map.of("max", String.valueOf(getMaxTradeQuantity())));
     }
 
     private String formatTradeMessage(@Nonnull ShopTradeModel trade) {
@@ -529,19 +582,19 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
         cmd.set("#ShopFunds.Visible", true);
     }
 
-    private boolean hasMoneyStock(@Nonnull ShopTradeModel trade) {
+    private boolean hasMoneyStock(@Nonnull ShopTradeModel trade, int quantity) {
         if (!trade.isMoneyTrade() || !trade.isSellTrade()) return true;
         long limit = shop.getMoneyStockLimit();
         if (limit <= 0) return true;
-        return shop.getMoneyStockCurrent() >= trade.getMoneyCost();
+        return shop.getMoneyStockCurrent() >= ShopTradeQuantityUtil.multiplyMoney(trade.getMoneyCost(), quantity);
     }
 
-    private void applyMoneyStockChange(@Nonnull ShopTradeModel trade, boolean playerPaidMoney) {
+    private void applyMoneyStockChange(@Nonnull ShopTradeModel trade, boolean playerPaidMoney, int quantity) {
         if (!trade.isMoneyTrade()) return;
         long limit = shop.getMoneyStockLimit();
         if (limit <= 0) return;
         long current = shop.getMoneyStockCurrent();
-        long delta = trade.getMoneyCost();
+        long delta = ShopTradeQuantityUtil.multiplyMoney(trade.getMoneyCost(), quantity);
         if (playerPaidMoney) {
             shop.setMoneyStockCurrent(Math.min(limit, current + delta));
         } else {
@@ -549,17 +602,17 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
         }
     }
 
-    private boolean hasStock(@Nonnull ShopTradeModel trade) {
+    private boolean hasStock(@Nonnull ShopTradeModel trade, int quantity) {
         if (trade.isMoneyTrade() && trade.isSellTrade()) {
             return true;
         }
         if (!trade.hasStockLimit()) return true;
         int current = trade.getStockCurrent();
-        int limit = trade.getStockLimit();
-        return current > 0;
+        long required = (long) sumQuantities(trade.getRewardItems()) * Math.max(1, quantity);
+        return required <= 0L || current >= required;
     }
 
-    private void applyStockChange(@Nonnull ShopTradeModel trade, boolean isSell) {
+    private void applyStockChange(@Nonnull ShopTradeModel trade, boolean isSell, int quantity) {
         if (trade.isMoneyTrade() && trade.isSellTrade()) {
             return;
         }
@@ -567,21 +620,21 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
         int current = trade.getStockCurrent();
         int limit = trade.getStockLimit();
         if (isSell) {
-            int add = sumQuantities(trade.getCostItems());
+            int add = multiplyQuantity(sumQuantities(trade.getCostItems()), quantity);
             trade.setStockCurrent(Math.min(limit, current + add));
         } else {
-            int remove = sumQuantities(trade.getRewardItems());
+            int remove = multiplyQuantity(sumQuantities(trade.getRewardItems()), quantity);
             trade.setStockCurrent(Math.max(0, current - remove));
         }
     }
 
-    private void restockMatchingTrades(@Nonnull ShopTradeModel sellTrade) {
+    private void restockMatchingTrades(@Nonnull ShopTradeModel sellTrade, int quantity) {
         if (sellTrade.getCostItems().isEmpty()) return;
         for (ShopTradeModel trade : shop.getTrades()) {
             if (trade == sellTrade) continue;
             if (!trade.hasStockLimit()) continue;
             if (trade.isSellTrade()) continue;
-            int add = matchingQuantity(trade.getRewardItems(), sellTrade.getCostItems());
+            int add = multiplyQuantity(matchingQuantity(trade.getRewardItems(), sellTrade.getCostItems()), quantity);
             if (add <= 0) continue;
             int updated = Math.min(trade.getStockLimit(), trade.getStockCurrent() + add);
             trade.setStockCurrent(updated);
@@ -611,6 +664,11 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
             if (qty > 0) total += qty;
         }
         return total;
+    }
+
+    private int multiplyQuantity(int amount, int quantity) {
+        long total = (long) Math.max(0, amount) * Math.max(1, quantity);
+        return total > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) total;
     }
 
     private boolean shouldResetStock(@Nonnull ShopModel shop) {
@@ -647,10 +705,12 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
         public static final BuilderCodec<UIEventData> CODEC = BuilderCodec.builder(UIEventData.class, UIEventData::new)
                 .append(new KeyedCodec<>("Action", Codec.STRING), (e, v) -> e.action = v, e -> e.action).add()
                 .append(new KeyedCodec<>("Trade", Codec.STRING), (e, v) -> e.tradeIndex = v, e -> e.tradeIndex).add()
+                .append(new KeyedCodec<>("Quantity", Codec.STRING), (e, v) -> e.quantity = v, e -> e.quantity).add()
                 .build();
 
         private String action;
         private String tradeIndex;
+        private String quantity;
     }
 }
 

@@ -30,6 +30,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopContainerUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.ShopTradeQuantityUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -107,7 +108,12 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
                 if (data.tradeIndex != null) {
                     int idx = parseIndex(data.tradeIndex);
                     if (idx >= 0) {
-                        executeTrade(ref, store, idx);
+                        int quantity = parseQuantity(data.quantity);
+                        if (quantity < 0) {
+                            sendInvalidQuantity();
+                            return;
+                        }
+                        executeTrade(ref, store, idx, quantity);
                         refresh(ref, store);
                     }
                 }
@@ -234,8 +240,8 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
             String cardSelector = "#TradeCards[" + (idx - start) + "]";
             cmd.append("#TradeCards", ROW_LAYOUT);
 
-            buildCostSection(cmd, cardSelector, trade, inventory);
-            buildRewardSection(cmd, cardSelector, trade, containers);
+            buildCostSection(cmd, cardSelector, trade, inventory, 1);
+            buildRewardSection(cmd, cardSelector, trade, containers, 1);
 
             boolean needsRewardItems = requiresRewardItems(trade);
             boolean needsCostStorage = requiresCostStorage(trade);
@@ -287,29 +293,40 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
             cmd.set(cardSelector + " #StatusLabel.Text", statusText);
             cmd.set(cardSelector + " #StatusLabel.Style.TextColor", statusColor);
             cmd.set(cardSelector + " #TradeButton.Disabled", !canTrade);
+            cmd.set(cardSelector + " #TradeOneButton.Disabled", !canTrade);
+            cmd.set(cardSelector + " #TradeTenButton.Disabled", !canTrade);
+            cmd.set(cardSelector + " #TradeHundredButton.Disabled", !canTrade);
 
             evt.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     cardSelector + " #TradeButton",
-                    new EventData().append("Action", "buy").append("Trade", String.valueOf(idx)),
+                    new EventData()
+                            .append("Action", "buy")
+                            .append("Trade", String.valueOf(idx))
+                            .append("Quantity", "1"),
                     false
             );
+            bindQuickTrade(evt, cardSelector, idx, "TradeOneButton", 1);
+            bindQuickTrade(evt, cardSelector, idx, "TradeTenButton", 10);
+            bindQuickTrade(evt, cardSelector, idx, "TradeHundredButton", 100);
         }
     }
 
     private void buildCostSection(@Nonnull UICommandBuilder cmd,
                                   @Nonnull String cardSelector,
                                   @Nonnull ShopTradeModel trade,
-                                  Inventory inventory) {
+                                  Inventory inventory,
+                                  int quantity) {
+        ShopTradeModel scaled = ShopTradeQuantityUtil.scaleTrade(trade, quantity);
         cmd.clear(cardSelector + " #PayItems");
-        if (trade.isMoneyTrade() && !trade.isSellTrade()) {
-            String text = "Price: " + economy.formatAmount(trade.getMoneyCost());
+        if (scaled.isMoneyTrade() && !scaled.isSellTrade()) {
+            String text = "Price: " + economy.formatAmount(scaled.getMoneyCost());
             cmd.appendInline(cardSelector + " #PayItems",
                     "Label { Anchor: (Height: 24); Style: (FontSize: 14, TextColor: #ffffff); Text: \"" + text + "\"; }");
             return;
         }
 
-        List<ShopItemModel> items = trade.getCostItems();
+        List<ShopItemModel> items = scaled.getCostItems();
         if (items.isEmpty()) {
             cmd.appendInline(cardSelector + " #PayItems",
                     "Label { Anchor: (Height: 24); Style: (FontSize: 14, TextColor: #888888); Text: \"No cost\"; }");
@@ -336,15 +353,17 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
     private void buildRewardSection(@Nonnull UICommandBuilder cmd,
                                     @Nonnull String cardSelector,
                                     @Nonnull ShopTradeModel trade,
-                                    @Nonnull List<ItemContainer> containers) {
+                                    @Nonnull List<ItemContainer> containers,
+                                    int quantity) {
+        ShopTradeModel scaled = ShopTradeQuantityUtil.scaleTrade(trade, quantity);
         cmd.clear(cardSelector + " #GetItems");
-        if (trade.isMoneyTrade() && trade.isSellTrade()) {
-            String text = "You receive: " + economy.formatAmount(trade.getMoneyCost());
+        if (scaled.isMoneyTrade() && scaled.isSellTrade()) {
+            String text = "You receive: " + economy.formatAmount(scaled.getMoneyCost());
             cmd.appendInline(cardSelector + " #GetItems",
                     "Label { Anchor: (Height: 24); Style: (FontSize: 14, TextColor: #ffffff); Text: \"" + text + "\"; }");
             return;
         }
-        List<ShopItemModel> rewards = trade.getRewardItems();
+        List<ShopItemModel> rewards = scaled.getRewardItems();
         if (rewards.isEmpty()) {
             cmd.appendInline(cardSelector + " #GetItems",
                     "Label { Anchor: (Height: 24); Style: (FontSize: 14, TextColor: #888888); Text: \"No rewards\"; }");
@@ -374,13 +393,33 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
         return InventoryUtil.hasItems(inventory, trade.getCostItems());
     }
 
-    private void executeTrade(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store, int tradeIndex) {
+    private void bindQuickTrade(@Nonnull UIEventBuilder evt,
+                                @Nonnull String cardSelector,
+                                int tradeIndex,
+                                @Nonnull String buttonId,
+                                int quantity) {
+        evt.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                cardSelector + " #" + buttonId,
+                new EventData()
+                        .append("Action", "buy")
+                        .append("Trade", String.valueOf(tradeIndex))
+                        .append("Quantity", String.valueOf(Math.min(quantity, getMaxTradeQuantity()))),
+                false
+        );
+    }
+
+    private void executeTrade(@Nonnull Ref<EntityStore> ref,
+                              @Nonnull Store<EntityStore> store,
+                              int tradeIndex,
+                              int quantity) {
         if (tradeIndex < 0 || tradeIndex >= shop.getTrades().size()) return;
-        ShopTradeModel trade = shop.getTrades().get(tradeIndex);
+        ShopTradeModel trade = ShopTradeQuantityUtil.scaleTrade(shop.getTrades().get(tradeIndex), quantity);
         debugLog(() -> "Trade start player=" + String.valueOf(playerRef.getUsername())
                 + " uuid=" + playerRef.getUuid()
                 + " shop=" + shop.getName()
                 + " tradeIndex=" + tradeIndex
+                + " quantity=" + quantity
                 + " tradeId=" + trade.getId());
         debugLog(() -> "Trade details moneyTrade=" + trade.isMoneyTrade()
                 + " sellTrade=" + trade.isSellTrade()
@@ -852,6 +891,19 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
         }
     }
 
+    private int parseQuantity(String raw) {
+        return ShopTradeQuantityUtil.parseQuantity(raw, getMaxTradeQuantity());
+    }
+
+    private int getMaxTradeQuantity() {
+        return ShopTradeQuantityUtil.normalizeMaxQuantity(config.getPlayerShopMaxTradeQuantity());
+    }
+
+    private void sendInvalidQuantity() {
+        Messages.sendPrefixedKey(playerRef, "shop.trade.invalid_quantity",
+                java.util.Map.of("max", String.valueOf(getMaxTradeQuantity())));
+    }
+
     private String formatTradeMessage(@Nonnull ShopTradeModel trade) {
         String paid;
         String received;
@@ -947,10 +999,12 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
         public static final BuilderCodec<UIEventData> CODEC = BuilderCodec.builder(UIEventData.class, UIEventData::new)
                 .append(new KeyedCodec<>("Action", Codec.STRING), (e, v) -> e.action = v, e -> e.action).add()
                 .append(new KeyedCodec<>("Trade", Codec.STRING), (e, v) -> e.tradeIndex = v, e -> e.tradeIndex).add()
+                .append(new KeyedCodec<>("Quantity", Codec.STRING), (e, v) -> e.quantity = v, e -> e.quantity).add()
                 .build();
 
         private String action;
         private String tradeIndex;
+        private String quantity;
     }
 }
 

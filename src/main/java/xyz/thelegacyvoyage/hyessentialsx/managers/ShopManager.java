@@ -33,6 +33,10 @@ public final class ShopManager {
         return storage;
     }
 
+    public int getAdminShopMaxTradeQuantity() {
+        return config.getAdminShopMaxTradeQuantity();
+    }
+
     @Nonnull
     public List<String> listShops() {
         List<String> names = new ArrayList<>(storage.getShops().keySet());

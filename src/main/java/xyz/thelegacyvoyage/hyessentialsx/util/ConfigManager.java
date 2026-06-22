@@ -211,11 +211,13 @@ public final class ConfigManager {
     private String defaultKit = "";
 
     private boolean adminShopsEnabled = true;
+    private int adminShopMaxTradeQuantity = ShopTradeQuantityUtil.DEFAULT_MAX_QUANTITY;
     private boolean playerShopsEnabled = true;
     private boolean playerShopDirectoryEnabled = true;
     private int playerShopMaxShopsPerPlayer = 1;
     private long playerShopCreationCost = 0L;
     private int playerShopChestLinkRadius = 8;
+    private int playerShopMaxTradeQuantity = ShopTradeQuantityUtil.DEFAULT_MAX_QUANTITY;
 
     private boolean mailEnabled = true;
     private int mailCooldownSeconds = 15;
@@ -690,10 +692,12 @@ public final class ConfigManager {
         playerShops.addProperty("maxShopsPerPlayer", playerShopMaxShopsPerPlayer);
         playerShops.addProperty("shopCreationCost", playerShopCreationCost);
         playerShops.addProperty("chestLinkRadius", playerShopChestLinkRadius);
+        playerShops.addProperty("maxTradeQuantity", playerShopMaxTradeQuantity);
         root.add("playerShops", playerShops);
 
         JsonObject adminShops = new JsonObject();
         adminShops.addProperty("enabled", adminShopsEnabled);
+        adminShops.addProperty("maxTradeQuantity", adminShopMaxTradeQuantity);
         root.add("adminShops", adminShops);
 
         JsonObject mail = new JsonObject();
@@ -1227,9 +1231,11 @@ public final class ConfigManager {
             playerShopMaxShopsPerPlayer = Math.max(0, intVal(playerShops, "maxShopsPerPlayer", playerShopMaxShopsPerPlayer));
             playerShopCreationCost = Math.max(0L, moneyVal(playerShops, "shopCreationCost", playerShopCreationCost));
             playerShopChestLinkRadius = Math.max(1, intVal(playerShops, "chestLinkRadius", playerShopChestLinkRadius));
+            playerShopMaxTradeQuantity = Math.max(1, intVal(playerShops, "maxTradeQuantity", playerShopMaxTradeQuantity));
 
             JsonObject adminShops = obj(root, "adminShops");
             adminShopsEnabled = bool(adminShops, "enabled", adminShopsEnabled);
+            adminShopMaxTradeQuantity = Math.max(1, intVal(adminShops, "maxTradeQuantity", adminShopMaxTradeQuantity));
 
             JsonObject mail = obj(root, "mail");
             mailEnabled = bool(mail, "enabled", mailEnabled);
@@ -2150,6 +2156,10 @@ public final class ConfigManager {
         return adminShopsEnabled;
     }
 
+    public int getAdminShopMaxTradeQuantity() {
+        return adminShopMaxTradeQuantity;
+    }
+
     public int getPlayerShopMaxShopsPerPlayer() {
         return playerShopMaxShopsPerPlayer;
     }
@@ -2160,6 +2170,10 @@ public final class ConfigManager {
 
     public int getPlayerShopChestLinkRadius() {
         return playerShopChestLinkRadius;
+    }
+
+    public int getPlayerShopMaxTradeQuantity() {
+        return playerShopMaxTradeQuantity;
     }
 
     public boolean isMailEnabled() {
@@ -2761,9 +2775,11 @@ public final class ConfigManager {
         playerShops.addProperty("maxShopsPerPlayer", playerShopMaxShopsPerPlayer);
         playerShops.addProperty("shopCreationCost", formatMoneyConfig(playerShopCreationCost));
         playerShops.addProperty("chestLinkRadius", playerShopChestLinkRadius);
+        playerShops.addProperty("maxTradeQuantity", playerShopMaxTradeQuantity);
 
         JsonObject adminShops = obj(root, "adminShops");
         adminShops.addProperty("enabled", adminShopsEnabled);
+        adminShops.addProperty("maxTradeQuantity", adminShopMaxTradeQuantity);
 
         JsonObject mail = obj(root, "mail");
         mail.addProperty("enabled", mailEnabled);

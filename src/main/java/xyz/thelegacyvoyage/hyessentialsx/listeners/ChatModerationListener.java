@@ -87,6 +87,15 @@ public final class ChatModerationListener {
                 String format = config.getChatFormatForGroup(groupName);
                 String faction = HyFactionsUtil.getFactionName(sender.getUuid());
                 if (faction == null) faction = "";
+                if (faction.isBlank()) {
+                    format = format
+                            .replace("[{faction}]", "")
+                            .replace("({faction})", "")
+                            .replace("<{faction}>", "")
+                            .replace("{faction} ", "")
+                            .replace(" {faction}", "")
+                            .replace("{faction}", "");
+                }
                 String formattedText = format
                         .replace("{player}", sender.getUsername())
                         .replace("{message}", raw)

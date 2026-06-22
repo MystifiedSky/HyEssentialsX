@@ -111,7 +111,7 @@ public final class HyFactionsUtil {
             if (lastModified == factionFilesLastModified) {
                 return;
             }
-            Map<UUID, String> playerMap = new HashMap<>(cachedPlayerFactions);
+            Map<UUID, String> playerMap = new HashMap<>();
             try (var stream = Files.list(factionDir)) {
                 stream.filter(path -> path.getFileName().toString().endsWith(".json"))
                         .forEach(path -> readFactionMembers(path, playerMap));

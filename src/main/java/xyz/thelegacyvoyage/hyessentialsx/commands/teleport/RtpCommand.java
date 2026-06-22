@@ -253,40 +253,58 @@ public final class RtpCommand extends CommandBase {
             return;
         }
 
-        Transform transformNow = target.getTransform();
-        if (transformNow != null && transformNow.getPosition() != null) {
-            com.hypixel.hytale.math.vector.Vector3f rot = transformNow.getRotation();
-            float startYaw = (rot != null) ? rot.getY() : 0f;
-            float startPitch = (rot != null) ? rot.getX() : 0f;
-            backManager.recordLocation(
-                    target.getUuid(),
-                    targetWorld.getName(),
-                    transformNow.getPosition().getX(),
-                    transformNow.getPosition().getY(),
-                    transformNow.getPosition().getZ(),
-                    startYaw, startPitch
-            );
+        Ref<EntityStore> targetRef = target.getReference();
+        if (targetRef == null || !targetRef.isValid()) {
+            Messages.errKey(context, "player.not_found", Map.of());
+            return;
         }
-
-        String err = TeleportationUtil.teleportToLocation(
-                target.getReference().getStore(),
-                target.getReference(),
-                targetWorld.getName(),
-                targetX, targetY, targetZ,
-                0f, 0f
-        );
-        if (err != null) {
-            Messages.err(context, err);
+        Store<EntityStore> targetStore = targetRef.getStore();
+        if (targetStore == null || targetStore.getExternalData() == null || targetStore.getExternalData().getWorld() == null) {
+            Messages.errKey(context, "error.world_not_loaded", Map.of());
             return;
         }
 
-        cooldowns.apply(target, CooldownKeys.RTP);
-        Messages.sendPrefixedKey(target, "teleport.success.rtp", Map.of());
-        if (isOther) {
-            Messages.okKey(context, "rtp.other.success", Map.of("player", target.getUsername()));
-        } else {
-            Messages.okKey(context, "teleport.success.rtp", Map.of());
-        }
+        double finalTargetX = targetX;
+        double finalTargetY = targetY;
+        double finalTargetZ = targetZ;
+        boolean finalIsOther = isOther;
+        PlayerRef finalTarget = target;
+        targetStore.getExternalData().getWorld().execute(() -> {
+            Transform transformNow = finalTarget.getTransform();
+            if (transformNow != null && transformNow.getPosition() != null) {
+                com.hypixel.hytale.math.vector.Vector3f rot = transformNow.getRotation();
+                float startYaw = (rot != null) ? rot.getY() : 0f;
+                float startPitch = (rot != null) ? rot.getX() : 0f;
+                backManager.recordLocation(
+                        finalTarget.getUuid(),
+                        targetWorld.getName(),
+                        transformNow.getPosition().getX(),
+                        transformNow.getPosition().getY(),
+                        transformNow.getPosition().getZ(),
+                        startYaw, startPitch
+                );
+            }
+
+            String err = TeleportationUtil.teleportToLocation(
+                    targetStore,
+                    targetRef,
+                    targetWorld.getName(),
+                    finalTargetX, finalTargetY, finalTargetZ,
+                    0f, 0f
+            );
+            if (err != null) {
+                Messages.err(context, err);
+                return;
+            }
+
+            cooldowns.apply(finalTarget, CooldownKeys.RTP);
+            Messages.sendPrefixedKey(finalTarget, "teleport.success.rtp", Map.of());
+            if (finalIsOther) {
+                Messages.okKey(context, "rtp.other.success", Map.of("player", finalTarget.getUsername()));
+            } else {
+                Messages.okKey(context, "teleport.success.rtp", Map.of());
+            }
+        });
     }
 
     @Nullable

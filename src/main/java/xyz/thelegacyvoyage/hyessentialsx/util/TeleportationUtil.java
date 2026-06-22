@@ -16,6 +16,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.UUID;
 
 public final class TeleportationUtil {
@@ -58,7 +59,10 @@ public final class TeleportationUtil {
         Vector3d pos = new Vector3d(spawn.getX(), spawn.getY(), spawn.getZ());
         Vector3f rot = new Vector3f(0, roundYawCardinal(spawn.getYaw()), 0);
 
-        Teleport tp = Teleport.createForPlayer(targetWorld, pos, rot);
+        Teleport tp = createTeleport(targetWorld, pos, rot);
+        if (tp == null) {
+            return "Teleport API mismatch. Please update the plugin for this server build.";
+        }
         if (!tryPutTeleport(buffer, ref, tp)) {
             return "Teleport failed to queue.";
         }
@@ -80,7 +84,10 @@ public final class TeleportationUtil {
         Vector3d pos = new Vector3d(spawn.getX(), spawn.getY(), spawn.getZ());
         Vector3f rot = new Vector3f(0, roundYawCardinal(spawn.getYaw()), 0);
 
-        Teleport tp = Teleport.createForPlayer(targetWorld, pos, rot);
+        Teleport tp = createTeleport(targetWorld, pos, rot);
+        if (tp == null) {
+            return "Teleport API mismatch. Please update the plugin for this server build.";
+        }
         if (!tryPutTeleport(buffer, ref, tp)) {
             store.putComponent(ref, Teleport.getComponentType(), tp);
         }
@@ -103,8 +110,50 @@ public final class TeleportationUtil {
             return "Target world is not loaded.";
         }
 
-        Teleport tp = Teleport.createForPlayer(targetWorld, targetTransform);
+        Vector3d pos = targetTransform.getPosition();
+        Vector3f rot = targetTransform.getRotation();
+        if (pos == null || rot == null) {
+            return "Could not read target position.";
+        }
+
+        Teleport tp = createTeleport(targetWorld, pos, rot);
+        if (tp == null) {
+            return "Teleport API mismatch. Please update the plugin for this server build.";
+        }
         store.putComponent(ref, Teleport.getComponentType(), tp);
+        return null;
+    }
+
+
+    @Nullable
+    public static String teleportToPlayer(
+            @Nonnull CommandBuffer<EntityStore> buffer,
+            @Nonnull Ref<EntityStore> ref,
+            @Nonnull PlayerRef target
+    ) {
+        Transform targetTransform = target.getTransform();
+        if (targetTransform == null) {
+            return "Could not read target position.";
+        }
+
+        World targetWorld = Universe.get().getWorld(target.getWorldUuid());
+        if (targetWorld == null) {
+            return "Target world is not loaded.";
+        }
+
+        Vector3d pos = targetTransform.getPosition();
+        Vector3f rot = targetTransform.getRotation();
+        if (pos == null || rot == null) {
+            return "Could not read target position.";
+        }
+
+        Teleport tp = createTeleport(targetWorld, pos, rot);
+        if (tp == null) {
+            return "Teleport API mismatch. Please update the plugin for this server build.";
+        }
+        if (!tryPutTeleport(buffer, ref, tp)) {
+            return "Teleport failed to queue.";
+        }
         return null;
     }
 
@@ -146,7 +195,10 @@ public final class TeleportationUtil {
 
         Vector3d pos = new Vector3d(x, y, z);
         Vector3f rot = new Vector3f(pitch, yaw, 0f);
-        Teleport tp = Teleport.createForPlayer(targetWorld, pos, rot);
+        Teleport tp = createTeleport(targetWorld, pos, rot);
+        if (tp == null) {
+            return "Teleport API mismatch. Please update the plugin for this server build.";
+        }
         store.putComponent(ref, Teleport.getComponentType(), tp);
         return null;
     }
@@ -167,11 +219,88 @@ public final class TeleportationUtil {
 
         Vector3d pos = new Vector3d(x, y, z);
         Vector3f rot = new Vector3f(pitch, yaw, 0f);
-        Teleport tp = Teleport.createForPlayer(targetWorld, pos, rot);
+        Teleport tp = createTeleport(targetWorld, pos, rot);
+        if (tp == null) {
+            return "Teleport API mismatch. Please update the plugin for this server build.";
+        }
         if (!tryPutTeleport(buffer, ref, tp)) {
             return "Teleport failed to queue.";
         }
         return null;
+    }
+
+    @Nullable
+    private static Teleport createTeleport(@Nonnull World targetWorld,
+                                           @Nonnull Vector3d pos,
+                                           @Nonnull Vector3f rot) {
+        Teleport tp = tryInvokeTeleportFactory("createForPlayer", targetWorld, pos, rot);
+        if (tp != null) return tp;
+
+        Object transform = buildTransform(pos, rot);
+        if (transform != null) {
+            tp = tryInvokeTeleportFactory("createForPlayer", targetWorld, transform);
+            if (tp != null) return tp;
+        }
+
+        tp = tryInvokeTeleportFactory("create", targetWorld, pos, rot);
+        if (tp != null) return tp;
+
+        if (transform != null) {
+            tp = tryInvokeTeleportFactory("create", targetWorld, transform);
+            if (tp != null) return tp;
+        }
+
+        tp = tryInvokeTeleportFactory("of", targetWorld, pos, rot);
+        if (tp != null) return tp;
+
+        if (transform != null) {
+            tp = tryInvokeTeleportFactory("of", targetWorld, transform);
+            if (tp != null) return tp;
+        }
+
+        return null;
+    }
+
+    @Nullable
+    private static Teleport tryInvokeTeleportFactory(@Nonnull String methodName, @Nonnull Object... args) {
+        Method[] methods = Teleport.class.getMethods();
+        for (Method method : methods) {
+            if (!method.getName().equals(methodName)) continue;
+            if (!Modifier.isStatic(method.getModifiers())) continue;
+            if (!Teleport.class.isAssignableFrom(method.getReturnType())) continue;
+            if (method.getParameterCount() != args.length) continue;
+
+            Class<?>[] paramTypes = method.getParameterTypes();
+            boolean match = true;
+            for (int i = 0; i < paramTypes.length; i++) {
+                if (!paramTypes[i].isInstance(args[i])) {
+                    match = false;
+                    break;
+                }
+            }
+            if (!match) continue;
+
+            try {
+                return (Teleport) method.invoke(null, args);
+            } catch (Throwable ignored) {
+                // Try another signature/name.
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private static Object buildTransform(@Nonnull Vector3d pos, @Nonnull Vector3f rot) {
+        try {
+            return Transform.class.getConstructor(Vector3d.class, Vector3f.class).newInstance(pos, rot);
+        } catch (Throwable ignored) {
+            // Try alternate constructors if the API changed.
+        }
+        try {
+            return Transform.class.getConstructor(Vector3d.class).newInstance(pos);
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     @Nullable

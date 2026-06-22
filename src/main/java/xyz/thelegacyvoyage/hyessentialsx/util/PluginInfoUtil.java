@@ -11,19 +11,16 @@ import java.nio.charset.StandardCharsets;
 public final class PluginInfoUtil {
 
     private static final Gson GSON = new Gson();
-    private static String cachedVersion = null;
 
     private PluginInfoUtil() {}
 
     @Nonnull
     public static String getVersion() {
-        if (cachedVersion != null) return cachedVersion;
         try (InputStream in = PluginInfoUtil.class.getResourceAsStream("/manifest.json")) {
             if (in == null) return "unknown";
             JsonObject obj = GSON.fromJson(new InputStreamReader(in, StandardCharsets.UTF_8), JsonObject.class);
             if (obj != null && obj.has("Version")) {
-                cachedVersion = obj.get("Version").getAsString();
-                return cachedVersion;
+                return obj.get("Version").getAsString();
             }
         } catch (Exception ignored) {
         }

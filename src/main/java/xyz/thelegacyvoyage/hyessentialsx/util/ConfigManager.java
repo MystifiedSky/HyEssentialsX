@@ -42,6 +42,7 @@ public final class ConfigManager {
     private int backWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
     private int spawnWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
     private int rtpWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
+    private int tpaWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
 
     private boolean homesEnabled = true;
     private boolean warpsEnabled = true;
@@ -238,6 +239,7 @@ public final class ConfigManager {
         JsonObject tpa = new JsonObject();
         tpa.addProperty("timeoutSeconds", tpaRequestTimeoutSeconds);
         tpa.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        tpa.addProperty("warmupSeconds", tpaWarmupSeconds);
         root.add("tpa", tpa);
 
         JsonObject autoBroadcast = new JsonObject();
@@ -299,6 +301,7 @@ public final class ConfigManager {
 
             JsonObject tpa = obj(root, "tpa");
             tpaRequestTimeoutSeconds = intVal(tpa, "timeoutSeconds", 60);
+            tpaWarmupSeconds = intVal(tpa, "warmupSeconds", tpaWarmupSeconds);
 
             JsonObject rtp = obj(root, "rtp");
             rtpMaxDistance = intVal(rtp, "radius", 5000);
@@ -453,6 +456,10 @@ public final class ConfigManager {
 
     public int getTpaRequestTimeoutSeconds() {
         return tpaRequestTimeoutSeconds;
+    }
+
+    public int getTpaWarmupSeconds() {
+        return Math.max(0, tpaWarmupSeconds);
     }
 
     public int getRtpMaxDistance() {
@@ -728,6 +735,7 @@ public final class ConfigManager {
 
         JsonObject tpa = obj(root, "tpa");
         tpa.addProperty("timeoutSeconds", tpaRequestTimeoutSeconds);
+        tpa.addProperty("warmupSeconds", tpaWarmupSeconds);
         tpa.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.TPA));
 
         JsonObject rtp = obj(root, "rtp");

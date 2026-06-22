@@ -33,7 +33,7 @@ public final class MysqlStorageBackend implements StorageBackend {
                                @Nonnull String database,
                                @Nonnull String user,
                                @Nonnull String pass) {
-        this.url = "jdbc:mysql://" + host + ":" + port + "/" + database;
+        this.url = "jdbc:mariadb://" + host + ":" + port + "/" + database;
         this.user = user;
         this.pass = pass;
         init();
@@ -43,6 +43,7 @@ public final class MysqlStorageBackend implements StorageBackend {
     }
 
     private void init() {
+        ensureDriverLoaded();
         try (Connection conn = open()) {
             try (Statement st = conn.createStatement()) {
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_players (uuid VARCHAR(36) PRIMARY KEY, json LONGTEXT)");
@@ -53,6 +54,16 @@ public final class MysqlStorageBackend implements StorageBackend {
         } catch (Exception e) {
             Log.warn("MySQL unavailable, falling back to JSON: " + e.getMessage());
             available = false;
+        }
+    }
+
+
+
+    private void ensureDriverLoaded() {
+        try {
+            Class.forName("org.mariadb.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            Log.warn("MariaDB driver not found on classpath.");
         }
     }
 

@@ -18,6 +18,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
 import javax.annotation.Nonnull;
+import java.util.Map;
 import java.util.UUID;
 
 public final class TpaAcceptCommand extends AbstractPlayerCommand {
@@ -36,6 +37,7 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
         this.backManager = backManager;
         this.config = config;
         this.setPermissionGroup(null);
+        this.addAliases(new String[]{"tpaccept"});
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -100,6 +102,51 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
                         yaw, pitch
                 );
             }
+        }
+
+        int warmupSeconds = config.getTpaWarmupSeconds();
+        UUID teleportedId = isHere ? playerRef.getUuid() : requester.getUuid();
+        PlayerRef teleportedPlayer = isHere ? playerRef : requester;
+
+        if (warmupSeconds > 0) {
+            if (tpManager.hasPending(teleportedId)) {
+                Messages.errKey(context, "teleport.pending", Map.of());
+                return;
+            }
+
+            com.hypixel.hytale.math.vector.Transform t = teleportedPlayer.getTransform();
+            if (t == null || t.getPosition() == null) {
+                Messages.errKey(context, "teleport.position_unavailable", Map.of());
+                return;
+            }
+
+            tpManager.queue(
+                    teleportedId,
+                    t.getPosition().clone(),
+                    warmupSeconds,
+                    buffer -> {
+                        String err = isHere
+                                ? TeleportationUtil.teleportToPlayer(buffer, targetRef, requester)
+                                : TeleportationUtil.teleportToPlayer(buffer, requesterRef, playerRef);
+                        if (err != null) {
+                            Messages.sendPrefixed(teleportedPlayer, err);
+                        }
+                    }
+            );
+
+            if (!teleportedId.equals(requester.getUuid())) {
+                tpManager.cancel(requester.getUuid(), null);
+            }
+            tpManager.removeTpaRequest(requester.getUuid(), playerRef.getUuid());
+
+            Messages.ok(context, "Accepted request from " + requester.getUsername() + ".");
+            if (isHere) {
+                Messages.send(requester, "&#55FF55Teleporting " + playerRef.getUsername() + " to you in " + warmupSeconds + "s...");
+            } else {
+                Messages.send(playerRef, "&#55FF55Teleporting " + requester.getUsername() + " to you in " + warmupSeconds + "s...");
+            }
+            Messages.sendPrefixedKey(teleportedPlayer, "teleport.warmup", Map.of("seconds", String.valueOf(warmupSeconds)));
+            return;
         }
 
         tpManager.cancel(requester.getUuid(), null);

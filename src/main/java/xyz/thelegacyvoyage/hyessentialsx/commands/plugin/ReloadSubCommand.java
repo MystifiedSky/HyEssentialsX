@@ -13,9 +13,12 @@ import javax.annotation.Nonnull;
  */
 public class ReloadSubCommand extends CommandBase {
 
+    private static final String PERMISSION_NODE = "hyessentialsx.reload";
+
     public ReloadSubCommand() {
         super("reload", "Reload plugin configuration");
         this.setPermissionGroup(null);
+        xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
     @Override
@@ -25,6 +28,10 @@ public class ReloadSubCommand extends CommandBase {
 
     @Override
     protected void executeSync(@Nonnull CommandContext context) {
+        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+            xyz.thelegacyvoyage.hyessentialsx.util.Messages.noPerm(context, "/hyessentialsx reload");
+            return;
+        }
         HyEssentialsXPlugin plugin = HyEssentialsXPlugin.getInstance();
 
         if (plugin == null) {

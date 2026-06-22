@@ -2,7 +2,6 @@ package xyz.thelegacyvoyage.hyessentialsx.listeners;
 
 import com.hypixel.hytale.event.EventRegistry;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Method;
@@ -21,9 +20,7 @@ public final class SleepPercentListener {
             Class<?> eventClass = Class.forName("com.hypixel.hytale.server.core.event.events.player.SleepPercentageEvent");
             Method register = events.getClass().getMethod("registerGlobal", Class.class, Consumer.class);
             register.invoke(events, eventClass, (Consumer<Object>) this::onSleepEvent);
-            Log.info("[HyEssentialsX] SleepPercentageEvent listener registered.");
-        } catch (Throwable t) {
-            Log.warn("[HyEssentialsX] SleepPercentageEvent not available: " + t.getMessage());
+        } catch (Throwable ignored) {
         }
     }
 

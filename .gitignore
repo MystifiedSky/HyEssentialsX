@@ -21,3 +21,5 @@ server/world/
 server/
 
 docs-cache/
+
+updater/staging/

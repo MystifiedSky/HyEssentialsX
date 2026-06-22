@@ -159,7 +159,7 @@ public final class InventoryUtil {
                     return true;
                 }
             }
-            if (canMerge(existing, stack)) {
+            if (existing != null && !existing.isEmpty() && canMerge(existing, stack)) {
                 ItemStack merged = cloneWithQuantity(existing, existing.getQuantity() + stack.getQuantity());
                 if (trySetSlot(container, slot, merged)) {
                     return true;
@@ -170,6 +170,8 @@ public final class InventoryUtil {
     }
 
     private static boolean canMerge(@Nonnull ItemStack left, @Nonnull ItemStack right) {
+        if (left == null || right == null) return false;
+        if (left.isEmpty() || right.isEmpty()) return false;
         if (!left.getItemId().equals(right.getItemId())) return false;
         // Durable items (tools/armor/weapons) should never stack.
         if (left.getMaxDurability() > 0 || right.getMaxDurability() > 0) return false;

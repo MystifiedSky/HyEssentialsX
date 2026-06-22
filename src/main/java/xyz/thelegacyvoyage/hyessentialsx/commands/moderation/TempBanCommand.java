@@ -55,14 +55,14 @@ public final class TempBanCommand extends CommandBase {
         String name = context.get(nameArg);
         long seconds = TimeUtil.parseDurationSeconds(context.get(timeArg));
         if (seconds <= 0) {
-            Messages.err(context, "Invalid time. Use 10m/2h/3d/1y.");
+            Messages.errKey(context, "ban.time_invalid", java.util.Map.of());
             return;
         }
 
         PlayerRef online = Universe.get().getPlayerByUsername(name, NameMatching.EXACT_IGNORE_CASE);
         UUID uuid = online != null ? online.getUuid() : storage.resolvePlayerIdByName(name);
         if (uuid == null) {
-            Messages.err(context, "Player not found.");
+            Messages.errKey(context, "player.not_found", java.util.Map.of());
             return;
         }
 
@@ -74,25 +74,36 @@ public final class TempBanCommand extends CommandBase {
 
         long expiresAt = System.currentTimeMillis() + (seconds * 1000L);
         String actor = resolveActorName(context);
+        String finalReason = (reason == null || reason.isBlank())
+                ? Messages.tr(null, "reason.none", java.util.Map.of())
+                : reason;
         banManager.ban(uuid, new BanModel(
                 name,
                 actor,
-                (reason == null || reason.isBlank()) ? "No reason" : reason,
+                finalReason,
                 expiresAt,
                 System.currentTimeMillis()
         ));
 
         if (online != null) {
-            online.getPacketHandler().disconnect("Banned: " + (reason != null ? reason : "No reason")
-                    + " (" + TimeUtil.formatDurationSeconds(seconds) + ")");
+            String reasonText = (reason == null || reason.isBlank())
+                    ? Messages.tr(online, "reason.none", java.util.Map.of())
+                    : reason;
+            online.getPacketHandler().disconnect(Messages.tr(online, "ban.kick", java.util.Map.of(
+                    "reason", reasonText,
+                    "time", TimeUtil.formatDurationSeconds(seconds)
+            )));
         }
 
-        Messages.ok(context, "Banned " + name + " for " + TimeUtil.formatDurationSeconds(seconds) + ".");
+        Messages.okKey(context, "ban.temp.success", java.util.Map.of(
+                "player", name,
+                "time", TimeUtil.formatDurationSeconds(seconds)
+        ));
     }
 
     private static String resolveActorName(@Nonnull CommandContext context) {
         Object sender = context.sender();
-        if (sender == null) return "Console";
+        if (sender == null) return Messages.tr(null, "actor.console", java.util.Map.of());
         if (sender instanceof PlayerRef playerRef) return playerRef.getUsername();
         try {
             Method method = sender.getClass().getMethod("getName");

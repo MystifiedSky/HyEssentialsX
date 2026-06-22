@@ -18,6 +18,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.models.BanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.MuteModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.IpUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
@@ -57,9 +58,11 @@ public final class WhoisCommand extends CommandBase {
             return;
         }
 
+        PlayerRef viewer = CommandSenderUtil.resolvePlayer(context);
+
         String name = context.get(nameArg);
         if (name == null || name.isBlank()) {
-            Messages.err(context, "Player name required.");
+            Messages.errKey(context, "player.name_required", java.util.Map.of());
             return;
         }
 
@@ -72,7 +75,7 @@ public final class WhoisCommand extends CommandBase {
         }
 
         if (uuid == null) {
-            Messages.err(context, "Player not found.");
+            Messages.errKey(context, "player.not_found", java.util.Map.of());
             return;
         }
 
@@ -81,12 +84,19 @@ public final class WhoisCommand extends CommandBase {
                 ? data.getLastKnownName()
                 : name;
 
-        context.sendMessage(Messages.m("&8----------------------------------------"));
-        context.sendMessage(Messages.m("&aWHOIS &7- &f" + displayName));
-        context.sendMessage(Messages.m("&aUUID: &f" + uuid));
+        context.sendMessage(Messages.m(Messages.tr(viewer, "info.separator", java.util.Map.of())));
+        context.sendMessage(Messages.m(Messages.tr(viewer, "whois.header", java.util.Map.of(
+                "player", displayName
+        ))));
+        context.sendMessage(Messages.m(Messages.tr(viewer, "whois.uuid", java.util.Map.of(
+                "uuid", uuid.toString()
+        ))));
 
         boolean isOnline = online != null;
-        context.sendMessage(Messages.m("&aOnline: &f" + (isOnline ? "Yes" : "No")));
+        String onlineText = Messages.tr(viewer, isOnline ? "info.yes" : "info.no", java.util.Map.of());
+        context.sendMessage(Messages.m(Messages.tr(viewer, "whois.online", java.util.Map.of(
+                "status", onlineText
+        ))));
         String currentIp = null;
         if (online != null) {
             currentIp = IpUtil.extractIp(online.getPacketHandler());
@@ -98,7 +108,12 @@ public final class WhoisCommand extends CommandBase {
         if (currentIp == null || currentIp.isBlank()) {
             currentIp = data.getCurrentIp();
         }
-        context.sendMessage(Messages.m("&aCurrent IP: &f" + (currentIp == null || currentIp.isBlank() ? "Unknown" : currentIp)));
+        String ipText = (currentIp == null || currentIp.isBlank())
+                ? Messages.tr(viewer, "info.unknown", java.util.Map.of())
+                : currentIp;
+        context.sendMessage(Messages.m(Messages.tr(viewer, "whois.current_ip", java.util.Map.of(
+                "ip", ipText
+        ))));
 
         if (isOnline) {
             Transform t = online.getTransform();
@@ -106,35 +121,64 @@ public final class WhoisCommand extends CommandBase {
             if (t != null) {
                 Vector3d pos = t.getPosition();
                 if (pos != null) {
-                    context.sendMessage(Messages.m("&aLocation: &f" + (world != null ? world.getName() : "unknown") +
-                            " &7(" + (int) pos.getX() + ", " + (int) pos.getY() + ", " + (int) pos.getZ() + ")"));
+                    String worldName = world != null
+                            ? world.getName()
+                            : Messages.tr(viewer, "info.unknown", java.util.Map.of());
+                    context.sendMessage(Messages.m(Messages.tr(viewer, "whois.location", java.util.Map.of(
+                            "world", worldName,
+                            "x", String.valueOf((int) pos.getX()),
+                            "y", String.valueOf((int) pos.getY()),
+                            "z", String.valueOf((int) pos.getZ())
+                    ))));
                 }
             }
             if (world != null) {
+                PlayerRef viewerRef = viewer;
+                String unknown = Messages.tr(viewer, "info.unknown", java.util.Map.of());
                 world.execute(() -> {
                     GameMode gameMode = resolveGameModeOnWorldThread(online);
-                    String gmText = gameMode != null ? gameMode.name() : "Unknown";
-                    context.sendMessage(Messages.m("&aGamemode: &f" + gmText));
+                    String gmText = gameMode != null ? gameMode.name() : unknown;
+                    context.sendMessage(Messages.m(Messages.tr(viewerRef, "whois.gamemode", java.util.Map.of(
+                            "gamemode", gmText
+                    ))));
                 });
             } else {
-                context.sendMessage(Messages.m("&aGamemode: &fUnknown"));
+                context.sendMessage(Messages.m(Messages.tr(viewer, "whois.gamemode", java.util.Map.of(
+                        "gamemode", Messages.tr(viewer, "info.unknown", java.util.Map.of())
+                ))));
             }
         } else {
-            context.sendMessage(Messages.m("&aGamemode: &fUnknown"));
+            context.sendMessage(Messages.m(Messages.tr(viewer, "whois.gamemode", java.util.Map.of(
+                    "gamemode", Messages.tr(viewer, "info.unknown", java.util.Map.of())
+            ))));
         }
 
         long lastSeen = data.getLastSeenAt();
-        context.sendMessage(Messages.m("&aLast Seen: &f" + formatTimestamp(lastSeen) + formatAgo(lastSeen)));
+        context.sendMessage(Messages.m(Messages.tr(viewer, "whois.last_seen", java.util.Map.of(
+                "time", formatTimestamp(viewer, lastSeen),
+                "ago", formatAgo(viewer, lastSeen)
+        ))));
 
         String language = data.getLanguage();
-        context.sendMessage(Messages.m("&aLanguage: &f" + (language == null || language.isBlank() ? "default" : language)));
+        String languageText = (language == null || language.isBlank())
+                ? Messages.tr(viewer, "language.default", java.util.Map.of())
+                : language;
+        context.sendMessage(Messages.m(Messages.tr(viewer, "whois.language", java.util.Map.of(
+                "language", languageText
+        ))));
 
         long playtimeSeconds = data.getPlaytimeSeconds();
-        context.sendMessage(Messages.m("&aPlaytime: &f" + TimeUtil.formatDurationSeconds(playtimeSeconds)));
+        context.sendMessage(Messages.m(Messages.tr(viewer, "whois.playtime", java.util.Map.of(
+                "time", TimeUtil.formatDurationSeconds(playtimeSeconds)
+        ))));
 
-        context.sendMessage(Messages.m("&aMute: &f" + formatMute(data.getMute())));
-        context.sendMessage(Messages.m("&aBan: &f" + formatBan(data.getBan())));
-        context.sendMessage(Messages.m("&8----------------------------------------"));
+        context.sendMessage(Messages.m(Messages.tr(viewer, "whois.mute", java.util.Map.of(
+                "status", formatMute(viewer, data.getMute())
+        ))));
+        context.sendMessage(Messages.m(Messages.tr(viewer, "whois.ban", java.util.Map.of(
+                "status", formatBan(viewer, data.getBan())
+        ))));
+        context.sendMessage(Messages.m(Messages.tr(viewer, "info.separator", java.util.Map.of())));
     }
 
     @Nullable
@@ -150,8 +194,8 @@ public final class WhoisCommand extends CommandBase {
     }
 
     @Nonnull
-    private static String formatTimestamp(long millis) {
-        if (millis <= 0L) return "Never";
+    private static String formatTimestamp(@Nullable PlayerRef viewer, long millis) {
+        if (millis <= 0L) return Messages.tr(viewer, "time.never", java.util.Map.of());
         Instant instant = Instant.ofEpochMilli(millis);
         return DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                 .withZone(ZoneId.systemDefault())
@@ -159,29 +203,45 @@ public final class WhoisCommand extends CommandBase {
     }
 
     @Nonnull
-    private static String formatAgo(long millis) {
+    private static String formatAgo(@Nullable PlayerRef viewer, long millis) {
         if (millis <= 0L) return "";
         long diff = Math.max(0, System.currentTimeMillis() - millis);
         String ago = TimeUtil.formatDurationSeconds(diff / 1000L);
-        return " &7(" + ago + " ago)";
+        return Messages.tr(viewer, "time.ago", java.util.Map.of("time", ago));
     }
 
     @Nonnull
-    private static String formatMute(@Nullable MuteModel mute) {
-        if (mute == null) return "No";
+    private static String formatMute(@Nullable PlayerRef viewer, @Nullable MuteModel mute) {
+        if (mute == null) return Messages.tr(viewer, "punishment.none", java.util.Map.of());
         String remaining = TimeUtil.formatRemaining(mute.getExpiresAt());
-        String reason = (mute.getReason() != null && !mute.getReason().isBlank()) ? mute.getReason() : "No reason";
-        String actor = (mute.getActorName() != null && !mute.getActorName().isBlank()) ? mute.getActorName() : "Unknown";
-        return "Yes &7(" + remaining + ", " + reason + ", by " + actor + ")";
+        String reason = (mute.getReason() != null && !mute.getReason().isBlank())
+                ? mute.getReason()
+                : Messages.tr(viewer, "reason.none", java.util.Map.of());
+        String actor = (mute.getActorName() != null && !mute.getActorName().isBlank())
+                ? mute.getActorName()
+                : Messages.tr(viewer, "actor.unknown", java.util.Map.of());
+        return Messages.tr(viewer, "punishment.active", java.util.Map.of(
+                "remaining", remaining,
+                "reason", reason,
+                "actor", actor
+        ));
     }
 
     @Nonnull
-    private static String formatBan(@Nullable BanModel ban) {
-        if (ban == null) return "No";
+    private static String formatBan(@Nullable PlayerRef viewer, @Nullable BanModel ban) {
+        if (ban == null) return Messages.tr(viewer, "punishment.none", java.util.Map.of());
         String remaining = TimeUtil.formatRemaining(ban.getExpiresAt());
-        String reason = (ban.getReason() != null && !ban.getReason().isBlank()) ? ban.getReason() : "No reason";
-        String actor = (ban.getActorName() != null && !ban.getActorName().isBlank()) ? ban.getActorName() : "Unknown";
-        return "Yes &7(" + remaining + ", " + reason + ", by " + actor + ")";
+        String reason = (ban.getReason() != null && !ban.getReason().isBlank())
+                ? ban.getReason()
+                : Messages.tr(viewer, "reason.none", java.util.Map.of());
+        String actor = (ban.getActorName() != null && !ban.getActorName().isBlank())
+                ? ban.getActorName()
+                : Messages.tr(viewer, "actor.unknown", java.util.Map.of());
+        return Messages.tr(viewer, "punishment.active", java.util.Map.of(
+                "remaining", remaining,
+                "reason", reason,
+                "actor", actor
+        ));
     }
 }
 

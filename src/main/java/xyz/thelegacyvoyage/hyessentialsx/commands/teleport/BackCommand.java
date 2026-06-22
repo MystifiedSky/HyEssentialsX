@@ -94,7 +94,7 @@ public final class BackCommand extends AbstractPlayerCommand {
 
         World targetWorld = Universe.get().getWorld(target.getWorldUuid());
         if (targetWorld == null) {
-            Messages.err(context, "World not loaded.");
+            Messages.errKey(context, "error.world_not_loaded", Map.of());
             return;
         }
         Store<EntityStore> targetStore = targetWorld.getEntityStore().getStore();

@@ -54,7 +54,7 @@ public final class TpahereAllCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isTpaEnabled()) {
-            Messages.err(context, "TPA is disabled.");
+            Messages.errKey(context, "tpa.disabled", java.util.Map.of());
             return;
         }
         if (!cooldowns.canUse(context, playerRef, CooldownKeys.TPAHEREALL, "/tpahereall", BYPASS_PERMISSION)) {
@@ -66,14 +66,12 @@ public final class TpahereAllCommand extends AbstractPlayerCommand {
             if (target.getUuid().equals(playerRef.getUuid())) continue;
             if (tpManager.addTpaHereRequest(playerRef.getUuid(), target.getUuid())) {
                 count++;
-                Messages.send(target,
-                        "&#FFFF55" + playerRef.getUsername()
-                                + "&#FFFFFF wants you to teleport to them. Type &#FFFF55/tpaaccept&#FFFFFF to accept.");
+                Messages.sendKey(target, "tpahere.request.received", java.util.Map.of("player", playerRef.getUsername()));
             }
         }
 
         cooldowns.apply(playerRef, CooldownKeys.TPAHEREALL);
-        Messages.ok(context, "Teleport requests sent to " + count + " player(s).");
+        Messages.okKey(context, "tpa.request.sent_all", java.util.Map.of("count", String.valueOf(count)));
     }
 }
 

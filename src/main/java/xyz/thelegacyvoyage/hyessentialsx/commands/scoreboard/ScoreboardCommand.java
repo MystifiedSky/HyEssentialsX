@@ -49,7 +49,7 @@ public final class ScoreboardCommand extends AbstractCommand {
     @Nullable
     @Override
     public CompletableFuture<Void> execute(@Nonnull CommandContext context) {
-        Messages.send(context, "Use /scoreboard move, /scoreboard reset, or /scoreboard edit.");
+        Messages.send(context, "scoreboard.usage");
         return CompletableFuture.completedFuture(null);
     }
 
@@ -84,7 +84,7 @@ public final class ScoreboardCommand extends AbstractCommand {
                 return;
             }
             if (!config.isScoreboardEnabled()) {
-                Messages.err(context, "Scoreboard is disabled.");
+                Messages.errKey(context, "scoreboard.disabled", Map.of());
                 return;
             }
             Player player = store.getComponent(ref, Player.getComponentType());
@@ -128,7 +128,7 @@ public final class ScoreboardCommand extends AbstractCommand {
                 return;
             }
             if (!config.isScoreboardEnabled()) {
-                Messages.err(context, "Scoreboard is disabled.");
+                Messages.errKey(context, "scoreboard.disabled", Map.of());
                 return;
             }
             Player player = store.getComponent(ref, Player.getComponentType());
@@ -172,12 +172,12 @@ public final class ScoreboardCommand extends AbstractCommand {
                 return;
             }
             if (!config.isScoreboardEnabled()) {
-                Messages.err(context, "Scoreboard is disabled.");
+                Messages.errKey(context, "scoreboard.disabled", Map.of());
                 return;
             }
             scoreboardManager.resetPlayerOffset(playerRef.getUuid());
             scoreboardManager.refreshPlayer(playerRef);
-            Messages.ok(context, "Scoreboard position reset.");
+            Messages.okKey(context, "scoreboard.reset", Map.of());
         }
     }
 
@@ -212,7 +212,7 @@ public final class ScoreboardCommand extends AbstractCommand {
                 return;
             }
             if (!config.isScoreboardEnabled()) {
-                Messages.err(context, "Scoreboard is disabled.");
+                Messages.errKey(context, "scoreboard.disabled", Map.of());
                 return;
             }
             Player player = store.getComponent(ref, Player.getComponentType());
@@ -256,12 +256,12 @@ public final class ScoreboardCommand extends AbstractCommand {
                 return;
             }
             if (!config.isScoreboardEnabled()) {
-                Messages.err(context, "Scoreboard is disabled.");
+                Messages.errKey(context, "scoreboard.disabled", Map.of());
                 return;
             }
             scoreboardManager.setPlayerHidden(playerRef.getUuid(), false);
             scoreboardManager.refreshPlayer(playerRef);
-            Messages.ok(context, "Scoreboard shown.");
+            Messages.okKey(context, "scoreboard.shown", Map.of());
         }
     }
 
@@ -296,12 +296,14 @@ public final class ScoreboardCommand extends AbstractCommand {
                 return;
             }
             if (!config.isScoreboardEnabled()) {
-                Messages.err(context, "Scoreboard is disabled.");
+                Messages.errKey(context, "scoreboard.disabled", Map.of());
                 return;
             }
             scoreboardManager.setPlayerHidden(playerRef.getUuid(), true);
             scoreboardManager.refreshPlayer(playerRef);
-            Messages.ok(context, "Scoreboard hidden.");
+            Messages.okKey(context, "scoreboard.hidden", Map.of());
         }
     }
 }
+
+

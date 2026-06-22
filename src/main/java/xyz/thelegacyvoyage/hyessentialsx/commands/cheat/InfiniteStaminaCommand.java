@@ -44,9 +44,9 @@ public final class InfiniteStaminaCommand extends AbstractPlayerCommand {
 
         boolean enabled = staminaManager.toggle(playerRef.getUuid());
         if (enabled) {
-            Messages.ok(context, "Infinite stamina enabled.");
+            Messages.okKey(context, "stamina.enabled", java.util.Map.of());
         } else {
-            Messages.ok(context, "Infinite stamina disabled.");
+            Messages.okKey(context, "stamina.disabled", java.util.Map.of());
         }
     }
 }

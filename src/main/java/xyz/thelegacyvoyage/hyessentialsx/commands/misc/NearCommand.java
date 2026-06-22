@@ -54,7 +54,7 @@ public final class NearCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isNearEnabled()) {
-            Messages.err(context, "Near is disabled.");
+            Messages.errKey(context, "near.disabled", java.util.Map.of());
             return;
         }
         if (!cooldowns.canUse(context, playerRef, CooldownKeys.NEAR, "/near", BYPASS_PERMISSION)) {
@@ -63,7 +63,7 @@ public final class NearCommand extends AbstractPlayerCommand {
 
         Transform selfTransform = playerRef.getTransform();
         if (selfTransform == null) {
-            Messages.err(context, "Could not read your position.");
+            Messages.errKey(context, "error.position_unavailable", java.util.Map.of());
             return;
         }
 
@@ -81,19 +81,24 @@ public final class NearCommand extends AbstractPlayerCommand {
             if (pos.distanceSquaredTo(selfPos) > radiusSq) continue;
             if (config.isNearShowDistance()) {
                 double dist = Math.sqrt(pos.distanceSquaredTo(selfPos));
-                nearby.add(other.getUsername() + " (" + (int) dist + "m)");
+                nearby.add(Messages.tr(playerRef, "near.entry.distance", java.util.Map.of(
+                        "player", other.getUsername(),
+                        "distance", String.valueOf((int) dist)
+                )));
             } else {
                 nearby.add(other.getUsername());
             }
         }
 
         if (nearby.isEmpty()) {
-            Messages.send(context, "&7No nearby players.");
+            Messages.send(context, "near.none");
             return;
         }
 
         cooldowns.apply(playerRef, CooldownKeys.NEAR);
-        Messages.send(context, "&aNearby: &f" + String.join(", ", nearby));
+        Messages.send(context, Messages.tr(playerRef, "near.list", java.util.Map.of(
+                "players", String.join(", ", nearby)
+        )));
     }
 }
 

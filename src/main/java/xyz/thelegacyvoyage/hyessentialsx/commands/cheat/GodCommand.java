@@ -64,12 +64,14 @@ public final class GodCommand extends AbstractPlayerCommand {
 
         boolean isSelf = playerRef.getUuid().equals(target.getUuid());
         if (isSelf) {
-            Messages.ok(context, nowEnabled ? "God mode enabled." : "God mode disabled.");
+            Messages.okKey(context, nowEnabled ? "god.enabled" : "god.disabled", java.util.Map.of());
         } else {
-            Messages.ok(context, (nowEnabled ? "God mode enabled for " : "God mode disabled for ") + target.getUsername() + ".");
-            Messages.sendPrefixed(target, nowEnabled
-                    ? "God mode enabled by " + playerRef.getUsername() + "."
-                    : "God mode disabled by " + playerRef.getUsername() + ".");
+            Messages.okKey(context,
+                    nowEnabled ? "god.enabled_for" : "god.disabled_for",
+                    java.util.Map.of("player", target.getUsername()));
+            Messages.sendPrefixedKey(target,
+                    nowEnabled ? "god.enabled_by" : "god.disabled_by",
+                    java.util.Map.of("player", playerRef.getUsername()));
         }
     }
 }

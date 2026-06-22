@@ -69,11 +69,11 @@ public final class JumpToCommand extends AbstractPlayerCommand {
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         HeadRotation headRotation = store.getComponent(ref, HeadRotation.getComponentType());
         if (transform == null) {
-            Messages.err(context, "Could not read your position.");
+            Messages.errKey(context, "error.position_unavailable", java.util.Map.of());
             return;
         }
         if (headRotation == null) {
-            Messages.err(context, "Could not read your view direction.");
+            Messages.errKey(context, "error.view_direction_unavailable", java.util.Map.of());
             return;
         }
 
@@ -84,7 +84,7 @@ public final class JumpToCommand extends AbstractPlayerCommand {
         Vector3d direction = getDirectionFromRotation(pitch, yaw);
         Vector3d target = findTargetBlock(world, eyePosition, direction);
         if (target == null) {
-            Messages.err(context, "No block in range.");
+            Messages.errKey(context, "jumpto.no_block", java.util.Map.of());
             return;
         }
 
@@ -116,7 +116,7 @@ public final class JumpToCommand extends AbstractPlayerCommand {
         }
 
         cooldowns.apply(playerRef, CooldownKeys.JUMPTO);
-        Messages.ok(context, "Jumped to target.");
+        Messages.okKey(context, "jumpto.success", java.util.Map.of());
     }
 
     @Nonnull

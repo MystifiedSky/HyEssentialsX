@@ -58,7 +58,7 @@ public final class KitCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isKitsEnabled()) {
-            Messages.err(context, "Kits are disabled.");
+            Messages.errKey(context, "kit.disabled", java.util.Map.of());
             return;
         }
 
@@ -66,7 +66,7 @@ public final class KitCommand extends AbstractPlayerCommand {
         if (args.isEmpty()) {
             List<String> kits = kitManager.listKits();
             if (kits.isEmpty()) {
-                Messages.warn(context, "No kits available.");
+                Messages.warnKey(context, "kit.none_available", java.util.Map.of());
                 return;
             }
             if (config.isKitsGuiEnabled()) {
@@ -79,19 +79,21 @@ public final class KitCommand extends AbstractPlayerCommand {
                 page.open(player, ref, store);
                 return;
             }
-            Messages.send(context, "&aKits: &f" + String.join(", ", kits));
+            Messages.send(context, Messages.tr(null, "kit.list", java.util.Map.of(
+                    "kits", String.join(", ", kits)
+            )));
             return;
         }
 
         String name = args.get(0);
         if (name == null || name.trim().isEmpty()) {
-            Messages.err(context, "Kit not found.");
+            Messages.errKey(context, "kit.not_found", java.util.Map.of());
             return;
         }
         name = name.trim();
         KitModel kit = kitManager.getKit(name);
         if (kit == null) {
-            Messages.err(context, "Kit not found.");
+            Messages.errKey(context, "kit.not_found", java.util.Map.of());
             return;
         }
 
@@ -109,20 +111,22 @@ public final class KitCommand extends AbstractPlayerCommand {
         if (!bypassKitCooldown) {
             long remaining = kitManager.getRemainingCooldownSeconds(playerRef.getUuid(), kit);
             if (remaining > 0) {
-                Messages.warn(context, "You must wait " + TimeUtil.formatDurationSeconds(remaining) + " to use this kit again.");
+                Messages.warnKey(context, "kit.cooldown", java.util.Map.of(
+                        "time", TimeUtil.formatDurationSeconds(remaining)
+                ));
                 return;
             }
         }
 
         Player player = store.getComponent(ref, Player.getComponentType());
         if (player == null) {
-            Messages.err(context, "Could not access inventory.");
+            Messages.errKey(context, "error.inventory_access", java.util.Map.of());
             return;
         }
 
         Inventory inventory = player.getInventory();
         if (inventory == null) {
-            Messages.err(context, "Could not access inventory.");
+            Messages.errKey(context, "error.inventory_access", java.util.Map.of());
             return;
         }
 
@@ -132,7 +136,7 @@ public final class KitCommand extends AbstractPlayerCommand {
         }
         kitManager.markUsed(playerRef.getUuid(), kit);
 
-        Messages.ok(context, "Kit '&f" + kit.getName() + "&a' claimed.");
+        Messages.okKey(context, "kit.claimed", java.util.Map.of("kit", kit.getName()));
     }
 
     private void dropOverflow(@Nonnull PlayerRef playerRef, @Nonnull Player player, @Nonnull List<ItemStack> overflow) {
@@ -140,7 +144,7 @@ public final class KitCommand extends AbstractPlayerCommand {
             if (stack == null || stack.isEmpty()) continue;
             if (!tryDropItem(player, stack)) {
                 // If we can't drop via API, the item is lost, so log a warning.
-                Messages.send(playerRef, "&cInventory full. Some kit items could not be delivered.");
+                Messages.send(playerRef, "kit.inventory_full");
                 return;
             }
         }

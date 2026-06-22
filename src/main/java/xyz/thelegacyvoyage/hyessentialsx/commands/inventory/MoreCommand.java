@@ -68,20 +68,20 @@ public final class MoreCommand extends AbstractPlayerCommand {
 
         if (!isSelf && playerRef.getWorldUuid() != null && target.getWorldUuid() != null
                 && !playerRef.getWorldUuid().equals(target.getWorldUuid())) {
-            Messages.err(context, "Target must be in your world.");
+            Messages.errKey(context, "error.target_world", java.util.Map.of());
             return;
         }
 
         Ref<EntityStore> targetRef = target.getReference();
         Player targetPlayer = store.getComponent(targetRef, Player.getComponentType());
         if (targetPlayer == null) {
-            Messages.err(context, "Could not access inventory.");
+            Messages.errKey(context, "error.inventory_access", java.util.Map.of());
             return;
         }
 
         Inventory inventory = targetPlayer.getInventory();
         if (inventory == null) {
-            Messages.err(context, "Could not access inventory.");
+            Messages.errKey(context, "error.inventory_access", java.util.Map.of());
             return;
         }
 
@@ -106,7 +106,7 @@ public final class MoreCommand extends AbstractPlayerCommand {
         ItemStack updated = withQuantity(held, maxStack);
         ItemContainer hotbar = inventory.getHotbar();
         if (hotbar == null) {
-            Messages.err(context, "Could not access inventory.");
+            Messages.errKey(context, "error.inventory_access", java.util.Map.of());
             return;
         }
         byte slot = inventory.getActiveHotbarSlot();
@@ -143,4 +143,5 @@ public final class MoreCommand extends AbstractPlayerCommand {
         );
     }
 }
+
 

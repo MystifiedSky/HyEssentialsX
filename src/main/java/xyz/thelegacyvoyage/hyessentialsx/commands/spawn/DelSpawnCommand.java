@@ -45,18 +45,18 @@ public final class DelSpawnCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isSpawnEnabled()) {
-            Messages.err(context, "Spawn is disabled.");
+            Messages.errKey(context, "spawn.disabled", java.util.Map.of());
             return;
         }
 
         if (!spawnManager.hasSpawn()) {
-            Messages.warn(context, "No custom spawn is set.");
+            Messages.warnKey(context, "spawn.not_set", java.util.Map.of());
             return;
         }
 
         spawnManager.clearSpawn();
         spawnManager.syncWorldSpawnProvider();
-        Messages.ok(context, "Custom spawn deleted. Using world default spawn.");
+        Messages.okKey(context, "spawn.deleted", java.util.Map.of());
     }
 }
 

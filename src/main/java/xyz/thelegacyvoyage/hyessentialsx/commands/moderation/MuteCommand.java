@@ -50,7 +50,7 @@ public final class MuteCommand extends CommandBase {
 
         PlayerRef target = context.get(targetArg);
         if (target == null) {
-            Messages.err(context, "Player not found.");
+            Messages.errKey(context, "player.not_found", java.util.Map.of());
             return;
         }
 
@@ -91,17 +91,19 @@ public final class MuteCommand extends CommandBase {
         muteManager.mute(target.getUuid(), new MuteModel(
                 target.getUsername(),
                 actor,
-                (reason == null || reason.isBlank()) ? "No reason" : reason,
+                (reason == null || reason.isBlank())
+                        ? Messages.tr(null, "reason.none", java.util.Map.of())
+                        : reason,
                 expiresAt,
                 System.currentTimeMillis()
         ));
 
-        Messages.ok(context, "Muted " + target.getUsername() + ".");
+        Messages.okKey(context, "mute.success", java.util.Map.of("player", target.getUsername()));
     }
 
     private static String resolveActorName(@Nonnull CommandContext context) {
         Object sender = context.sender();
-        if (sender == null) return "Console";
+        if (sender == null) return Messages.tr(null, "actor.console", java.util.Map.of());
         if (sender instanceof PlayerRef playerRef) return playerRef.getUsername();
         try {
             Method method = sender.getClass().getMethod("getName");

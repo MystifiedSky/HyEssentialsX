@@ -48,12 +48,12 @@ public final class UnmuteCommand extends CommandBase {
         UUID uuid = online != null ? online.getUuid() : storage.resolvePlayerIdByName(name);
 
         if (uuid == null) {
-            Messages.err(context, "Player not found.");
+            Messages.errKey(context, "player.not_found", java.util.Map.of());
             return;
         }
 
         muteManager.unmute(uuid);
-        Messages.ok(context, "Unmuted " + name + ".");
+        Messages.okKey(context, "mute.unmuted", java.util.Map.of("player", name));
     }
 }
 

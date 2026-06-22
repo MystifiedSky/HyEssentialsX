@@ -52,7 +52,7 @@ public final class FreezeCommand extends AbstractPlayerCommand {
 
         List<String> args = CommandInputUtil.getArgs(context);
         if (args.isEmpty()) {
-            Messages.err(context, "Usage: /freeze <player|all>");
+            Messages.errKey(context, "freeze.usage", Map.of());
             return;
         }
 
@@ -73,9 +73,9 @@ public final class FreezeCommand extends AbstractPlayerCommand {
                 }
                 freezeManager.freeze(target);
                 count++;
-                Messages.sendPrefixed(target, "&cYou have been frozen by staff.");
+                Messages.sendPrefixedKey(target, "freeze.target", Map.of());
             }
-            Messages.ok(context, "Froze " + count + " player(s).");
+            Messages.okKey(context, "freeze.count", Map.of("count", String.valueOf(count)));
             return;
         }
 
@@ -86,13 +86,13 @@ public final class FreezeCommand extends AbstractPlayerCommand {
         }
 
         if (freezeManager.isFrozen(target.getUuid())) {
-            Messages.err(context, "That player is already frozen.");
+            Messages.errKey(context, "freeze.already", Map.of());
             return;
         }
 
         freezeManager.freeze(target);
-        Messages.ok(context, "Froze " + target.getUsername() + ".");
-        Messages.sendPrefixed(target, "&cYou have been frozen by staff.");
+        Messages.okKey(context, "freeze.single", Map.of("player", target.getUsername()));
+        Messages.sendPrefixedKey(target, "freeze.target", Map.of());
     }
 }
 

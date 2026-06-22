@@ -159,7 +159,7 @@ public class HologramCommand extends AbstractCommand {
                } else {
                   World world = player.getWorld();
                   if (world == null) {
-                     Messages.err(context, "World not available.");
+                        Messages.errKey(context, "error.world_not_available", java.util.Map.of());
                      return CompletableFuture.completedFuture(null);
                   }
                   CompletableFuture<Void> future = new CompletableFuture<>();
@@ -167,7 +167,7 @@ public class HologramCommand extends AbstractCommand {
                      try {
                         TransformComponent transform = player.getTransformComponent();
                         if (transform == null || transform.getPosition() == null) {
-                           Messages.err(context, "Could not read your position.");
+                            Messages.errKey(context, "error.position_unavailable", java.util.Map.of());
                            future.complete(null);
                            return;
                         }
@@ -386,14 +386,14 @@ public class HologramCommand extends AbstractCommand {
                   Player player = (Player)context.senderAs(Player.class);
                   World world = player.getWorld();
                   if (world == null) {
-                     Messages.err(context, "World not available.");
+                        Messages.errKey(context, "error.world_not_available", java.util.Map.of());
                      return CompletableFuture.completedFuture(null);
                   }
                   CompletableFuture<Void> future = new CompletableFuture<>();
                   world.execute(() -> {
                      TransformComponent transform = player.getTransformComponent();
                      if (transform == null || transform.getPosition() == null) {
-                        Messages.err(context, "Could not read your position.");
+                        Messages.errKey(context, "error.position_unavailable", java.util.Map.of());
                         future.complete(null);
                         return;
                      }
@@ -769,12 +769,15 @@ public class HologramCommand extends AbstractCommand {
          }
          Set<String> images = this.plugin.getHologramManager().getImageManager().getAvailableImages();
          if (images.isEmpty()) {
-            Messages.ok(context, "No images found. Add PNG/JPG files to the holograms/images folder, then /holo reload and restart.");
+            Messages.okKey(context, "hologram.images.none", java.util.Map.of());
             return CompletableFuture.completedFuture(null);
-         }
-         List<String> sorted = new ArrayList<>(images);
+        }
+        List<String> sorted = new ArrayList<>(images);
          Collections.sort(sorted);
-         Messages.ok(context, "Images (" + sorted.size() + "): " + String.join(", ", sorted));
+        Messages.okKey(context, "hologram.images.list", java.util.Map.of(
+                "count", String.valueOf(sorted.size()),
+                "images", String.join(", ", sorted)
+        ));
          return CompletableFuture.completedFuture(null);
       }
    }

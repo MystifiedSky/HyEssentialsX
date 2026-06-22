@@ -8,6 +8,7 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpHistoryModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.IpUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -50,9 +51,11 @@ public final class IpHistoryCommand extends CommandBase {
             return;
         }
 
+        PlayerRef viewer = CommandSenderUtil.resolvePlayer(context);
+
         List<String> args = CommandInputUtil.getArgs(context);
         if (args.isEmpty()) {
-            Messages.err(context, "Usage: /iphistory <player>");
+            Messages.errKey(context, "iphistory.usage", Map.of());
             return;
         }
 
@@ -81,25 +84,37 @@ public final class IpHistoryCommand extends CommandBase {
         }
         entries.sort(Comparator.comparingLong(IpHistoryModel::getLastUsed).reversed());
 
-        context.sendMessage(Messages.m("&8----------------------------------------"));
-        context.sendMessage(Messages.m("&aIP HISTORY &7- &f" + displayName));
+        context.sendMessage(Messages.m(Messages.tr(viewer, "info.separator", Map.of())));
+        context.sendMessage(Messages.m(Messages.tr(viewer, "iphistory.header", Map.of(
+                "player", displayName
+        ))));
         String currentIp = data.getCurrentIp();
-        context.sendMessage(Messages.m("&aCurrent IP: &f" + (currentIp == null || currentIp.isBlank() ? "Unknown" : currentIp)));
+        String ipText = (currentIp == null || currentIp.isBlank())
+                ? Messages.tr(viewer, "info.unknown", Map.of())
+                : currentIp;
+        context.sendMessage(Messages.m(Messages.tr(viewer, "iphistory.current_ip", Map.of(
+                "ip", ipText
+        ))));
 
         if (entries.isEmpty()) {
-            context.sendMessage(Messages.m("&cNo IP history found."));
-            context.sendMessage(Messages.m("&8----------------------------------------"));
+            context.sendMessage(Messages.m(Messages.tr(viewer, "iphistory.none", Map.of())));
+            context.sendMessage(Messages.m(Messages.tr(viewer, "info.separator", Map.of())));
             return;
         }
 
         int index = 1;
         for (IpHistoryModel entry : entries) {
-            String timestamp = formatTimestamp(entry.getLastUsed());
-            String ago = formatAgo(entry.getLastUsed());
-            context.sendMessage(Messages.m("&a" + index + ". &f" + entry.getIp() + " &7- " + timestamp + ago));
+            String timestamp = formatTimestamp(viewer, entry.getLastUsed());
+            String ago = formatAgo(viewer, entry.getLastUsed());
+            context.sendMessage(Messages.m(Messages.tr(viewer, "iphistory.entry", Map.of(
+                    "index", String.valueOf(index),
+                    "ip", entry.getIp(),
+                    "time", timestamp,
+                    "ago", ago
+            ))));
             index++;
         }
-        context.sendMessage(Messages.m("&8----------------------------------------"));
+        context.sendMessage(Messages.m(Messages.tr(viewer, "info.separator", Map.of())));
     }
 
     @Nonnull
@@ -113,8 +128,8 @@ public final class IpHistoryCommand extends CommandBase {
     }
 
     @Nonnull
-    private static String formatTimestamp(long millis) {
-        if (millis <= 0L) return "Never";
+    private static String formatTimestamp(@Nullable PlayerRef viewer, long millis) {
+        if (millis <= 0L) return Messages.tr(viewer, "time.never", Map.of());
         Instant instant = Instant.ofEpochMilli(millis);
         return DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                 .withZone(ZoneId.systemDefault())
@@ -122,10 +137,10 @@ public final class IpHistoryCommand extends CommandBase {
     }
 
     @Nonnull
-    private static String formatAgo(long millis) {
+    private static String formatAgo(@Nullable PlayerRef viewer, long millis) {
         if (millis <= 0L) return "";
         long diff = Math.max(0, System.currentTimeMillis() - millis);
         String ago = TimeUtil.formatDurationSeconds(diff / 1000L);
-        return " &7(" + ago + " ago)";
+        return Messages.tr(viewer, "time.ago", Map.of("time", ago));
     }
 }

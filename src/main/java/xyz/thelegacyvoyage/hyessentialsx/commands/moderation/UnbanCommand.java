@@ -48,12 +48,12 @@ public final class UnbanCommand extends CommandBase {
         PlayerRef online = Universe.get().getPlayerByUsername(name, NameMatching.EXACT_IGNORE_CASE);
         UUID uuid = online != null ? online.getUuid() : storage.resolvePlayerIdByName(name);
         if (uuid == null) {
-            Messages.err(context, "Player not found.");
+            Messages.errKey(context, "player.not_found", java.util.Map.of());
             return;
         }
 
         banManager.unban(uuid);
-        Messages.ok(context, "Unbanned " + name + ".");
+        Messages.okKey(context, "ban.unbanned", java.util.Map.of("player", name));
     }
 }
 

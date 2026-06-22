@@ -281,7 +281,7 @@ public final class ShopCommand extends AbstractPlayerCommand {
             return;
         }
         shopManager.saveShop(shop);
-        Messages.send(playerRef, "&aShop NPC moved.");
+        Messages.send(playerRef, "shop.admin.npc.moved");
     }
 
     private boolean moveNpcEntity(@Nonnull World world,

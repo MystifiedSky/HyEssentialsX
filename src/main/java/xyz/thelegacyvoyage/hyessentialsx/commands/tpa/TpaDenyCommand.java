@@ -50,24 +50,24 @@ public final class TpaDenyCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isTpaEnabled()) {
-            Messages.err(context, "TPA is disabled.");
+            Messages.errKey(context, "tpa.disabled", java.util.Map.of());
             return;
         }
 
         PlayerRef requester = context.get(requesterArg);
         if (requester == null) {
-            Messages.err(context, "Player not found.");
+            Messages.errKey(context, "player.not_found", java.util.Map.of());
             return;
         }
 
         if (!tpManager.hasTpaRequest(requester.getUuid(), playerRef.getUuid())) {
-            Messages.err(context, "No pending request from " + requester.getUsername() + ".");
+            Messages.errKey(context, "tpa.deny.no_pending", java.util.Map.of("player", requester.getUsername()));
             return;
         }
 
         tpManager.removeTpaRequest(requester.getUuid(), playerRef.getUuid());
-        Messages.ok(context, "Denied request from " + requester.getUsername() + ".");
-        Messages.send(requester, "&#FF5555" + playerRef.getUsername() + " denied your teleport request.");
+        Messages.okKey(context, "tpa.denied", java.util.Map.of("player", requester.getUsername()));
+        Messages.sendKey(requester, "tpa.denied_by", java.util.Map.of("player", playerRef.getUsername()));
     }
 }
 

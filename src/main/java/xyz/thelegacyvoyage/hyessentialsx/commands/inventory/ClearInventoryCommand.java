@@ -69,29 +69,29 @@ public final class ClearInventoryCommand extends AbstractPlayerCommand {
         boolean isSelf = playerRef.getUuid().equals(target.getUuid());
         if (!isSelf && playerRef.getWorldUuid() != null && target.getWorldUuid() != null
                 && !playerRef.getWorldUuid().equals(target.getWorldUuid())) {
-            Messages.err(context, "Target must be in your world.");
+            Messages.errKey(context, "error.target_world", Map.of());
             return;
         }
 
         Ref<EntityStore> targetRef = target.getReference();
         Player player = store.getComponent(targetRef, Player.getComponentType());
         if (player == null) {
-            Messages.err(context, "Could not access inventory.");
+            Messages.errKey(context, "error.inventory_access", Map.of());
             return;
         }
 
         Inventory inventory = player.getInventory();
         if (inventory == null) {
-            Messages.err(context, "Could not access inventory.");
+            Messages.errKey(context, "error.inventory_access", Map.of());
             return;
         }
 
         InventoryUtil.clear(inventory);
         if (isSelf) {
-            Messages.ok(context, "Inventory cleared.");
+            Messages.okKey(context, "inventory.cleared", Map.of());
         } else {
-            Messages.ok(context, "Cleared inventory for " + target.getUsername() + ".");
-            Messages.sendPrefixed(target, "Your inventory was cleared by " + playerRef.getUsername() + ".");
+            Messages.okKey(context, "inventory.cleared_other", Map.of("player", target.getUsername()));
+            Messages.sendPrefixedKey(target, "inventory.cleared_by", Map.of("player", playerRef.getUsername()));
         }
     }
 }

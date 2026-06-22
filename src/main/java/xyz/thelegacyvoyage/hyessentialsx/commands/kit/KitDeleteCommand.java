@@ -50,18 +50,18 @@ public final class KitDeleteCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isKitsEnabled()) {
-            Messages.err(context, "Kits are disabled.");
+            Messages.errKey(context, "kit.disabled", java.util.Map.of());
             return;
         }
 
         String name = context.get(nameArg);
         boolean removed = kitManager.deleteKit(name);
         if (!removed) {
-            Messages.err(context, "Kit not found.");
+            Messages.errKey(context, "kit.not_found", java.util.Map.of());
             return;
         }
 
-        Messages.ok(context, "Kit '&f" + name + "&a' deleted.");
+        Messages.okKey(context, "kit.deleted", java.util.Map.of("kit", name));
     }
 }
 

@@ -104,7 +104,7 @@ public final class RtpCommand extends AbstractPlayerCommand {
             }
         } else {
             if (!cooldowns.canUse(target, CooldownKeys.RTP, "/rtp", BYPASS_PERMISSION)) {
-                Messages.err(context, "Target is on cooldown.");
+                Messages.errKey(context, "error.target_cooldown", Map.of());
                 return;
             }
         }
@@ -118,7 +118,7 @@ public final class RtpCommand extends AbstractPlayerCommand {
         if (worldArg != null && !worldArg.isBlank()) {
             World specified = Universe.get().getWorld(worldArg);
             if (specified == null) {
-                Messages.err(context, "World '" + worldArg + "' is not loaded.");
+                Messages.errKey(context, "error.world_not_loaded_named", Map.of("world", worldArg));
                 return;
             }
             chosenWorld = specified;
@@ -129,7 +129,7 @@ public final class RtpCommand extends AbstractPlayerCommand {
             if (overrideWorld != null) {
                 chosenWorld = overrideWorld;
             } else {
-                Messages.warn(context, "RTP override world '" + overrideWorldName + "' is not loaded. Using current world.");
+                Messages.warnKey(context, "rtp.override_world_missing", Map.of("world", overrideWorldName));
             }
         }
         final World targetWorld = chosenWorld;
@@ -235,7 +235,7 @@ public final class RtpCommand extends AbstractPlayerCommand {
             );
             Messages.sendPrefixedKey(warmupTarget, "teleport.warmup", Map.of("seconds", String.valueOf(warmupSeconds)));
             if (isOther) {
-                Messages.ok(context, "Teleporting " + target.getUsername() + " shortly...");
+                Messages.okKey(context, "rtp.other.warmup", Map.of("player", target.getUsername()));
             }
             return;
         }
@@ -270,7 +270,7 @@ public final class RtpCommand extends AbstractPlayerCommand {
         cooldowns.apply(target, CooldownKeys.RTP);
         Messages.sendPrefixedKey(target, "teleport.success.rtp", Map.of());
         if (isOther) {
-            Messages.ok(context, "Teleported " + target.getUsername() + " to a random location.");
+            Messages.okKey(context, "rtp.other.success", Map.of("player", target.getUsername()));
         } else {
             Messages.okKey(context, "teleport.success.rtp", Map.of());
         }

@@ -68,7 +68,9 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
                 }
             }
         }
-        cmd.set("#KitCount.Text", visible.size() + " Kits");
+        cmd.set("#KitCount.Text", Messages.tr(playerRef, "kit.ui.count", Map.of(
+                "count", String.valueOf(visible.size())
+        )));
         buildKitsList(cmd, evt, visible);
 
         evt.addEventBinding(
@@ -126,8 +128,9 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
         cmd.clear("#KitList");
 
         if (kits.isEmpty()) {
+            String emptyText = Messages.tr(playerRef, "kit.ui.none_available", Map.of());
             cmd.appendInline("#KitList",
-                    "Label { Text: \"No kits available.\"; " +
+                    "Label { Text: \"" + emptyText + "\"; " +
                             "Style: (FontSize: 13, TextColor: #666666, HorizontalAlignment: Center); " +
                             "Anchor: (Top: 30); }");
             return;
@@ -149,26 +152,28 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
 
     private void claimKit(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store, @Nonnull String name) {
         if (name == null || name.isBlank()) {
-            Messages.sendPrefixed(playerRef, "&cKit not found.");
+            Messages.sendPrefixedKey(playerRef, "kit.not_found", Map.of());
             return;
         }
         String kitName = name.trim();
         KitModel kit = kitManager.getKit(kitName);
         if (kit == null) {
-            Messages.sendPrefixed(playerRef, "&cKit not found.");
+            Messages.sendPrefixedKey(playerRef, "kit.not_found", Map.of());
             return;
         }
 
         if (config.isKitsRequirePermission()) {
             String kitPermission = "hyessentialsx.kit." + kit.getName().toLowerCase();
             if (!PermissionsModule.get().hasPermission(playerRef.getUuid(), kitPermission)) {
-                Messages.sendPrefixed(playerRef, "&cYou don't have permission to use /kit " + kit.getName() + ".");
+                Messages.sendPrefixedKey(playerRef, "error.no_permission", Map.of(
+                        "command", "/kit " + kit.getName()
+                ));
                 return;
             }
         }
 
         if (!PermissionsModule.get().hasPermission(playerRef.getUuid(), PERMISSION_NODE)) {
-            Messages.sendPrefixed(playerRef, "&cYou don't have permission to use /kit.");
+            Messages.sendPrefixedKey(playerRef, "error.no_permission", Map.of("command", "/kit"));
             return;
         }
 
@@ -178,19 +183,21 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
         if (!bypassKitCooldown) {
             long remaining = kitManager.getRemainingCooldownSeconds(playerRef.getUuid(), kit);
             if (remaining > 0) {
-                Messages.sendPrefixed(playerRef, "&eYou must wait " + TimeUtil.formatDurationSeconds(remaining) + " to use this kit again.");
+                Messages.sendPrefixedKey(playerRef, "kit.cooldown", Map.of(
+                        "time", TimeUtil.formatDurationSeconds(remaining)
+                ));
                 return;
             }
         }
 
         Player player = store.getComponent(ref, Player.getComponentType());
         if (player == null) {
-            Messages.sendPrefixed(playerRef, "&cCould not access inventory.");
+            Messages.sendPrefixedKey(playerRef, "error.inventory_access", Map.of());
             return;
         }
         Inventory inventory = player.getInventory();
         if (inventory == null) {
-            Messages.sendPrefixed(playerRef, "&cCould not access inventory.");
+            Messages.sendPrefixedKey(playerRef, "error.inventory_access", Map.of());
             return;
         }
 
@@ -199,7 +206,7 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
             dropOverflow(playerRef, player, overflow);
         }
         kitManager.markUsed(playerRef.getUuid(), kit);
-        Messages.sendPrefixed(playerRef, "&aKit '&f" + kit.getName() + "&a' claimed.");
+        Messages.sendPrefixedKey(playerRef, "kit.claimed", Map.of("kit", kit.getName()));
         close();
     }
 
@@ -207,7 +214,7 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
         for (ItemStack stack : overflow) {
             if (stack == null || stack.isEmpty()) continue;
             if (!tryDropItem(player, stack)) {
-                Messages.send(playerRef, "&cInventory full. Some kit items could not be delivered.");
+                Messages.send(playerRef, "kit.inventory_full");
                 return;
             }
         }

@@ -56,7 +56,9 @@ public final class MigrateSubCommand extends AbstractAsyncCommand {
         String modName = context.get(modArg);
         MigrationManager.ModType mod = MigrationManager.ModType.fromName(modName);
         if (mod == null) {
-            Messages.err(context, "Invalid mod. Supported: " + MigrationManager.ModType.supportedNames());
+            Messages.errKey(context, "migrate.invalid_mod", java.util.Map.of(
+                    "mods", MigrationManager.ModType.supportedNames()
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -65,37 +67,56 @@ public final class MigrateSubCommand extends AbstractAsyncCommand {
 
         Path sourceDir = migrationManager.resolveSourceDir(mod);
         if (!Files.exists(sourceDir) || !Files.isDirectory(sourceDir)) {
-            Messages.err(context, "Source directory not found: " + sourceDir.toAbsolutePath());
+            Messages.errKey(context, "migrate.source_missing", java.util.Map.of(
+                    "path", sourceDir.toAbsolutePath().toString()
+            ));
             return CompletableFuture.completedFuture(null);
         }
 
-        Messages.warn(context, "Starting migration from " + mod.getDisplayName() + "...");
-        Messages.send(context, "&7Source: " + sourceDir.toAbsolutePath());
-        Messages.send(context, "&7Merge mode: " + (merge ? "enabled" : "disabled (WILL REPLACE DATA)"));
+        Messages.warnKey(context, "migrate.start", java.util.Map.of("mod", mod.getDisplayName()));
+        Messages.send(context, Messages.tr(null, "migrate.source", java.util.Map.of(
+                "path", sourceDir.toAbsolutePath().toString()
+        )));
+        String mergeState = Messages.tr(null,
+                merge ? "migrate.merge.enabled" : "migrate.merge.disabled",
+                java.util.Map.of());
+        Messages.send(context, Messages.tr(null, "migrate.merge", java.util.Map.of(
+                "state", mergeState
+        )));
 
-        Messages.warn(context, "Creating backup of HyEssentialsX data...");
+        Messages.warnKey(context, "migrate.backup.start", java.util.Map.of());
         Path backup = createBackup();
         if (backup != null) {
-            Messages.ok(context, "Backup created: " + backup.getFileName());
+            Messages.okKey(context, "migrate.backup.created", java.util.Map.of(
+                    "file", backup.getFileName().toString()
+            ));
         } else {
-            Messages.warn(context, "Warning: failed to create backup, continuing anyway.");
+            Messages.warnKey(context, "migrate.backup.failed", java.util.Map.of());
         }
 
         ModMigration.MigrationResult result = migrationManager.migrate(mod, merge);
         if (result.isSuccess()) {
-            Messages.ok(context, "Migration completed successfully.");
-            Messages.send(context, "&7" + result.getSummary());
+            Messages.okKey(context, "migrate.success", java.util.Map.of());
+            Messages.send(context, Messages.tr(null, "migrate.summary", java.util.Map.of(
+                    "summary", result.getSummary()
+            )));
             for (String notice : result.getNotices()) {
                 Messages.warn(context, notice);
             }
             if (backup != null) {
-                Messages.send(context, "&7Backup saved to: " + backup.toAbsolutePath());
+                Messages.send(context, Messages.tr(null, "migrate.backup.saved", java.util.Map.of(
+                        "path", backup.toAbsolutePath().toString()
+                )));
             }
-            Messages.warn(context, "Please restart the server for changes to take full effect.");
+            Messages.warnKey(context, "migrate.restart", java.util.Map.of());
         } else {
-            Messages.err(context, "Migration failed: " + result.getErrorMessage());
+            Messages.errKey(context, "migrate.failed", java.util.Map.of(
+                    "error", result.getErrorMessage()
+            ));
             if (backup != null) {
-                Messages.warn(context, "You can restore from backup: " + backup.toAbsolutePath());
+                Messages.warnKey(context, "migrate.backup.restore", java.util.Map.of(
+                        "path", backup.toAbsolutePath().toString()
+                ));
             }
         }
 

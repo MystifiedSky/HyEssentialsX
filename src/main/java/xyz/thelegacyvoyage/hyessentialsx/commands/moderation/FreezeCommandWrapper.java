@@ -63,7 +63,7 @@ public final class FreezeCommandWrapper extends AbstractCommand {
                 return false;
             }
         }
-        player.sendMessage(Messages.m("&cYou are frozen and cannot use commands."));
+        player.sendMessage(Messages.m(Messages.tr(player, "freeze.blocked", java.util.Map.of())));
         return true;
     }
 

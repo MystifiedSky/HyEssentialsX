@@ -60,13 +60,13 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isTpaEnabled()) {
-            Messages.err(context, "TPA is disabled.");
+            Messages.errKey(context, "tpa.disabled", Map.of());
             return;
         }
 
         TPManager.LatestRequest latest = tpManager.getLatestTpaRequester(playerRef.getUuid());
         if (latest == null) {
-            Messages.err(context, "No pending teleport requests.");
+            Messages.errKey(context, "tpa.accept.none", Map.of());
             return;
         }
         UUID requesterId = latest.requester();
@@ -74,7 +74,7 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
         PlayerRef requester = Universe.get().getPlayer(requesterId);
         if (requester == null) {
             tpManager.removeTpaRequest(requesterId, playerRef.getUuid());
-            Messages.err(context, "Requester is no longer online.");
+            Messages.errKey(context, "tpa.accept.requester_offline", Map.of());
             return;
         }
 
@@ -133,11 +133,17 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
             }
             tpManager.removeTpaRequest(requester.getUuid(), playerRef.getUuid());
 
-            Messages.ok(context, "Accepted request from " + requester.getUsername() + ".");
+            Messages.okKey(context, "tpa.accepted", Map.of("player", requester.getUsername()));
             if (isHere) {
-                Messages.send(requester, "&#55FF55Teleporting " + playerRef.getUsername() + " to you in " + warmupSeconds + "s...");
+                Messages.sendKey(requester, "tpa.accept.teleporting_to_you_warmup", Map.of(
+                        "player", playerRef.getUsername(),
+                        "seconds", String.valueOf(warmupSeconds)
+                ));
             } else {
-                Messages.send(playerRef, "&#55FF55Teleporting " + requester.getUsername() + " to you in " + warmupSeconds + "s...");
+                Messages.sendKey(playerRef, "tpa.accept.teleporting_to_you_warmup", Map.of(
+                        "player", requester.getUsername(),
+                        "seconds", String.valueOf(warmupSeconds)
+                ));
             }
             Messages.sendPrefixedKey(teleportedPlayer, "teleport.warmup", Map.of("seconds", String.valueOf(warmupSeconds)));
             return;
@@ -162,10 +168,11 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
 
         tpManager.removeTpaRequest(requester.getUuid(), playerRef.getUuid());
 
-        Messages.ok(context, "Accepted request from " + requester.getUsername() + ".");
-        Messages.send(requester, isHere
-                ? "&#55FF55Teleporting " + playerRef.getUsername() + " to you..."
-                : "&#55FF55Teleporting to " + playerRef.getUsername() + "...");
+        Messages.okKey(context, "tpa.accepted", Map.of("player", requester.getUsername()));
+        Messages.sendKey(requester, isHere
+                ? "tpa.accept.teleporting_to_you"
+                : "tpa.accept.teleporting_to_target",
+                Map.of("player", playerRef.getUsername()));
     }
 
     @Nullable

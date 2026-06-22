@@ -379,7 +379,7 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         }
         pruneChestsOutOfRange(shop, world.getName(), basePos);
         shopManager.saveShop(shop);
-        Messages.send(playerRef, "&aShop NPC moved.");
+        Messages.send(playerRef, "shop.player.npc.moved");
     }
 
     private boolean moveNpcEntity(@Nonnull World world,

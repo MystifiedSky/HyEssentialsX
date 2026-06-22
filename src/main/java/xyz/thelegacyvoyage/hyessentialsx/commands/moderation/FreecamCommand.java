@@ -67,12 +67,14 @@ public final class FreecamCommand extends AbstractPlayerCommand {
         SetFlyCameraMode packet = new SetFlyCameraMode(activate);
         target.getPacketHandler().write((Packet) packet);
         if (isSelf) {
-            Messages.ok(context, activate ? "Freecam enabled." : "Freecam disabled.");
+            Messages.okKey(context, activate ? "freecam.enabled" : "freecam.disabled", Map.of());
         } else {
-            Messages.ok(context, (activate ? "Freecam enabled for " : "Freecam disabled for ") + target.getUsername() + ".");
-            Messages.sendPrefixed(target, activate
-                    ? "Freecam enabled by " + playerRef.getUsername() + "."
-                    : "Freecam disabled by " + playerRef.getUsername() + ".");
+            Messages.okKey(context,
+                    activate ? "freecam.enabled_for" : "freecam.disabled_for",
+                    Map.of("player", target.getUsername()));
+            Messages.sendPrefixedKey(target,
+                    activate ? "freecam.enabled_by" : "freecam.disabled_by",
+                    Map.of("player", playerRef.getUsername()));
         }
     }
 }

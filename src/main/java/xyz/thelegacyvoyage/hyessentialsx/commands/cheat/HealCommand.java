@@ -74,12 +74,12 @@ public final class HealCommand extends AbstractPlayerCommand {
         Ref<EntityStore> targetRef = target.getReference();
         Store<EntityStore> targetStore = targetRef.getStore();
         if (targetStore == null) {
-            Messages.err(context, "Could not access target stats.");
+            Messages.errKey(context, "heal.stats_unavailable", java.util.Map.of());
             return;
         }
         EntityStatMap stats = targetStore.getComponent(targetRef, EntityStatMap.getComponentType());
         if (stats == null) {
-            Messages.err(context, "Could not access target stats.");
+            Messages.errKey(context, "heal.stats_unavailable", java.util.Map.of());
             return;
         }
 
@@ -89,10 +89,10 @@ public final class HealCommand extends AbstractPlayerCommand {
 
         cooldowns.apply(playerRef, CooldownKeys.HEAL);
         if (target.getUuid().equals(playerRef.getUuid())) {
-            Messages.ok(context, "Healed.");
+            Messages.okKey(context, "heal.self", java.util.Map.of());
         } else {
-            Messages.ok(context, "Healed " + target.getUsername() + ".");
-            Messages.send(target, "&aYou were healed.");
+            Messages.okKey(context, "heal.other", java.util.Map.of("player", target.getUsername()));
+            Messages.sendKey(target, "heal.target", java.util.Map.of());
         }
     }
 }

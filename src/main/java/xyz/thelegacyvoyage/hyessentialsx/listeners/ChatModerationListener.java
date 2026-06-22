@@ -47,10 +47,17 @@ public final class ChatModerationListener {
             if (mute != null) {
                 event.setCancelled(true);
                 String remaining = TimeUtil.formatRemaining(mute.getExpiresAt());
-                Messages.send(sender, "&cYou are muted." +
-                        (remaining != null ? " &7(" + remaining + ")" : ""));
+                if (remaining != null && !remaining.isBlank()) {
+                    Messages.send(sender, Messages.tr(sender, "mute.blocked_remaining", java.util.Map.of(
+                            "time", remaining
+                    )));
+                } else {
+                    Messages.send(sender, "mute.blocked");
+                }
                 if (mute.getReason() != null && !mute.getReason().isBlank()) {
-                    Messages.send(sender, "&7Reason: &f" + mute.getReason());
+                    Messages.send(sender, Messages.tr(sender, "mute.reason", java.util.Map.of(
+                            "reason", mute.getReason()
+                    )));
                 }
                 return;
             }

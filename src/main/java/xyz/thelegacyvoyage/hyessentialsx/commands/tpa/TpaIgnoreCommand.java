@@ -46,16 +46,16 @@ public final class TpaIgnoreCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isTpaEnabled()) {
-            Messages.err(context, "TPA is disabled.");
+            Messages.errKey(context, "tpa.disabled", java.util.Map.of());
             return;
         }
 
         boolean enabled = tpManager.toggleTpaIgnore(playerRef.getUuid());
         if (enabled) {
             tpManager.removeAllTpaFor(playerRef.getUuid());
-            Messages.ok(context, "Teleport requests ignored.");
+            Messages.okKey(context, "tpa.ignore.enabled", java.util.Map.of());
         } else {
-            Messages.ok(context, "Teleport requests accepted.");
+            Messages.okKey(context, "tpa.ignore.disabled", java.util.Map.of());
         }
     }
 }

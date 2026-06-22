@@ -65,7 +65,8 @@ public final class TpaUI extends com.hypixel.hytale.server.core.entity.entities.
         cmd.set("#SearchInput.Value", query);
 
         List<PlayerRef> players = collectPlayers(query);
-        cmd.set("#PlayerCount.Text", players.size() + " Players");
+        cmd.set("#PlayerCount.Text", Messages.tr(playerRef, "tpa.ui.player_count",
+                Map.of("count", String.valueOf(players.size()))));
         buildPlayersList(cmd, evt, players);
 
         evt.addEventBinding(
@@ -158,7 +159,7 @@ public final class TpaUI extends com.hypixel.hytale.server.core.entity.entities.
 
         if (players.isEmpty()) {
             cmd.appendInline("#PlayerList",
-                    "Label { Text: \"No players found.\"; " +
+                    "Label { Text: \"" + Messages.tr(playerRef, "tpa.ui.no_players", Map.of()) + "\"; " +
                             "Style: (FontSize: 13, TextColor: #666666, HorizontalAlignment: Center); " +
                             "Anchor: (Top: 30); }");
             return;
@@ -187,37 +188,35 @@ public final class TpaUI extends com.hypixel.hytale.server.core.entity.entities.
         }
         PlayerRef target = Universe.get().getPlayer(uuid);
         if (target == null) {
-            Messages.sendPrefixed(playerRef, "&cPlayer not found.");
+            Messages.sendPrefixedKey(playerRef, "player.not_found", Map.of());
             return;
         }
         if (target.getUuid().equals(playerRef.getUuid())) {
-            Messages.sendPrefixed(playerRef, "&cYou can't send a request to yourself.");
+            Messages.sendPrefixedKey(playerRef, "tpa.self", Map.of());
             return;
         }
         if (!PermissionsModule.get().hasPermission(playerRef.getUuid(), PERMISSION_NODE)) {
-            Messages.sendPrefixed(playerRef, "&cYou don't have permission to use /tpa.");
+            Messages.sendPrefixedKey(playerRef, "error.no_permission", Map.of("command", "/tpa"));
             return;
         }
         if (!config.isTpaEnabled()) {
-            Messages.sendPrefixed(playerRef, "&cTPA is disabled.");
+            Messages.sendPrefixedKey(playerRef, "tpa.disabled", Map.of());
             return;
         }
         if (!cooldowns.canUse(playerRef, CooldownKeys.TPA, "/tpa", BYPASS_PERMISSION)) {
             return;
         }
         if (tpManager.isTpaIgnored(target.getUuid())) {
-            Messages.sendPrefixed(playerRef, "&e" + target.getUsername() + " is not accepting teleport requests.");
+            Messages.sendPrefixedKey(playerRef, "tpa.target_ignored", Map.of("player", target.getUsername()));
             return;
         }
         boolean created = tpManager.addTpaRequest(playerRef.getUuid(), target.getUuid());
         if (!created) {
-            Messages.sendPrefixed(playerRef, "&eYou already have a pending request to " + target.getUsername() + ".");
+            Messages.sendPrefixedKey(playerRef, "tpa.request.pending", Map.of("player", target.getUsername()));
             return;
         }
-        Messages.sendPrefixed(playerRef, "&aTeleport request sent to " + target.getUsername() + ".");
-        Messages.send(target,
-                "&#FFFF55" + playerRef.getUsername()
-                        + "&#FFFFFF wants to teleport to you. Type &#FFFF55/tpaaccept&#FFFFFF to accept.");
+        Messages.sendPrefixedKey(playerRef, "tpa.request.sent", Map.of("player", target.getUsername()));
+        Messages.sendKey(target, "tpa.request.received", Map.of("player", playerRef.getUsername()));
         cooldowns.apply(playerRef, CooldownKeys.TPA);
         close();
     }

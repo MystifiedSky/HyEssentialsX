@@ -186,7 +186,7 @@ public final class ShopNpcListener implements Consumer<PlayerInteractEvent> {
                              @Nonnull ShopModel shop) {
         String perm = shop.getUsePermission();
         if (!perm.isBlank() && !hasPermission(player, playerRefComponent, perm)) {
-            Messages.sendPrefixed(playerRefComponent, "&cYou don't have permission to use this shop.");
+            Messages.sendPrefixedKey(playerRefComponent, "shop.use.no_permission", java.util.Map.of());
             return true;
         }
 

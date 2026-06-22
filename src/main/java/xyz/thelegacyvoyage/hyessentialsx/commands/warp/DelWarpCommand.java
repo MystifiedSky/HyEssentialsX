@@ -51,18 +51,18 @@ public final class DelWarpCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isWarpsEnabled()) {
-            Messages.err(context, "Warps are disabled.");
+            Messages.errKey(context, "warp.disabled", java.util.Map.of());
             return;
         }
 
         String name = context.get(nameArg);
         boolean removed = warpManager.deleteWarp(name);
         if (!removed) {
-            Messages.err(context, "Warp not found.");
+            Messages.errKey(context, "warp.not_found", java.util.Map.of());
             return;
         }
 
-        Messages.ok(context, "Warp '&f" + name + "&a' deleted.");
+        Messages.okKey(context, "warp.deleted", java.util.Map.of("warp", name));
     }
 }
 

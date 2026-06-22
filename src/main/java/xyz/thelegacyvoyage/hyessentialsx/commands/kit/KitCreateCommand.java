@@ -61,13 +61,13 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isKitsEnabled()) {
-            Messages.err(context, "Kits are disabled.");
+            Messages.errKey(context, "kit.disabled", java.util.Map.of());
             return;
         }
 
         String name = context.get(nameArg);
         if (name == null || name.isBlank()) {
-            Messages.err(context, "Kit name required.");
+            Messages.errKey(context, "kit.name_required", java.util.Map.of());
             return;
         }
 
@@ -76,7 +76,7 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
         if (raw != null && !raw.isBlank()) {
             long secs = TimeUtil.parseDurationSeconds(raw);
             if (secs < 0) {
-                Messages.err(context, "Invalid cooldown. Use 10m/2h/3d/1y.");
+                Messages.errKey(context, "kit.cooldown_invalid", java.util.Map.of());
                 return;
             }
             cooldownSeconds = (int) Math.min(Integer.MAX_VALUE, secs);
@@ -84,20 +84,20 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
 
         Player player = store.getComponent(ref, Player.getComponentType());
         if (player == null) {
-            Messages.err(context, "Could not read inventory.");
+            Messages.errKey(context, "error.inventory_read", java.util.Map.of());
             return;
         }
 
         Inventory inventory = player.getInventory();
         if (inventory == null) {
-            Messages.err(context, "Could not read inventory.");
+            Messages.errKey(context, "error.inventory_read", java.util.Map.of());
             return;
         }
 
         List<KitItemModel> items = InventoryUtil.snapshot(inventory);
         kitManager.setKit(new KitModel(name, cooldownSeconds, items));
 
-        Messages.ok(context, "Kit '&f" + name + "&a' created.");
+        Messages.okKey(context, "kit.created", java.util.Map.of("kit", name));
     }
 }
 

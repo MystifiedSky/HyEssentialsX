@@ -52,7 +52,7 @@ public final class AfkCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isAfkEnabled()) {
-            Messages.err(context, "AFK is disabled.");
+            Messages.errKey(context, "afk.disabled", java.util.Map.of());
             return;
         }
         if (!cooldowns.canUse(context, playerRef, CooldownKeys.AFK, "/afk", BYPASS_PERMISSION)) {

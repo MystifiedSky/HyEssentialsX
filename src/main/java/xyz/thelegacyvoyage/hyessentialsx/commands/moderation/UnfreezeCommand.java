@@ -55,13 +55,13 @@ public final class UnfreezeCommand extends AbstractPlayerCommand {
         }
 
         if (!freezeManager.isFrozen(target.getUuid())) {
-            Messages.err(context, "That player is not frozen.");
+            Messages.errKey(context, "freeze.not_frozen", Map.of());
             return;
         }
 
         freezeManager.unfreeze(target.getUuid());
-        Messages.ok(context, "Unfroze " + target.getUsername() + ".");
-        Messages.sendPrefixed(target, "&aYou have been unfrozen.");
+        Messages.okKey(context, "freeze.unfrozen", Map.of("player", target.getUsername()));
+        Messages.sendPrefixedKey(target, "freeze.unfrozen_target", Map.of());
     }
 }
 

@@ -57,7 +57,7 @@ public final class TpahereCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isTpaEnabled()) {
-            Messages.err(context, "TPA is disabled.");
+            Messages.errKey(context, "tpa.disabled", java.util.Map.of());
             return;
         }
         if (!cooldowns.canUse(context, playerRef, CooldownKeys.TPAHERE, "/tpahere", BYPASS_PERMISSION)) {
@@ -66,25 +66,23 @@ public final class TpahereCommand extends AbstractPlayerCommand {
 
         PlayerRef target = context.get(targetArg);
         if (target == null) {
-            Messages.err(context, "Player not found.");
+            Messages.errKey(context, "player.not_found", java.util.Map.of());
             return;
         }
 
         if (target.getUuid().equals(playerRef.getUuid())) {
-            Messages.err(context, "You can't request yourself.");
+            Messages.errKey(context, "tpa.self", java.util.Map.of());
             return;
         }
 
         boolean created = tpManager.addTpaHereRequest(playerRef.getUuid(), target.getUuid());
         if (!created) {
-            Messages.warn(context, "You already have a pending request to " + target.getUsername() + ".");
+            Messages.warnKey(context, "tpa.request.pending", java.util.Map.of("player", target.getUsername()));
             return;
         }
 
-        Messages.ok(context, "Teleport request sent to " + target.getUsername() + ".");
-        Messages.send(target,
-                "&#FFFF55" + playerRef.getUsername()
-                        + "&#FFFFFF wants you to teleport to them. Type &#FFFF55/tpaaccept&#FFFFFF to accept.");
+        Messages.okKey(context, "tpa.request.sent", java.util.Map.of("player", target.getUsername()));
+        Messages.sendKey(target, "tpahere.request.received", java.util.Map.of("player", playerRef.getUsername()));
         cooldowns.apply(playerRef, CooldownKeys.TPAHERE);
     }
 }

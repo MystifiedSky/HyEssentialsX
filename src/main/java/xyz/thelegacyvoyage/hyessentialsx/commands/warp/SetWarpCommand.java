@@ -54,19 +54,19 @@ public final class SetWarpCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isWarpsEnabled()) {
-            Messages.err(context, "Warps are disabled.");
+            Messages.errKey(context, "warp.disabled", java.util.Map.of());
             return;
         }
 
         String name = context.get(nameArg);
         if (name == null || name.isBlank()) {
-            Messages.err(context, "Warp name required.");
+            Messages.errKey(context, "warp.name_required", java.util.Map.of());
             return;
         }
 
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null) {
-            Messages.err(context, "Could not read your position.");
+            Messages.errKey(context, "error.position_unavailable", java.util.Map.of());
             return;
         }
 
@@ -82,7 +82,7 @@ public final class SetWarpCommand extends AbstractPlayerCommand {
                 yaw, pitch
         ));
 
-        Messages.ok(context, "Warp '&f" + name + "&a' set.");
+        Messages.okKey(context, "warp.set", java.util.Map.of("warp", name));
     }
 }
 

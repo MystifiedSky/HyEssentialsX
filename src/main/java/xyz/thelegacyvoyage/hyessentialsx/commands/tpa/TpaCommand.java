@@ -57,7 +57,7 @@ public final class TpaCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isTpaEnabled()) {
-            Messages.err(context, "TPA is disabled.");
+            Messages.errKey(context, "tpa.disabled", java.util.Map.of());
             return;
         }
         var args = CommandInputUtil.getArgs(context);
@@ -72,7 +72,7 @@ public final class TpaCommand extends AbstractPlayerCommand {
                 page.open(player, ref, store);
                 return;
             }
-            Messages.err(context, "Usage: /tpa <player>");
+            Messages.errKey(context, "tpa.usage", java.util.Map.of());
             return;
         }
 
@@ -83,30 +83,28 @@ public final class TpaCommand extends AbstractPlayerCommand {
         String targetName = args.get(0);
         PlayerRef target = findOnlinePlayer(targetName);
         if (target == null) {
-            Messages.err(context, "Player not found.");
+            Messages.errKey(context, "player.not_found", java.util.Map.of());
             return;
         }
 
         if (target.getUuid().equals(playerRef.getUuid())) {
-            Messages.err(context, "You can't send a request to yourself.");
+            Messages.errKey(context, "tpa.self", java.util.Map.of());
             return;
         }
 
         if (tpManager.isTpaIgnored(target.getUuid())) {
-            Messages.warn(context, target.getUsername() + " is not accepting teleport requests.");
+            Messages.warnKey(context, "tpa.target_ignored", java.util.Map.of("player", target.getUsername()));
             return;
         }
 
         boolean created = tpManager.addTpaRequest(playerRef.getUuid(), target.getUuid());
         if (!created) {
-            Messages.warn(context, "You already have a pending request to " + target.getUsername() + ".");
+            Messages.warnKey(context, "tpa.request.pending", java.util.Map.of("player", target.getUsername()));
             return;
         }
 
-        Messages.ok(context, "Teleport request sent to " + target.getUsername() + ".");
-        Messages.send(target,
-                "&#FFFF55" + playerRef.getUsername()
-                        + "&#FFFFFF wants to teleport to you. Type &#FFFF55/tpaaccept&#FFFFFF to accept.");
+        Messages.okKey(context, "tpa.request.sent", java.util.Map.of("player", target.getUsername()));
+        Messages.sendKey(target, "tpa.request.received", java.util.Map.of("player", playerRef.getUsername()));
         cooldowns.apply(playerRef, CooldownKeys.TPA);
     }
 

@@ -47,13 +47,13 @@ public final class RulesCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isRulesEnabled()) {
-            Messages.err(context, "Rules are disabled.");
+            Messages.errKey(context, "rules.disabled", java.util.Map.of());
             return;
         }
 
         List<String> rules = config.getRules();
         if (rules.isEmpty()) {
-            context.sendMessage(Messages.m("&7No rules set."));
+            context.sendMessage(Messages.m(Messages.tr(playerRef, "rules.none", java.util.Map.of())));
             return;
         }
 
@@ -68,7 +68,7 @@ public final class RulesCommand extends AbstractPlayerCommand {
             return;
         }
 
-        context.sendMessage(Messages.m("&aRules:"));
+        context.sendMessage(Messages.m(Messages.tr(playerRef, "rules.header", java.util.Map.of())));
         for (String rule : rules) {
             context.sendMessage(PlaceholderApiUtil.apply(playerRef, rule));
         }

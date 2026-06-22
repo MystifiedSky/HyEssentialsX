@@ -100,35 +100,38 @@ public final class RepairCommand extends AbstractPlayerCommand {
 
         if (!isSelf && playerRef.getWorldUuid() != null && target.getWorldUuid() != null
                 && !playerRef.getWorldUuid().equals(target.getWorldUuid())) {
-            Messages.err(context, "Target must be in your world.");
+            Messages.errKey(context, "error.target_world", java.util.Map.of());
             return;
         }
 
         Ref<EntityStore> targetRef = target.getReference();
         Player player = store.getComponent(targetRef, Player.getComponentType());
         if (player == null) {
-            Messages.err(context, "Could not access inventory.");
+            Messages.errKey(context, "error.inventory_access", java.util.Map.of());
             return;
         }
 
         Inventory inventory = player.getInventory();
         if (inventory == null) {
-            Messages.err(context, "Could not access inventory.");
+            Messages.errKey(context, "error.inventory_access", java.util.Map.of());
             return;
         }
 
         int repaired = repairAll ? InventoryUtil.repairAll(inventory) : InventoryUtil.repairInHand(inventory);
         if (repaired <= 0) {
-            Messages.warn(context, "Nothing to repair.");
+            Messages.warnKey(context, "repair.none", java.util.Map.of());
             return;
         }
 
         cooldowns.apply(playerRef, CooldownKeys.REPAIR);
         if (isSelf) {
-            Messages.ok(context, "Repaired " + repaired + " item(s).");
+            Messages.okKey(context, "repair.self", java.util.Map.of("count", String.valueOf(repaired)));
         } else {
-            Messages.ok(context, "Repaired " + repaired + " item(s) for " + target.getUsername() + ".");
-            Messages.sendPrefixed(target, "Your items were repaired by " + playerRef.getUsername() + ".");
+            Messages.okKey(context, "repair.other", java.util.Map.of(
+                    "count", String.valueOf(repaired),
+                    "player", target.getUsername()
+            ));
+            Messages.sendPrefixedKey(target, "repair.by", java.util.Map.of("player", playerRef.getUsername()));
         }
     }
 

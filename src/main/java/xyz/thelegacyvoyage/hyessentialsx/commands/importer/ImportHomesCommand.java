@@ -56,13 +56,13 @@ public final class ImportHomesCommand extends CommandBase {
 
         String fileName = context.get(fileArg);
         if (fileName == null || fileName.isBlank()) {
-            Messages.err(context, "Import filename required.");
+            Messages.errKey(context, "import.homes.filename_required", Map.of());
             return;
         }
 
         Path file = resolveImportFile(fileName.trim());
         if (file == null) {
-            Messages.err(context, "Import file not found in plugin folder.");
+            Messages.errKey(context, "import.homes.file_missing", Map.of());
             return;
         }
 
@@ -71,12 +71,12 @@ public final class ImportHomesCommand extends CommandBase {
             String json = Files.readString(file, StandardCharsets.UTF_8);
             payload = gson.fromJson(json, ImportFile.class);
         } catch (Exception e) {
-            Messages.err(context, "Failed to read import file: " + e.getMessage());
+            Messages.errKey(context, "import.homes.read_failed", Map.of("error", e.getMessage()));
             return;
         }
 
         if (payload == null || payload.homes == null || payload.homes.length == 0) {
-            Messages.err(context, "No homes found in import file.");
+            Messages.errKey(context, "import.homes.none_found", Map.of());
             return;
         }
 
@@ -152,19 +152,27 @@ public final class ImportHomesCommand extends CommandBase {
         }
 
         if (result.imported == 0) {
-            Messages.err(context, "No homes were imported. Invalid entries: " + result.invalid + ".");
+            Messages.errKey(context, "import.homes.none_imported", Map.of("count", String.valueOf(result.invalid)));
             return;
         }
 
         StringBuilder summary = new StringBuilder();
-        summary.append("Imported ").append(result.imported).append(" home(s) for ")
-                .append(modified.size()).append(" player(s).");
+        summary.append(Messages.tr(null, "import.homes.summary", Map.of(
+                "homes", String.valueOf(result.imported),
+                "players", String.valueOf(modified.size())
+        )));
         if (result.renamed > 0) {
-            summary.append(" Renamed ").append(result.renamed).append(" due to duplicates.");
+            summary.append(Messages.tr(null, "import.homes.summary.renamed", Map.of(
+                    "count", String.valueOf(result.renamed)
+            )));
         }
         if (result.invalid > 0) {
-            summary.append(" Skipped ").append(result.invalid).append(" invalid entr");
-            summary.append(result.invalid == 1 ? "y." : "ies.");
+            summary.append(Messages.tr(null,
+                    result.invalid == 1
+                            ? "import.homes.summary.skipped.one"
+                            : "import.homes.summary.skipped.many",
+                    Map.of("count", String.valueOf(result.invalid))
+            ));
         }
         Messages.ok(context, summary.toString());
     }

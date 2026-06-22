@@ -50,24 +50,24 @@ public final class TpaCancelCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isTpaEnabled()) {
-            Messages.err(context, "TPA is disabled.");
+            Messages.errKey(context, "tpa.disabled", java.util.Map.of());
             return;
         }
 
         PlayerRef target = context.get(targetArg);
         if (target == null) {
-            Messages.err(context, "Player not found.");
+            Messages.errKey(context, "player.not_found", java.util.Map.of());
             return;
         }
 
         if (!tpManager.hasTpaRequest(playerRef.getUuid(), target.getUuid())) {
-            Messages.err(context, "You don't have a pending request to " + target.getUsername() + ".");
+            Messages.errKey(context, "tpa.cancel.no_pending", java.util.Map.of("player", target.getUsername()));
             return;
         }
 
         tpManager.removeTpaRequest(playerRef.getUuid(), target.getUuid());
-        Messages.ok(context, "Canceled your request to " + target.getUsername() + ".");
-        Messages.send(target, "&#FFFF55" + playerRef.getUsername() + " canceled their teleport request.");
+        Messages.okKey(context, "tpa.cancelled", java.util.Map.of("player", target.getUsername()));
+        Messages.sendKey(target, "tpa.cancelled_by", java.util.Map.of("player", playerRef.getUsername()));
     }
 }
 

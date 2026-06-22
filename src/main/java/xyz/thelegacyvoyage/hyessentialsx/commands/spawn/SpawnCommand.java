@@ -99,9 +99,13 @@ public final class SpawnCommand extends AbstractPlayerCommand {
                     skipped++;
                 }
             }
-            String msg = "Teleported " + success + " player(s) to spawn.";
+            String msg = Messages.tr(null, "spawn.all.success", Map.of(
+                    "count", String.valueOf(success)
+            ));
             if (skipped > 0) {
-                msg += " Skipped " + skipped + " player(s).";
+                msg += " " + Messages.tr(null, "spawn.all.skipped", Map.of(
+                        "count", String.valueOf(skipped)
+                ));
             }
             Messages.ok(context, msg);
             return;
@@ -122,9 +126,9 @@ public final class SpawnCommand extends AbstractPlayerCommand {
         }
         SpawnResult result = spawnOther(context, target, world, true);
         if (result == SpawnResult.IMMEDIATE) {
-            Messages.ok(context, "Teleported " + target.getUsername() + " to spawn.");
+            Messages.okKey(context, "spawn.other.success", Map.of("player", target.getUsername()));
         } else if (result == SpawnResult.QUEUED) {
-            Messages.ok(context, "Teleporting " + target.getUsername() + " shortly...");
+            Messages.okKey(context, "spawn.other.warmup", Map.of("player", target.getUsername()));
         }
     }
 
@@ -222,7 +226,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
         World targetWorld = resolveTargetWorld(target, fallbackWorld);
         if (targetWorld == null) {
             if (notifySender) {
-                Messages.err(context, "Target world is not loaded.");
+                Messages.errKey(context, "error.world_not_loaded", Map.of());
             }
             return SpawnResult.FAILED;
         }
@@ -240,7 +244,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
 
         if (!cooldowns.canUse(target, CooldownKeys.SPAWN, "/spawn", BYPASS_PERMISSION)) {
             if (notifySender) {
-                Messages.err(context, "Target is on cooldown.");
+                Messages.errKey(context, "error.target_cooldown", Map.of());
             }
             return SpawnResult.FAILED;
         }
@@ -260,7 +264,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
         Store<EntityStore> targetStore = targetRef != null ? targetRef.getStore() : null;
         if (targetRef == null || targetStore == null) {
             if (notifySender) {
-                Messages.err(context, "Could not access target.");
+                Messages.errKey(context, "error.target_access", Map.of());
             }
             return SpawnResult.FAILED;
         }
@@ -270,13 +274,13 @@ public final class SpawnCommand extends AbstractPlayerCommand {
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(target.getUuid())) {
                 if (notifySender) {
-                    Messages.err(context, "Target already has a pending teleport.");
+                    Messages.errKey(context, "error.target_pending_teleport", Map.of());
                 }
                 return SpawnResult.FAILED;
             }
             if (startPos == null) {
                 if (notifySender) {
-                    Messages.err(context, "Could not read target position.");
+                    Messages.errKey(context, "error.target_position_unavailable", Map.of());
                 }
                 return SpawnResult.FAILED;
             }

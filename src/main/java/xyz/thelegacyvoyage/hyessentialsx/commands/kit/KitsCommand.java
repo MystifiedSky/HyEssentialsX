@@ -49,7 +49,7 @@ public final class KitsCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isKitsEnabled()) {
-            Messages.err(context, "Kits are disabled.");
+            Messages.errKey(context, "kit.disabled", java.util.Map.of());
             return;
         }
 
@@ -66,11 +66,13 @@ public final class KitsCommand extends AbstractPlayerCommand {
 
         List<String> kits = kitManager.listKits();
         if (kits.isEmpty()) {
-            Messages.warn(context, "No kits available.");
+            Messages.warnKey(context, "kit.none_available", java.util.Map.of());
             return;
         }
 
-        Messages.send(context, "&aKits: &f" + String.join(", ", kits));
+        Messages.send(context, Messages.tr(null, "kit.list", java.util.Map.of(
+                "kits", String.join(", ", kits)
+        )));
     }
 }
 

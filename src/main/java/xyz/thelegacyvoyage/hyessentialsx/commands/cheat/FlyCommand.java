@@ -62,14 +62,14 @@ public final class FlyCommand extends AbstractPlayerCommand {
                 && playerRef.getWorldUuid() != null
                 && target.getWorldUuid() != null
                 && !playerRef.getWorldUuid().equals(target.getWorldUuid())) {
-            Messages.err(context, "Target must be in your world.");
+            Messages.errKey(context, "error.target_world", java.util.Map.of());
             return;
         }
 
         boolean enabled = flyManager.toggle(target.getUuid());
         if (!flyManager.applyState(target, enabled)) {
             flyManager.setEnabled(target.getUuid(), !enabled);
-            Messages.err(context, "Could not toggle flight.");
+            Messages.errKey(context, "fly.toggle_failed", java.util.Map.of());
             return;
         }
         var data = storage.getPlayerData(target.getUuid());
@@ -78,12 +78,14 @@ public final class FlyCommand extends AbstractPlayerCommand {
 
         boolean isSelf = playerRef.getUuid().equals(target.getUuid());
         if (isSelf) {
-            Messages.ok(context, enabled ? "Flight enabled." : "Flight disabled.");
+            Messages.okKey(context, enabled ? "fly.enabled" : "fly.disabled", java.util.Map.of());
         } else {
-            Messages.ok(context, (enabled ? "Flight enabled for " : "Flight disabled for ") + target.getUsername() + ".");
-            Messages.sendPrefixed(target, enabled
-                    ? "Flight enabled by " + playerRef.getUsername() + "."
-                    : "Flight disabled by " + playerRef.getUsername() + ".");
+            Messages.okKey(context,
+                    enabled ? "fly.enabled_for" : "fly.disabled_for",
+                    java.util.Map.of("player", target.getUsername()));
+            Messages.sendPrefixedKey(target,
+                    enabled ? "fly.enabled_by" : "fly.disabled_by",
+                    java.util.Map.of("player", playerRef.getUsername()));
         }
     }
 }

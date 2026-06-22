@@ -44,27 +44,32 @@ public final class SeenCommand extends CommandBase {
 
         String name = context.get(nameArg);
         if (name == null || name.isBlank()) {
-            Messages.err(context, "Player name required.");
+            Messages.errKey(context, "player.name_required", java.util.Map.of());
             return;
         }
 
         PlayerRef online = Universe.get().getPlayerByUsername(name, NameMatching.EXACT_IGNORE_CASE);
         if (online != null) {
-            Messages.send(context, "&a" + online.getUsername() + " is online now.");
+            Messages.send(context, Messages.tr(null, "seen.online", java.util.Map.of(
+                    "player", online.getUsername()
+            )));
             return;
         }
 
         UUID uuid = storage.resolvePlayerIdByName(name);
         if (uuid == null) {
-            Messages.err(context, "Player not found.");
+            Messages.errKey(context, "player.not_found", java.util.Map.of());
             return;
         }
 
         PlayerDataModel data = storage.getPlayerData(uuid);
         long lastSeen = data.getLastSeenAt();
         String ago = TimeUtil.formatDurationSeconds(Math.max(0, (System.currentTimeMillis() - lastSeen) / 1000L));
-        Messages.send(context, "&a" + (data.getLastKnownName() != null ? data.getLastKnownName() : name)
-                + " last seen &f" + ago + " &aago.");
+        String displayName = data.getLastKnownName() != null ? data.getLastKnownName() : name;
+        Messages.send(context, Messages.tr(null, "seen.last_seen", java.util.Map.of(
+                "player", displayName,
+                "time", ago
+        )));
     }
 }
 

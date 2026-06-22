@@ -204,7 +204,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
             return;
         }
         if (args.size() < 2) {
-            Messages.err(context, "Usage: /home player <player> [home]");
+            Messages.errKey(context, "home.usage.player", Map.of());
             return;
         }
         String targetName = args.get(1);
@@ -224,11 +224,14 @@ public final class HomeCommand extends AbstractPlayerCommand {
         if (args.size() < 3) {
             List<String> homes = homeManager.listHomes(targetId);
             if (homes.isEmpty()) {
-                Messages.err(context, displayName + " has no homes.");
+                Messages.errKey(context, "home.other.none", Map.of("player", displayName));
                 return;
             }
             Collections.sort(homes, String.CASE_INSENSITIVE_ORDER);
-            Messages.ok(context, "Homes for " + displayName + ": " + String.join(", ", homes));
+            Messages.okKey(context, "home.other.list", Map.of(
+                    "player", displayName,
+                    "homes", String.join(", ", homes)
+            ));
             return;
         }
 

@@ -42,12 +42,12 @@ public final class MotdCommand extends CommandBase {
             return;
         }
         if (!config.isMotdEnabled()) {
-            Messages.err(context, "MOTD is disabled.");
+            Messages.errKey(context, "motd.disabled", Map.of());
             return;
         }
 
         PlayerRef player = CommandSenderUtil.resolvePlayer(context);
-        String playerName = player != null ? player.getUsername() : "Console";
+        String playerName = player != null ? player.getUsername() : Messages.tr(null, "actor.console", Map.of());
         Map<String, String> placeholders = buildPlaceholders(playerName, player);
         for (String line : config.getMotdMessages()) {
             context.sendMessage(PlaceholderApiUtil.apply(player, applyPlaceholders(line, placeholders)));

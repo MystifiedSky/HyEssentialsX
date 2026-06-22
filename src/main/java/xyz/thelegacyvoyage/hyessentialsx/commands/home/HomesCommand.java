@@ -63,7 +63,7 @@ public final class HomesCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isHomesEnabled()) {
-            Messages.err(context, "Homes are disabled.");
+            Messages.errKey(context, "home.disabled", java.util.Map.of());
             return;
         }
 

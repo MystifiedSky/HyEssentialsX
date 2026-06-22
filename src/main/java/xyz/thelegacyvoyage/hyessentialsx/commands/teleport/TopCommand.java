@@ -69,13 +69,13 @@ public final class TopCommand extends AbstractPlayerCommand {
 
         World targetWorld = resolveTargetWorld(target, world);
         if (targetWorld == null) {
-            Messages.err(context, "World not loaded.");
+            Messages.errKey(context, "error.world_not_loaded", Map.of());
             return;
         }
 
         Transform transform = target.getTransform();
         if (transform == null) {
-            Messages.err(context, "Could not read target position.");
+            Messages.errKey(context, "error.target_position_unavailable", Map.of());
             return;
         }
 
@@ -85,7 +85,7 @@ public final class TopCommand extends AbstractPlayerCommand {
         long chunkIndex = ChunkUtil.indexChunkFromBlock(blockX, blockZ);
         WorldChunk chunk = targetWorld.getChunkIfLoaded(chunkIndex);
         if (chunk == null) {
-            Messages.err(context, "Chunk not loaded.");
+            Messages.errKey(context, "error.chunk_not_loaded", Map.of());
             return;
         }
 
@@ -111,7 +111,7 @@ public final class TopCommand extends AbstractPlayerCommand {
         Ref<EntityStore> targetRef = target.getReference();
         Store<EntityStore> targetStore = targetRef != null ? targetRef.getStore() : null;
         if (targetRef == null || targetStore == null) {
-            Messages.err(context, "Could not access target.");
+            Messages.errKey(context, "error.target_access", Map.of());
             return;
         }
 
@@ -128,10 +128,10 @@ public final class TopCommand extends AbstractPlayerCommand {
         }
 
         if (isSelf) {
-            Messages.ok(context, "Teleported to top.");
+            Messages.okKey(context, "top.self", Map.of());
         } else {
-            Messages.ok(context, "Teleported " + target.getUsername() + " to top.");
-            Messages.sendPrefixed(target, "You were teleported to the top by " + playerRef.getUsername() + ".");
+            Messages.okKey(context, "top.other", Map.of("player", target.getUsername()));
+            Messages.sendPrefixedKey(target, "top.by", Map.of("player", playerRef.getUsername()));
         }
     }
 

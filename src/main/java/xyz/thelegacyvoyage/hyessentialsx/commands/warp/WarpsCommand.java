@@ -63,7 +63,7 @@ public final class WarpsCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isWarpsEnabled()) {
-            Messages.err(context, "Warps are disabled.");
+            Messages.errKey(context, "warp.disabled", Map.of());
             return;
         }
 
@@ -80,7 +80,7 @@ public final class WarpsCommand extends AbstractPlayerCommand {
 
         List<String> warps = warpManager.listWarps();
         if (warps.isEmpty()) {
-            Messages.warn(context, "No warps set.");
+            Messages.warnKey(context, "warp.none", Map.of());
             return;
         }
 

@@ -49,13 +49,13 @@ public final class SetSpawnCommand extends AbstractPlayerCommand {
             return;
         }
         if (!config.isSpawnEnabled()) {
-            Messages.err(context, "Spawn is disabled.");
+            Messages.errKey(context, "spawn.disabled", java.util.Map.of());
             return;
         }
 
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null) {
-            Messages.err(context, "Could not read your position.");
+            Messages.errKey(context, "error.position_unavailable", java.util.Map.of());
             return;
         }
 
@@ -71,7 +71,7 @@ public final class SetSpawnCommand extends AbstractPlayerCommand {
         ));
 
         spawnManager.syncWorldSpawnProvider();
-        Messages.ok(context, "Spawn set.");
+        Messages.okKey(context, "spawn.set", java.util.Map.of());
     }
 
 }

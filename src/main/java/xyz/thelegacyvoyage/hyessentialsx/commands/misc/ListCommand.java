@@ -38,7 +38,10 @@ public final class ListCommand extends CommandBase {
             names.add(ref.getUsername());
         }
 
-        Messages.send(context, "&aOnline (&f" + names.size() + "&a): &f" + String.join(", ", names));
+        Messages.send(context, Messages.tr(null, "list.format", java.util.Map.of(
+                "count", String.valueOf(names.size()),
+                "players", String.join(", ", names)
+        )));
     }
 }
 

@@ -2,6 +2,7 @@ package xyz.thelegacyvoyage.hyessentialsx.storage;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
@@ -51,6 +52,7 @@ public final class MysqlStorageBackend implements StorageBackend {
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_warps (name VARCHAR(64) PRIMARY KEY, json LONGTEXT)");
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_kits (name VARCHAR(64) PRIMARY KEY, json LONGTEXT)");
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_shops (name VARCHAR(64) PRIMARY KEY, json LONGTEXT)");
+                st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_ipbans (ip VARCHAR(64) PRIMARY KEY, json LONGTEXT)");
             }
             available = true;
         } catch (Exception e) {
@@ -253,6 +255,49 @@ public final class MysqlStorageBackend implements StorageBackend {
             conn.commit();
         } catch (Exception e) {
             Log.warn("Failed to save shops to MySQL: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Nonnull
+    public Map<String, IpBanModel> loadIpBans() {
+        Map<String, IpBanModel> out = new HashMap<>();
+        if (!available) return out;
+        try (Connection conn = open();
+             PreparedStatement ps = conn.prepareStatement("SELECT ip, json FROM hex_ipbans")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String ip = rs.getString(1);
+                    String json = rs.getString(2);
+                    IpBanModel model = gson.fromJson(json, IpBanModel.class);
+                    if (ip != null && model != null) out.put(ip, model);
+                }
+            }
+        } catch (Exception e) {
+            Log.warn("Failed to load ip bans from MySQL: " + e.getMessage());
+        }
+        return out;
+    }
+
+    @Override
+    public void saveIpBans(@Nonnull Map<String, IpBanModel> bans) {
+        if (!available) return;
+        try (Connection conn = open()) {
+            conn.setAutoCommit(false);
+            try (Statement st = conn.createStatement()) {
+                st.executeUpdate("TRUNCATE TABLE hex_ipbans");
+            }
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO hex_ipbans (ip, json) VALUES (?, ?)")) {
+                for (Map.Entry<String, IpBanModel> entry : bans.entrySet()) {
+                    ps.setString(1, entry.getKey());
+                    ps.setString(2, gson.toJson(entry.getValue()));
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+            conn.commit();
+        } catch (Exception e) {
+            Log.warn("Failed to save ip bans to MySQL: " + e.getMessage());
         }
     }
 

@@ -11,6 +11,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.teleport.BackCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.AdminChatCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.BroadcastCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.ClearChatCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.chat.MailCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.MsgCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.ReplyCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.combat.CombatLogCommand;
@@ -22,7 +23,9 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.home.HomeCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.home.HomesCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.home.SetHomeCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.inventory.ClearInventoryCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.inventory.MoreCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.inventory.RepairCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.inventory.TrashCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.importer.ImportHomesCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitCreateCommand;
@@ -41,7 +44,9 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.misc.DayCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.NightCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.AfkCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.MuteCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.IpBanCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.TempBanCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnipBanCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnbanCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnmuteCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.FreecamCommand;
@@ -84,6 +89,7 @@ import xyz.thelegacyvoyage.hyessentialsx.listeners.FlyNoFallListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.GodHealthListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.InfiniteStaminaListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.FreezeListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.IpBanListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.SleepPercentListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.AfkListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerDataListener;
@@ -104,7 +110,9 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.GodManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.HomeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.InfiniteStaminaManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.IpBanManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MessageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.MailManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PaycheckManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
@@ -153,9 +161,11 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private KitManager kitManager;
     private MessageManager messageManager;
     private AdminChatManager adminChatManager;
+    private MailManager mailManager;
     private AfkManager afkManager;
     private MuteManager muteManager;
     private BanManager banManager;
+    private IpBanManager ipBanManager;
     private CombatLogManager combatLogManager;
     private FreecamManager freecamManager;
     private FreezeManager freezeManager;
@@ -268,9 +278,11 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         kitManager = new KitManager(storage);
         messageManager = new MessageManager();
         adminChatManager = new AdminChatManager();
+        mailManager = new MailManager(storage, configManager);
         afkManager = new AfkManager(configManager);
         muteManager = new MuteManager(storage);
         banManager = new BanManager(storage);
+        ipBanManager = new IpBanManager(storage);
         combatLogManager = new CombatLogManager(configManager);
         freecamManager = new FreecamManager();
         freezeManager = new FreezeManager(storage);
@@ -384,6 +396,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             reg.accept(new BroadcastCommand(configManager));
         }
         reg.accept(new ClearChatCommand());
+        reg.accept(new MailCommand(mailManager, storage, configManager));
         if (configManager.isEconomyEnabled()) {
             reg.accept(new PayCommand(economyManager));
             reg.accept(new MoneyCommand(economyManager, storage));
@@ -437,7 +450,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new ShopCommand(shopManager, economyManager, shopAdminDraftCache));
         reg.accept(new PlayerShopCommand(shopManager, economyManager, shopAdminDraftCache, configManager, storage));
         reg.accept(new ClearInventoryCommand());
+        reg.accept(new MoreCommand());
         reg.accept(new RepairCommand(cooldownManager));
+        reg.accept(new TrashCommand());
         reg.accept(new FreecamCommand(freecamManager));
         reg.accept(new FreezeCommand(freezeManager));
         reg.accept(new UnfreezeCommand(freezeManager));
@@ -446,6 +461,8 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new UnmuteCommand(muteManager, storage));
         reg.accept(new TempBanCommand(banManager, storage));
         reg.accept(new UnbanCommand(banManager, storage));
+        reg.accept(new IpBanCommand(ipBanManager, storage));
+        reg.accept(new UnipBanCommand(ipBanManager, storage));
         for (var entry : customCommandManager.getCommands().values()) {
             reg.accept(
                     new CustomTextCommand(customCommandManager, entry.getName(), entry.getPermission(), entry.getAliases())
@@ -456,9 +473,10 @@ public class HyEssentialsXPlugin extends JavaPlugin {
 
     private void registerListeners() {
         EventRegistry bus = getEventRegistry();
-        new PlayerListener(configManager, storage, vanishManager).register(bus);
+        new PlayerListener(configManager, storage, vanishManager, mailManager).register(bus);
         new PlayerDataListener(storage, banManager, messageManager, adminChatManager, freecamManager, godManager, staminaManager, flyManager, economyManager, playtimeManager).register(bus);
         new ChatModerationListener(muteManager, adminChatManager, configManager).register(bus);
+        new IpBanListener(ipBanManager, storage).register(bus);
         new CleanupListener(tpManager, backManager, flyManager, godManager, staminaManager, vanishManager).register(bus);
         new FreezeListener(freezeManager).register(bus);
         new AfkListener(afkManager).register(bus);

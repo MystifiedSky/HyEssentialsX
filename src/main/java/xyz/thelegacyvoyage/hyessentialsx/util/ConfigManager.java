@@ -134,6 +134,18 @@ public final class ConfigManager {
     private long playerShopCreationCost = 0L;
     private int playerShopChestLinkRadius = 8;
 
+    private boolean mailEnabled = true;
+    private int mailCooldownSeconds = 15;
+    private double mailSimilarityThreshold = 0.9;
+    private int mailSimilarityWindowSeconds = 120;
+    private int mailMaxInboxSize = 100;
+    private int mailMaxSentSize = 100;
+    private int mailMaxAgeDays = 30;
+    private int mailPageSize = 10;
+    private boolean mailNotifyOnJoin = true;
+    private boolean mailNotifyOnReceive = true;
+    private int mailMaxMessageLength = 250;
+
     private double nearRadius = 50.0;
     private boolean nearShowDistance = true;
 
@@ -486,6 +498,20 @@ public final class ConfigManager {
         playerShops.addProperty("chestLinkRadius", playerShopChestLinkRadius);
         root.add("playerShops", playerShops);
 
+        JsonObject mail = new JsonObject();
+        mail.addProperty("enabled", mailEnabled);
+        mail.addProperty("cooldownSeconds", mailCooldownSeconds);
+        mail.addProperty("similarityThreshold", mailSimilarityThreshold);
+        mail.addProperty("similarityWindowSeconds", mailSimilarityWindowSeconds);
+        mail.addProperty("maxInboxSize", mailMaxInboxSize);
+        mail.addProperty("maxSentSize", mailMaxSentSize);
+        mail.addProperty("maxAgeDays", mailMaxAgeDays);
+        mail.addProperty("pageSize", mailPageSize);
+        mail.addProperty("notifyOnJoin", mailNotifyOnJoin);
+        mail.addProperty("notifyOnReceive", mailNotifyOnReceive);
+        mail.addProperty("maxMessageLength", mailMaxMessageLength);
+        root.add("mail", mail);
+
         JsonObject general = new JsonObject();
         general.addProperty("spawnFallbackToWorldDefault", true);
         general.addProperty("language", languageCode);
@@ -827,6 +853,19 @@ public final class ConfigManager {
             playerShopMaxShopsPerPlayer = Math.max(0, intVal(playerShops, "maxShopsPerPlayer", playerShopMaxShopsPerPlayer));
             playerShopCreationCost = Math.max(0L, longVal(playerShops, "shopCreationCost", playerShopCreationCost));
             playerShopChestLinkRadius = Math.max(1, intVal(playerShops, "chestLinkRadius", playerShopChestLinkRadius));
+
+            JsonObject mail = obj(root, "mail");
+            mailEnabled = bool(mail, "enabled", mailEnabled);
+            mailCooldownSeconds = Math.max(0, intVal(mail, "cooldownSeconds", mailCooldownSeconds));
+            mailSimilarityThreshold = Math.max(0.0, dbl(mail, "similarityThreshold", mailSimilarityThreshold));
+            mailSimilarityWindowSeconds = Math.max(0, intVal(mail, "similarityWindowSeconds", mailSimilarityWindowSeconds));
+            mailMaxInboxSize = Math.max(0, intVal(mail, "maxInboxSize", mailMaxInboxSize));
+            mailMaxSentSize = Math.max(0, intVal(mail, "maxSentSize", mailMaxSentSize));
+            mailMaxAgeDays = Math.max(0, intVal(mail, "maxAgeDays", mailMaxAgeDays));
+            mailPageSize = Math.max(1, intVal(mail, "pageSize", mailPageSize));
+            mailNotifyOnJoin = bool(mail, "notifyOnJoin", mailNotifyOnJoin);
+            mailNotifyOnReceive = bool(mail, "notifyOnReceive", mailNotifyOnReceive);
+            mailMaxMessageLength = Math.max(0, intVal(mail, "maxMessageLength", mailMaxMessageLength));
 
             if (changed) {
                 applyFieldsToRoot();
@@ -1276,6 +1315,50 @@ public final class ConfigManager {
         return playerShopChestLinkRadius;
     }
 
+    public boolean isMailEnabled() {
+        return mailEnabled;
+    }
+
+    public int getMailCooldownSeconds() {
+        return mailCooldownSeconds;
+    }
+
+    public double getMailSimilarityThreshold() {
+        return mailSimilarityThreshold;
+    }
+
+    public int getMailSimilarityWindowSeconds() {
+        return mailSimilarityWindowSeconds;
+    }
+
+    public int getMailMaxInboxSize() {
+        return mailMaxInboxSize;
+    }
+
+    public int getMailMaxSentSize() {
+        return mailMaxSentSize;
+    }
+
+    public int getMailMaxAgeDays() {
+        return mailMaxAgeDays;
+    }
+
+    public int getMailPageSize() {
+        return mailPageSize;
+    }
+
+    public boolean isMailNotifyOnJoin() {
+        return mailNotifyOnJoin;
+    }
+
+    public boolean isMailNotifyOnReceive() {
+        return mailNotifyOnReceive;
+    }
+
+    public int getMailMaxMessageLength() {
+        return mailMaxMessageLength;
+    }
+
     @Nonnull
     public List<RankupTier> getRankupTiers() {
         return List.copyOf(rankupTiers);
@@ -1674,6 +1757,19 @@ public final class ConfigManager {
         playerShops.addProperty("maxShopsPerPlayer", playerShopMaxShopsPerPlayer);
         playerShops.addProperty("shopCreationCost", Math.max(0L, playerShopCreationCost));
         playerShops.addProperty("chestLinkRadius", playerShopChestLinkRadius);
+
+        JsonObject mail = obj(root, "mail");
+        mail.addProperty("enabled", mailEnabled);
+        mail.addProperty("cooldownSeconds", mailCooldownSeconds);
+        mail.addProperty("similarityThreshold", mailSimilarityThreshold);
+        mail.addProperty("similarityWindowSeconds", mailSimilarityWindowSeconds);
+        mail.addProperty("maxInboxSize", mailMaxInboxSize);
+        mail.addProperty("maxSentSize", mailMaxSentSize);
+        mail.addProperty("maxAgeDays", mailMaxAgeDays);
+        mail.addProperty("pageSize", mailPageSize);
+        mail.addProperty("notifyOnJoin", mailNotifyOnJoin);
+        mail.addProperty("notifyOnReceive", mailNotifyOnReceive);
+        mail.addProperty("maxMessageLength", mailMaxMessageLength);
     }
 
     @Nonnull

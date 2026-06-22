@@ -1,5 +1,6 @@
 package xyz.thelegacyvoyage.hyessentialsx.managers;
 
+import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
@@ -32,6 +33,7 @@ public final class StorageManager {
     private final ConcurrentHashMap<String, WarpModel> warps = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, KitModel> kits = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, ShopModel> shops = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, IpBanModel> ipBans = new ConcurrentHashMap<>();
 
     public StorageManager(@Nonnull Path dataFolder, @Nonnull ConfigManager config) {
         this.ioPool = Executors.newSingleThreadExecutor(r -> {
@@ -88,6 +90,9 @@ public final class StorageManager {
 
         shops.clear();
         shops.putAll(backend.loadShops());
+
+        ipBans.clear();
+        ipBans.putAll(backend.loadIpBans());
 
         rebuildNameIndex();
     }
@@ -234,6 +239,35 @@ public final class StorageManager {
         CompletableFuture.runAsync(() -> backend.saveShops(snapshot), ioPool);
     }
 
+    @Nonnull
+    public Map<String, IpBanModel> getIpBans() {
+        return Map.copyOf(ipBans);
+    }
+
+    @Nullable
+    public IpBanModel getIpBan(@Nonnull String ip) {
+        return ipBans.get(ip);
+    }
+
+    public void setIpBan(@Nonnull String ip, @Nonnull IpBanModel ban) {
+        ipBans.put(ip, ban);
+        saveIpBansAsync();
+    }
+
+    public boolean removeIpBan(@Nonnull String ip) {
+        IpBanModel removed = ipBans.remove(ip);
+        if (removed != null) {
+            saveIpBansAsync();
+            return true;
+        }
+        return false;
+    }
+
+    private void saveIpBansAsync() {
+        Map<String, IpBanModel> snapshot = Map.copyOf(ipBans);
+        CompletableFuture.runAsync(() -> backend.saveIpBans(snapshot), ioPool);
+    }
+
     @Nullable
     public xyz.thelegacyvoyage.hyessentialsx.models.MuteModel getMute(@Nonnull UUID uuid) {
         PlayerDataModel data = getPlayerData(uuid);
@@ -279,6 +313,7 @@ public final class StorageManager {
             backend.saveWarps(Map.copyOf(warps));
             backend.saveKits(Map.copyOf(kits));
             backend.saveShops(Map.copyOf(shops));
+            backend.saveIpBans(Map.copyOf(ipBans));
             for (Map.Entry<UUID, PlayerDataModel> entry : playerCache.entrySet()) {
                 backend.savePlayerData(entry.getKey(), entry.getValue());
             }

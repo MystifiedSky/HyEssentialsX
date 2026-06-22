@@ -12,6 +12,7 @@ import com.hypixel.hytale.server.core.entity.entities.player.HiddenPlayersManage
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.MailManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -36,13 +37,16 @@ public class PlayerListener {
     private final ConfigManager config;
     private final StorageManager storage;
     private final VanishManager vanishManager;
+    private final MailManager mailManager;
 
     public PlayerListener(@Nonnull ConfigManager config,
                           @Nonnull StorageManager storage,
-                          @Nonnull VanishManager vanishManager) {
+                          @Nonnull VanishManager vanishManager,
+                          @Nonnull MailManager mailManager) {
         this.config = config;
         this.storage = storage;
         this.vanishManager = vanishManager;
+        this.mailManager = mailManager;
     }
 
     /**
@@ -106,6 +110,8 @@ public class PlayerListener {
                 Messages.send(player, applyPlaceholders(line, buildPlaceholders(playerName, player, true)));
             }
         }
+
+        mailManager.notifyOnJoin(player);
     }
 
     private void onAddPlayerToWorld(AddPlayerToWorldEvent event) {

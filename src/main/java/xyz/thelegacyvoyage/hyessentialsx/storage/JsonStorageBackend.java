@@ -3,6 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.storage;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
@@ -160,6 +161,31 @@ public final class JsonStorageBackend implements StorageBackend {
     }
 
     @Override
+    @Nonnull
+    public Map<String, IpBanModel> loadIpBans() {
+        Path file = ipBansFile();
+        if (!Files.exists(file)) return new HashMap<>();
+        try {
+            Type type = new TypeToken<Map<String, IpBanModel>>() {}.getType();
+            String json = Files.readString(file, StandardCharsets.UTF_8);
+            Map<String, IpBanModel> loaded = gson.fromJson(json, type);
+            return loaded != null ? new HashMap<>(loaded) : new HashMap<>();
+        } catch (Exception e) {
+            Log.warn("Failed to load ipbans.json: " + e.getMessage());
+            return new HashMap<>();
+        }
+    }
+
+    @Override
+    public void saveIpBans(@Nonnull Map<String, IpBanModel> bans) {
+        try {
+            Files.writeString(ipBansFile(), gson.toJson(bans), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            Log.error("Failed to save ipbans.json: " + e.getMessage());
+        }
+    }
+
+    @Override
     public void shutdown() {
         // no-op
     }
@@ -182,6 +208,10 @@ public final class JsonStorageBackend implements StorageBackend {
 
     private Path shopsFile() {
         return dataFolder.resolve("shops.json");
+    }
+
+    private Path ipBansFile() {
+        return dataFolder.resolve("ipbans.json");
     }
 
     

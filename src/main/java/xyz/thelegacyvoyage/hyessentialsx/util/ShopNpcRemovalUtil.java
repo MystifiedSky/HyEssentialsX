@@ -25,7 +25,7 @@ import java.util.List;
 public final class ShopNpcRemovalUtil {
 
     private static final double NEARBY_RADIUS_SQ = 100.0D;
-    private static final boolean DEBUG_LOGS = true;
+    private static final boolean DEBUG_LOGS = false;
 
     private ShopNpcRemovalUtil() {}
 

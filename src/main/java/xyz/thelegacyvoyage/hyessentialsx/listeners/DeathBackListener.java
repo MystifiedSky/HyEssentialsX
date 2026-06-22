@@ -10,6 +10,7 @@ import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.entity.damage.DeathComponent;
+import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
@@ -53,6 +54,9 @@ public final class DeathBackListener {
         ) {
             PlayerRef player = store.getComponent(ref, PlayerRef.getComponentType());
             if (player == null) return;
+            if (!PermissionsModule.get().hasPermission(player.getUuid(), "hyessentialsx.back.ondeath", false)) {
+                return;
+            }
 
             TransformComponent t = store.getComponent(ref, TransformComponent.getComponentType());
             if (t == null) return;

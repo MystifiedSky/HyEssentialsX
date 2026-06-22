@@ -40,6 +40,7 @@ public final class Messages {
     private static final String WARN_COLOR = "#FFFF55";
     private static final String ERR_COLOR = "#FF5555";
     private static final String WHITE_COLOR = "#FFFFFF";
+    private static final String PREFIX_KEY = "prefix.plugin";
     private static final String COMMAND_PREFIX = "&7[HyEssentialsX]&f ";
     private static LanguageManager languageManager;
 
@@ -264,6 +265,9 @@ public final class Messages {
 
     @Nonnull
     private static String prefix(@Nullable PlayerRef player) {
+        if (languageManager != null && languageManager.hasKey(PREFIX_KEY)) {
+            return languageManager.translate(player, PREFIX_KEY, Map.of());
+        }
         return COMMAND_PREFIX;
     }
 

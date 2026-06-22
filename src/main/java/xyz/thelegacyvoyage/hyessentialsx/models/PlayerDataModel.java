@@ -2,7 +2,9 @@ package xyz.thelegacyvoyage.hyessentialsx.models;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class PlayerDataModel {
@@ -23,6 +25,11 @@ public final class PlayerDataModel {
     private boolean flyEnabled;
     private long lastPaycheckAt;
     private boolean frozen;
+    private List<MailMessageModel> mailInbox = new ArrayList<>();
+    private List<MailMessageModel> mailSent = new ArrayList<>();
+    private int mailNextId = 1;
+    private int mailSentNextId = 1;
+    private String lastKnownIp;
 
     @SuppressWarnings("unused")
     public PlayerDataModel() {}
@@ -162,5 +169,54 @@ public final class PlayerDataModel {
 
     public void setFrozen(boolean frozen) {
         this.frozen = frozen;
+    }
+
+    @Nonnull
+    public List<MailMessageModel> getMailInbox() {
+        if (mailInbox == null) {
+            mailInbox = new ArrayList<>();
+        }
+        return mailInbox;
+    }
+
+    public void setMailInbox(@Nonnull List<MailMessageModel> mailInbox) {
+        this.mailInbox = mailInbox;
+    }
+
+    @Nonnull
+    public List<MailMessageModel> getMailSent() {
+        if (mailSent == null) {
+            mailSent = new ArrayList<>();
+        }
+        return mailSent;
+    }
+
+    public void setMailSent(@Nonnull List<MailMessageModel> mailSent) {
+        this.mailSent = mailSent;
+    }
+
+    public int getMailNextId() {
+        return Math.max(1, mailNextId);
+    }
+
+    public void setMailNextId(int mailNextId) {
+        this.mailNextId = Math.max(1, mailNextId);
+    }
+
+    public int getMailSentNextId() {
+        return Math.max(1, mailSentNextId);
+    }
+
+    public void setMailSentNextId(int mailSentNextId) {
+        this.mailSentNextId = Math.max(1, mailSentNextId);
+    }
+
+    @Nullable
+    public String getLastKnownIp() {
+        return lastKnownIp;
+    }
+
+    public void setLastKnownIp(@Nullable String lastKnownIp) {
+        this.lastKnownIp = lastKnownIp;
     }
 }

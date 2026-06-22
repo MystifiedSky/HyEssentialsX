@@ -16,11 +16,16 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class SpawnManager {
 
+    private static final float RESPAWN_TELEPORT_DELAY_SECONDS = 0.25f;
+
     private final ConfigManager config;
+    private final Map<UUID, PendingRespawnTeleport> pendingRespawnTeleports = new ConcurrentHashMap<>();
     public SpawnManager(@Nonnull ConfigManager config) {
         this.config = config;
     }
@@ -44,6 +49,34 @@ public final class SpawnManager {
 
     public boolean hasSpawn() {
         return config.hasSpawn();
+    }
+
+    public void queueRespawnTeleport(@Nonnull UUID playerId, @Nonnull SpawnModel spawn) {
+        pendingRespawnTeleports.put(playerId, new PendingRespawnTeleport(spawn));
+    }
+
+    @Nullable
+    public SpawnModel peekRespawnTeleport(@Nonnull UUID playerId) {
+        PendingRespawnTeleport pending = pendingRespawnTeleports.get(playerId);
+        return pending != null ? pending.spawn : null;
+    }
+
+    public boolean tickRespawnTeleport(@Nonnull UUID playerId, float deltaSeconds) {
+        PendingRespawnTeleport pending = pendingRespawnTeleports.get(playerId);
+        if (pending == null) return false;
+        pending.elapsedSeconds += deltaSeconds;
+        return pending.elapsedSeconds >= RESPAWN_TELEPORT_DELAY_SECONDS;
+    }
+
+    public void resetRespawnTeleportDelay(@Nonnull UUID playerId) {
+        PendingRespawnTeleport pending = pendingRespawnTeleports.get(playerId);
+        if (pending != null) {
+            pending.elapsedSeconds = 0f;
+        }
+    }
+
+    public void clearRespawnTeleport(@Nonnull UUID playerId) {
+        pendingRespawnTeleports.remove(playerId);
     }
 
     public void ensureDefaultSpawnInitialized(@Nonnull World world) {
@@ -186,6 +219,15 @@ public final class SpawnManager {
             Log.info("Set spawn provider to custom spawn for world: " + world.getName());
         } catch (Throwable t) {
             Log.warn("Failed to apply custom spawn provider: " + t.getMessage());
+        }
+    }
+
+    private static final class PendingRespawnTeleport {
+        private final SpawnModel spawn;
+        private float elapsedSeconds;
+
+        private PendingRespawnTeleport(@Nonnull SpawnModel spawn) {
+            this.spawn = spawn;
         }
     }
 }

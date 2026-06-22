@@ -97,6 +97,7 @@ import xyz.thelegacyvoyage.hyessentialsx.listeners.AfkListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerDataListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerVisibilityListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.RespawnTeleportListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.SpawnProtectionListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.TeleportWarmupListener;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
@@ -501,12 +502,15 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         new AfkListener(afkManager).register(bus);
         new CombatLogListener(combatLogManager, configManager).register(bus);
         new SpawnProtectionListener(spawnManager, configManager).register(bus);
+        RespawnTeleportListener respawnTeleportListener = new RespawnTeleportListener(spawnManager);
+        respawnTeleportListener.register(bus);
         new SleepPercentListener(configManager).register(bus);
         Log.info("[HyEssentialsX] Listeners registered");
 
         new DeathBackListener(backManager).register(getEntityStoreRegistry());
         new DeathMessageListener(configManager).register(getEntityStoreRegistry());
         new DeathSpawnListener(spawnManager, configManager).register(getEntityStoreRegistry());
+        respawnTeleportListener.register(getEntityStoreRegistry());
         new FlyNoFallListener(flyManager).register(getEntityStoreRegistry());
         new GodHealthListener(godManager).register(getEntityStoreRegistry());
         new InfiniteStaminaListener(staminaManager).register(getEntityStoreRegistry());

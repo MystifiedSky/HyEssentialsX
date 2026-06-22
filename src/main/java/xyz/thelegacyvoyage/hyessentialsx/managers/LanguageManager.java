@@ -37,7 +37,8 @@ public final class LanguageManager {
             "ru",
             "ja-jp",
             "pa",
-            "de-de"
+            "de-de",
+            "it-it"
     );
 
     private final Gson gson = new GsonBuilder()

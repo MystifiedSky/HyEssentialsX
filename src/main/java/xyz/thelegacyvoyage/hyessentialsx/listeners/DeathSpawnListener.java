@@ -9,6 +9,7 @@ import com.hypixel.hytale.component.system.RefChangeSystem;
 import com.hypixel.hytale.server.core.modules.entity.damage.DeathComponent;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
@@ -75,6 +76,14 @@ public final class DeathSpawnListener {
                     case "setspawn" -> {
                         SpawnModel spawn = spawnManager.getSpawn();
                         if (spawn == null) break;
+                        if (!worldName.equalsIgnoreCase(spawn.getWorldName())) {
+                            if (Universe.get().getWorld(spawn.getWorldName()) == null) {
+                                Log.warn("Respawn teleport failed: world not loaded: " + spawn.getWorldName());
+                                break;
+                            }
+                            spawnManager.queueRespawnTeleport(player.getUuid(), spawn);
+                            return;
+                        }
                         String err = TeleportationUtil.teleportToSpawn(store, ref, spawn, buffer);
                         if (err != null) {
                             Log.warn("Respawn teleport failed: " + err);

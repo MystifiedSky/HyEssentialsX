@@ -8,6 +8,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -49,7 +50,7 @@ public final class MotdCommand extends CommandBase {
         String playerName = player != null ? player.getUsername() : "Console";
         Map<String, String> placeholders = buildPlaceholders(playerName, player);
         for (String line : config.getMotdMessages()) {
-            context.sendMessage(Messages.m(applyPlaceholders(line, placeholders)));
+            context.sendMessage(PlaceholderApiUtil.apply(player, applyPlaceholders(line, placeholders), config));
         }
     }
 

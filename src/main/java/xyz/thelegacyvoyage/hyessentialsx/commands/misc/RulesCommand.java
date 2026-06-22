@@ -11,6 +11,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.ui.RulesUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -69,7 +70,7 @@ public final class RulesCommand extends AbstractPlayerCommand {
 
         context.sendMessage(Messages.m("&aRules:"));
         for (String rule : rules) {
-            context.sendMessage(Messages.m(rule));
+            context.sendMessage(PlaceholderApiUtil.apply(playerRef, rule, config));
         }
     }
 }

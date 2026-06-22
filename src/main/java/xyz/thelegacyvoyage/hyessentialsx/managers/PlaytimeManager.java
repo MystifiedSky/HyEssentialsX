@@ -50,4 +50,32 @@ public final class PlaytimeManager {
         }
         return total;
     }
+
+    public void setPlaytimeSeconds(@Nonnull UUID uuid, long seconds) {
+        long clamped = Math.max(0L, seconds);
+        PlayerDataModel data = storage.getPlayerData(uuid);
+        Long joinAt = joinTimes.get(uuid);
+        if (joinAt != null && joinAt > 0L) {
+            long sessionSeconds = Math.max(0L, (System.currentTimeMillis() - joinAt) / 1000L);
+            long base = Math.max(0L, clamped - sessionSeconds);
+            data.setPlaytimeSeconds(base);
+        } else {
+            data.setPlaytimeSeconds(clamped);
+        }
+        storage.savePlayerDataAsync(uuid, data);
+    }
+
+    public void addPlaytimeSeconds(@Nonnull UUID uuid, long seconds) {
+        if (seconds == 0L) return;
+        PlayerDataModel data = storage.getPlayerData(uuid);
+        long base = Math.max(0L, data.getPlaytimeSeconds());
+        long updated;
+        try {
+            updated = Math.addExact(base, seconds);
+        } catch (ArithmeticException overflow) {
+            updated = (seconds < 0L) ? 0L : Long.MAX_VALUE;
+        }
+        data.setPlaytimeSeconds(Math.max(0L, updated));
+        storage.savePlayerDataAsync(uuid, data);
+    }
 }

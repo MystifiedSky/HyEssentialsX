@@ -43,6 +43,7 @@ public final class ConfigManager {
     private JsonObject root;
 
     private boolean useWorldDefaultSpawnIfUnset = true;
+    private boolean placeholderApiEnabled = false;
     private String languageCode = "en-us";
     private int tpaRequestTimeoutSeconds = 60;
     private int rtpMaxDistance = 5000;
@@ -517,6 +518,10 @@ public final class ConfigManager {
         general.addProperty("language", languageCode);
         root.add("general", general);
 
+        JsonObject placeholders = new JsonObject();
+        placeholders.addProperty("enabled", placeholderApiEnabled);
+        root.add("placeholders", placeholders);
+
         return root;
     }
 
@@ -600,6 +605,8 @@ public final class ConfigManager {
             JsonObject general = obj(root, "general");
             useWorldDefaultSpawnIfUnset = bool(general, "spawnFallbackToWorldDefault", true);
             languageCode = str(general, "language", languageCode).toLowerCase();
+            JsonObject placeholders = obj(root, "placeholders");
+            placeholderApiEnabled = bool(placeholders, "enabled", placeholderApiEnabled);
 
             JsonObject tpa = obj(root, "tpa");
             tpaRequestTimeoutSeconds = intVal(tpa, "timeoutSeconds", 60);
@@ -1066,6 +1073,10 @@ public final class ConfigManager {
 
     public boolean isNearEnabled() {
         return nearEnabled;
+    }
+
+    public boolean isPlaceholderApiEnabled() {
+        return placeholderApiEnabled;
     }
 
     public boolean isMotdEnabled() {

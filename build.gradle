@@ -8,6 +8,8 @@ version = '1.1.8'
 
 repositories {
     mavenCentral()
+    maven { url = 'https://repo.codemc.io/repository/hytale/' }
+    maven { url = 'https://repo.helpch.at/releases/' }
 }
 
 sourceSets {
@@ -37,6 +39,7 @@ dependencies {
     }
     // JSR305 annotations (@Nonnull, @Nullable)
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+    compileOnly 'at.helpch:placeholderapi-hytale:1.0.4'
     implementation 'com.google.code.gson:gson:2.10.1'
     implementation "org.tomlj:tomlj:1.1.1"
     implementation 'org.xerial:sqlite-jdbc:3.46.0.0'

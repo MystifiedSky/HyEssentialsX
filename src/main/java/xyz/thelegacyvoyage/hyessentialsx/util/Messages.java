@@ -4,6 +4,9 @@ import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import xyz.thelegacyvoyage.hyessentialsx.managers.LanguageManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -43,9 +46,14 @@ public final class Messages {
     private static final String PREFIX_KEY = "prefix.plugin";
     private static final String COMMAND_PREFIX = "&7[HyEssentialsX]&f ";
     private static LanguageManager languageManager;
+    private static ConfigManager configManager;
 
     public static void setLanguageManager(LanguageManager manager) {
         languageManager = manager;
+    }
+
+    public static void setConfigManager(ConfigManager manager) {
+        configManager = manager;
     }
 
     /**
@@ -193,15 +201,31 @@ public final class Messages {
     }
 
     public static void send(@Nonnull CommandContext ctx, @Nonnull String text) {
-        ctx.sendMessage(m(prefix(null) + translateIfKey(null, text)));
+        PlayerRef player = CommandSenderUtil.resolvePlayer(ctx);
+        String raw = prefix(null) + translateIfKey(null, text);
+        if (player != null && configManager != null) {
+            ctx.sendMessage(PlaceholderApiUtil.apply(player, raw, configManager));
+            return;
+        }
+        ctx.sendMessage(m(raw));
     }
 
     public static void send(@Nonnull PlayerRef player, @Nonnull String text) {
-        player.sendMessage(m(translateIfKey(player, text)));
+        String raw = translateIfKey(player, text);
+        if (configManager != null) {
+            player.sendMessage(PlaceholderApiUtil.apply(player, raw, configManager));
+            return;
+        }
+        player.sendMessage(m(raw));
     }
 
     public static void sendPrefixed(@Nonnull PlayerRef player, @Nonnull String text) {
-        player.sendMessage(m(prefix(player) + translateIfKey(player, text)));
+        String raw = prefix(player) + translateIfKey(player, text);
+        if (configManager != null) {
+            player.sendMessage(PlaceholderApiUtil.apply(player, raw, configManager));
+            return;
+        }
+        player.sendMessage(m(raw));
     }
 
     public static void ok(@Nonnull CommandContext ctx, @Nonnull String text) {
@@ -240,15 +264,31 @@ public final class Messages {
     }
 
     public static void sendKey(@Nonnull CommandContext ctx, @Nonnull String key, @Nonnull Map<String, String> placeholders) {
-        send(ctx, tr(null, key, placeholders));
+        PlayerRef player = CommandSenderUtil.resolvePlayer(ctx);
+        String raw = tr(player, key, placeholders);
+        if (player != null && configManager != null) {
+            ctx.sendMessage(PlaceholderApiUtil.apply(player, raw, configManager));
+            return;
+        }
+        ctx.sendMessage(m(raw));
     }
 
     public static void sendKey(@Nonnull PlayerRef player, @Nonnull String key, @Nonnull Map<String, String> placeholders) {
-        player.sendMessage(m(tr(player, key, placeholders)));
+        String raw = tr(player, key, placeholders);
+        if (configManager != null) {
+            player.sendMessage(PlaceholderApiUtil.apply(player, raw, configManager));
+            return;
+        }
+        player.sendMessage(m(raw));
     }
 
     public static void sendPrefixedKey(@Nonnull PlayerRef player, @Nonnull String key, @Nonnull Map<String, String> placeholders) {
-        player.sendMessage(m(prefix(player) + tr(player, key, placeholders)));
+        String raw = prefix(player) + tr(player, key, placeholders);
+        if (configManager != null) {
+            player.sendMessage(PlaceholderApiUtil.apply(player, raw, configManager));
+            return;
+        }
+        player.sendMessage(m(raw));
     }
 
     public static void okKey(@Nonnull CommandContext ctx, @Nonnull String key, @Nonnull Map<String, String> placeholders) {

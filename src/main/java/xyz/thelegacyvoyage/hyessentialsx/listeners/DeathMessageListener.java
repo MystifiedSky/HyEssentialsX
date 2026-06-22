@@ -17,7 +17,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -164,7 +164,7 @@ public final class DeathMessageListener {
                             .replace("{killer}", vars.get("killer"))
                             .replace("{cause}", vars.get("cause"));
                     msg = normalizeSpacing(msg);
-                    Messages.send(target, msg);
+                    target.sendMessage(PlaceholderApiUtil.apply(target, msg, config));
                 }
             }
         }

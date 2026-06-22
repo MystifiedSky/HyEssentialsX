@@ -14,6 +14,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.HyFactionsUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.LuckPermsUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
 import javax.annotation.Nonnull;
@@ -86,13 +87,13 @@ public final class ChatModerationListener {
                 String formattedBase = buildFormattedBase(sender);
                 event.setFormatter((playerRef, message) -> {
                     String content = message != null ? message : "";
-                    return Messages.m(formattedBase.replace("{message}", content));
+                    return PlaceholderApiUtil.apply(sender, formattedBase.replace("{message}", content), config);
                 });
                 return;
             }
 
             if (hasColorCodes(raw)) {
-                Message formatted = Messages.m(raw);
+                Message formatted = PlaceholderApiUtil.apply(sender, raw, config);
                 if (trySetMessage(event, formatted)) {
                     return;
                 }
@@ -108,7 +109,7 @@ public final class ChatModerationListener {
             String formattedBase = buildFormattedBase(sender);
             event.setFormatter((playerRef, message) -> {
                 String content = message != null ? message : "";
-                return Messages.m(formattedBase.replace("{message}", content));
+                return PlaceholderApiUtil.apply(sender, formattedBase.replace("{message}", content), config);
             });
         });
     }

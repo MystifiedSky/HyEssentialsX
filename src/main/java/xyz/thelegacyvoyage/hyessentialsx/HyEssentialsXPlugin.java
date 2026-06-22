@@ -133,6 +133,8 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.LanguageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.api.DefaultHyEssentialsXApi;
+import xyz.thelegacyvoyage.hyessentialsx.api.HyEssentialsXApiProvider;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
@@ -266,6 +268,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         storage = new StorageManager(dataDirectory, configManager);
         languageManager = new LanguageManager(dataDirectory, configManager, storage);
         Messages.setLanguageManager(languageManager);
+        Messages.setConfigManager(configManager);
         cooldownManager = new CommandCooldownManager(configManager, storage);
         spawnManager = new SpawnManager(configManager);
         tpManager = new TPManager(configManager.getTpaRequestTimeoutSeconds() * 1000L);
@@ -298,6 +301,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         shopNpcFixTask = new ShopNpcFixTask(shopManager);
         shopAdminDraftCache = new xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache();
         ShopNpcInteractionRegistry.register(this, shopManager, economyManager, configManager, shopAdminDraftCache);
+        HyEssentialsXApiProvider.register(new DefaultHyEssentialsXApi(economyManager, playtimeManager, shopManager));
 
         Log.info("[HyEssentialsX] Setup complete!");
     }
@@ -346,6 +350,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (paycheckManager != null) paycheckManager.shutdown();
         if (shopNpcFixTask != null) shopNpcFixTask.stop();
         if (storage != null) storage.shutdown();
+        HyEssentialsXApiProvider.clear();
         instance = null;
     }
 
@@ -465,7 +470,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new UnipBanCommand(ipBanManager, storage));
         for (var entry : customCommandManager.getCommands().values()) {
             reg.accept(
-                    new CustomTextCommand(customCommandManager, entry.getName(), entry.getPermission(), entry.getAliases())
+                    new CustomTextCommand(customCommandManager, configManager, entry.getName(), entry.getPermission(), entry.getAliases())
             );
         }
         Log.info("[HyEssentialsX] Commands registered");

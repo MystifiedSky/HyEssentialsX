@@ -12,7 +12,7 @@ import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -106,7 +106,7 @@ public final class RulesUI extends com.hypixel.hytale.server.core.entity.entitie
             String rule = rules.get(i);
             cmd.append("#RuleList", ROW_LAYOUT);
             String selector = "#RuleList[" + i + "]";
-            cmd.set(selector + ".TextSpans", Messages.m(rule));
+            cmd.set(selector + ".TextSpans", PlaceholderApiUtil.apply(playerRef, rule, config));
         }
     }
 }

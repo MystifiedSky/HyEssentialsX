@@ -15,7 +15,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MailManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 
 import javax.annotation.Nonnull;
@@ -107,7 +107,11 @@ public class PlayerListener {
 
         if (config.isMotdEnabled() && config.isMotdShowOnJoin()) {
             for (String line : config.getMotdMessages()) {
-                Messages.send(player, applyPlaceholders(line, buildPlaceholders(playerName, player, true)));
+                player.sendMessage(PlaceholderApiUtil.apply(
+                        player,
+                        applyPlaceholders(line, buildPlaceholders(playerName, player, true)),
+                        config
+                ));
             }
         }
 
@@ -170,7 +174,7 @@ public class PlayerListener {
         }
         Map<String, String> placeholders = buildPlaceholders(playerName, player, true);
         for (String line : config.getWelcomeMessages()) {
-            Messages.send(player, applyPlaceholders(line, placeholders));
+            player.sendMessage(PlaceholderApiUtil.apply(player, applyPlaceholders(line, placeholders), config));
         }
     }
 
@@ -182,7 +186,7 @@ public class PlayerListener {
         Map<String, String> placeholders = buildPlaceholders(playerName, playerRef, joining);
         for (PlayerRef target : Universe.get().getPlayers()) {
             for (String line : lines) {
-                Messages.send(target, applyPlaceholders(line, placeholders));
+                target.sendMessage(PlaceholderApiUtil.apply(target, applyPlaceholders(line, placeholders), config));
             }
         }
     }

@@ -37,3 +37,4 @@ public final class VanishManager {
         vanished.remove(playerId);
     }
 }
+

@@ -63,3 +63,4 @@ public final class AfkCommand extends AbstractPlayerCommand {
         cooldowns.apply(playerRef, CooldownKeys.AFK);
     }
 }
+

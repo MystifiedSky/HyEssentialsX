@@ -70,3 +70,4 @@ public final class SleepPercentCommand extends CommandBase {
         }
     }
 }
+

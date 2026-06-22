@@ -26,3 +26,4 @@ public final class GodManager {
         enabled.clear();
     }
 }
+

@@ -368,3 +368,4 @@ public final class MailManager {
         return TimeUtil.formatDurationSeconds(diff / 1000L);
     }
 }
+

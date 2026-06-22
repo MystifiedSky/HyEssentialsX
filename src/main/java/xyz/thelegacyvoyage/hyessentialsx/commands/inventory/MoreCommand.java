@@ -143,3 +143,4 @@ public final class MoreCommand extends AbstractPlayerCommand {
         );
     }
 }
+

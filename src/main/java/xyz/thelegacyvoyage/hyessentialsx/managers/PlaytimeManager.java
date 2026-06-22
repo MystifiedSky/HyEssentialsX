@@ -79,3 +79,4 @@ public final class PlaytimeManager {
         storage.savePlayerDataAsync(uuid, data);
     }
 }
+

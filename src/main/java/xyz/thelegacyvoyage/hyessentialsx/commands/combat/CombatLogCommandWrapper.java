@@ -106,3 +106,4 @@ public final class CombatLogCommandWrapper extends AbstractCommand {
         return null;
     }
 }
+

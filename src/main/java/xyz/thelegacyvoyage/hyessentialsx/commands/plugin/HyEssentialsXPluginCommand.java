@@ -39,3 +39,4 @@ public class HyEssentialsXPluginCommand extends AbstractCommandCollection {
         return false; // No permission required for base command
     }
 }
+

@@ -77,6 +77,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
     private String pendingStockResetDaysText = "";
     private String pendingMoneyStockLimitText = "";
     private String pendingEditorInputText = "";
+    private String pendingCostQtyText = "";
+    private String pendingOutputQtyText = "";
     private int editingIndex = -1;
 
     public ShopAdminUI(@Nonnull PlayerRef playerRef,
@@ -136,6 +138,12 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         if (data.editorInput != null) {
             pendingEditorInputText = data.editorInput;
         }
+        if (data.costQtyInput != null) {
+            pendingCostQtyText = data.costQtyInput;
+        }
+        if (data.outputQtyInput != null) {
+            pendingOutputQtyText = data.outputQtyInput;
+        }
 
         if (data.action == null) return;
         switch (data.action) {
@@ -177,6 +185,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             default -> {
             }
         }
+        syncPendingQuantitiesFromInputs();
         persistDraft();
         refresh(ref, store);
     }
@@ -209,6 +218,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         cmd.set("#MoneyModeSell.Disabled", sellTrade);
         boolean showStockLimit = !(useMoney && sellTrade) && !shop.isPlayerShop();
         cmd.set("#StockLimitSection.Visible", showStockLimit);
+        cmd.set("#CostQtyRow.Visible", (!useMoney || sellTrade) && pendingCostItem != null);
+        cmd.set("#OutputQtyRow.Visible", pendingOutputItem != null && !(useMoney && sellTrade));
         cmd.set("#NpcRoleLabel.Text", npcRoleSelected.isBlank() ? "None" : npcRoleSelected);
         cmd.set("#NpcRolePrev.Disabled", npcRoles.size() <= 1);
         cmd.set("#NpcRoleNext.Disabled", npcRoles.size() <= 1);
@@ -219,6 +230,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         cmd.set("#StockResetInput #SearchInput.Value", pendingStockResetDaysText == null ? "" : pendingStockResetDaysText);
         cmd.set("#MoneyStockLimitInput #SearchInput.Value", pendingMoneyStockLimitText == null ? "" : pendingMoneyStockLimitText);
         cmd.set("#EditorInput #SearchInput.Value", pendingEditorInputText == null ? "" : pendingEditorInputText);
+        cmd.set("#CostQtyInput #SearchInput.Value", pendingCostQtyText == null ? "" : pendingCostQtyText);
+        cmd.set("#OutputQtyInput #SearchInput.Value", pendingOutputQtyText == null ? "" : pendingOutputQtyText);
         cmd.set("#MoneyStockSection.Visible", !shop.isPlayerShop());
         cmd.set("#StockResetSection.Visible", !shop.isPlayerShop());
         cmd.set("#PlayerShopSettings.Visible", shop.isPlayerShop());
@@ -295,6 +308,10 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                 EventData.of("@MoneyStockLimitInput", "#MoneyStockLimitInput #SearchInput.Value"), false);
         evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#EditorInput #SearchInput",
                 EventData.of("@EditorInput", "#EditorInput #SearchInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#CostQtyInput #SearchInput",
+                EventData.of("@CostQtyInput", "#CostQtyInput #SearchInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#OutputQtyInput #SearchInput",
+                EventData.of("@OutputQtyInput", "#OutputQtyInput #SearchInput.Value"), false);
     }
 
     private void buildTradeList(@Nonnull UICommandBuilder cmd, @Nonnull UIEventBuilder evt) {
@@ -380,6 +397,9 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         cmd.clear("#SelectedOutputItems");
 
         if ((!useMoney || sellTrade) && pendingCostItem != null) {
+            if (pendingCostQtyText == null || pendingCostQtyText.isBlank()) {
+                pendingCostQtyText = String.valueOf(pendingCostItem.getQuantity());
+            }
             cmd.append("#SelectedCostItems", SELECTED_ITEM_LAYOUT);
             String selector = "#SelectedCostItems[0]";
             cmd.set(selector + " #ItemIcon.ItemId", pendingCostItem.getItemId());
@@ -388,6 +408,9 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         }
 
         if (pendingOutputItem != null) {
+            if (pendingOutputQtyText == null || pendingOutputQtyText.isBlank()) {
+                pendingOutputQtyText = String.valueOf(pendingOutputItem.getQuantity());
+            }
             cmd.append("#SelectedOutputItems", SELECTED_ITEM_LAYOUT);
             String selector = "#SelectedOutputItems[0]";
             cmd.set(selector + " #ItemIcon.ItemId", pendingOutputItem.getItemId());
@@ -539,7 +562,12 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             Messages.sendPrefixedKey(playerRef, "shop.admin.cost_hand_required", java.util.Map.of());
             return;
         }
-        pendingCostItem = new ShopItemModel(hand.getItemId(), Math.max(1, hand.getQuantity()));
+        int qty = parsePositiveInt(pendingCostQtyText);
+        if (qty <= 0) {
+            qty = Math.max(1, hand.getQuantity());
+        }
+        pendingCostItem = new ShopItemModel(hand.getItemId(), qty);
+        pendingCostQtyText = String.valueOf(qty);
         if (!useMoney) {
             useMoney = false;
         }
@@ -561,10 +589,16 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             Messages.sendPrefixedKey(playerRef, "shop.admin.output_hand_required", java.util.Map.of());
             return;
         }
-        pendingOutputItem = new ShopItemModel(hand.getItemId(), Math.max(1, hand.getQuantity()));
+        int qty = parsePositiveInt(pendingOutputQtyText);
+        if (qty <= 0) {
+            qty = Math.max(1, hand.getQuantity());
+        }
+        pendingOutputItem = new ShopItemModel(hand.getItemId(), qty);
+        pendingOutputQtyText = String.valueOf(qty);
     }
 
     private void saveTrade() {
+        syncPendingQuantitiesFromInputs();
         if (!useMoney || !sellTrade) {
             if (pendingOutputItem == null || pendingOutputItem.getItemId().isBlank()) {
             Messages.sendPrefixedKey(playerRef, "shop.admin.output_required", java.util.Map.of());
@@ -894,6 +928,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             pendingCostItem = trade.getCostItems().isEmpty() ? null : trade.getCostItems().get(0);
         }
         pendingOutputItem = trade.getRewardItems().isEmpty() ? null : trade.getRewardItems().get(0);
+        pendingCostQtyText = pendingCostItem != null ? String.valueOf(pendingCostItem.getQuantity()) : "";
+        pendingOutputQtyText = pendingOutputItem != null ? String.valueOf(pendingOutputItem.getQuantity()) : "";
     }
 
     private void clearPending() {
@@ -901,6 +937,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         pendingOutputItem = null;
         pendingPriceText = "";
         pendingStockLimitText = "";
+        pendingCostQtyText = "";
+        pendingOutputQtyText = "";
         editingIndex = -1;
     }
 
@@ -1044,6 +1082,12 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         if (draft.stockLimitText != null) {
             pendingStockLimitText = draft.stockLimitText;
         }
+        if (draft.costQtyText != null) {
+            pendingCostQtyText = draft.costQtyText;
+        }
+        if (draft.outputQtyText != null) {
+            pendingOutputQtyText = draft.outputQtyText;
+        }
     }
 
     private void persistDraft() {
@@ -1063,6 +1107,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         draft.stockResetDaysText = pendingStockResetDaysText;
         draft.moneyStockLimitText = pendingMoneyStockLimitText;
         draft.stockLimitText = pendingStockLimitText;
+        draft.costQtyText = pendingCostQtyText;
+        draft.outputQtyText = pendingOutputQtyText;
         draftCache.save(playerRef.getUuid(), draft);
     }
 
@@ -1095,6 +1141,21 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             return Math.max(0, Integer.parseInt(digits));
         } catch (NumberFormatException ignored) {
             return 0;
+        }
+    }
+
+    private void syncPendingQuantitiesFromInputs() {
+        if (pendingCostItem != null) {
+            int qty = parsePositiveInt(pendingCostQtyText);
+            if (qty > 0) {
+                pendingCostItem = new ShopItemModel(pendingCostItem.getItemId(), qty);
+            }
+        }
+        if (pendingOutputItem != null) {
+            int qty = parsePositiveInt(pendingOutputQtyText);
+            if (qty > 0) {
+                pendingOutputItem = new ShopItemModel(pendingOutputItem.getItemId(), qty);
+            }
         }
     }
 
@@ -1133,6 +1194,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                 .addField(new KeyedCodec<>("@StockResetInput", Codec.STRING), (e, v) -> e.stockResetInput = v, e -> e.stockResetInput)
                 .addField(new KeyedCodec<>("@MoneyStockLimitInput", Codec.STRING), (e, v) -> e.moneyStockLimitInput = v, e -> e.moneyStockLimitInput)
                 .addField(new KeyedCodec<>("@EditorInput", Codec.STRING), (e, v) -> e.editorInput = v, e -> e.editorInput)
+                .addField(new KeyedCodec<>("@CostQtyInput", Codec.STRING), (e, v) -> e.costQtyInput = v, e -> e.costQtyInput)
+                .addField(new KeyedCodec<>("@OutputQtyInput", Codec.STRING), (e, v) -> e.outputQtyInput = v, e -> e.outputQtyInput)
                 .build();
 
         private String action;
@@ -1143,6 +1206,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         private String stockResetInput;
         private String moneyStockLimitInput;
         private String editorInput;
+        private String costQtyInput;
+        private String outputQtyInput;
     }
 
     private enum Tab {
@@ -1151,3 +1216,4 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         PREVIEW
     }
 }
+

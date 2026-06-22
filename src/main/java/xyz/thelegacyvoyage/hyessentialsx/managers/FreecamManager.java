@@ -22,3 +22,4 @@ public final class FreecamManager {
         enabled.remove(playerId);
     }
 }
+

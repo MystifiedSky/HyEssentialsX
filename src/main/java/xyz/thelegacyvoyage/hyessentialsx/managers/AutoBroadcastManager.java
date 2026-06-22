@@ -53,3 +53,4 @@ public final class AutoBroadcastManager {
         Universe.get().sendMessage(Messages.m(message));
     }
 }
+

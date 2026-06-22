@@ -67,3 +67,4 @@ public final class CombatLogCommand extends CommandBase {
         }
     }
 }
+

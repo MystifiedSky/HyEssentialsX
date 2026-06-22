@@ -1,0 +1,42 @@
+Group {
+  LayoutMode: Left;
+  Padding: (Full: 4);
+  Anchor: (Bottom: 2);
+
+  // Main clickable area for editing
+  Button #Button {
+    Padding: (Full: 4);
+    LayoutMode: Left;
+    FlexWeight: 1;
+    Style: (
+      Hovered: (
+        Background: #000000(0.2)
+      )
+    );
+
+    Label #LineNumber {
+      Style: (TextColor: #96a9be);
+      Anchor: (Width: 30);
+    }
+
+    Label #LineText {
+      Style: (RenderBold: true);
+      FlexWeight: 1;
+    }
+  }
+
+  // Delete line button
+  Button #LineDeleteButton {
+    Anchor: (Width: 28, Height: 28, Left: 5);
+    Background: #662222;
+    Style: (
+      Hovered: (
+        Background: #883333
+      )
+    );
+
+    Label #DeleteLabel {
+      Style: (TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center, FontSize: 14, RenderBold: true);
+    }
+  }
+}

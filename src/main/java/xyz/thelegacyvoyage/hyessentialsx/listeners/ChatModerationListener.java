@@ -173,3 +173,4 @@ public final class ChatModerationListener {
         return PermissionsModule.get().hasPermission(ref.getUuid(), ADMINCHAT_PERMISSION, false);
     }
 }
+

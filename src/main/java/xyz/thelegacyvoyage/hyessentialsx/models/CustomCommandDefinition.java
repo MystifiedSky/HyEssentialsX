@@ -42,3 +42,4 @@ public final class CustomCommandDefinition {
         return Collections.unmodifiableList(aliases);
     }
 }
+

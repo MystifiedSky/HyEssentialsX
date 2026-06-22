@@ -581,3 +581,4 @@ public final class CombatLogManager {
         return out;
     }
 }
+

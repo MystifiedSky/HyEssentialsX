@@ -103,3 +103,4 @@ public final class ShopTradeModel {
         return getStockLimit() > 0;
     }
 }
+

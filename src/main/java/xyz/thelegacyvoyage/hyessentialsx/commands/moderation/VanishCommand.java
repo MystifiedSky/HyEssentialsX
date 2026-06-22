@@ -111,3 +111,4 @@ public final class VanishCommand extends CommandBase {
         return null;
     }
 }
+

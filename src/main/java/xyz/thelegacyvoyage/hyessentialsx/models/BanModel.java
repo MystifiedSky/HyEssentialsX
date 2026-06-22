@@ -48,3 +48,4 @@ public final class BanModel {
         return createdAt;
     }
 }
+

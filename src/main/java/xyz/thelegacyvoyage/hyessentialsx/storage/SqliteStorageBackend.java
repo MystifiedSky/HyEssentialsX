@@ -338,3 +338,4 @@ public final class SqliteStorageBackend implements StorageBackend {
                 ". Writes have been disabled to avoid log spam. Fix file permissions or switch storage to JSON/MySQL.");
     }
 }
+

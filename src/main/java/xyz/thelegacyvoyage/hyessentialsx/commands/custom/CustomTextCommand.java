@@ -60,3 +60,4 @@ public final class CustomTextCommand extends CommandBase {
         context.sendMessage(PlaceholderApiUtil.apply(player, definition.getMessage(), config));
     }
 }
+

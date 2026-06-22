@@ -121,3 +121,4 @@ public final class IpBanCommand extends CommandBase {
         return sender.getClass().getSimpleName();
     }
 }
+

@@ -91,3 +91,4 @@ public final class TphereCommand extends AbstractPlayerCommand {
         Messages.sendPrefixedKey(target, "tphere.target", Map.of("player", playerRef.getUsername()));
     }
 }
+

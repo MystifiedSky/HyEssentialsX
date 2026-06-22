@@ -89,3 +89,4 @@ public final class UnipBanCommand extends CommandBase {
         return raw.contains(".") || raw.contains(":") || raw.startsWith("/") || raw.startsWith("[");
     }
 }
+

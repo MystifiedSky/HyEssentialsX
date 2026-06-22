@@ -652,3 +652,4 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
         private String tradeIndex;
     }
 }
+

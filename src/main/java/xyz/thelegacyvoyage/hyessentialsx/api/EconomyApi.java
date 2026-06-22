@@ -20,3 +20,4 @@ public interface EconomyApi {
 
     boolean withdraw(@Nonnull UUID uuid, long amount);
 }
+

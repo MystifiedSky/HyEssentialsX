@@ -119,3 +119,4 @@ public final class RankupCommand extends AbstractPlayerCommand {
         return String.format(Locale.US, "%.0f", hours);
     }
 }
+

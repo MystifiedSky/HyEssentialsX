@@ -401,3 +401,4 @@ public final class FreezeManager {
                               float yaw,
                               float pitch) { }
 }
+

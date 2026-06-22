@@ -5,3 +5,4 @@ public interface HyEssentialsXApi {
     PlaytimeApi playtime();
     ShopApi shops();
 }
+

@@ -103,3 +103,4 @@ public final class SimpleClaimsUtil {
         Log.warn("[HyEssentialsX] " + message);
     }
 }
+

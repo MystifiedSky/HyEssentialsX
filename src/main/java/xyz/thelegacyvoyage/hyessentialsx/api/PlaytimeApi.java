@@ -12,3 +12,4 @@ public interface PlaytimeApi {
 
     void resetPlaytime(@Nonnull UUID uuid);
 }
+

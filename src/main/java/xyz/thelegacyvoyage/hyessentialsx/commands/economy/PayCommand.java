@@ -111,3 +111,4 @@ public final class PayCommand extends AbstractPlayerCommand {
         }
     }
 }
+

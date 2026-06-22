@@ -64,3 +64,4 @@ public final class FreezeCommand extends AbstractPlayerCommand {
         Messages.sendPrefixed(target, "&cYou have been frozen by staff.");
     }
 }
+

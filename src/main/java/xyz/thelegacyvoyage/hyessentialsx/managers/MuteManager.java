@@ -38,3 +38,4 @@ public final class MuteManager {
         return getMute(playerId) != null;
     }
 }
+

@@ -47,3 +47,4 @@ public class ReloadSubCommand extends CommandBase {
         context.sendMessage(Message.raw("Note: adding/removing custom commands or changing storage type requires a server restart."));
     }
 }
+

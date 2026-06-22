@@ -349,3 +349,4 @@ public final class RankupManager {
         }
     }
 }
+

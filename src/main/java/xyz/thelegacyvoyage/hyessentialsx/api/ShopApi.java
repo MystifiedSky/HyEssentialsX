@@ -30,3 +30,4 @@ public interface ShopApi {
 
     boolean deleteShop(@Nonnull String name);
 }
+

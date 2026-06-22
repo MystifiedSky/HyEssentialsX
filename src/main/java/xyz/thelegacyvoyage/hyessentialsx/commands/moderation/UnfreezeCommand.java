@@ -64,3 +64,4 @@ public final class UnfreezeCommand extends AbstractPlayerCommand {
         Messages.sendPrefixed(target, "&aYou have been unfrozen.");
     }
 }
+

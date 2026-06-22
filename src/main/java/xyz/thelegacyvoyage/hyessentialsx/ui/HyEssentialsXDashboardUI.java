@@ -112,3 +112,4 @@ public class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEssentia
         public UIEventData() {}
     }
 }
+

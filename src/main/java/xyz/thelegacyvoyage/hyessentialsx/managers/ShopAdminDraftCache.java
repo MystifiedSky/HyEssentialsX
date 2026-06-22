@@ -35,6 +35,8 @@ public final class ShopAdminDraftCache {
         public String stockResetDaysText = "";
         public String moneyStockLimitText = "";
         public String stockLimitText = "";
+        public String costQtyText = "";
+        public String outputQtyText = "";
         public ShopItemModel pendingCostItem;
         public ShopItemModel pendingOutputItem;
         public String pendingPriceText = "";
@@ -53,6 +55,8 @@ public final class ShopAdminDraftCache {
             copy.stockResetDaysText = stockResetDaysText;
             copy.moneyStockLimitText = moneyStockLimitText;
             copy.stockLimitText = stockLimitText;
+            copy.costQtyText = costQtyText;
+            copy.outputQtyText = outputQtyText;
             copy.pendingCostItem = cloneItem(pendingCostItem);
             copy.pendingOutputItem = cloneItem(pendingOutputItem);
             copy.pendingPriceText = pendingPriceText;
@@ -68,3 +72,4 @@ public final class ShopAdminDraftCache {
         }
     }
 }
+

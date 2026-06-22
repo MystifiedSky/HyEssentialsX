@@ -37,3 +37,4 @@ public final class IpBanManager {
         return getBan(ip) != null;
     }
 }
+

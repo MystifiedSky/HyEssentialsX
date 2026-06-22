@@ -40,3 +40,4 @@ public final class ShopChestModel {
         this.worldId = worldId;
     }
 }
+

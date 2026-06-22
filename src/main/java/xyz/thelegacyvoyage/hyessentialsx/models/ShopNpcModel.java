@@ -130,3 +130,4 @@ public final class ShopNpcModel {
         this.spawnedTime = spawnedTime;
     }
 }
+

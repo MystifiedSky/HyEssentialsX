@@ -114,3 +114,4 @@ public final class MailMessageModel {
         this.readAt = readAt;
     }
 }
+

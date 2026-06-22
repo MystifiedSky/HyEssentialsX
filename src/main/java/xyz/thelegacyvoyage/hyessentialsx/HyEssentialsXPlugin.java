@@ -78,6 +78,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.economy.MoneyCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.economy.PayCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.shop.ShopCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.shop.PlayerShopCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.hologram.HologramCommand;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.ChatModerationListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.CleanupListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.CombatLogListener;
@@ -125,6 +126,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.ShopNpcInteractionRegistry;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.hologram.HologramService;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AutoBroadcastManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
@@ -184,6 +186,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private ShopManager shopManager;
     private ShopNpcFixTask shopNpcFixTask;
     private xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache shopAdminDraftCache;
+    private HologramService hologramService;
     private Path dataDirectory;
 
 
@@ -302,6 +305,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         shopAdminDraftCache = new xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache();
         ShopNpcInteractionRegistry.register(this, shopManager, economyManager, configManager, shopAdminDraftCache);
         HyEssentialsXApiProvider.register(new DefaultHyEssentialsXApi(economyManager, playtimeManager, shopManager));
+        hologramService = new HologramService(this, dataDirectory, configManager);
 
         Log.info("[HyEssentialsX] Setup complete!");
     }
@@ -312,6 +316,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (combatLogManager != null) {
             combatLogManager.setShutdownInProgress(false);
         }
+        if (hologramService != null && configManager != null && configManager.isHologramsEnabled()) {
+            hologramService.start();
+        }
         registerCommands();
         if (freezeManager != null) {
             freezeManager.wrapAllCommands(getCommandRegistry());
@@ -321,7 +328,6 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (shopNpcFixTask != null) {
             shopNpcFixTask.start();
         }
-
         godManager.clearAll();
         staminaManager.clearAll();
         autoBroadcastManager.start();
@@ -349,6 +355,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (rankupManager != null) rankupManager.shutdown();
         if (paycheckManager != null) paycheckManager.shutdown();
         if (shopNpcFixTask != null) shopNpcFixTask.stop();
+        if (hologramService != null) {
+            hologramService.shutdown();
+        }
         if (storage != null) storage.shutdown();
         HyEssentialsXApiProvider.clear();
         instance = null;
@@ -468,6 +477,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new UnbanCommand(banManager, storage));
         reg.accept(new IpBanCommand(ipBanManager, storage));
         reg.accept(new UnipBanCommand(ipBanManager, storage));
+        if (hologramService != null && configManager != null && configManager.isHologramsEnabled()) {
+            reg.accept(new HologramCommand(hologramService));
+        }
         for (var entry : customCommandManager.getCommands().values()) {
             reg.accept(
                     new CustomTextCommand(customCommandManager, configManager, entry.getName(), entry.getPermission(), entry.getAliases())
@@ -718,3 +730,4 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     }
 
 }
+

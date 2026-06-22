@@ -4,6 +4,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
+import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
@@ -146,6 +147,12 @@ public final class ShopCommand extends AbstractPlayerCommand {
             return;
         }
 
+        if (args.size() >= 2 && "move".equalsIgnoreCase(args.get(1))) {
+            String name = args.get(0);
+            moveShopNpc(context, store, ref, playerRef, world, name);
+            return;
+        }
+
         if (!hasPermission(context.sender(), playerRef, PERMISSION_NODE)
                 && !hasPermission(context.sender(), playerRef, LEGACY_PERMISSION_NODE)) {
             Messages.noPerm(context, "/adminshop " + args.get(0));
@@ -222,6 +229,80 @@ public final class ShopCommand extends AbstractPlayerCommand {
         }
         ShopAdminUI ui = new ShopAdminUI(playerRef, shopManager, economy, shop, draftCache);
         ui.open(player, ref, store);
+    }
+
+    private void moveShopNpc(@Nonnull CommandContext context,
+                             @Nonnull Store<EntityStore> store,
+                             @Nonnull Ref<EntityStore> ref,
+                             @Nonnull PlayerRef playerRef,
+                             @Nonnull World world,
+                             @Nonnull String name) {
+        ShopModel shop = shopManager.getShop(name);
+        if (shop == null || shop.isPlayerShop()) {
+            Messages.sendKey(context, "shop.admin.not_found", java.util.Map.of());
+            return;
+        }
+        if (!hasPermission(context.sender(), playerRef, ADMIN_PERMISSION)
+                && !hasPermission(context.sender(), playerRef, LEGACY_ADMIN_PERMISSION)) {
+            Messages.noPerm(context, "/adminshop " + name + " move");
+            return;
+        }
+        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+        if (transform == null || transform.getPosition() == null) {
+            Messages.sendKey(context, "shop.npc.player_pos_failed", java.util.Map.of());
+            return;
+        }
+        Vector3d pos = transform.getPosition();
+        Vector3i basePos = new Vector3i(
+                (int) Math.floor(pos.getX()),
+                (int) Math.floor(pos.getY()),
+                (int) Math.floor(pos.getZ())
+        );
+        Vector3d centerPos = new Vector3d(basePos.getX() + 0.5D, basePos.getY(), basePos.getZ() + 0.5D);
+        Vector3f rot = transform.getRotation() != null ? transform.getRotation() : new Vector3f(0f, 0f, 0f);
+
+        ShopNpcModel targetNpc = null;
+        for (ShopNpcModel npcModel : shop.getNpcs()) {
+            if (npcModel == null) continue;
+            if (!npcModel.getWorldId().equalsIgnoreCase(world.getName())) continue;
+            targetNpc = npcModel;
+            break;
+        }
+        if (targetNpc == null) {
+            spawnShopNpc(context, playerRef, world, shop);
+            return;
+        }
+        boolean moved = moveNpcEntity(world, store, targetNpc, centerPos, rot, basePos);
+        if (!moved) {
+            String targetId = targetNpc.getNpcId();
+            shop.getNpcs().removeIf(npc -> npc != null && npc.getNpcId().equalsIgnoreCase(targetId));
+            shopManager.saveShop(shop);
+            spawnShopNpc(context, playerRef, world, shop);
+            return;
+        }
+        shopManager.saveShop(shop);
+        Messages.send(playerRef, "&aShop NPC moved.");
+    }
+
+    private boolean moveNpcEntity(@Nonnull World world,
+                                  @Nonnull Store<EntityStore> store,
+                                  @Nonnull ShopNpcModel npcModel,
+                                  @Nonnull Vector3d position,
+                                  @Nonnull Vector3f rotation,
+                                  @Nonnull Vector3i basePos) {
+        try {
+            java.util.UUID npcUuid = java.util.UUID.fromString(npcModel.getNpcId());
+            Ref<EntityStore> npcRef = world.getEntityRef(npcUuid);
+            if (npcRef == null) return false;
+            TransformComponent transform = store.getComponent(npcRef, TransformComponent.getComponentType());
+            if (transform == null) return false;
+            transform.setPosition(position);
+            transform.setRotation(rotation);
+            npcModel.setPosition(basePos);
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     private boolean hasPermission(@Nonnull com.hypixel.hytale.server.core.command.system.CommandSender sender,
@@ -396,3 +477,4 @@ public final class ShopCommand extends AbstractPlayerCommand {
         return removed[0];
     }
 }
+

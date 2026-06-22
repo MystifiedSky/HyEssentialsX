@@ -256,3 +256,4 @@ public final class HyFactionsUtil {
         }
     }
 }
+

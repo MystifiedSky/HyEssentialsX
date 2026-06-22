@@ -114,3 +114,4 @@ public final class FreezeCommandWrapper extends AbstractCommand {
         return null;
     }
 }
+

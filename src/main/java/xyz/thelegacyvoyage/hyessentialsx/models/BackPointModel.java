@@ -31,3 +31,4 @@ public final class BackPointModel {
     public float getPitch() { return pitch; }
     public long getRecordedAt() { return recordedAt; }
 }
+

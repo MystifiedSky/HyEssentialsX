@@ -510,3 +510,4 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
         return senderHas || moduleHas;
     }
 }
+

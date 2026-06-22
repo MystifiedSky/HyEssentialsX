@@ -682,3 +682,4 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
         private String tradeIndex;
     }
 }
+

@@ -211,3 +211,4 @@ public final class CombatLogListener {
         return lower.contains("shutdown") || lower.contains("restart") || lower.contains("stopping");
     }
 }
+

@@ -45,6 +45,13 @@ public final class ConfigManager {
     private boolean useWorldDefaultSpawnIfUnset = true;
     private boolean placeholderApiEnabled = false;
     private String languageCode = "en-us";
+    private boolean hologramsEnabled = true;
+    private boolean hologramPlaceholdersEnabled = true;
+    private int hologramPlaceholderUpdateIntervalMs = 1000;
+    private int hologramMaxLines = 50;
+    private int hologramMaxLineLength = 128;
+    private int hologramMaxNameLength = 32;
+    private double hologramDefaultLineSpacing = 0.25D;
     private int tpaRequestTimeoutSeconds = 60;
     private int rtpMaxDistance = 5000;
     private int rtpMinDistance = 1000;
@@ -522,6 +529,18 @@ public final class ConfigManager {
         placeholders.addProperty("enabled", placeholderApiEnabled);
         root.add("placeholders", placeholders);
 
+        JsonObject holograms = new JsonObject();
+        holograms.addProperty("enabled", hologramsEnabled);
+        holograms.addProperty("maxLines", hologramMaxLines);
+        holograms.addProperty("maxLineLength", hologramMaxLineLength);
+        holograms.addProperty("maxNameLength", hologramMaxNameLength);
+        holograms.addProperty("defaultLineSpacing", hologramDefaultLineSpacing);
+        JsonObject hologramPlaceholders = new JsonObject();
+        hologramPlaceholders.addProperty("enabled", hologramPlaceholdersEnabled);
+        hologramPlaceholders.addProperty("updateIntervalMs", hologramPlaceholderUpdateIntervalMs);
+        holograms.add("placeholders", hologramPlaceholders);
+        root.add("holograms", holograms);
+
         return root;
     }
 
@@ -607,6 +626,16 @@ public final class ConfigManager {
             languageCode = str(general, "language", languageCode).toLowerCase();
             JsonObject placeholders = obj(root, "placeholders");
             placeholderApiEnabled = bool(placeholders, "enabled", placeholderApiEnabled);
+
+            JsonObject holograms = obj(root, "holograms");
+            hologramsEnabled = bool(holograms, "enabled", hologramsEnabled);
+            hologramMaxLines = intVal(holograms, "maxLines", hologramMaxLines);
+            hologramMaxLineLength = intVal(holograms, "maxLineLength", hologramMaxLineLength);
+            hologramMaxNameLength = intVal(holograms, "maxNameLength", hologramMaxNameLength);
+            hologramDefaultLineSpacing = dbl(holograms, "defaultLineSpacing", hologramDefaultLineSpacing);
+            JsonObject hologramPlaceholders = obj(holograms, "placeholders");
+            hologramPlaceholdersEnabled = bool(hologramPlaceholders, "enabled", hologramPlaceholdersEnabled);
+            hologramPlaceholderUpdateIntervalMs = intVal(hologramPlaceholders, "updateIntervalMs", hologramPlaceholderUpdateIntervalMs);
 
             JsonObject tpa = obj(root, "tpa");
             tpaRequestTimeoutSeconds = intVal(tpa, "timeoutSeconds", 60);
@@ -1077,6 +1106,34 @@ public final class ConfigManager {
 
     public boolean isPlaceholderApiEnabled() {
         return placeholderApiEnabled;
+    }
+
+    public boolean isHologramsEnabled() {
+        return hologramsEnabled;
+    }
+
+    public boolean isHologramPlaceholdersEnabled() {
+        return hologramPlaceholdersEnabled;
+    }
+
+    public int getHologramPlaceholderUpdateIntervalMs() {
+        return Math.max(250, hologramPlaceholderUpdateIntervalMs);
+    }
+
+    public int getHologramMaxLines() {
+        return Math.max(1, hologramMaxLines);
+    }
+
+    public int getHologramMaxLineLength() {
+        return Math.max(1, hologramMaxLineLength);
+    }
+
+    public int getHologramMaxNameLength() {
+        return Math.max(1, hologramMaxNameLength);
+    }
+
+    public double getHologramDefaultLineSpacing() {
+        return Math.max(0.05D, hologramDefaultLineSpacing);
     }
 
     public boolean isMotdEnabled() {
@@ -1580,6 +1637,19 @@ public final class ConfigManager {
         JsonObject general = obj(root, "general");
         general.addProperty("spawnFallbackToWorldDefault", useWorldDefaultSpawnIfUnset);
         general.addProperty("language", languageCode);
+
+        JsonObject placeholders = obj(root, "placeholders");
+        placeholders.addProperty("enabled", placeholderApiEnabled);
+
+        JsonObject holograms = obj(root, "holograms");
+        holograms.addProperty("enabled", hologramsEnabled);
+        holograms.addProperty("maxLines", hologramMaxLines);
+        holograms.addProperty("maxLineLength", hologramMaxLineLength);
+        holograms.addProperty("maxNameLength", hologramMaxNameLength);
+        holograms.addProperty("defaultLineSpacing", hologramDefaultLineSpacing);
+        JsonObject hologramPlaceholders = obj(holograms, "placeholders");
+        hologramPlaceholders.addProperty("enabled", hologramPlaceholdersEnabled);
+        hologramPlaceholders.addProperty("updateIntervalMs", hologramPlaceholderUpdateIntervalMs);
 
         JsonObject tpa = obj(root, "tpa");
         tpa.addProperty("enabled", tpaEnabled);
@@ -2496,3 +2566,4 @@ public final class ConfigManager {
         return tiers;
     }
 }
+

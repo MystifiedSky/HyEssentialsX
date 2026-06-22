@@ -271,3 +271,4 @@ public final class ShopNpcInteractionRegistry {
         }
     }
 }
+

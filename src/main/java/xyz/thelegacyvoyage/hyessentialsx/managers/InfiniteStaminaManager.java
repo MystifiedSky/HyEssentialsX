@@ -26,3 +26,4 @@ public final class InfiniteStaminaManager {
         enabled.clear();
     }
 }
+

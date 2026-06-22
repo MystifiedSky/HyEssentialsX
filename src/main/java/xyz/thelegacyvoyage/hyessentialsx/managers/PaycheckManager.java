@@ -113,3 +113,4 @@ public final class PaycheckManager {
         return best > 0 ? best : base;
     }
 }
+

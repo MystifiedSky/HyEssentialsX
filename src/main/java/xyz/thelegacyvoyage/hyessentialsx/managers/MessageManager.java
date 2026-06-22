@@ -23,3 +23,4 @@ public final class MessageManager {
         lastPartner.remove(playerId);
     }
 }
+

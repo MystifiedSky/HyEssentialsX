@@ -32,3 +32,4 @@ public final class ShopItemModel {
         this.quantity = Math.max(0, quantity);
     }
 }
+

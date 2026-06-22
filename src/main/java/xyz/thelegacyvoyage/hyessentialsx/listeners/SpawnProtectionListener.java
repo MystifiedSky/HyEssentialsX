@@ -416,3 +416,4 @@ public final class SpawnProtectionListener {
         }
     }
 }
+

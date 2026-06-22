@@ -195,3 +195,4 @@ public final class MoneyCommand extends CommandBase {
         return sender.getClass().getSimpleName();
     }
 }
+

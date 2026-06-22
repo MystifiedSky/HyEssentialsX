@@ -19,3 +19,4 @@ public final class CooldownKeys {
     public static final String JUMPTO = "jumpto";
     public static final String HOME = "home";
 }
+

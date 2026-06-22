@@ -329,3 +329,4 @@ public final class ShopNpcListener implements Consumer<PlayerInteractEvent> {
         return moduleHas && componentHas;
     }
 }
+

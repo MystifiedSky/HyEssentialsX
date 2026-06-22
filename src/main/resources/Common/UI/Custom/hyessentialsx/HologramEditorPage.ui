@@ -1,0 +1,258 @@
+﻿$C = "../Common.ui";
+
+$C.@PageOverlay {}
+
+$C.@Container {
+  Anchor: (Width: 680, Height: 580);
+
+  #Title {
+    $C.@Title {
+      @Text = "HOLOGRAM EDITOR";
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+
+    Group #InfoSection {
+      LayoutMode: Top;
+      Anchor: (Bottom: 10);
+
+      Group {
+        LayoutMode: Left;
+        Anchor: (Bottom: 5);
+
+        Label {
+          Text: "Name:";
+          Style: (RenderBold: true, TextColor: #96a9be);
+          Anchor: (Width: 80);
+        }
+
+        Label #HologramName {
+          Style: (TextColor: #ffffff, RenderBold: true);
+          FlexWeight: 1;
+        }
+      }
+
+      // Position label
+      Label {
+        Text: "Position:";
+        Style: (RenderBold: true, TextColor: #96a9be);
+        Anchor: (Bottom: 5);
+      }
+
+      // Position controls row
+      Group #PositionControls {
+        LayoutMode: Left;
+        Anchor: (Bottom: 10);
+
+        // X coordinate
+        Label {
+          Text: "X:";
+          Style: (RenderBold: true, TextColor: #ff6666);
+          Anchor: (Width: 20);
+        }
+        $C.@SmallSecondaryTextButton #XDownButton {
+          @Text = "-";
+          @Anchor = (Width: 28, Height: 28);
+        }
+        $C.@TextField #XInput {
+          @Anchor = (Width: 70, Height: 28);
+        }
+        $C.@SmallSecondaryTextButton #XUpButton {
+          @Text = "+";
+          @Anchor = (Width: 28, Height: 28, Right: 10);
+        }
+
+        // Y coordinate
+        Label {
+          Text: "Y:";
+          Style: (RenderBold: true, TextColor: #66ff66);
+          Anchor: (Width: 20, Left: 5);
+        }
+        $C.@SmallSecondaryTextButton #YDownButton {
+          @Text = "-";
+          @Anchor = (Width: 28, Height: 28);
+        }
+        $C.@TextField #YInput {
+          @Anchor = (Width: 70, Height: 28);
+        }
+        $C.@SmallSecondaryTextButton #YUpButton {
+          @Text = "+";
+          @Anchor = (Width: 28, Height: 28, Right: 10);
+        }
+
+        // Z coordinate
+        Label {
+          Text: "Z:";
+          Style: (RenderBold: true, TextColor: #6666ff);
+          Anchor: (Width: 20, Left: 5);
+        }
+        $C.@SmallSecondaryTextButton #ZDownButton {
+          @Text = "-";
+          @Anchor = (Width: 28, Height: 28);
+        }
+        $C.@TextField #ZInput {
+          @Anchor = (Width: 70, Height: 28);
+        }
+        $C.@SmallSecondaryTextButton #ZUpButton {
+          @Text = "+";
+          @Anchor = (Width: 28, Height: 28);
+        }
+
+        // Set button to apply manual position
+        $C.@TertiaryTextButton #SetPositionButton {
+          @Text = "SET";
+          @Anchor = (Width: 80, Left: 10);
+        }
+      }
+    }
+
+    Label {
+      Text: "Lines";
+      Style: (RenderBold: true, RenderUppercase: true, TextColor: #ffaa00);
+      Anchor: (Bottom: 5);
+    }
+
+    Group #LinesContainer {
+      Background: (Color: #0a0f17);
+      Anchor: (Height: 150, Bottom: 10);
+      Padding: 5;
+
+      Group #LinesList {
+        FlexWeight: 1;
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+      }
+    }
+
+    // Edit mode label (hidden by default)
+    Label #EditModeLabel {
+      Text: "Editing Line";
+      Style: (RenderBold: true, TextColor: #44aaff);
+      Anchor: (Bottom: 5);
+      Visible: false;
+    }
+
+    // Facing Direction Section (for image holograms)
+    Group #DirectionSection {
+      LayoutMode: Top;
+      Anchor: (Bottom: 10);
+      Visible: false;
+
+      Label {
+        Text: "Image Facing Direction:";
+        Style: (RenderBold: true, TextColor: #96a9be);
+        Anchor: (Bottom: 5);
+      }
+
+      Group #DirectionButtons {
+        LayoutMode: Left;
+        Anchor: (Bottom: 5);
+
+        // Row 1: NW, N, NE
+        Button #DirNW {
+          Background: (Color: #333333);
+          Anchor: (Width: 45, Height: 32, Right: 3);
+          Label { Text: "NW"; Style: (RenderBold: true, TextColor: #ffffff, Alignment: Center); }
+        }
+        Button #DirN {
+          Background: (Color: #333333);
+          Anchor: (Width: 45, Height: 32, Right: 3);
+          Label { Text: "N"; Style: (RenderBold: true, TextColor: #ffffff, Alignment: Center); }
+        }
+        Button #DirNE {
+          Background: (Color: #333333);
+          Anchor: (Width: 45, Height: 32, Right: 15);
+          Label { Text: "NE"; Style: (RenderBold: true, TextColor: #ffffff, Alignment: Center); }
+        }
+
+        // Row 2: W, Current, E
+        Button #DirW {
+          Background: (Color: #333333);
+          Anchor: (Width: 45, Height: 32, Right: 3);
+          Label { Text: "W"; Style: (RenderBold: true, TextColor: #ffffff, Alignment: Center); }
+        }
+        Label #CurrentDirection {
+          Text: "N";
+          Style: (RenderBold: true, TextColor: #ffaa00, Alignment: Center);
+          Anchor: (Width: 45, Height: 32);
+        }
+        Button #DirE {
+          Background: (Color: #333333);
+          Anchor: (Width: 45, Height: 32, Left: 3, Right: 15);
+          Label { Text: "E"; Style: (RenderBold: true, TextColor: #ffffff, Alignment: Center); }
+        }
+
+        // Row 3: SW, S, SE
+        Button #DirSW {
+          Background: (Color: #333333);
+          Anchor: (Width: 45, Height: 32, Right: 3);
+          Label { Text: "SW"; Style: (RenderBold: true, TextColor: #ffffff, Alignment: Center); }
+        }
+        Button #DirS {
+          Background: (Color: #333333);
+          Anchor: (Width: 45, Height: 32, Right: 3);
+          Label { Text: "S"; Style: (RenderBold: true, TextColor: #ffffff, Alignment: Center); }
+        }
+        Button #DirSE {
+          Background: (Color: #333333);
+          Anchor: (Width: 45, Height: 32);
+          Label { Text: "SE"; Style: (RenderBold: true, TextColor: #ffffff, Alignment: Center); }
+        }
+      }
+    }
+
+    Group #AddSection {
+      LayoutMode: Left;
+      Anchor: (Bottom: 10);
+
+      $C.@TextField #NewLineInput {
+        @Anchor = (Height: 38);
+        FlexWeight: 1;
+      }
+
+      // Use TertiaryTextButton for Add - cleaner green/teal look without blue mix
+      $C.@TertiaryTextButton #AddLineButton {
+        @Text = "ADD";
+        @Anchor = (Left: 8, Width: 100);
+      }
+
+      $C.@SecondaryTextButton #UpdateLineButton {
+        @Text = "UPDATE";
+        @Anchor = (Left: 8, Width: 120);
+        Visible: false;
+      }
+
+      $C.@CancelTextButton #CancelEditButton {
+        @Text = "CANCEL";
+        @Anchor = (Left: 5, Width: 120);
+        Visible: false;
+      }
+    }
+
+    Group #ButtonSection {
+      LayoutMode: Left;
+      Anchor: (Bottom: 15);
+
+      // Use Primary style for Move Here - more visible bright blue button
+      $C.@TextButton #MoveHereButton {
+        @Text = "MOVE HERE";
+        @Anchor = (Width: 160);
+      }
+
+      $C.@CancelTextButton #DeleteButton {
+        @Text = "DELETE";
+        @Anchor = (Left: 10, Width: 140);
+      }
+
+      $C.@SecondaryTextButton #ExitButton {
+        @Text = "EXIT";
+        @Anchor = (Left: 10, Width: 120);
+      }
+    }
+  }
+}
+
+$C.@BackButton {}
+

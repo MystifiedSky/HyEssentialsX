@@ -184,3 +184,4 @@ public final class ShopModel {
         this.chests = chests;
     }
 }
+

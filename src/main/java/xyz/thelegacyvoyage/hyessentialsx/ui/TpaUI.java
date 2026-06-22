@@ -230,3 +230,4 @@ public final class TpaUI extends com.hypixel.hytale.server.core.entity.entities.
         return ((String) value).trim();
     }
 }
+

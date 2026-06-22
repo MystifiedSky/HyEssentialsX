@@ -167,3 +167,4 @@ public final class AfkManager {
         return (dx * dx + dy * dy + dz * dz) > MOVE_EPSILON_SQ;
     }
 }
+

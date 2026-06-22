@@ -58,3 +58,4 @@ public final class HomeManager {
         return new ArrayList<>(data.getHomes().keySet());
     }
 }
+

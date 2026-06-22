@@ -49,3 +49,4 @@ public final class IpBanListener {
         event.setCancelled(true);
     }
 }
+

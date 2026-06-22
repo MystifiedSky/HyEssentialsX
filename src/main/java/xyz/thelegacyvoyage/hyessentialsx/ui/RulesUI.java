@@ -110,3 +110,4 @@ public final class RulesUI extends com.hypixel.hytale.server.core.entity.entitie
         }
     }
 }
+

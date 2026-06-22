@@ -94,3 +94,4 @@ public final class CommandCooldownManager {
         storage.savePlayerDataAsync(playerRef.getUuid(), data);
     }
 }
+

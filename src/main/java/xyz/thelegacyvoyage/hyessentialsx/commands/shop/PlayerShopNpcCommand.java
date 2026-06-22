@@ -577,3 +577,4 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
         ShopNpcInteractionRegistry.applyNpcInteractions(store, npcRef);
     }
 }
+

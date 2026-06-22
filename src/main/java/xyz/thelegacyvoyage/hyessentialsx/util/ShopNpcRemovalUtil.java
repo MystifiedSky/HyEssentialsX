@@ -168,3 +168,4 @@ public final class ShopNpcRemovalUtil {
         System.out.println("[ShopNPC] " + message);
     }
 }
+

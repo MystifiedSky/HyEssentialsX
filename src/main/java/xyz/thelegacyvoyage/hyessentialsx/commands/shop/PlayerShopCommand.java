@@ -4,6 +4,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
+import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
@@ -31,6 +32,7 @@ import xyz.thelegacyvoyage.hyessentialsx.ui.ShopAdminUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.ShopContainerUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopPlacementUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcRemovalUtil;
 
@@ -179,6 +181,18 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             return;
         }
 
+        if (args.size() >= 2 && "link".equalsIgnoreCase(args.get(1))) {
+            String name = args.get(0);
+            linkChestForShop(context, store, ref, playerRef, world, name);
+            return;
+        }
+
+        if (args.size() >= 2 && "move".equalsIgnoreCase(args.get(1))) {
+            String name = args.get(0);
+            moveShopNpc(context, store, ref, playerRef, world, name);
+            return;
+        }
+
         if (!hasUsePermission(context.sender(), playerRef)) {
             Messages.noPerm(context, "/shop " + args.get(0));
             return;
@@ -267,6 +281,148 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         }
         ShopAdminUI ui = new ShopAdminUI(playerRef, shopManager, economy, shop, draftCache, storage, config);
         ui.open(player, ref, store);
+    }
+
+    private void linkChestForShop(@Nonnull CommandContext context,
+                                  @Nonnull Store<EntityStore> store,
+                                  @Nonnull Ref<EntityStore> ref,
+                                  @Nonnull PlayerRef playerRef,
+                                  @Nonnull World world,
+                                  @Nonnull String name) {
+        ShopModel shop = shopManager.getShop(name);
+        if (shop == null || !shop.isPlayerShop()) {
+            Messages.sendKey(context, "shop.player.not_found", java.util.Map.of());
+            return;
+        }
+        if (!hasEditAccess(context, playerRef, shop)) {
+            Messages.noPerm(context, "/shop " + name + " link");
+            return;
+        }
+        int radius = config.getPlayerShopChestLinkRadius();
+        Vector3i pos = ShopContainerUtil.findTargetedContainer(world, store, ref, Math.max(5, radius + 1));
+        if (pos == null) {
+            Messages.sendKey(context, "shop.player.chest.look_at", java.util.Map.of());
+            return;
+        }
+        boolean already = shop.getChests().stream().anyMatch(chest ->
+                chest != null
+                        && chest.getWorldId().equalsIgnoreCase(world.getName())
+                        && chest.getPosition().equals(pos));
+        if (already) {
+            Messages.sendKey(context, "shop.player.chest.already", java.util.Map.of());
+            return;
+        }
+        if (!shop.getNpcs().isEmpty() && !ShopContainerUtil.isWithinRadius(pos, shop.getNpcs(), radius)) {
+            Messages.sendKey(context, "shop.player.chest.too_far", java.util.Map.of());
+            return;
+        }
+        shop.getChests().add(new xyz.thelegacyvoyage.hyessentialsx.models.ShopChestModel(pos, world.getName()));
+        shopManager.saveShop(shop);
+        Messages.sendKey(context, "shop.player.chest.linked", java.util.Map.of());
+    }
+
+    private void moveShopNpc(@Nonnull CommandContext context,
+                             @Nonnull Store<EntityStore> store,
+                             @Nonnull Ref<EntityStore> ref,
+                             @Nonnull PlayerRef playerRef,
+                             @Nonnull World world,
+                             @Nonnull String name) {
+        ShopModel shop = shopManager.getShop(name);
+        if (shop == null || !shop.isPlayerShop()) {
+            Messages.sendKey(context, "shop.player.not_found", java.util.Map.of());
+            return;
+        }
+        if (!hasEditAccess(context, playerRef, shop)) {
+            Messages.noPerm(context, "/shop " + name + " move");
+            return;
+        }
+        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+        if (transform == null || transform.getPosition() == null) {
+            Messages.sendKey(context, "shop.npc.player_pos_failed", java.util.Map.of());
+            return;
+        }
+        Vector3d pos = transform.getPosition();
+        if (!ShopPlacementUtil.canPlaceShop(playerRef, world, store, ref, pos)) {
+            Messages.sendKey(context, "shop.player.claim_blocked", java.util.Map.of());
+            return;
+        }
+        Vector3i basePos = new Vector3i(
+                (int) Math.floor(pos.getX()),
+                (int) Math.floor(pos.getY()),
+                (int) Math.floor(pos.getZ())
+        );
+        Vector3d centerPos = new Vector3d(basePos.getX() + 0.5D, basePos.getY(), basePos.getZ() + 0.5D);
+        Vector3f rot = transform.getRotation() != null ? transform.getRotation() : new Vector3f(0f, 0f, 0f);
+
+        ShopNpcModel targetNpc = null;
+        for (ShopNpcModel npcModel : shop.getNpcs()) {
+            if (npcModel == null) continue;
+            if (!npcModel.getWorldId().equalsIgnoreCase(world.getName())) continue;
+            targetNpc = npcModel;
+            break;
+        }
+        if (targetNpc == null) {
+            spawnShopNpc(context, playerRef, world, shop);
+            pruneChestsOutOfRange(shop, world.getName(), basePos);
+            shopManager.saveShop(shop);
+            return;
+        }
+        boolean moved = moveNpcEntity(world, store, targetNpc, centerPos, rot, basePos);
+        if (!moved) {
+            String targetId = targetNpc.getNpcId();
+            shop.getNpcs().removeIf(npc -> npc != null && npc.getNpcId().equalsIgnoreCase(targetId));
+            shopManager.saveShop(shop);
+            spawnShopNpc(context, playerRef, world, shop);
+            pruneChestsOutOfRange(shop, world.getName(), basePos);
+            shopManager.saveShop(shop);
+            return;
+        }
+        pruneChestsOutOfRange(shop, world.getName(), basePos);
+        shopManager.saveShop(shop);
+        Messages.send(playerRef, "&aShop NPC moved.");
+    }
+
+    private boolean moveNpcEntity(@Nonnull World world,
+                                  @Nonnull Store<EntityStore> store,
+                                  @Nonnull ShopNpcModel npcModel,
+                                  @Nonnull Vector3d position,
+                                  @Nonnull Vector3f rotation,
+                                  @Nonnull Vector3i basePos) {
+        try {
+            java.util.UUID npcUuid = java.util.UUID.fromString(npcModel.getNpcId());
+            Ref<EntityStore> npcRef = world.getEntityRef(npcUuid);
+            if (npcRef == null) return false;
+            TransformComponent transform = store.getComponent(npcRef, TransformComponent.getComponentType());
+            if (transform == null) return false;
+            transform.setPosition(position);
+            transform.setRotation(rotation);
+            npcModel.setPosition(basePos);
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void pruneChestsOutOfRange(@Nonnull ShopModel shop,
+                                       @Nonnull String worldName,
+                                       @Nonnull Vector3i basePos) {
+        int radius = config.getPlayerShopChestLinkRadius();
+        if (radius <= 0) {
+            shop.getChests().clear();
+            return;
+        }
+        shop.getChests().removeIf(chest -> {
+            if (chest == null) return true;
+            if (!worldName.equalsIgnoreCase(chest.getWorldId())) {
+                return true;
+            }
+            Vector3i pos = chest.getPosition();
+            if (pos == null) return true;
+            double dx = Math.abs(pos.getX() - basePos.getX());
+            double dy = Math.abs(pos.getY() - basePos.getY());
+            double dz = Math.abs(pos.getZ() - basePos.getZ());
+            return dx > radius || dy > radius || dz > radius;
+        });
     }
 
     private boolean hasEditAccess(@Nonnull CommandContext context, @Nonnull PlayerRef playerRef, @Nonnull ShopModel shop) {
@@ -488,3 +644,4 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         return removed[0];
     }
 }
+

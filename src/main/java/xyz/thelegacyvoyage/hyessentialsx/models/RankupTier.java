@@ -42,3 +42,4 @@ public final class RankupTier {
         return commands;
     }
 }
+

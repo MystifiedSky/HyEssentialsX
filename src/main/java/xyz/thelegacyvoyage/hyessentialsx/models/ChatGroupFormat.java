@@ -28,3 +28,4 @@ public final class ChatGroupFormat {
         return format;
     }
 }
+

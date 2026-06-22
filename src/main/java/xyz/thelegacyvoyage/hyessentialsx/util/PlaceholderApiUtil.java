@@ -61,3 +61,4 @@ public final class PlaceholderApiUtil {
         return available && setPlaceholdersMethod != null;
     }
 }
+

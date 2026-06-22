@@ -30,3 +30,4 @@ public final class Log {
         if (logger != null) logger.at(Level.SEVERE).withCause(t).log(msg);
     }
 }
+

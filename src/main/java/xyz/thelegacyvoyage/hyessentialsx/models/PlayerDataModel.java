@@ -22,6 +22,7 @@ public final class PlayerDataModel {
     private BanModel ban;
     private String language;
     private long balance;
+    private Integer balanceScale;
     private BackPointModel back;
     private long playtimeSeconds;
     private long lastJoinAt;
@@ -156,6 +157,15 @@ public final class PlayerDataModel {
 
     public void setBalance(long balance) {
         this.balance = balance;
+    }
+
+    @Nullable
+    public Integer getBalanceScale() {
+        return balanceScale;
+    }
+
+    public void setBalanceScale(@Nullable Integer balanceScale) {
+        this.balanceScale = balanceScale;
     }
 
     @Nullable

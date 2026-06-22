@@ -64,7 +64,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
     private static final String SELECTED_ITEM_LAYOUT = "hyessentialsx/ShopSelectedItem.ui";
     private static final String PREVIEW_ROW_LAYOUT = "hyessentialsx/ShopBrowseTradeItem.ui";
     private static final String NPC_ROLE_ROW_LAYOUT = "hyessentialsx/ShopNpcRoleRow.ui";
-    private static final int TRADES_PER_PAGE = 4;
+    private static final int TRADES_PER_PAGE = 3;
 
     private final PlayerRef playerRef;
     private final ShopManager shopManager;
@@ -175,6 +175,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             }
             case "delete_trade" -> deleteTrade(data.tradeIndex);
             case "edit_trade" -> editTrade(data.tradeIndex);
+            case "move_trade_up" -> moveTrade(data.tradeIndex, -1);
+            case "move_trade_down" -> moveTrade(data.tradeIndex, 1);
             case "payment_money" -> useMoney = true;
             case "payment_items" -> {
                 useMoney = false;
@@ -383,6 +385,12 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                     new EventData().append("Action", "delete_trade").append("Trade", String.valueOf(idx)), false);
             evt.addEventBinding(CustomUIEventBindingType.Activating, cardSelector + " #EditButton",
                     new EventData().append("Action", "edit_trade").append("Trade", String.valueOf(idx)), false);
+            evt.addEventBinding(CustomUIEventBindingType.Activating, cardSelector + " #MoveUpButton",
+                    new EventData().append("Action", "move_trade_up").append("Trade", String.valueOf(idx)), false);
+            evt.addEventBinding(CustomUIEventBindingType.Activating, cardSelector + " #MoveDownButton",
+                    new EventData().append("Action", "move_trade_down").append("Trade", String.valueOf(idx)), false);
+            cmd.set(cardSelector + " #MoveUpButton.Disabled", idx <= 0);
+            cmd.set(cardSelector + " #MoveDownButton.Disabled", idx >= trades.size() - 1);
         }
     }
 
@@ -458,7 +466,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             pendingStockResetDaysText = String.valueOf(shop.getStockResetDays());
         }
         if (pendingMoneyStockLimitText == null || pendingMoneyStockLimitText.isBlank()) {
-            pendingMoneyStockLimitText = String.valueOf(shop.getMoneyStockLimit());
+            pendingMoneyStockLimitText = economy.formatAmountRaw(shop.getMoneyStockLimit());
         }
         if (shop.isPlayerShop()) {
             buildPlayerSettings(cmd);
@@ -676,7 +684,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         trade.setEnabled(true);
 
         if (useMoney) {
-            long price = parsePrice(pendingPriceText);
+            long price = economy.parseAmount(pendingPriceText);
             if (price <= 0L) {
                 Messages.sendPrefixedKey(playerRef, "shop.admin.price_invalid", java.util.Map.of());
                 return;
@@ -686,6 +694,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                 return;
             }
             trade.setMoneyCost(price);
+            trade.setMoneyScale(economy.getDecimalPlaces());
             if (sellTrade) {
                 if (pendingCostItem == null || pendingCostItem.getItemId().isBlank()) {
                     Messages.sendPrefixedKey(playerRef, "shop.admin.cost_required", java.util.Map.of());
@@ -702,6 +711,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                 return;
             }
             trade.setMoneyCost(0L);
+            trade.setMoneyScale(economy.getDecimalPlaces());
             trade.setCostItems(List.of(pendingCostItem));
             trade.setSellTrade(false);
         }
@@ -752,8 +762,9 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         } else {
             shop.setStockResetAt(0L);
         }
-        int moneyLimit = parsePositiveInt(pendingMoneyStockLimitText);
+        long moneyLimit = Math.max(0L, economy.parseAmount(pendingMoneyStockLimitText));
         shop.setMoneyStockLimit(moneyLimit);
+        shop.setMoneyStockScale(economy.getDecimalPlaces());
         if (moneyLimit <= 0) {
             shop.setMoneyStockCurrent(0L);
         } else {
@@ -962,6 +973,22 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         Messages.sendPrefixedKey(playerRef, "shop.admin.trade_removed", java.util.Map.of());
     }
 
+    private void moveTrade(String rawIndex, int direction) {
+        int idx = parseIndex(rawIndex);
+        int next = idx + direction;
+        List<ShopTradeModel> trades = shop.getTrades();
+        if (idx < 0 || idx >= trades.size() || next < 0 || next >= trades.size()) {
+            return;
+        }
+        java.util.Collections.swap(trades, idx, next);
+        if (editingIndex == idx) {
+            editingIndex = next;
+        } else if (editingIndex == next) {
+            editingIndex = idx;
+        }
+        shopManager.saveShop(shop);
+    }
+
     private void editTrade(String rawIndex) {
         int idx = parseIndex(rawIndex);
         if (idx < 0 || idx >= shop.getTrades().size()) return;
@@ -971,7 +998,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         if (trade.isMoneyTrade()) {
             useMoney = true;
             sellTrade = trade.isSellTrade();
-            pendingPriceText = String.valueOf(trade.getMoneyCost());
+            pendingPriceText = economy.formatAmountRaw(trade.getMoneyCost());
             pendingCostItem = trade.isSellTrade()
                     ? (trade.getCostItems().isEmpty() ? null : trade.getCostItems().get(0))
                     : null;
@@ -1368,14 +1395,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
     }
 
     private long parsePrice(String raw) {
-        if (raw == null) return -1L;
-        String digits = raw.replaceAll("[^0-9]", "");
-        if (digits.isEmpty()) return -1L;
-        try {
-            return Long.parseLong(digits);
-        } catch (NumberFormatException ignored) {
-            return -1L;
-        }
+        return economy.parseAmount(raw);
     }
 
     private int parsePositiveInt(String raw) {

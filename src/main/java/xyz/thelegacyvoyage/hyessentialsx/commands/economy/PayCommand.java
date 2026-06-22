@@ -83,7 +83,7 @@ public final class PayCommand extends AbstractPlayerCommand {
 
         String targetName = args.get(0);
         String amountRaw = args.get(1);
-        long amount = parseAmount(amountRaw);
+        long amount = economy.parseAmount(amountRaw);
         if (amount <= 0L) {
             Messages.errKey(context, "economy.invalid_amount", Map.of());
             return;
@@ -133,15 +133,5 @@ public final class PayCommand extends AbstractPlayerCommand {
         }
     }
 
-    private static long parseAmount(@Nonnull String raw) {
-        String trimmed = raw.trim();
-        if (trimmed.isEmpty()) return -1L;
-        if (!trimmed.matches("\\d+")) return -1L;
-        try {
-            return Long.parseLong(trimmed);
-        } catch (NumberFormatException ignored) {
-            return -1L;
-        }
-    }
 }
 

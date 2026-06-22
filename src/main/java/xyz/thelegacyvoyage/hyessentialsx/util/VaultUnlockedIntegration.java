@@ -257,7 +257,10 @@ public final class VaultUnlockedIntegration {
                 case "getName" -> PROVIDER_NAME;
                 case "hasSharedAccountSupport" -> false;
                 case "hasMultiCurrencySupport" -> false;
-                case "fractionalDigits" -> 0;
+                case "fractionalDigits" -> {
+                    EconomyManager economy = economyManager;
+                    yield economy == null ? 0 : economy.getDecimalPlaces();
+                }
                 case "format" -> formatAmount(extractAmount(args));
                 case "hasCurrency" -> isDefaultCurrency(extractStringArg(args, 0));
                 case "getDefaultCurrency" -> DEFAULT_CURRENCY;
@@ -351,12 +354,15 @@ public final class VaultUnlockedIntegration {
     @Nonnull
     private static String formatAmount(@Nullable BigDecimal amount) {
         EconomyManager economy = economyManager;
-        String symbol = economy != null ? economy.getCurrencySymbol() : "";
-        long raw = toLong(amount);
-        if (raw < 0L) {
-            return "-" + symbol + Math.abs(raw);
+        if (economy == null) {
+            long raw = toLong(amount);
+            return raw < 0L ? "-" + Math.abs(raw) : String.valueOf(raw);
         }
-        return symbol + raw;
+        long minor = toMinorUnits(amount, economy);
+        if (minor < 0L) {
+            return "-" + economy.formatAmount(Math.abs(minor));
+        }
+        return economy.formatAmount(minor);
     }
 
     @Nonnull
@@ -465,7 +471,7 @@ public final class VaultUnlockedIntegration {
                 return BigDecimal.ZERO;
             }
         }
-        return BigDecimal.valueOf(economy.getBalance(uuid));
+        return toMajorAmount(economy.getBalance(uuid), economy);
     }
 
     private static Object hasBalance(@Nullable Object[] args) {
@@ -480,7 +486,7 @@ public final class VaultUnlockedIntegration {
         if (!currencyAllowed(args)) {
             return false;
         }
-        long amount = toPositiveLong(extractAmount(args));
+        long amount = toPositiveMinorUnits(extractAmount(args), economy);
         if (amount <= 0L) {
             return true;
         }
@@ -497,9 +503,9 @@ public final class VaultUnlockedIntegration {
         if (!currencyAllowed(args)) {
             return response(BigDecimal.ZERO, BigDecimal.ZERO, "FAILURE", "Unsupported currency.");
         }
-        long amount = toPositiveLong(raw);
+        long amount = toPositiveMinorUnits(raw, economy);
         long balance = economy.setBalance(uuid, amount);
-        return response(BigDecimal.valueOf(amount), BigDecimal.valueOf(balance), "SUCCESS", "");
+        return response(toMajorAmount(amount, economy), toMajorAmount(balance, economy), "SUCCESS", "");
     }
 
     private static Object withdraw(@Nullable Object[] args) {
@@ -511,14 +517,14 @@ public final class VaultUnlockedIntegration {
         if (!currencyAllowed(args)) {
             return response(BigDecimal.ZERO, BigDecimal.ZERO, "FAILURE", "Unsupported currency.");
         }
-        long amount = toPositiveLong(extractAmount(args));
+        long amount = toPositiveMinorUnits(extractAmount(args), economy);
         if (amount <= 0L) {
             long balance = economy.getBalance(uuid);
-            return response(BigDecimal.ZERO, BigDecimal.valueOf(balance), "FAILURE", "Invalid amount.");
+            return response(BigDecimal.ZERO, toMajorAmount(balance, economy), "FAILURE", "Invalid amount.");
         }
         boolean success = economy.withdraw(uuid, amount);
         long balance = economy.getBalance(uuid);
-        return response(BigDecimal.valueOf(amount), BigDecimal.valueOf(balance), success ? "SUCCESS" : "FAILURE",
+        return response(toMajorAmount(amount, economy), toMajorAmount(balance, economy), success ? "SUCCESS" : "FAILURE",
                 success ? "" : "Insufficient funds.");
     }
 
@@ -531,13 +537,13 @@ public final class VaultUnlockedIntegration {
         if (!currencyAllowed(args)) {
             return response(BigDecimal.ZERO, BigDecimal.ZERO, "FAILURE", "Unsupported currency.");
         }
-        long amount = toPositiveLong(extractAmount(args));
+        long amount = toPositiveMinorUnits(extractAmount(args), economy);
         if (amount <= 0L) {
             long balance = economy.getBalance(uuid);
-            return response(BigDecimal.ZERO, BigDecimal.valueOf(balance), "FAILURE", "Invalid amount.");
+            return response(BigDecimal.ZERO, toMajorAmount(balance, economy), "FAILURE", "Invalid amount.");
         }
         long balance = economy.deposit(uuid, amount);
-        return response(BigDecimal.valueOf(amount), BigDecimal.valueOf(balance), "SUCCESS", "");
+        return response(toMajorAmount(amount, economy), toMajorAmount(balance, economy), "SUCCESS", "");
     }
 
     private static Object notImplementedResponse() {
@@ -560,6 +566,34 @@ public final class VaultUnlockedIntegration {
         }
         long value = toLong(amount);
         return Math.max(0L, value);
+    }
+
+    private static long toPositiveMinorUnits(@Nullable BigDecimal amount, @Nonnull EconomyManager economy) {
+        if (amount == null || amount.signum() <= 0) {
+            return 0L;
+        }
+        long value = toMinorUnits(amount, economy);
+        return Math.max(0L, value);
+    }
+
+    private static long toMinorUnits(@Nullable BigDecimal amount, @Nonnull EconomyManager economy) {
+        if (amount == null) {
+            return 0L;
+        }
+        int scale = economy.getDecimalPlaces();
+        BigDecimal scaled = amount.setScale(scale, RoundingMode.DOWN).movePointRight(scale);
+        if (scaled.compareTo(LONG_MAX) > 0) {
+            return Long.MAX_VALUE;
+        }
+        if (scaled.compareTo(LONG_MIN) < 0) {
+            return Long.MIN_VALUE;
+        }
+        return scaled.longValue();
+    }
+
+    @Nonnull
+    private static BigDecimal toMajorAmount(long minorUnits, @Nonnull EconomyManager economy) {
+        return BigDecimal.valueOf(minorUnits, economy.getDecimalPlaces());
     }
 
     private static long toLong(@Nullable BigDecimal amount) {

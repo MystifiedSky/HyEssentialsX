@@ -3,6 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.models;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public final class ShopTradeModel {
 
@@ -10,6 +11,7 @@ public final class ShopTradeModel {
     private List<ShopItemModel> costItems = new ArrayList<>();
     private List<ShopItemModel> rewardItems = new ArrayList<>();
     private long moneyCost;
+    private Integer moneyScale;
     private boolean enabled = true;
     private boolean sellTrade;
     private int stockLimit;
@@ -61,6 +63,15 @@ public final class ShopTradeModel {
 
     public void setMoneyCost(long moneyCost) {
         this.moneyCost = Math.max(0L, moneyCost);
+    }
+
+    @Nullable
+    public Integer getMoneyScale() {
+        return moneyScale;
+    }
+
+    public void setMoneyScale(@Nullable Integer moneyScale) {
+        this.moneyScale = moneyScale;
     }
 
     public boolean isEnabled() {

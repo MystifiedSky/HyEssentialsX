@@ -117,7 +117,7 @@ public final class MoneyCommand extends CommandBase {
 
         String targetName = args.get(1);
         String amountRaw = args.get(2);
-        long amount = parseAmount(amountRaw);
+        long amount = economy.parseAmount(amountRaw);
         if (amount < 0L || (amount == 0L && sub.equals("give"))) {
             Messages.errKey(context, "economy.invalid_amount", Map.of());
             return;
@@ -189,17 +189,6 @@ public final class MoneyCommand extends CommandBase {
                 "player", name,
                 "amount", formatted
         ));
-    }
-
-    private static long parseAmount(@Nonnull String raw) {
-        String trimmed = raw.trim();
-        if (trimmed.isEmpty()) return -1L;
-        if (!trimmed.matches("\\d+")) return -1L;
-        try {
-            return Long.parseLong(trimmed);
-        } catch (NumberFormatException ignored) {
-            return -1L;
-        }
     }
 
     @Nonnull

@@ -1,8 +1,24 @@
 $C = "../Common.ui";
 
+@TradeActionButtonStyle = TextButtonStyle(
+  Default: (Background: (Color: #355f8d(0.95)), LabelStyle: (FontSize: 11, TextColor: #dcecff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: (Color: #4274aa(0.98)), LabelStyle: (FontSize: 11, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: (Color: #294a70(1)), LabelStyle: (FontSize: 11, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Disabled: (Background: (Color: #303841(0.8)), LabelStyle: (FontSize: 11, TextColor: #788492, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Sounds: $C.@ButtonSounds,
+);
+
+@TradeDeleteButtonStyle = TextButtonStyle(
+  Default: (Background: (Color: #7a3434(0.95)), LabelStyle: (FontSize: 11, TextColor: #ffe4e4, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: (Color: #934040(0.98)), LabelStyle: (FontSize: 11, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: (Color: #5d2828(1)), LabelStyle: (FontSize: 11, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Disabled: (Background: (Color: #3c3030(0.8)), LabelStyle: (FontSize: 11, TextColor: #8a7777, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Sounds: $C.@ButtonSounds,
+);
+
 Group {
-  Anchor: (Height: 78, Bottom: 6);
-  Padding: 8;
+  Anchor: (Height: 58, Bottom: 4);
+  Padding: 6;
   Background: (Color: #1a1a1a(0.6));
   LayoutMode: Left;
 
@@ -12,12 +28,12 @@ Group {
 
     Group {
       LayoutMode: Left;
-      Anchor: (Height: 28);
-      Padding: (Top: 6);
+      Anchor: (Height: 25);
+      Padding: (Top: 3);
 
       Label {
         Anchor: (Width: 100);
-        Style: (FontSize: 14, TextColor: #ff8866, RenderBold: true);
+        Style: (FontSize: 13, TextColor: #ff8866, RenderBold: true);
         Text: "Buyer Pays:";
       }
       Group #InputItems {
@@ -28,11 +44,11 @@ Group {
 
     Group {
       LayoutMode: Left;
-      Anchor: (Height: 28);
+      Anchor: (Height: 25);
 
       Label {
         Anchor: (Width: 100);
-        Style: (FontSize: 14, TextColor: #66ff88, RenderBold: true);
+        Style: (FontSize: 13, TextColor: #66ff88, RenderBold: true);
         Text: "Buyer Gets:";
       }
       Group #OutputItems {
@@ -43,35 +59,57 @@ Group {
   }
 
   Group #StatusGroup {
-    Anchor: (Width: 100);
+    Anchor: (Width: 90);
     LayoutMode: Top;
 
     Label #StockStatus {
-      Anchor: (Height: 20);
-      Style: (FontSize: 14, RenderBold: true, TextColor: #66ff66, HorizontalAlignment: Center);
+      Anchor: (Height: 18);
+      Style: (FontSize: 13, RenderBold: true, TextColor: #66ff66, HorizontalAlignment: Center);
       Text: "In Stock";
     }
 
     Label #StockCount {
       Anchor: (Height: 18);
-      Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center);
+      Style: (FontSize: 12, TextColor: #888888, HorizontalAlignment: Center);
       Text: "";
     }
   }
 
   Group #ButtonGroup {
-    Anchor: (Width: 170);
+    Anchor: (Width: 200);
     LayoutMode: Top;
+    Padding: (Left: 8);
 
-    $C.@TextButton #EditButton {
-      Text: "Edit";
-      Anchor: (Width: 150, Height: 30);
-      TooltipText: "Edit this trade";
+    Group {
+      Anchor: (Height: 24, Bottom: 4);
+      LayoutMode: Left;
+
+      TextButton #MoveUpButton {
+        Text: "^";
+        Anchor: (Width: 48, Height: 24, Right: 5);
+        Style: @TradeActionButtonStyle;
+        TooltipText: "Move this trade up";
+      }
+
+      TextButton #MoveDownButton {
+        Text: "v";
+        Anchor: (Width: 48, Height: 24, Right: 5);
+        Style: @TradeActionButtonStyle;
+        TooltipText: "Move this trade down";
+      }
+
+      TextButton #EditButton {
+        Text: "Edit";
+        Anchor: (Width: 72, Height: 24);
+        Style: @TradeActionButtonStyle;
+        TooltipText: "Edit this trade";
+      }
     }
 
-    $C.@TextButton #DeleteButton {
+    TextButton #DeleteButton {
       Text: "Delete";
-      Anchor: (Width: 150, Height: 30, Top: 4);
+      Anchor: (Width: 178, Height: 24);
+      Style: @TradeDeleteButtonStyle;
       TooltipText: "Remove this trade";
     }
   }

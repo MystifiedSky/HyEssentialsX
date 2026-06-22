@@ -1,6 +1,8 @@
 package xyz.thelegacyvoyage.hyessentialsx.managers;
 
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.ShopTradeModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -19,9 +21,11 @@ public final class ShopManager {
     private static final int DEFAULT_STOCK_RESET_DAYS = 0;
 
     private final StorageManager storage;
+    private final ConfigManager config;
 
-    public ShopManager(@Nonnull StorageManager storage) {
+    public ShopManager(@Nonnull StorageManager storage, @Nonnull ConfigManager config) {
         this.storage = storage;
+        this.config = config;
     }
 
     @Nonnull
@@ -161,9 +165,60 @@ public final class ShopManager {
         if (shop.getMoneyStockLimit() < 0) {
             shop.setMoneyStockLimit(0);
         }
+        normalizeMoneyStockScale(shop);
         if (shop.getMoneyStockLimit() > 0 && shop.getMoneyStockCurrent() > shop.getMoneyStockLimit()) {
             shop.setMoneyStockCurrent(shop.getMoneyStockLimit());
         }
+        for (ShopTradeModel trade : shop.getTrades()) {
+            normalizeTradeMoneyScale(trade);
+        }
+    }
+
+    private void normalizeMoneyStockScale(@Nonnull ShopModel shop) {
+        int targetScale = config.getEconomyDecimalPlaces();
+        Integer storedScale = shop.getMoneyStockScale();
+        if (storedScale != null && storedScale == targetScale) {
+            return;
+        }
+        int sourceScale = storedScale == null ? 0 : Math.max(0, storedScale);
+        shop.setMoneyStockLimit(rescale(shop.getMoneyStockLimit(), sourceScale, targetScale));
+        shop.setMoneyStockCurrent(rescale(shop.getMoneyStockCurrent(), sourceScale, targetScale));
+        shop.setMoneyStockScale(targetScale);
+    }
+
+    private void normalizeTradeMoneyScale(@Nonnull ShopTradeModel trade) {
+        int targetScale = config.getEconomyDecimalPlaces();
+        Integer storedScale = trade.getMoneyScale();
+        if (storedScale != null && storedScale == targetScale) {
+            return;
+        }
+        int sourceScale = storedScale == null ? 0 : Math.max(0, storedScale);
+        trade.setMoneyCost(rescale(trade.getMoneyCost(), sourceScale, targetScale));
+        trade.setMoneyScale(targetScale);
+    }
+
+    private static long rescale(long value, int sourceScale, int targetScale) {
+        if (sourceScale == targetScale) {
+            return value;
+        }
+        if (sourceScale < targetScale) {
+            long factor = pow10(targetScale - sourceScale);
+            try {
+                return Math.multiplyExact(value, factor);
+            } catch (ArithmeticException ignored) {
+                return Long.MAX_VALUE;
+            }
+        }
+        long factor = pow10(sourceScale - targetScale);
+        return factor <= 0L ? value : value / factor;
+    }
+
+    private static long pow10(int exponent) {
+        long value = 1L;
+        for (int i = 0; i < exponent; i++) {
+            value *= 10L;
+        }
+        return value;
     }
 
     @Nonnull

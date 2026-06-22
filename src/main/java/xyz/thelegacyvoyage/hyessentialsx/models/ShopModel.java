@@ -3,6 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.models;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public final class ShopModel {
 
@@ -16,8 +17,9 @@ public final class ShopModel {
     private String npcRole;
     private int stockResetDays;
     private long stockResetAt;
-    private int moneyStockLimit;
+    private long moneyStockLimit;
     private long moneyStockCurrent;
+    private Integer moneyStockScale;
     private boolean playerShop;
     private String ownerUuid;
     private List<String> editors = new ArrayList<>();
@@ -127,12 +129,12 @@ public final class ShopModel {
         this.stockResetAt = Math.max(0L, stockResetAt);
     }
 
-    public int getMoneyStockLimit() {
-        return Math.max(0, moneyStockLimit);
+    public long getMoneyStockLimit() {
+        return Math.max(0L, moneyStockLimit);
     }
 
-    public void setMoneyStockLimit(int moneyStockLimit) {
-        this.moneyStockLimit = Math.max(0, moneyStockLimit);
+    public void setMoneyStockLimit(long moneyStockLimit) {
+        this.moneyStockLimit = Math.max(0L, moneyStockLimit);
     }
 
     public long getMoneyStockCurrent() {
@@ -141,6 +143,15 @@ public final class ShopModel {
 
     public void setMoneyStockCurrent(long moneyStockCurrent) {
         this.moneyStockCurrent = Math.max(0L, moneyStockCurrent);
+    }
+
+    @Nullable
+    public Integer getMoneyStockScale() {
+        return moneyStockScale;
+    }
+
+    public void setMoneyStockScale(@Nullable Integer moneyStockScale) {
+        this.moneyStockScale = moneyStockScale;
     }
 
     public boolean isPlayerShop() {

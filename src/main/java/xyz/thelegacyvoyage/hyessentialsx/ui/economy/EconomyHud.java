@@ -27,6 +27,7 @@ public final class EconomyHud extends CustomUIHud {
                        @Nonnull State state) {
         this.state = state;
         player.getHudManager().addCustomHud(playerRef, this);
+        show();
     }
 
     public void hide(@Nonnull Player player,

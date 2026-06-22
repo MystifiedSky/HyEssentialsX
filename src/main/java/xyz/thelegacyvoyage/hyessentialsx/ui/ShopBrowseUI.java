@@ -518,7 +518,7 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
     }
 
     private void updateFundsLabel(@Nonnull UICommandBuilder cmd) {
-        int limit = shop.getMoneyStockLimit();
+        long limit = shop.getMoneyStockLimit();
         if (limit <= 0) {
             cmd.set("#ShopFunds.Visible", false);
             return;
@@ -531,14 +531,14 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
 
     private boolean hasMoneyStock(@Nonnull ShopTradeModel trade) {
         if (!trade.isMoneyTrade() || !trade.isSellTrade()) return true;
-        int limit = shop.getMoneyStockLimit();
+        long limit = shop.getMoneyStockLimit();
         if (limit <= 0) return true;
         return shop.getMoneyStockCurrent() >= trade.getMoneyCost();
     }
 
     private void applyMoneyStockChange(@Nonnull ShopTradeModel trade, boolean playerPaidMoney) {
         if (!trade.isMoneyTrade()) return;
-        int limit = shop.getMoneyStockLimit();
+        long limit = shop.getMoneyStockLimit();
         if (limit <= 0) return;
         long current = shop.getMoneyStockCurrent();
         long delta = trade.getMoneyCost();

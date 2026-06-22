@@ -56,7 +56,7 @@ $C.@PageOverlay {
         Visible: true;
 
         Group #TradeListSection {
-          Anchor: (Height: 180, Bottom: 10);
+          Anchor: (Height: 225, Bottom: 8);
           LayoutMode: Top;
 
           Label {
@@ -66,7 +66,7 @@ $C.@PageOverlay {
           }
 
           Group #TradeList {
-            Anchor: (Height: 145);
+            Anchor: (Height: 200);
             LayoutMode: TopScrolling;
             ScrollbarStyle: $C.@DefaultScrollbarStyle;
             Background: (Color: #0a0a0a(0.4));
@@ -116,13 +116,13 @@ $C.@PageOverlay {
         }
 
         Label {
-          Anchor: (Bottom: 8);
+          Anchor: (Bottom: 6);
           Style: (FontSize: 15, TextColor: #93844c, RenderBold: true);
           Text: "New Trade";
         }
 
         Group #PaymentTypeRow {
-          Anchor: (Height: 34, Bottom: 6);
+          Anchor: (Height: 32, Bottom: 5);
           LayoutMode: Left;
 
           Label {
@@ -145,7 +145,7 @@ $C.@PageOverlay {
         }
 
         Group #MoneySection {
-          Anchor: (Height: 45, Bottom: 6);
+          Anchor: (Height: 38, Bottom: 5);
           LayoutMode: Left;
           Visible: true;
 
@@ -162,7 +162,7 @@ $C.@PageOverlay {
         }
 
         Group #MoneyModeRow {
-          Anchor: (Height: 34, Bottom: 6);
+          Anchor: (Height: 32, Bottom: 5);
           LayoutMode: Left;
           Visible: true;
 
@@ -186,7 +186,7 @@ $C.@PageOverlay {
         }
 
         Group #ItemCostSection {
-          Anchor: (Height: 45, Bottom: 6);
+          Anchor: (Height: 38, Bottom: 5);
           LayoutMode: Left;
           Visible: false;
 
@@ -213,7 +213,7 @@ $C.@PageOverlay {
         }
 
         Group #CostQtyRow {
-          Anchor: (Height: 34, Bottom: 6);
+          Anchor: (Height: 30, Bottom: 5);
           LayoutMode: Left;
           Visible: false;
 
@@ -230,7 +230,7 @@ $C.@PageOverlay {
         }
 
         Group #OutputSection {
-          Anchor: (Height: 45, Bottom: 8);
+          Anchor: (Height: 38, Bottom: 5);
           LayoutMode: Left;
 
           Label {
@@ -256,7 +256,7 @@ $C.@PageOverlay {
         }
 
         Group #OutputQtyRow {
-          Anchor: (Height: 34, Bottom: 8);
+          Anchor: (Height: 30, Bottom: 5);
           LayoutMode: Left;
           Visible: true;
 
@@ -273,7 +273,7 @@ $C.@PageOverlay {
         }
 
         Group #StockLimitSection {
-          Anchor: (Height: 40, Bottom: 6);
+          Anchor: (Height: 34, Bottom: 4);
           LayoutMode: Left;
 
           Label {
@@ -295,20 +295,20 @@ $C.@PageOverlay {
         }
 
         Label #EditModeLabel {
-          Anchor: (Height: 20, Bottom: 6);
+          Anchor: (Height: 18, Bottom: 4);
           Style: (FontSize: 12, TextColor: #888888);
           Text: "";
         }
 
         Group #SaveSection {
-          Anchor: (Height: 42);
+          Anchor: (Height: 36);
           LayoutMode: Left;
 
           Group { FlexWeight: 1; }
 
           $C.@TextButton #SaveTradeButton {
             Text: "Save Trade";
-            Anchor: (Width: 180, Height: 38);
+            Anchor: (Width: 180, Height: 34);
           }
 
           Group { FlexWeight: 1; }

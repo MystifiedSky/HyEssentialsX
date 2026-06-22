@@ -32,6 +32,7 @@ public final class ScoreboardHud extends CustomUIHud {
                        @Nonnull State state) {
         this.state = state;
         player.getHudManager().addCustomHud(playerRef, this);
+        show();
     }
 
     public void hide(@Nonnull Player player, @Nonnull PlayerRef playerRef) {

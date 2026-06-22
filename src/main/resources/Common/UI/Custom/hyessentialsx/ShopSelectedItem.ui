@@ -1,39 +1,39 @@
-@EditButtonStyle = TextButtonStyle(
-  Default: (Background: (Color: #335533), LabelStyle: (FontSize: 12, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
-  Hovered: (Background: (Color: #447744), LabelStyle: (FontSize: 12, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
-  Pressed: (Background: (Color: #224422), LabelStyle: (FontSize: 12, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+@HiddenButtonStyle = TextButtonStyle(
+  Default: (Background: (Color: #000000(0)), LabelStyle: (FontSize: 1, TextColor: #000000(0))),
+  Hovered: (Background: (Color: #000000(0)), LabelStyle: (FontSize: 1, TextColor: #000000(0))),
+  Pressed: (Background: (Color: #000000(0)), LabelStyle: (FontSize: 1, TextColor: #000000(0))),
 );
 
 Group {
-  Anchor: (Width: 80, Height: 36, Right: 4);
-  Background: (Color: #222222(0.9));
-  Padding: 2;
-  LayoutMode: Left;
-
-  ItemIcon #ItemIcon {
-    Anchor: (Width: 32, Height: 32);
-    Visible: true;
-  }
+  Anchor: (Width: 54, Height: 36, Right: 6);
 
   Group {
-    FlexWeight: 1;
-    LayoutMode: Top;
-    Padding: (Left: 2);
+    Anchor: (Width: 36, Height: 36);
+    Background: (Color: #222222(0.9));
+    Padding: 2;
 
-    Label #Quantity {
-      Anchor: (Height: 16);
-      Style: (
-        FontSize: 12,
-        RenderBold: true,
-        TextColor: #ffffff,
-        HorizontalAlignment: Center
-      );
+    ItemIcon #ItemIcon {
+      Anchor: (Width: 32, Height: 32);
+      Visible: true;
     }
+  }
 
-    TextButton #EditQty {
-      Anchor: (Height: 16);
-      Text: "Edit";
-      Style: @EditButtonStyle;
-    }
+  Label #Quantity {
+    Anchor: (Width: 26, Height: 15, Left: 24, Top: 19);
+    Background: (Color: #151515(0.92));
+    Style: (
+      FontSize: 10,
+      RenderBold: true,
+      TextColor: #ffffff,
+      HorizontalAlignment: Center,
+      VerticalAlignment: Center
+    );
+  }
+
+  TextButton #EditQty {
+    Anchor: (Width: 1, Height: 1);
+    Text: "";
+    Visible: false;
+    Style: @HiddenButtonStyle;
   }
 }

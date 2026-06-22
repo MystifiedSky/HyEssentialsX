@@ -19,6 +19,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -155,6 +157,7 @@ public final class ConfigManager {
     private static final String COMBATLOG_TITLE_SUB_KEY = "combatlog.title_sub";
     private boolean economyEnabled = true;
     private String economyCurrencySymbol = "$";
+    private int economyDecimalPlaces = 2;
     private long economyStartingBalance = 0L;
     private boolean economyHudEnabled = true;
     private boolean economyHudDefaultHidden = false;
@@ -441,6 +444,7 @@ public final class ConfigManager {
         JsonObject economy = new JsonObject();
         economy.addProperty("enabled", true);
         economy.addProperty("currencySymbol", "$");
+        economy.addProperty("decimalPlaces", 2);
         economy.addProperty("startingBalance", 0);
         economy.addProperty("baltopGui", true);
         JsonObject hud = new JsonObject();
@@ -474,13 +478,13 @@ public final class ConfigManager {
         rewards.add("popup", popup);
         JsonObject blockRewards = new JsonObject();
         blockRewards.addProperty("enabled", true);
-        blockRewards.add("rewards", toLongMapObject(economyBlockRewards));
-        blockRewards.add("groupRewards", toLongMapObject(economyBlockGroupRewards));
+        blockRewards.add("rewards", toMoneyMapObject(economyBlockRewards));
+        blockRewards.add("groupRewards", toMoneyMapObject(economyBlockGroupRewards));
         rewards.add("blocks", blockRewards);
         JsonObject mobRewards = new JsonObject();
         mobRewards.addProperty("enabled", true);
         mobRewards.addProperty("defaultReward", 0);
-        mobRewards.add("rewards", toLongMapObject(economyMobRewards));
+        mobRewards.add("rewards", toMoneyMapObject(economyMobRewards));
         rewards.add("mobs", mobRewards);
         economy.add("rewards", rewards);
         root.add("economy", economy);
@@ -974,7 +978,8 @@ public final class ConfigManager {
             JsonObject economy = obj(root, "economy");
             economyEnabled = bool(economy, "enabled", economyEnabled);
             economyCurrencySymbol = str(economy, "currencySymbol", economyCurrencySymbol);
-            economyStartingBalance = Math.max(0L, longVal(economy, "startingBalance", economyStartingBalance));
+            economyDecimalPlaces = Math.max(0, Math.min(4, intVal(economy, "decimalPlaces", economyDecimalPlaces)));
+            economyStartingBalance = Math.max(0L, moneyVal(economy, "startingBalance", economyStartingBalance));
             economyBaltopGuiEnabled = bool(economy, "baltopGui", economyBaltopGuiEnabled);
             JsonObject hud = obj(economy, "hud");
             economyHudEnabled = bool(hud, "enabled", economyHudEnabled);
@@ -996,7 +1001,7 @@ public final class ConfigManager {
             economyHudAmountColor = str(hudColors, "amount", economyHudAmountColor);
             JsonObject paycheck = obj(economy, "paycheck");
             paycheckEnabled = bool(paycheck, "enabled", paycheckEnabled);
-            paycheckAmount = Math.max(0L, longVal(paycheck, "amount", paycheckAmount));
+            paycheckAmount = Math.max(0L, moneyVal(paycheck, "amount", paycheckAmount));
             paycheckIntervalHours = dbl(paycheck, "intervalHours", paycheckIntervalHours);
             JsonObject rewards = obj(economy, "rewards");
             economyRewardsEnabled = bool(rewards, "enabled", economyRewardsEnabled);
@@ -1006,12 +1011,12 @@ public final class ConfigManager {
             economyRewardsPopupStyle = str(popup, "style", economyRewardsPopupStyle);
             JsonObject blockRewards = obj(rewards, "blocks");
             economyBlockRewardsEnabled = bool(blockRewards, "enabled", economyBlockRewardsEnabled);
-            economyBlockRewards = normalizeKeyedMap(readLongMap(blockRewards, "rewards", economyBlockRewards));
-            economyBlockGroupRewards = normalizeKeyedMap(readLongMap(blockRewards, "groupRewards", economyBlockGroupRewards));
+            economyBlockRewards = normalizeKeyedMap(readMoneyMap(blockRewards, "rewards", economyBlockRewards));
+            economyBlockGroupRewards = normalizeKeyedMap(readMoneyMap(blockRewards, "groupRewards", economyBlockGroupRewards));
             JsonObject mobRewards = obj(rewards, "mobs");
             economyMobRewardsEnabled = bool(mobRewards, "enabled", economyMobRewardsEnabled);
-            economyMobDefaultReward = Math.max(0L, longVal(mobRewards, "defaultReward", economyMobDefaultReward));
-            economyMobRewards = normalizeKeyedMap(readLongMap(mobRewards, "rewards", economyMobRewards));
+            economyMobDefaultReward = Math.max(0L, moneyVal(mobRewards, "defaultReward", economyMobDefaultReward));
+            economyMobRewards = normalizeKeyedMap(readMoneyMap(mobRewards, "rewards", economyMobRewards));
 
             JsonObject rankup = obj(root, "rankup");
             rankupEnabled = bool(rankup, "enabled", rankupEnabled);
@@ -1186,7 +1191,7 @@ public final class ConfigManager {
             JsonObject playerShops = obj(root, "playerShops");
             playerShopsEnabled = bool(playerShops, "enabled", playerShopsEnabled);
             playerShopMaxShopsPerPlayer = Math.max(0, intVal(playerShops, "maxShopsPerPlayer", playerShopMaxShopsPerPlayer));
-            playerShopCreationCost = Math.max(0L, longVal(playerShops, "shopCreationCost", playerShopCreationCost));
+            playerShopCreationCost = Math.max(0L, moneyVal(playerShops, "shopCreationCost", playerShopCreationCost));
             playerShopChestLinkRadius = Math.max(1, intVal(playerShops, "chestLinkRadius", playerShopChestLinkRadius));
 
             JsonObject adminShops = obj(root, "adminShops");
@@ -1759,6 +1764,10 @@ public final class ConfigManager {
 
     public long getEconomyStartingBalance() {
         return economyStartingBalance;
+    }
+
+    public int getEconomyDecimalPlaces() {
+        return Math.max(0, Math.min(4, economyDecimalPlaces));
     }
 
     public boolean isEconomyHudEnabled() {
@@ -2502,7 +2511,8 @@ public final class ConfigManager {
         JsonObject economy = obj(root, "economy");
         economy.addProperty("enabled", economyEnabled);
         economy.addProperty("currencySymbol", economyCurrencySymbol);
-        economy.addProperty("startingBalance", Math.max(0L, economyStartingBalance));
+        economy.addProperty("decimalPlaces", Math.max(0, Math.min(4, economyDecimalPlaces)));
+        economy.addProperty("startingBalance", formatMoneyConfig(economyStartingBalance));
         economy.addProperty("baltopGui", economyBaltopGuiEnabled);
         JsonObject hud = obj(economy, "hud");
         hud.addProperty("enabled", economyHudEnabled);
@@ -2521,7 +2531,7 @@ public final class ConfigManager {
         hudColors.addProperty("amount", economyHudAmountColor);
         JsonObject paycheck = obj(economy, "paycheck");
         paycheck.addProperty("enabled", paycheckEnabled);
-        paycheck.addProperty("amount", Math.max(0L, paycheckAmount));
+        paycheck.addProperty("amount", formatMoneyConfig(paycheckAmount));
         paycheck.addProperty("intervalHours", paycheckIntervalHours);
         JsonObject rewards = obj(economy, "rewards");
         rewards.addProperty("enabled", economyRewardsEnabled);
@@ -2531,12 +2541,12 @@ public final class ConfigManager {
         popup.addProperty("style", economyRewardsPopupStyle);
         JsonObject blockRewards = obj(rewards, "blocks");
         blockRewards.addProperty("enabled", economyBlockRewardsEnabled);
-        blockRewards.add("rewards", toLongMapObject(economyBlockRewards));
-        blockRewards.add("groupRewards", toLongMapObject(economyBlockGroupRewards));
+        blockRewards.add("rewards", toMoneyMapObject(economyBlockRewards));
+        blockRewards.add("groupRewards", toMoneyMapObject(economyBlockGroupRewards));
         JsonObject mobRewards = obj(rewards, "mobs");
         mobRewards.addProperty("enabled", economyMobRewardsEnabled);
-        mobRewards.addProperty("defaultReward", Math.max(0L, economyMobDefaultReward));
-        mobRewards.add("rewards", toLongMapObject(economyMobRewards));
+        mobRewards.addProperty("defaultReward", formatMoneyConfig(economyMobDefaultReward));
+        mobRewards.add("rewards", toMoneyMapObject(economyMobRewards));
 
         JsonObject rankup = obj(root, "rankup");
         rankup.remove("enabled");
@@ -2655,7 +2665,7 @@ public final class ConfigManager {
         JsonObject playerShops = obj(root, "playerShops");
         playerShops.addProperty("enabled", playerShopsEnabled);
         playerShops.addProperty("maxShopsPerPlayer", playerShopMaxShopsPerPlayer);
-        playerShops.addProperty("shopCreationCost", Math.max(0L, playerShopCreationCost));
+        playerShops.addProperty("shopCreationCost", formatMoneyConfig(playerShopCreationCost));
         playerShops.addProperty("chestLinkRadius", playerShopChestLinkRadius);
 
         JsonObject adminShops = obj(root, "adminShops");
@@ -3221,6 +3231,33 @@ public final class ConfigManager {
         return el != null && el.isJsonPrimitive() ? el.getAsLong() : def;
     }
 
+    private long moneyVal(@Nonnull JsonObject obj, @Nonnull String key, long def) {
+        JsonElement el = obj.get(key);
+        if (el == null || !el.isJsonPrimitive()) {
+            return def;
+        }
+        try {
+            BigDecimal major = new BigDecimal(el.getAsString().trim().replace(",", ""));
+            if (major.signum() < 0) {
+                return 0L;
+            }
+            int scale = getEconomyDecimalPlaces();
+            return major.setScale(scale, RoundingMode.DOWN).movePointRight(scale).longValueExact();
+        } catch (Exception ignored) {
+            return def;
+        }
+    }
+
+    @Nonnull
+    private String formatMoneyConfig(long amount) {
+        int scale = getEconomyDecimalPlaces();
+        long clamped = Math.max(0L, amount);
+        if (scale <= 0) {
+            return String.valueOf(clamped);
+        }
+        return BigDecimal.valueOf(clamped, scale).setScale(scale, RoundingMode.DOWN).toPlainString();
+    }
+
     private double dbl(@Nonnull JsonObject obj, @Nonnull String key, double def) {
         JsonElement el = obj.get(key);
         return el != null && el.isJsonPrimitive() ? el.getAsDouble() : def;
@@ -3590,6 +3627,35 @@ public final class ConfigManager {
     }
 
     @Nonnull
+    private JsonObject toMoneyMapObject(@Nonnull Map<String, Long> values) {
+        JsonObject obj = new JsonObject();
+        for (Map.Entry<String, Long> entry : values.entrySet()) {
+            obj.addProperty(entry.getKey(), formatMoneyConfig(entry.getValue()));
+        }
+        return obj;
+    }
+
+    @Nonnull
+    private Map<String, Long> readMoneyMap(@Nonnull JsonObject obj, @Nonnull String key, @Nonnull Map<String, Long> def) {
+        JsonElement el = obj.get(key);
+        if (el == null || !el.isJsonObject()) return def;
+        Map<String, Long> out = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonElement> entry : el.getAsJsonObject().entrySet()) {
+            JsonElement value = entry.getValue();
+            if (value != null && value.isJsonPrimitive()) {
+                try {
+                    BigDecimal major = new BigDecimal(value.getAsString().trim().replace(",", ""));
+                    int scale = getEconomyDecimalPlaces();
+                    out.put(entry.getKey(), Math.max(0L,
+                            major.setScale(scale, RoundingMode.DOWN).movePointRight(scale).longValueExact()));
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return out.isEmpty() ? def : out;
+    }
+
+    @Nonnull
     private JsonObject toSpawnMapObject(@Nonnull Map<String, SpawnModel> values) {
         JsonObject obj = new JsonObject();
         for (Map.Entry<String, SpawnModel> entry : values.entrySet()) {
@@ -3897,7 +3963,7 @@ public final class ConfigManager {
                 }
             }
             long playtimeSeconds = Math.max(0L, Math.round(playtimeHours * 3600.0));
-            long cost = Math.max(0L, longVal(obj, "cost", 0L));
+            long cost = Math.max(0L, moneyVal(obj, "cost", 0L));
             List<String> commands = list(obj, "commands", defaultRankupCommands());
             tiers.add(new RankupTier(rank, playtimeSeconds, cost, commands));
         }

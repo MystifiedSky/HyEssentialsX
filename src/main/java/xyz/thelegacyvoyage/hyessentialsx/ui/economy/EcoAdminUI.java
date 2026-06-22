@@ -583,8 +583,8 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
         if (!symbol.isBlank()) {
             config.setEconomyCurrencySymbol(symbol);
         }
-        Long starting = parseOptionalNonNegativeLong(cfgStartingBalance);
-        if (starting != null) {
+        long starting = economy.parseAmount(cfgStartingBalance);
+        if (starting >= 0L) {
             config.setEconomyStartingBalance(starting);
         }
         String label = cfgHudLabel == null ? "" : cfgHudLabel.trim();
@@ -666,33 +666,15 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
     }
 
     private long parsePositiveAmount(@Nullable String raw) {
-        Long parsed = parseOptionalNonNegativeLong(raw);
-        if (parsed == null || parsed <= 0L) {
+        long parsed = economy.parseAmount(raw);
+        if (parsed <= 0L) {
             return -1L;
         }
         return parsed;
     }
 
     private long parseNonNegativeAmount(@Nullable String raw) {
-        Long parsed = parseOptionalNonNegativeLong(raw);
-        return parsed == null ? -1L : parsed;
-    }
-
-    @Nullable
-    private Long parseOptionalNonNegativeLong(@Nullable String raw) {
-        if (raw == null) {
-            return null;
-        }
-        String normalized = raw.trim().replace(",", "");
-        if (normalized.isBlank() || !normalized.matches("\\d+")) {
-            return null;
-        }
-        try {
-            long value = Long.parseLong(normalized);
-            return Math.max(0L, value);
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
+        return economy.parseAmount(raw);
     }
 
     @Nullable

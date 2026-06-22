@@ -366,7 +366,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         rankupManager = new RankupManager(configManager, economyManager, storage, playtimeManager);
         customCommandManager = new CustomCommandManager(dataDirectory);
         autoBroadcastManager = new AutoBroadcastManager(configManager);
-        shopManager = new ShopManager(storage);
+        shopManager = new ShopManager(storage, configManager);
         shopNpcFixTask = new ShopNpcFixTask(shopManager);
         shopAdminDraftCache = new xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache();
         ShopNpcInteractionRegistry.register(this, shopManager, economyManager, configManager, shopAdminDraftCache);

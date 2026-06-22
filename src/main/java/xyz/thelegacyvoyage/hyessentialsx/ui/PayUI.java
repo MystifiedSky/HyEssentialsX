@@ -247,18 +247,7 @@ public final class PayUI extends InteractiveCustomUIPage<PayUI.PayUIEventData> {
     }
 
     private long parseAmount(@Nullable String raw) {
-        if (raw == null) {
-            return -1L;
-        }
-        String normalized = raw.trim().replace(",", "");
-        if (normalized.isEmpty() || !normalized.matches("\\d+")) {
-            return -1L;
-        }
-        try {
-            return Long.parseLong(normalized);
-        } catch (NumberFormatException ignored) {
-            return -1L;
-        }
+        return economy.parseAmount(raw);
     }
 
     @Nonnull

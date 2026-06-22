@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
@@ -134,6 +135,31 @@ public final class JsonStorageBackend implements StorageBackend {
     }
 
     @Override
+    @Nonnull
+    public Map<String, ShopModel> loadShops() {
+        Path file = shopsFile();
+        if (!Files.exists(file)) return new HashMap<>();
+        try {
+            Type type = new TypeToken<Map<String, ShopModel>>() {}.getType();
+            String json = Files.readString(file, StandardCharsets.UTF_8);
+            Map<String, ShopModel> loaded = gson.fromJson(json, type);
+            return loaded != null ? new HashMap<>(loaded) : new HashMap<>();
+        } catch (Exception e) {
+            Log.warn("Failed to load shops.json: " + e.getMessage());
+            return new HashMap<>();
+        }
+    }
+
+    @Override
+    public void saveShops(@Nonnull Map<String, ShopModel> shops) {
+        try {
+            Files.writeString(shopsFile(), gson.toJson(shops), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            Log.error("Failed to save shops.json: " + e.getMessage());
+        }
+    }
+
+    @Override
     public void shutdown() {
         // no-op
     }
@@ -152,6 +178,10 @@ public final class JsonStorageBackend implements StorageBackend {
 
     private Path kitsFile() {
         return dataFolder.resolve("kits.json");
+    }
+
+    private Path shopsFile() {
+        return dataFolder.resolve("shops.json");
     }
 
     

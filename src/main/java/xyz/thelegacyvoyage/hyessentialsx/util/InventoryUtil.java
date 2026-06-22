@@ -5,6 +5,7 @@ import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 import org.bson.BsonDocument;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitItemModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.ShopItemModel;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Method;
@@ -151,5 +152,126 @@ public final class InventoryUtil {
             }
         }
         return false;
+    }
+
+    public static int countItem(@Nonnull Inventory inventory, @Nonnull String itemId) {
+        if (itemId.isBlank()) return 0;
+        ItemContainer container = inventory.getCombinedEverything();
+        if (container == null) return 0;
+        int total = 0;
+        short cap = container.getCapacity();
+        for (short i = 0; i < cap; i++) {
+            ItemStack stack = container.getItemStack(i);
+            if (stack == null || stack.isEmpty()) continue;
+            if (itemId.equals(stack.getItemId())) {
+                total += Math.max(0, stack.getQuantity());
+            }
+        }
+        return total;
+    }
+
+    public static boolean hasItems(@Nonnull Inventory inventory, @Nonnull List<ShopItemModel> items) {
+        if (items.isEmpty()) return true;
+        for (ShopItemModel item : items) {
+            if (item == null) continue;
+            String itemId = item.getItemId();
+            int qty = item.getQuantity();
+            if (itemId.isBlank() || qty <= 0) continue;
+            if (countItem(inventory, itemId) < qty) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean removeItems(@Nonnull Inventory inventory, @Nonnull List<ShopItemModel> items) {
+        if (items.isEmpty()) return true;
+        if (!hasItems(inventory, items)) return false;
+        ItemContainer container = inventory.getCombinedEverything();
+        if (container == null) return false;
+
+        for (ShopItemModel item : items) {
+            if (item == null) continue;
+            String itemId = item.getItemId();
+            int remaining = item.getQuantity();
+            if (itemId.isBlank() || remaining <= 0) continue;
+
+            short cap = container.getCapacity();
+            for (short i = 0; i < cap && remaining > 0; i++) {
+                ItemStack stack = container.getItemStack(i);
+                if (stack == null || stack.isEmpty()) continue;
+                if (!itemId.equals(stack.getItemId())) continue;
+
+                int removeAmount = Math.min(remaining, Math.max(0, stack.getQuantity()));
+                if (removeAmount <= 0) continue;
+
+                int newQty = stack.getQuantity() - removeAmount;
+                if (newQty <= 0) {
+                    setSlotEmpty(container, i);
+                } else {
+                    ItemStack updated = cloneWithQuantity(stack, newQty);
+                    container.setItemStackForSlot(i, updated);
+                }
+                remaining -= removeAmount;
+            }
+
+            if (remaining > 0) {
+                inventory.markChanged();
+                return false;
+            }
+        }
+        inventory.markChanged();
+        return true;
+    }
+
+    public static boolean addItems(@Nonnull Inventory inventory, @Nonnull List<ShopItemModel> items) {
+        return addItemsWithOverflow(inventory, items).isEmpty();
+    }
+
+    @Nonnull
+    public static List<ItemStack> addItemsWithOverflow(@Nonnull Inventory inventory, @Nonnull List<ShopItemModel> items) {
+        List<ItemStack> overflow = new ArrayList<>();
+        if (items.isEmpty()) return overflow;
+        ItemContainer container = inventory.getCombinedEverything();
+        if (container == null) return overflow;
+        for (ShopItemModel item : items) {
+            if (item == null) continue;
+            String itemId = item.getItemId();
+            int qty = item.getQuantity();
+            if (itemId.isBlank() || qty <= 0) continue;
+            ItemStack stack = new ItemStack(itemId, qty, 0, 0, null);
+            if (!tryAddToContainer(container, stack)) {
+                overflow.add(stack);
+            }
+        }
+        inventory.markChanged();
+        return overflow;
+    }
+
+    private static ItemStack cloneWithQuantity(@Nonnull ItemStack stack, int quantity) {
+        try {
+            java.lang.reflect.Method method = stack.getClass().getMethod("withQuantity", int.class);
+            Object result = method.invoke(stack, quantity);
+            if (result instanceof ItemStack itemStack) {
+                return itemStack;
+            }
+        } catch (Exception ignored) {
+        }
+        return new ItemStack(
+                stack.getItemId(),
+                quantity,
+                stack.getDurability(),
+                stack.getMaxDurability(),
+                stack.getMetadata()
+        );
+    }
+
+    private static void setSlotEmpty(@Nonnull ItemContainer container, short slot) {
+        try {
+            container.setItemStackForSlot(slot, null);
+        } catch (Exception ignored) {
+            ItemStack empty = new ItemStack("", 0, 0, 0, null);
+            container.setItemStackForSlot(slot, empty);
+        }
     }
 }

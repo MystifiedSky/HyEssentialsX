@@ -1,0 +1,25 @@
+Group {
+  Anchor: (Width: 58, Height: 56, Left: -12);
+
+  Group {
+    Anchor: (Width: 36, Height: 36, Left: 11, Top: 6);
+    Background: (Color: #2a2a2a(0.6));
+  }
+
+  ItemIcon #ItemIcon {
+    Anchor: (Width: 34, Height: 34, Left: 12, Top: 7);
+  }
+
+  Label #Quantity {
+    Anchor: (Left: 30, Top: 28);
+    Background: (Color: #1a1a1a(0.9));
+    Padding: (Left: 3, Right: 3, Top: 1, Bottom: 1);
+    Style: (FontSize: 10, RenderBold: true, TextColor: #ffffff);
+  }
+
+  Label #InfoLabel {
+    Anchor: (Height: 12, Top: 42);
+    Style: (FontSize: 12, TextColor: #aaaaaa, HorizontalAlignment: Center);
+    Text: "";
+  }
+}

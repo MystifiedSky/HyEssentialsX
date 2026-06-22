@@ -2,6 +2,7 @@ package xyz.thelegacyvoyage.hyessentialsx.storage;
 
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
 
 import javax.annotation.Nonnull;
@@ -29,6 +30,11 @@ public interface StorageBackend {
     Map<String, KitModel> loadKits();
 
     void saveKits(@Nonnull Map<String, KitModel> kits);
+
+    @Nonnull
+    Map<String, ShopModel> loadShops();
+
+    void saveShops(@Nonnull Map<String, ShopModel> shops);
 
     void shutdown();
 }

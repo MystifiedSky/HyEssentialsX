@@ -2,6 +2,7 @@ package xyz.thelegacyvoyage.hyessentialsx.managers;
 
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.storage.JsonStorageBackend;
 import xyz.thelegacyvoyage.hyessentialsx.storage.MysqlStorageBackend;
@@ -30,6 +31,7 @@ public final class StorageManager {
     private final ConcurrentHashMap<String, UUID> nameIndex = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, WarpModel> warps = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, KitModel> kits = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ShopModel> shops = new ConcurrentHashMap<>();
 
     public StorageManager(@Nonnull Path dataFolder, @Nonnull ConfigManager config) {
         this.ioPool = Executors.newSingleThreadExecutor(r -> {
@@ -83,6 +85,9 @@ public final class StorageManager {
 
         kits.clear();
         kits.putAll(backend.loadKits());
+
+        shops.clear();
+        shops.putAll(backend.loadShops());
 
         rebuildNameIndex();
     }
@@ -200,6 +205,35 @@ public final class StorageManager {
         CompletableFuture.runAsync(() -> backend.saveKits(snapshot), ioPool);
     }
 
+    @Nonnull
+    public Map<String, ShopModel> getShops() {
+        return Map.copyOf(shops);
+    }
+
+    @Nullable
+    public ShopModel getShop(@Nonnull String name) {
+        return shops.get(name.toLowerCase());
+    }
+
+    public void setShop(@Nonnull String name, @Nonnull ShopModel shop) {
+        shops.put(name.toLowerCase(), shop);
+        saveShopsAsync();
+    }
+
+    public boolean deleteShop(@Nonnull String name) {
+        ShopModel removed = shops.remove(name.toLowerCase());
+        if (removed != null) {
+            saveShopsAsync();
+            return true;
+        }
+        return false;
+    }
+
+    private void saveShopsAsync() {
+        Map<String, ShopModel> snapshot = Map.copyOf(shops);
+        CompletableFuture.runAsync(() -> backend.saveShops(snapshot), ioPool);
+    }
+
     @Nullable
     public xyz.thelegacyvoyage.hyessentialsx.models.MuteModel getMute(@Nonnull UUID uuid) {
         PlayerDataModel data = getPlayerData(uuid);
@@ -244,6 +278,7 @@ public final class StorageManager {
         try {
             backend.saveWarps(Map.copyOf(warps));
             backend.saveKits(Map.copyOf(kits));
+            backend.saveShops(Map.copyOf(shops));
             for (Map.Entry<UUID, PlayerDataModel> entry : playerCache.entrySet()) {
                 backend.savePlayerData(entry.getKey(), entry.getValue());
             }

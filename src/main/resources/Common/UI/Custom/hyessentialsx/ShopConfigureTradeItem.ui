@@ -1,0 +1,78 @@
+$C = "../Common.ui";
+
+Group {
+  Anchor: (Height: 78, Bottom: 6);
+  Padding: 8;
+  Background: (Color: #1a1a1a(0.6));
+  LayoutMode: Left;
+
+  Group #TradeDetails {
+    FlexWeight: 1;
+    LayoutMode: Top;
+
+    Group {
+      LayoutMode: Left;
+      Anchor: (Height: 28);
+      Padding: (Top: 6);
+
+      Label {
+        Anchor: (Width: 100);
+        Style: (FontSize: 14, TextColor: #ff8866, RenderBold: true);
+        Text: "Buyer Pays:";
+      }
+      Group #InputItems {
+        FlexWeight: 1;
+        LayoutMode: Left;
+      }
+    }
+
+    Group {
+      LayoutMode: Left;
+      Anchor: (Height: 28);
+
+      Label {
+        Anchor: (Width: 100);
+        Style: (FontSize: 14, TextColor: #66ff88, RenderBold: true);
+        Text: "Buyer Gets:";
+      }
+      Group #OutputItems {
+        FlexWeight: 1;
+        LayoutMode: Left;
+      }
+    }
+  }
+
+  Group #StatusGroup {
+    Anchor: (Width: 100);
+    LayoutMode: Top;
+
+    Label #StockStatus {
+      Anchor: (Height: 20);
+      Style: (FontSize: 14, RenderBold: true, TextColor: #66ff66, HorizontalAlignment: Center);
+      Text: "In Stock";
+    }
+
+    Label #StockCount {
+      Anchor: (Height: 18);
+      Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center);
+      Text: "";
+    }
+  }
+
+  Group #ButtonGroup {
+    Anchor: (Width: 170);
+    LayoutMode: Top;
+
+    $C.@TextButton #EditButton {
+      Text: "Edit";
+      Anchor: (Width: 150, Height: 30);
+      TooltipText: "Edit this trade";
+    }
+
+    $C.@TextButton #DeleteButton {
+      Text: "Delete";
+      Anchor: (Width: 150, Height: 30, Top: 4);
+      TooltipText: "Remove this trade";
+    }
+  }
+}

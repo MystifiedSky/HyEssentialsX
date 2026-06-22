@@ -1,0 +1,73 @@
+$C = "../Common.ui";
+
+Group {
+  Anchor: (Bottom: 10);
+  Padding: 12;
+  Background: (Color: #1a1a1a(0.75));
+  LayoutMode: Left;
+
+  Group #PaySection {
+    Anchor: (Width: 300);
+    LayoutMode: Top;
+
+    Label {
+      Anchor: (Height: 18, Bottom: 2);
+      Style: (FontSize: 14, TextColor: #ff8866, RenderBold: true);
+      Text: "YOU PAY";
+    }
+
+    Group #PayItems {
+      LayoutMode: Top;
+    }
+  }
+
+  Group #ArrowSection {
+    Anchor: (Width: 50);
+    LayoutMode: Top;
+
+    Group { Anchor: (Height: 35); }
+
+    Label {
+      Anchor: (Height: 40);
+      Style: (FontSize: 24, TextColor: #93844c, HorizontalAlignment: Center);
+      Text: ">";
+    }
+  }
+
+  Group #GetSection {
+    Anchor: (Width: 300);
+    LayoutMode: Top;
+
+    Label {
+      Anchor: (Height: 18, Bottom: 2);
+      Style: (FontSize: 14, TextColor: #66ff88, RenderBold: true);
+      Text: "YOU GET";
+    }
+
+    Group #GetItems {
+      LayoutMode: Top;
+    }
+  }
+
+  Group #ActionSection {
+    FlexWeight: 1;
+    LayoutMode: Top;
+    Padding: (Left: 10);
+
+    Group { Anchor: (Height: 10); }
+
+    $C.@TextButton #TradeButton {
+      Text: "Trade";
+      Anchor: (Width: 120, Height: 38);
+      TooltipText: "Execute this trade";
+    }
+
+    Group { Anchor: (Height: 8); }
+
+    Label #StatusLabel {
+      Anchor: (Height: 20);
+      Style: (FontSize: 14, TextColor: #66ff66, HorizontalAlignment: Center, RenderBold: true);
+      Text: "";
+    }
+  }
+}

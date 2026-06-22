@@ -1,0 +1,472 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 900, Height: 720);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Admin Shop";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15, Top: 5, Bottom: 5);
+
+      Group #TabBar {
+        Anchor: (Height: 40, Bottom: 10);
+        LayoutMode: Left;
+
+        $C.@TextButton #TabTrades {
+          Text: "Trades";
+          Anchor: (Width: 160, Height: 35);
+        }
+
+        $C.@TextButton #TabSettings {
+          Text: "Settings";
+          Anchor: (Width: 160, Height: 35, Left: 4);
+        }
+
+        $C.@TextButton #TabPreview {
+          Text: "Preview";
+          Anchor: (Width: 160, Height: 35, Left: 4);
+        }
+      }
+
+      Group {
+        Anchor: (Height: 1, Bottom: 8);
+        Background: (Color: #93844c(0.5));
+      }
+
+      Group #TradesTabContent {
+        FlexWeight: 1;
+        LayoutMode: Top;
+        Visible: true;
+
+        Group #TradeListSection {
+          Anchor: (Height: 180, Bottom: 10);
+          LayoutMode: Top;
+
+          Label {
+            Anchor: (Bottom: 5);
+            Style: (FontSize: 14, TextColor: #93844c, RenderBold: true);
+            Text: "Current Trades";
+          }
+
+          Group #TradeList {
+            Anchor: (Height: 145);
+            LayoutMode: TopScrolling;
+            ScrollbarStyle: $C.@DefaultScrollbarStyle;
+            Background: (Color: #0a0a0a(0.4));
+            Padding: 5;
+
+            Label #NoTradesLabel {
+              Anchor: (Height: 30);
+              Style: (FontSize: 14, TextColor: #666666);
+              Text: "No trades configured yet";
+              Visible: false;
+            }
+
+            Group #TradeCards {
+              LayoutMode: Top;
+            }
+          }
+        }
+
+        Group #TradePager {
+          Anchor: (Height: 32, Bottom: 10);
+          LayoutMode: Left;
+
+          Group { FlexWeight: 1; }
+
+          $C.@TextButton #TradePrevPage {
+            Anchor: (Width: 40, Height: 28);
+            Text: "<";
+          }
+
+          Label #TradePageInfo {
+            Anchor: (Width: 140);
+            Style: (FontSize: 12, TextColor: #888888, HorizontalAlignment: Center);
+            Text: "Page 1/1";
+          }
+
+          $C.@TextButton #TradeNextPage {
+            Anchor: (Width: 40, Height: 28);
+            Text: ">";
+          }
+
+          Group { FlexWeight: 1; }
+        }
+
+        Group {
+          Anchor: (Height: 1, Bottom: 10);
+          Background: (Color: #93844c(0.3));
+        }
+
+        Label {
+          Anchor: (Bottom: 8);
+          Style: (FontSize: 15, TextColor: #93844c, RenderBold: true);
+          Text: "New Trade";
+        }
+
+        Group #PaymentTypeRow {
+          Anchor: (Height: 34, Bottom: 6);
+          LayoutMode: Left;
+
+          Label {
+            Anchor: (Width: 120);
+            Style: (FontSize: 14, TextColor: #aaaaaa);
+            Text: "Payment:";
+          }
+
+          $C.@TextButton #PaymentMoney {
+            Text: "Money";
+            Anchor: (Width: 120, Height: 28);
+          }
+
+          $C.@TextButton #PaymentItems {
+            Text: "Items";
+            Anchor: (Width: 120, Height: 28, Left: 6);
+          }
+        }
+
+        Group #MoneySection {
+          Anchor: (Height: 45, Bottom: 6);
+          LayoutMode: Left;
+          Visible: true;
+
+          Label {
+            Anchor: (Width: 120);
+            Style: (FontSize: 14, TextColor: #ff8866, RenderBold: true);
+            Text: "Price:";
+          }
+
+          Group {
+            Anchor: (Width: 260);
+            $C.@HeaderSearch #PriceInput {}
+          }
+        }
+
+        Group #MoneyModeRow {
+          Anchor: (Height: 34, Bottom: 6);
+          LayoutMode: Left;
+          Visible: true;
+
+          Label {
+            Anchor: (Width: 120);
+            Style: (FontSize: 14, TextColor: #aaaaaa);
+            Text: "Mode:";
+          }
+
+          $C.@TextButton #MoneyModeBuy {
+            Text: "Buy";
+            Anchor: (Width: 120, Height: 28);
+          }
+
+          $C.@TextButton #MoneyModeSell {
+            Text: "Sell";
+            Anchor: (Width: 120, Height: 28, Left: 6);
+          }
+        }
+
+        Group #ItemCostSection {
+          Anchor: (Height: 45, Bottom: 6);
+          LayoutMode: Left;
+          Visible: false;
+
+          Label {
+            Anchor: (Width: 110);
+            Style: (FontSize: 14, TextColor: #ff8866, RenderBold: true);
+            Text: "Cost Item:";
+          }
+
+          Group #SelectedCostItems {
+            FlexWeight: 1;
+            LayoutMode: Left;
+          }
+
+          $C.@TextButton #UseCostHand {
+            Text: "Use Hand";
+            Anchor: (Width: 150, Height: 28, Left: 6);
+          }
+
+          $C.@TextButton #ClearCost {
+            Text: "Clear";
+            Anchor: (Width: 110, Height: 28, Left: 6);
+          }
+        }
+
+        Group #OutputSection {
+          Anchor: (Height: 45, Bottom: 8);
+          LayoutMode: Left;
+
+          Label {
+            Anchor: (Width: 110);
+            Style: (FontSize: 14, TextColor: #66ff88, RenderBold: true);
+            Text: "Output Item:";
+          }
+
+          Group #SelectedOutputItems {
+            FlexWeight: 1;
+            LayoutMode: Left;
+          }
+
+          $C.@TextButton #UseOutputHand {
+            Text: "Use Hand";
+            Anchor: (Width: 150, Height: 28, Left: 6);
+          }
+
+          $C.@TextButton #ClearOutput {
+            Text: "Clear";
+            Anchor: (Width: 110, Height: 28, Left: 6);
+          }
+        }
+
+        Group #StockLimitSection {
+          Anchor: (Height: 40, Bottom: 6);
+          LayoutMode: Left;
+
+          Label {
+            Anchor: (Width: 120);
+            Style: (FontSize: 14, TextColor: #aaaaaa);
+            Text: "Stock Limit:";
+          }
+
+          Group {
+            Anchor: (Width: 200);
+            $C.@HeaderSearch #StockLimitInput {}
+          }
+
+          Label {
+            Anchor: (Width: 160, Left: 8);
+            Style: (FontSize: 12, TextColor: #888888);
+            Text: "0 = unlimited";
+          }
+        }
+
+        Label #EditModeLabel {
+          Anchor: (Height: 20, Bottom: 6);
+          Style: (FontSize: 12, TextColor: #888888);
+          Text: "";
+        }
+
+        Group #SaveSection {
+          Anchor: (Height: 42);
+          LayoutMode: Left;
+
+          Group { FlexWeight: 1; }
+
+          $C.@TextButton #SaveTradeButton {
+            Text: "Save Trade";
+            Anchor: (Width: 180, Height: 38);
+          }
+
+          Group { FlexWeight: 1; }
+        }
+      }
+
+      Group #SettingsTabContent {
+        FlexWeight: 1;
+        LayoutMode: Top;
+        Visible: false;
+
+        Label {
+          Anchor: (Bottom: 20);
+          Style: (FontSize: 16, TextColor: #93844c, RenderBold: true);
+          Text: "Shop Settings";
+        }
+
+        Group {
+          Anchor: (Height: 50, Bottom: 15);
+          LayoutMode: Left;
+
+          Label {
+            Anchor: (Width: 120);
+            Style: (FontSize: 14, TextColor: #aaaaaa);
+            Text: "Shop Name:";
+          }
+
+          Group {
+            Anchor: (Width: 350);
+            $C.@HeaderSearch #ShopNameInput {}
+          }
+
+          $C.@TextButton #SaveNameButton {
+            Text: "Save";
+            Anchor: (Width: 100, Height: 35, Left: 10);
+          }
+        }
+
+        Label #CurrentShopName {
+          Style: (FontSize: 14, TextColor: #888888);
+          Text: "Current: Shop";
+        }
+
+        Group {
+          Anchor: (Height: 1, Top: 20, Bottom: 20);
+          Background: (Color: #93844c(0.3));
+        }
+
+        Group {
+          Anchor: (Height: 40, Bottom: 10);
+          LayoutMode: Left;
+
+          Label {
+            Anchor: (Width: 120);
+            Style: (FontSize: 14, TextColor: #aaaaaa);
+            Text: "NPC Model:";
+          }
+
+          $C.@TextButton #NpcRolePrev {
+            Text: "<";
+            Anchor: (Width: 40, Height: 28);
+          }
+
+          Label #NpcRoleLabel {
+            Anchor: (Width: 200, Left: 6);
+            Style: (FontSize: 14, TextColor: #ffffff, HorizontalAlignment: Center);
+            Text: "None";
+          }
+
+          $C.@TextButton #NpcRoleNext {
+            Text: ">";
+            Anchor: (Width: 40, Height: 28, Left: 6);
+          }
+
+          $C.@TextButton #ApplyNpcRole {
+            Text: "Apply";
+            Anchor: (Width: 120, Height: 28, Left: 64);
+          }
+        }
+
+        Group {
+          Anchor: (Height: 40, Top: 6);
+          LayoutMode: Left;
+
+          Label {
+            Anchor: (Width: 120);
+            Style: (FontSize: 14, TextColor: #aaaaaa);
+            Text: "Shop Status:";
+          }
+
+          Label #ShopStatusLabel {
+            Anchor: (Width: 120);
+            Style: (FontSize: 14, TextColor: #66ff66);
+            Text: "Open";
+          }
+
+          $C.@TextButton #ToggleOpenButton {
+            Text: "Toggle";
+            Anchor: (Width: 140, Height: 35, Left: 12);
+          }
+        }
+
+        Group {
+          Anchor: (Height: 45, Top: 12, Bottom: 6);
+          LayoutMode: Left;
+
+          Label {
+            Anchor: (Width: 160);
+            Style: (FontSize: 14, TextColor: #aaaaaa);
+            Text: "Money stock limit:";
+          }
+
+          Group {
+            Anchor: (Width: 120, Left: 59);
+            $C.@HeaderSearch #MoneyStockLimitInput {}
+          }
+
+          Label {
+            Anchor: (Width: 160, Left: 28);
+            Style: (FontSize: 12, TextColor: #888888);
+            Text: "0 = unlimited";
+          }
+        }
+
+        Group {
+          Anchor: (Height: 45, Top: 6, Bottom: 8);
+          LayoutMode: Left;
+
+          Label {
+            Anchor: (Width: 160);
+            Style: (FontSize: 14, TextColor: #aaaaaa);
+            Text: "Stock reset (days):";
+          }
+
+          Group {
+            Anchor: (Width: 120, Left: 59);
+            $C.@HeaderSearch #StockResetInput {}
+          }
+
+          $C.@TextButton #SaveStockSettings {
+            Text: "Save";
+            Anchor: (Width: 120, Height: 35, Left: 56);
+          }
+        }
+      }
+
+      Group #PreviewTabContent {
+        FlexWeight: 1;
+        LayoutMode: Top;
+        Visible: false;
+
+        Group #PreviewHeader {
+          Anchor: (Height: 50, Bottom: 5);
+          LayoutMode: Top;
+
+          Label {
+            Anchor: (Bottom: 5);
+            Style: (FontSize: 14, TextColor: #888888);
+            Text: "Preview:";
+          }
+
+          Group {
+            LayoutMode: Left;
+
+            Label #PreviewShopName {
+              FlexWeight: 1;
+              Style: (FontSize: 18, TextColor: #93844c, RenderBold: true);
+              Text: "Shop";
+            }
+
+            Label #PreviewClosedLabel {
+              Anchor: (Width: 100);
+              Style: (FontSize: 14, TextColor: #ff6666, RenderBold: true);
+              Text: "[CLOSED]";
+              Visible: false;
+            }
+          }
+        }
+
+        Group {
+          Anchor: (Height: 1, Bottom: 10);
+          Background: (Color: #93844c(0.4));
+        }
+
+        Group #PreviewTradeSection {
+          FlexWeight: 1;
+          LayoutMode: TopScrolling;
+          ScrollbarStyle: $C.@DefaultScrollbarStyle;
+
+          Label #PreviewNoTradesLabel {
+            Anchor: (Height: 60);
+            Style: (FontSize: 15, TextColor: #666666, HorizontalAlignment: Center);
+            Text: "This shop has no trades available";
+            Visible: false;
+          }
+
+          Group #PreviewTradeCards {
+            LayoutMode: Top;
+            Padding: (Right: 10);
+          }
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

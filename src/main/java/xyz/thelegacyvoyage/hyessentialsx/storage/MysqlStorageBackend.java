@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
@@ -49,6 +50,7 @@ public final class MysqlStorageBackend implements StorageBackend {
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_players (uuid VARCHAR(36) PRIMARY KEY, json LONGTEXT)");
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_warps (name VARCHAR(64) PRIMARY KEY, json LONGTEXT)");
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_kits (name VARCHAR(64) PRIMARY KEY, json LONGTEXT)");
+                st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_shops (name VARCHAR(64) PRIMARY KEY, json LONGTEXT)");
             }
             available = true;
         } catch (Exception e) {
@@ -208,6 +210,49 @@ public final class MysqlStorageBackend implements StorageBackend {
             conn.commit();
         } catch (Exception e) {
             Log.warn("Failed to save kits to MySQL: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Nonnull
+    public Map<String, ShopModel> loadShops() {
+        Map<String, ShopModel> out = new HashMap<>();
+        if (!available) return out;
+        try (Connection conn = open();
+             PreparedStatement ps = conn.prepareStatement("SELECT name, json FROM hex_shops")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String name = rs.getString(1);
+                    String json = rs.getString(2);
+                    ShopModel model = gson.fromJson(json, ShopModel.class);
+                    if (name != null && model != null) out.put(name, model);
+                }
+            }
+        } catch (Exception e) {
+            Log.warn("Failed to load shops from MySQL: " + e.getMessage());
+        }
+        return out;
+    }
+
+    @Override
+    public void saveShops(@Nonnull Map<String, ShopModel> shops) {
+        if (!available) return;
+        try (Connection conn = open()) {
+            conn.setAutoCommit(false);
+            try (Statement st = conn.createStatement()) {
+                st.executeUpdate("TRUNCATE TABLE hex_shops");
+            }
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO hex_shops (name, json) VALUES (?, ?)")) {
+                for (Map.Entry<String, ShopModel> entry : shops.entrySet()) {
+                    ps.setString(1, entry.getKey());
+                    ps.setString(2, gson.toJson(entry.getValue()));
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+            conn.commit();
+        } catch (Exception e) {
+            Log.warn("Failed to save shops to MySQL: " + e.getMessage());
         }
     }
 

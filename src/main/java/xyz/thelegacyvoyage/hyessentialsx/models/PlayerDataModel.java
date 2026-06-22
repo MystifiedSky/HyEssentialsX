@@ -6,11 +6,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public final class PlayerDataModel {
 
     private String lastKnownName;
     private long lastSeenAt;
+    private long firstJoinAt;
     private Map<String, HomeModel> homes = new HashMap<>();
     private Map<String, Long> kitCooldowns = new HashMap<>();
     private Map<String, Long> commandCooldowns = new HashMap<>();
@@ -23,6 +25,7 @@ public final class PlayerDataModel {
     private long lastJoinAt;
     private String rankupTier;
     private boolean flyEnabled;
+    private float flySpeedMultiplier = 1.0F;
     private long lastPaycheckAt;
     private long lastPaycheckPlaytimeSeconds;
     private boolean frozen;
@@ -36,6 +39,7 @@ public final class PlayerDataModel {
     private int mailSentNextId = 1;
     private String lastKnownIp;
     private List<IpHistoryModel> ipHistory = new ArrayList<>();
+    private List<String> ignoredPlayerIds = new ArrayList<>();
 
     @SuppressWarnings("unused")
     public PlayerDataModel() {}
@@ -55,6 +59,14 @@ public final class PlayerDataModel {
 
     public void setLastSeenAt(long lastSeenAt) {
         this.lastSeenAt = lastSeenAt;
+    }
+
+    public long getFirstJoinAt() {
+        return firstJoinAt;
+    }
+
+    public void setFirstJoinAt(long firstJoinAt) {
+        this.firstJoinAt = Math.max(0L, firstJoinAt);
     }
 
     @Nonnull
@@ -159,6 +171,17 @@ public final class PlayerDataModel {
 
     public void setFlyEnabled(boolean flyEnabled) {
         this.flyEnabled = flyEnabled;
+    }
+
+    public float getFlySpeedMultiplier() {
+        if (flySpeedMultiplier <= 0.0F) {
+            flySpeedMultiplier = 1.0F;
+        }
+        return flySpeedMultiplier;
+    }
+
+    public void setFlySpeedMultiplier(float flySpeedMultiplier) {
+        this.flySpeedMultiplier = flySpeedMultiplier > 0.0F ? flySpeedMultiplier : 1.0F;
     }
 
     public long getLastPaycheckAt() {
@@ -281,6 +304,40 @@ public final class PlayerDataModel {
 
     public void setIpHistory(@Nonnull List<IpHistoryModel> ipHistory) {
         this.ipHistory = ipHistory;
+    }
+
+    @Nonnull
+    public List<String> getIgnoredPlayerIds() {
+        if (ignoredPlayerIds == null) {
+            ignoredPlayerIds = new ArrayList<>();
+        }
+        return ignoredPlayerIds;
+    }
+
+    public void setIgnoredPlayerIds(@Nonnull List<String> ignoredPlayerIds) {
+        this.ignoredPlayerIds = ignoredPlayerIds;
+    }
+
+    public boolean isIgnoring(@Nonnull UUID playerId) {
+        String id = playerId.toString();
+        for (String ignored : getIgnoredPlayerIds()) {
+            if (id.equalsIgnoreCase(ignored)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean addIgnoredPlayer(@Nonnull UUID playerId) {
+        if (isIgnoring(playerId)) {
+            return false;
+        }
+        return getIgnoredPlayerIds().add(playerId.toString());
+    }
+
+    public boolean removeIgnoredPlayer(@Nonnull UUID playerId) {
+        String id = playerId.toString();
+        return getIgnoredPlayerIds().removeIf(v -> id.equalsIgnoreCase(v));
     }
 
     public void addOrUpdateIp(@Nonnull String ip) {

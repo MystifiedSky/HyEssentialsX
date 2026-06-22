@@ -28,6 +28,7 @@ public final class TpaDenyCommand extends AbstractPlayerCommand {
         this.tpManager = tpManager;
         this.config = config;
         this.setPermissionGroup(null);
+        this.addAliases(new String[]{"tpdeny"});
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.requesterArg = withRequiredArg("player", "Player to deny", ArgTypes.PLAYER_REF);
     }

@@ -1,5 +1,5 @@
-{
-    "prefix.plugin":  "\u00267[HyEssentialsX]\u0026f ",
+﻿{
+    "prefix.plugin":  "<#F472B6>[</#F472B6><#C084FC>HyEssentialsX</#C084FC><#F472B6>]</#F472B6> &f",
     "error.no_permission":  "\u0026cYou don\u0027t have permission to use {command}.",
     "error.player_only":  "\u0026cThis command can only be used by a player.",
     "cooldown.wait":  "\u0026ePlease wait {time} before using {command} again.",
@@ -26,8 +26,13 @@
     "msg.message_required":  "\u0026cMessage required.",
     "msg.no_reply":  "\u0026cNobody to reply to.",
     "msg.target_offline":  "\u0026cPlayer is no longer online.",
+    "msg.target_ignoring":  "\u0026c{player} is ignoring your private messages.",
     "msg.format_sender":  "\u00267[\u0026fMe \u00267-\u003e \u0026f{player}\u00267] \u0026f{message}",
     "msg.format_receiver":  "\u00267[\u0026f{player} \u00267-\u003e \u0026fMe\u00267] \u0026f{message}",
+    "ignore.self":  "\u0026cYou cannot ignore yourself.",
+    "ignore.enabled":  "\u0026aYou are now ignoring \u0026f{player}\u0026a.",
+    "ignore.disabled":  "\u0026aYou are no longer ignoring \u0026f{player}\u0026a.",
+    "ignore.not_ignoring":  "\u0026eYou were not ignoring \u0026f{player}\u0026e.",
     "custom.unavailable":  "\u0026cThis custom command is no longer available.",
     "home.disabled":  "\u0026cHomes are disabled.",
     "home.name_required":  "\u0026cHome name required.",
@@ -370,6 +375,12 @@
     "fly.disabled_for":  "\u0026aFlight disabled for {player}.",
     "fly.enabled_by":  "\u0026aFlight enabled by {player}.",
     "fly.disabled_by":  "\u0026aFlight disabled by {player}.",
+    "flyspeed.current":  "\u0026aYour fly speed is set to \u0026f{speed}\u0026a.",
+    "flyspeed.invalid":  "\u0026cInvalid fly speed. Use a number.",
+    "flyspeed.range":  "\u0026cFly speed must be between \u0026f{min}\u0026c and \u0026f{max}\u0026c.",
+    "flyspeed.set_self":  "\u0026aSet your fly speed to \u0026f{speed}\u0026a.",
+    "flyspeed.set_other":  "\u0026aSet \u0026f{player}\u0026a's fly speed to \u0026f{speed}\u0026a.",
+    "flyspeed.changed_by":  "\u0026aYour fly speed was set to \u0026f{speed}\u0026a by \u0026f{player}\u0026a.",
     "god.enabled":  "\u0026aGod mode enabled.",
     "god.disabled":  "\u0026aGod mode disabled.",
     "god.enabled_for":  "\u0026aGod mode enabled for {player}.",
@@ -434,6 +445,7 @@
     "afk.disabled":  "\u0026cAFK is disabled.",
     "list.format":  "\u0026aOnline (\u0026f{count}\u0026a): \u0026f{players}",
     "motd.disabled":  "\u0026cMOTD is disabled.",
+    "discord.disabled":  "\u0026cDiscord command is disabled.",
     "near.disabled":  "\u0026cNear is disabled.",
     "near.none":  "\u00267No nearby players.",
     "near.list":  "\u0026aNearby: \u0026f{players}",
@@ -449,6 +461,7 @@
     "whois.current_ip":  "\u0026aCurrent IP: \u0026f{ip}",
     "whois.location":  "\u0026aLocation: \u0026f{world} \u00267({x}, {y}, {z})",
     "whois.gamemode":  "\u0026aGamemode: \u0026f{gamemode}",
+    "whois.first_join":  "\u0026aFirst Join: \u0026f{time}{ago}",
     "whois.last_seen":  "\u0026aLast Seen: \u0026f{time}{ago}",
     "whois.language":  "\u0026aLanguage: \u0026f{language}",
     "whois.playtime":  "\u0026aPlaytime: \u0026f{time}",
@@ -531,3 +544,4 @@
     "tpa.ui.no_players":  "No players available.",
     "tpa.ui.player_count":  "{count} Players"
 }
+

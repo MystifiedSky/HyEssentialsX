@@ -19,6 +19,9 @@ public final class FlyManager {
 
     private final ConcurrentHashMap<UUID, Boolean> enabled = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, Boolean> pendingApply = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Float> flySpeedMultiplier = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Float> baseHorizontalFlySpeed = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Float> baseVerticalFlySpeed = new ConcurrentHashMap<>();
 
     public boolean isEnabled(@Nonnull UUID playerId) {
         return enabled.containsKey(playerId);
@@ -39,6 +42,10 @@ public final class FlyManager {
 
     public void clear(@Nonnull UUID playerId) {
         enabled.remove(playerId);
+        pendingApply.remove(playerId);
+        flySpeedMultiplier.remove(playerId);
+        baseHorizontalFlySpeed.remove(playerId);
+        baseVerticalFlySpeed.remove(playerId);
     }
 
     public void queueApply(@Nonnull UUID playerId) {
@@ -62,6 +69,7 @@ public final class FlyManager {
     }
 
     public boolean applyState(@Nonnull PlayerRef target, boolean enabled) {
+        UUID playerId = target.getUuid();
         Ref<EntityStore> targetRef = target.getReference();
         if (targetRef == null) return false;
         Store<EntityStore> targetStore = targetRef.getStore();
@@ -76,6 +84,7 @@ public final class FlyManager {
 
         MovementSettings defaults = movementManager.getDefaultSettings();
         if (defaults != null) defaults.canFly = enabled;
+        applyFlySpeedMultiplier(playerId, settings, defaults);
 
         MovementStatesComponent statesComponent = targetStore.getComponent(targetRef, MovementStatesComponent.getComponentType());
         if (statesComponent != null) {
@@ -110,6 +119,51 @@ public final class FlyManager {
 
         movementManager.update(target.getPacketHandler());
         return true;
+    }
+
+    public void setFlySpeedMultiplier(@Nonnull UUID playerId, float multiplier) {
+        if (multiplier <= 0.0F) {
+            flySpeedMultiplier.remove(playerId);
+            return;
+        }
+        flySpeedMultiplier.put(playerId, multiplier);
+    }
+
+    public float getFlySpeedMultiplier(@Nonnull UUID playerId) {
+        Float value = flySpeedMultiplier.get(playerId);
+        return value != null && value > 0.0F ? value : 1.0F;
+    }
+
+    public boolean applySpeedOnly(@Nonnull PlayerRef target) {
+        Ref<EntityStore> targetRef = target.getReference();
+        if (targetRef == null) return false;
+        Store<EntityStore> targetStore = targetRef.getStore();
+        if (targetStore == null) return false;
+        MovementManager movementManager = targetStore.getComponent(targetRef, MovementManager.getComponentType());
+        if (movementManager == null) return false;
+
+        movementManager.applyDefaultSettings();
+        applyFlySpeedMultiplier(target.getUuid(), movementManager.getSettings(), movementManager.getDefaultSettings());
+        movementManager.update(target.getPacketHandler());
+        return true;
+    }
+
+    private void applyFlySpeedMultiplier(@Nonnull UUID playerId,
+                                         MovementSettings settings,
+                                         MovementSettings defaults) {
+        if (settings == null || defaults == null) return;
+
+        baseHorizontalFlySpeed.putIfAbsent(playerId, defaults.horizontalFlySpeed);
+        baseVerticalFlySpeed.putIfAbsent(playerId, defaults.verticalFlySpeed);
+
+        float multiplier = getFlySpeedMultiplier(playerId);
+        float baseHorizontal = baseHorizontalFlySpeed.getOrDefault(playerId, defaults.horizontalFlySpeed);
+        float baseVertical = baseVerticalFlySpeed.getOrDefault(playerId, defaults.verticalFlySpeed);
+
+        settings.horizontalFlySpeed = baseHorizontal * multiplier;
+        settings.verticalFlySpeed = baseVertical * multiplier;
+        defaults.horizontalFlySpeed = baseHorizontal * multiplier;
+        defaults.verticalFlySpeed = baseVertical * multiplier;
     }
 }
 

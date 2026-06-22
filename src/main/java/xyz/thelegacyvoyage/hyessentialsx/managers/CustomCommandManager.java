@@ -56,13 +56,11 @@ public final class CustomCommandManager {
         return ""
                 + "# Custom text commands\n"
                 + "# Permission is auto-generated as: hyessentialsx.custom.<command>\n"
-                + "# Example: /discord -> hyessentialsx.custom.discord\n"
+                + "# Example: /website -> hyessentialsx.custom.website\n"
                 + "commands:\n"
-                + "  discord:\n"
-                + "    message: \"&#A7F3D0Join our Discord: https://discord.gg/U58ax8cZZ2\"\n"
-                + "    aliases: [dc]\n"
                 + "  website:\n"
-                + "    message: \"&#93C5FDVisit our website: https://thelegacyvoyage.xyz/\"\n";
+                + "    message: \"&#93C5FDVisit our website: https://thelegacyvoyage.xyz/\"\n"
+                + "    aliases: [web]\n";
     }
 
     @SuppressWarnings("unchecked")

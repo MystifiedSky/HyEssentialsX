@@ -13,6 +13,8 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * One safe messaging gateway.
@@ -44,7 +46,8 @@ public final class Messages {
     private static final String ERR_COLOR = "#FF5555";
     private static final String WHITE_COLOR = "#FFFFFF";
     private static final String PREFIX_KEY = "prefix.plugin";
-    private static final String COMMAND_PREFIX = "&7[HyEssentialsX]&f ";
+    private static final String COMMAND_PREFIX = "<#F472B6>[</#F472B6><#C084FC>HyEssentialsX</#C084FC><#F472B6>]</#F472B6> &f";
+    private static final Pattern URL_PATTERN = Pattern.compile("(?i)\\bhttps?://[^\\s<>]+");
     private static LanguageManager languageManager;
     private static ConfigManager configManager;
 
@@ -180,15 +183,78 @@ public final class Messages {
                               boolean italic,
                               boolean mono) {
         if (buf.length() == 0) return;
-        Message msg = Message.raw(buf.toString()).color(color);
+        String raw = buf.toString();
+        if (link != null && !link.isBlank()) {
+            parts.add(style(raw, color, link, bold, italic, mono));
+        } else {
+            appendAutoLinked(parts, raw, color, bold, italic, mono);
+        }
+        buf.setLength(0);
+    }
+
+    private static void appendAutoLinked(@Nonnull List<Message> parts,
+                                         @Nonnull String text,
+                                         @Nonnull String color,
+                                         boolean bold,
+                                         boolean italic,
+                                         boolean mono) {
+        Matcher matcher = URL_PATTERN.matcher(text);
+        int last = 0;
+        boolean found = false;
+        while (matcher.find()) {
+            found = true;
+            int start = matcher.start();
+            int end = matcher.end();
+            if (start > last) {
+                parts.add(style(text.substring(last, start), color, null, bold, italic, mono));
+            }
+            int trimmedEnd = trimTrailingUrlPunctuation(text, start, end);
+            if (trimmedEnd > start) {
+                String url = text.substring(start, trimmedEnd);
+                parts.add(style(url, color, url, bold, italic, mono));
+            }
+            if (trimmedEnd < end) {
+                parts.add(style(text.substring(trimmedEnd, end), color, null, bold, italic, mono));
+            }
+            last = end;
+        }
+        if (!found) {
+            parts.add(style(text, color, null, bold, italic, mono));
+            return;
+        }
+        if (last < text.length()) {
+            parts.add(style(text.substring(last), color, null, bold, italic, mono));
+        }
+    }
+
+    private static int trimTrailingUrlPunctuation(@Nonnull String text, int start, int end) {
+        int out = end;
+        while (out > start) {
+            char c = text.charAt(out - 1);
+            if (c == '.' || c == ',' || c == ';' || c == '!' || c == '?' || c == ')' || c == ']') {
+                out--;
+                continue;
+            }
+            break;
+        }
+        return out;
+    }
+
+    @Nonnull
+    private static Message style(@Nonnull String raw,
+                                 @Nonnull String color,
+                                 @Nullable String link,
+                                 boolean bold,
+                                 boolean italic,
+                                 boolean mono) {
+        Message msg = Message.raw(raw).color(color);
         if (bold) msg = msg.bold(true);
         if (italic) msg = msg.italic(true);
         if (mono) msg = msg.monospace(true);
         if (link != null && !link.isBlank()) {
             msg = msg.link(link);
         }
-        parts.add(msg);
-        buf.setLength(0);
+        return msg;
     }
 
     @Nonnull

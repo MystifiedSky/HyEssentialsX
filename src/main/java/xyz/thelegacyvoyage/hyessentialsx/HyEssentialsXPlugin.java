@@ -11,11 +11,14 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.teleport.BackCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.AdminChatCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.BroadcastCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.ClearChatCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.chat.IgnoreCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.MailCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.MsgCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.ReplyCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.chat.UnignoreCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.combat.CombatLogCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.cheat.FlyCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.cheat.FlySpeedCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.cheat.GodCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.cheat.HealCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.home.DelHomeCommand;
@@ -33,6 +36,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitCreateCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitDeleteCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitsCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.ListCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.misc.DiscordCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.MotdCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.NearCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.PlaytimeCommand;
@@ -119,6 +123,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.HomeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.InfiniteStaminaManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.IpBanManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.IgnoreManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MessageManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MailManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
@@ -143,6 +148,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.CustomCommandManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.LanguageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.ServerVersion;
 import xyz.thelegacyvoyage.hyessentialsx.util.VaultUnlockedIntegration;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.api.DefaultHyEssentialsXApi;
@@ -174,6 +180,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private WarpManager warpManager;
     private KitManager kitManager;
     private MessageManager messageManager;
+    private IgnoreManager ignoreManager;
     private AdminChatManager adminChatManager;
     private MailManager mailManager;
     private AfkManager afkManager;
@@ -287,6 +294,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         configManager = new ConfigManager(dataDirectory);
         Log.info("[HyEssentialsX] Config path: " + dataDirectory.resolve("config.json"));
         Log.info("[HyEssentialsX] AutoBroadcast present: " + configManager.hasAutoBroadcastSection());
+        Log.info("[HyEssentialsX] Packet API: write(" + ServerVersion.packetWriteSignature() + ")"
+                + " | ToClientPacket=" + ServerVersion.hasToClientPacket()
+                + " | runtime=" + ServerVersion.runtimeVersionHint());
 
         storage = new StorageManager(dataDirectory, configManager);
         languageManager = new LanguageManager(dataDirectory, configManager, storage);
@@ -303,6 +313,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         warpManager = new WarpManager(storage);
         kitManager = new KitManager(storage);
         messageManager = new MessageManager();
+        ignoreManager = new IgnoreManager(storage);
         adminChatManager = new AdminChatManager();
         mailManager = new MailManager(storage, configManager);
         afkManager = new AfkManager(configManager);
@@ -477,8 +488,10 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             reg.accept(new KitDeleteCommand(kitManager, configManager));
         }
         if (configManager.isMsgEnabled()) {
-            reg.accept(new MsgCommand(messageManager, configManager));
-            reg.accept(new ReplyCommand(messageManager, configManager));
+            reg.accept(new MsgCommand(messageManager, ignoreManager, configManager));
+            reg.accept(new ReplyCommand(messageManager, ignoreManager, configManager));
+            reg.accept(new IgnoreCommand(ignoreManager));
+            reg.accept(new UnignoreCommand(ignoreManager));
         }
         if (configManager.isAdminChatEnabled()) {
             reg.accept(new AdminChatCommand(adminChatManager, configManager));
@@ -508,6 +521,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         reg.accept(new BackCommand(backManager, tpManager, configManager, cooldownManager));
         reg.accept(new FlyCommand(flyManager, storage));
+        reg.accept(new FlySpeedCommand(flyManager, storage, configManager));
         reg.accept(new GodCommand(godManager));
         reg.accept(new HealCommand(cooldownManager));
         reg.accept(new InfiniteStaminaCommand(staminaManager));
@@ -517,6 +531,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         if (configManager.isMotdEnabled()) {
             reg.accept(new MotdCommand(configManager, storage));
+        }
+        if (configManager.isDiscordEnabled()) {
+            reg.accept(new DiscordCommand(configManager));
         }
         if (configManager.isNearEnabled()) {
             reg.accept(new NearCommand(configManager, cooldownManager));

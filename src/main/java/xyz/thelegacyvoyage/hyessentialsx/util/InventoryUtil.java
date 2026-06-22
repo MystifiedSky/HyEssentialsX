@@ -8,7 +8,6 @@ import xyz.thelegacyvoyage.hyessentialsx.models.KitItemModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopItemModel;
 
 import javax.annotation.Nonnull;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,7 +47,7 @@ public final class InventoryUtil {
         for (KitItemModel model : items) {
             ItemStack stack = toItemStack(model);
             if (stack == null) continue;
-            if (!tryAddToContainer(container, stack)) {
+            if (!tryAddToPreferredOrContainer(container, model.getSlot(), stack)) {
                 overflow.add(stack);
             }
         }
@@ -127,31 +126,59 @@ public final class InventoryUtil {
     }
 
     private static boolean tryAddToContainer(@Nonnull ItemContainer container, @Nonnull ItemStack stack) {
-        // Try container add method if available (handles stacking).
-        for (Method method : container.getClass().getMethods()) {
-            String name = method.getName().toLowerCase();
-            if (!name.contains("add") && !name.contains("insert") && !name.contains("offer")) continue;
-            if (method.getParameterCount() != 1) continue;
-            if (!method.getParameterTypes()[0].isAssignableFrom(ItemStack.class)) continue;
-            try {
-                Object result = method.invoke(container, stack);
-                if (result instanceof Boolean bool) return bool;
-                if (result instanceof ItemStack remaining) return remaining.isEmpty();
-                return true;
-            } catch (Exception ignored) {
-            }
-        }
-
-        // Fallback: place into first empty slot.
+        // 1) Try to merge into an existing similar stack.
         short cap = container.getCapacity();
         for (short i = 0; i < cap; i++) {
             ItemStack existing = container.getItemStack(i);
-            if (existing == null || existing.isEmpty()) {
-                container.setItemStackForSlot(i, stack);
+            if (existing == null || existing.isEmpty()) continue;
+            if (!canMerge(existing, stack)) continue;
+            ItemStack merged = cloneWithQuantity(existing, existing.getQuantity() + stack.getQuantity());
+            if (trySetSlot(container, i, merged)) {
                 return true;
             }
         }
+
+        // 2) Place into first empty slot.
+        for (short i = 0; i < cap; i++) {
+            ItemStack existing = container.getItemStack(i);
+            if (existing == null || existing.isEmpty()) {
+                if (trySetSlot(container, i, stack)) {
+                    return true;
+                }
+            }
+        }
         return false;
+    }
+
+    private static boolean tryAddToPreferredOrContainer(@Nonnull ItemContainer container, int preferredSlot, @Nonnull ItemStack stack) {
+        if (preferredSlot >= 0 && preferredSlot < container.getCapacity()) {
+            short slot = (short) preferredSlot;
+            ItemStack existing = container.getItemStack(slot);
+            if (existing == null || existing.isEmpty()) {
+                if (trySetSlot(container, slot, stack)) {
+                    return true;
+                }
+            }
+            if (canMerge(existing, stack)) {
+                ItemStack merged = cloneWithQuantity(existing, existing.getQuantity() + stack.getQuantity());
+                if (trySetSlot(container, slot, merged)) {
+                    return true;
+                }
+            }
+        }
+        return tryAddToContainer(container, stack);
+    }
+
+    private static boolean canMerge(@Nonnull ItemStack left, @Nonnull ItemStack right) {
+        if (!left.getItemId().equals(right.getItemId())) return false;
+        // Durable items (tools/armor/weapons) should never stack.
+        if (left.getMaxDurability() > 0 || right.getMaxDurability() > 0) return false;
+        if (left.getDurability() != right.getDurability()) return false;
+        BsonDocument leftMeta = left.getMetadata();
+        BsonDocument rightMeta = right.getMetadata();
+        if (leftMeta == null && rightMeta == null) return true;
+        if (leftMeta == null || rightMeta == null) return false;
+        return leftMeta.equals(rightMeta);
     }
 
     public static int countItem(@Nonnull Inventory inventory, @Nonnull String itemId) {
@@ -281,6 +308,19 @@ public final class InventoryUtil {
         } catch (Exception ignored) {
             ItemStack empty = new ItemStack("", 0, 0, 0, null);
             container.setItemStackForSlot(slot, empty);
+        }
+    }
+
+    private static boolean trySetSlot(@Nonnull ItemContainer container, short slot, @Nonnull ItemStack stack) {
+        try {
+            container.setItemStackForSlot(slot, stack);
+            ItemStack after = container.getItemStack(slot);
+            if (after == null || after.isEmpty()) return false;
+            if (!after.getItemId().equals(stack.getItemId())) return false;
+            if (after.getQuantity() != stack.getQuantity()) return false;
+            return true;
+        } catch (Exception ignored) {
+            return false;
         }
     }
 }

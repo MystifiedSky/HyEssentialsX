@@ -12,6 +12,7 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FreecamManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.ServerVersion;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
@@ -64,7 +65,10 @@ public final class FreecamCommand extends AbstractPlayerCommand {
 
         boolean activate = freecamManager.toggle(target.getUuid());
         SetFlyCameraMode packet = new SetFlyCameraMode(activate);
-        target.getPacketHandler().write(packet);
+        if (!ServerVersion.sendPacket(target.getPacketHandler(), packet)) {
+            Messages.err(context, "Unable to send freecam packet on this server version.");
+            return;
+        }
         if (isSelf) {
             Messages.okKey(context, activate ? "freecam.enabled" : "freecam.disabled", Map.of());
         } else {

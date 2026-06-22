@@ -42,6 +42,7 @@ public final class WhoisCommand extends CommandBase {
         super("whois", "Shows player information");
         this.storage = storage;
         this.setPermissionGroup(null);
+        this.addAliases(new String[]{"joindate"});
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
     }
@@ -154,6 +155,11 @@ public final class WhoisCommand extends CommandBase {
         }
 
         long lastSeen = data.getLastSeenAt();
+        long firstJoin = data.getFirstJoinAt();
+        context.sendMessage(Messages.m(Messages.tr(viewer, "whois.first_join", java.util.Map.of(
+                "time", formatTimestamp(viewer, firstJoin),
+                "ago", formatAgo(viewer, firstJoin)
+        ))));
         context.sendMessage(Messages.m(Messages.tr(viewer, "whois.last_seen", java.util.Map.of(
                 "time", formatTimestamp(viewer, lastSeen),
                 "ago", formatAgo(viewer, lastSeen)

@@ -58,6 +58,7 @@ public final class MotdCommand extends CommandBase {
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("player", playerName);
         placeholders.put("total_players_online", String.valueOf(Universe.get().getPlayers().size()));
+        placeholders.put("discord", config.getDiscordInviteUrl());
         java.util.Set<java.util.UUID> ids = storage.listPlayerIds();
         int total = ids.size();
         if (playerRef != null && !ids.contains(playerRef.getUuid())) {

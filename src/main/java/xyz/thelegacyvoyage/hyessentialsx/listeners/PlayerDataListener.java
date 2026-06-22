@@ -67,11 +67,15 @@ public final class PlayerDataListener {
             stamina.clear(player.getUuid());
 
             PlayerDataModel data = storage.getPlayerData(player.getUuid());
+            if (data.getFirstJoinAt() <= 0L) {
+                data.setFirstJoinAt(System.currentTimeMillis());
+            }
             String ip = IpUtil.extractIp(player.getPacketHandler());
             if (ip != null && !ip.isBlank()) {
                 data.addOrUpdateIp(ip);
-                storage.savePlayerDataAsync(player.getUuid(), data);
             }
+            storage.savePlayerDataAsync(player.getUuid(), data);
+            fly.setFlySpeedMultiplier(player.getUuid(), data.getFlySpeedMultiplier());
             if (data.isFlyEnabled()) {
                 fly.setEnabled(player.getUuid(), true);
                 if (!fly.applyState(player, true)) {

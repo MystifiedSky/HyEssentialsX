@@ -107,6 +107,8 @@ public final class ConfigManager {
     private boolean rtpEnabled = true;
     private boolean broadcastEnabled = true;
     private boolean spawnEnabled = true;
+    private double flySpeedMin = 0.1;
+    private double flySpeedMax = 10.0;
     private int sleepPercentage = 100;
     private boolean sleepChatEnabled = true;
     private boolean tpaEnabled = true;
@@ -198,19 +200,20 @@ public final class ConfigManager {
     private boolean welcomeEnabled = true;
     private boolean welcomeBroadcastToAll = true;
     private List<String> welcomeMessages = List.of(
-            "<#6EE7FF>------------------------------</#6EE7FF>",
-            "<#A78BFA><bold>Welcome, {player}!</bold></#A78BFA>",
-            "<#93C5FD>This is your first time joining.</#93C5FD>",
-            "<#5EEAD4>We hope you enjoy your stay!</#5EEAD4>",
-            "<#6EE7FF>------------------------------</#6EE7FF>"
+            "<#38BDF8>-----------------------------------------</#38BDF8>",
+            "<#38BDF8><bold>Welcome to </bold></#38BDF8><#60A5FA><bold>HyEssentialsX</bold></#60A5FA>",
+            "<#E2E8F0><bold>Hello, {player}!</bold></#E2E8F0>",
+            "<#94A3B8>This is your first time on the server.</#94A3B8>",
+            "<#E2E8F0>Use <#38BDF8>/motd</#38BDF8> and <#60A5FA>/rules</#60A5FA> to get started.</#E2E8F0>",
+            "<#38BDF8>-----------------------------------------</#38BDF8>"
     );
 
     private boolean joinQuitEnabled = true;
     private List<String> joinMessages = List.of(
-            "<#34D399><bold>+ </bold></#34D399><#93C5FD><bold>{player} joined the server.</bold></#93C5FD>"
+            "<#34D399><bold>+</bold></#34D399> <#E2E8F0>{player}</#E2E8F0> <#93C5FD>joined the server.</#93C5FD>"
     );
     private List<String> quitMessages = List.of(
-            "<#FCA5A5><bold>- </bold></#FCA5A5><#93C5FD><bold>{player} left the server.</bold></#93C5FD>"
+            "<#F87171><bold>-</bold></#F87171> <#E2E8F0>{player}</#E2E8F0> <#94A3B8>left the server.</#94A3B8>"
     );
     private boolean deathMessagesEnabled = true;
     private List<String> deathMessages = List.of(
@@ -227,14 +230,23 @@ public final class ConfigManager {
     private String afkBackMessage = "&e{player} is no longer AFK.";
 
     private List<String> motdMessages = List.of(
-            "<#6EE7FF>------------------------------</#6EE7FF>",
-            "<#F9A8D4><bold>Message of the Day</bold></#F9A8D4>",
-            "<#E2E8F0>Welcome to our server!</#E2E8F0>",
-            "<#E2E8F0>Have fun and follow /rules.</#E2E8F0>",
-            "<#A7F3D0>Visit us on Discord: <url:https://discord.gg/U58ax8cZZ2>https://discord.gg/U58ax8cZZ2</url></#A7F3D0>",
-            "<#6EE7FF>------------------------------</#6EE7FF>"
+            "<#38BDF8>=========================================</#38BDF8>",
+            "<#38BDF8><bold>Message</bold></#38BDF8> <#60A5FA><bold>of the Day</bold></#60A5FA>",
+            "<#E2E8F0>Welcome to our server, <#93C5FD>{player}</#93C5FD>.</#E2E8F0>",
+            "<#94A3B8>Online now: <#38BDF8>{total_players_online}</#38BDF8> | All-time joined: <#60A5FA>{total_joined_players}</#60A5FA></#94A3B8>",
+            "<#E2E8F0>Have fun and remember to read <#60A5FA>/rules</#60A5FA>.</#E2E8F0>",
+            "<#A5B4FC>Discord: <url:{discord}>{discord}</url></#A5B4FC>",
+            "<#38BDF8>=========================================</#38BDF8>"
     );
     private boolean motdShowOnJoin = true;
+    private boolean discordEnabled = true;
+    private String discordInviteUrl = "https://discord.gg/U58ax8cZZ2";
+    private List<String> discordMessages = List.of(
+            "<#F472B6>-----------------------------------------</#F472B6>",
+            "<#C084FC><bold>Join our Discord</bold></#C084FC>",
+            "<#F9A8D4>Click to join: <url:{discord}>{discord}</url></#F9A8D4>",
+            "<#C084FC>-----------------------------------------</#C084FC>"
+    );
 
     private List<String> rules = List.of(
             "&7Be respectful.",
@@ -439,6 +451,11 @@ public final class ConfigManager {
         features.addProperty("adminChat", true);
         root.add("features", features);
 
+        JsonObject fly = new JsonObject();
+        fly.addProperty("minSpeed", flySpeedMin);
+        fly.addProperty("maxSpeed", flySpeedMax);
+        root.add("fly", fly);
+
             JsonObject kits = new JsonObject();
             kits.addProperty("enabled", true);
             kits.addProperty("defaultKit", "");
@@ -451,6 +468,12 @@ public final class ConfigManager {
         motd.addProperty("showOnJoin", true);
         motd.add("messages", toArray(motdMessages));
         root.add("motd", motd);
+
+        JsonObject discord = new JsonObject();
+        discord.addProperty("enabled", true);
+        discord.addProperty("inviteUrl", discordInviteUrl);
+        discord.add("messages", toArray(discordMessages));
+        root.add("discord", discord);
 
         JsonObject rulesObj = new JsonObject();
         rulesObj.addProperty("enabled", true);
@@ -778,6 +801,9 @@ public final class ConfigManager {
             JsonObject near = obj(root, "near");
             nearRadius = dbl(near, "radius", nearRadius);
             nearShowDistance = bool(near, "showDistance", nearShowDistance);
+            JsonObject fly = obj(root, "fly");
+            flySpeedMin = Math.max(0.05, dbl(fly, "minSpeed", flySpeedMin));
+            flySpeedMax = Math.max(flySpeedMin, dbl(fly, "maxSpeed", flySpeedMax));
 
             JsonObject autoBroadcast = obj(root, "autoBroadcast");
             autoBroadcastEnabled = bool(autoBroadcast, "enabled", autoBroadcastEnabled);
@@ -915,6 +941,10 @@ public final class ConfigManager {
             JsonObject motd = obj(root, "motd");
             motdShowOnJoin = bool(motd, "showOnJoin", motdShowOnJoin);
             motdMessages = list(motd, "messages", motdMessages);
+            JsonObject discord = obj(root, "discord");
+            discordEnabled = bool(discord, "enabled", discordEnabled);
+            discordInviteUrl = str(discord, "inviteUrl", discordInviteUrl);
+            discordMessages = list(discord, "messages", discordMessages);
 
             JsonObject rulesObj = obj(root, "rules");
             rulesEnabled = bool(rulesObj, "enabled", rulesEnabled);
@@ -1378,6 +1408,23 @@ public final class ConfigManager {
         return motdEnabled;
     }
 
+    public double getFlySpeedMin() {
+        return Math.max(0.05, flySpeedMin);
+    }
+
+    public double getFlySpeedMax() {
+        return Math.max(getFlySpeedMin(), flySpeedMax);
+    }
+
+    public boolean isDiscordEnabled() {
+        return discordEnabled;
+    }
+
+    @Nonnull
+    public String getDiscordInviteUrl() {
+        return discordInviteUrl;
+    }
+
     public boolean isRulesEnabled() {
         return rulesEnabled;
     }
@@ -1774,6 +1821,11 @@ public final class ConfigManager {
         return Collections.unmodifiableList(motdMessages);
     }
 
+    @Nonnull
+    public List<String> getDiscordMessages() {
+        return Collections.unmodifiableList(discordMessages);
+    }
+
     public boolean isMotdShowOnJoin() {
         return motdShowOnJoin;
     }
@@ -1942,6 +1994,10 @@ public final class ConfigManager {
         near.addProperty("showDistance", nearShowDistance);
         near.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.NEAR));
 
+        JsonObject fly = obj(root, "fly");
+        fly.addProperty("minSpeed", flySpeedMin);
+        fly.addProperty("maxSpeed", flySpeedMax);
+
         JsonObject autoBroadcast = obj(root, "autoBroadcast");
         autoBroadcast.addProperty("enabled", autoBroadcastEnabled);
         autoBroadcast.addProperty("intervalSeconds", autoBroadcastIntervalSeconds);
@@ -2022,6 +2078,11 @@ public final class ConfigManager {
         motd.addProperty("enabled", motdEnabled);
         motd.addProperty("showOnJoin", motdShowOnJoin);
         motd.add("messages", toArray(motdMessages));
+
+        JsonObject discord = obj(root, "discord");
+        discord.addProperty("enabled", discordEnabled);
+        discord.addProperty("inviteUrl", discordInviteUrl);
+        discord.add("messages", toArray(discordMessages));
 
         JsonObject kits = obj(root, "kits");
         kits.addProperty("enabled", kitsEnabled);

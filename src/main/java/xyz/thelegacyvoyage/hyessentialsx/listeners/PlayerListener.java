@@ -197,6 +197,7 @@ public class PlayerListener {
         placeholders.put("player", playerName);
         placeholders.put("total_players_online", String.valueOf(getOnlineCount(playerRef, joining)));
         placeholders.put("total_joined_players", String.valueOf(getTotalJoinedPlayers(playerRef, joining)));
+        placeholders.put("discord", config.getDiscordInviteUrl());
         return placeholders;
     }
 

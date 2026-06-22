@@ -9,6 +9,7 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MessageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.IgnoreManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -22,11 +23,15 @@ public final class ReplyCommand extends AbstractPlayerCommand {
     private static final String PERMISSION_NODE = "hyessentialsx.msg";
 
     private final MessageManager messages;
+    private final IgnoreManager ignoreManager;
     private final ConfigManager config;
 
-    public ReplyCommand(@Nonnull MessageManager messages, @Nonnull ConfigManager config) {
+    public ReplyCommand(@Nonnull MessageManager messages,
+                        @Nonnull IgnoreManager ignoreManager,
+                        @Nonnull ConfigManager config) {
         super("r", "Replies to last message");
         this.messages = messages;
+        this.ignoreManager = ignoreManager;
         this.config = config;
         this.setPermissionGroup(null);
         this.setAllowsExtraArguments(true);
@@ -72,6 +77,11 @@ public final class ReplyCommand extends AbstractPlayerCommand {
         String message = String.join(" ", parts);
         if (message.isBlank()) {
             Messages.errKey(context, "msg.message_required", Map.of());
+            return;
+        }
+        if (ignoreManager.isIgnoring(target.getUuid(), playerRef.getUuid())
+                && !context.sender().hasPermission("hyessentialsx.msg.ignore.bypass")) {
+            Messages.errKey(context, "msg.target_ignoring", Map.of("player", target.getUsername()));
             return;
         }
 

@@ -220,6 +220,7 @@ public final class ConfigManager {
         chat.addProperty("enabled", false);
         chat.addProperty("overrideLuckPermsChatFormat", false);
         chat.add("groups", toChatGroupObject(chatGroupFormats));
+        chat.add("groupPriorities", toPriorityObject(chatGroupPriorities));
         root.add("chat", chat);
 
         JsonObject spawnProtection = new JsonObject();
@@ -275,12 +276,6 @@ public final class ConfigManager {
         rankup.add("auto", auto);
         rankup.add("ranks", toRankupArray(rankupTiers));
         root.add("rankup", rankup);
-
-        JsonObject groupPriorities = new JsonObject();
-        for (Map.Entry<String, Integer> entry : chatGroupPriorities.entrySet()) {
-            groupPriorities.addProperty(entry.getKey(), entry.getValue());
-        }
-        root.add("groupPriorities", groupPriorities);
 
         JsonObject features = new JsonObject();
         features.addProperty("msg", true);
@@ -421,6 +416,29 @@ public final class ConfigManager {
             if (root == null) {
                 throw new IllegalStateException("config.json parsed to null");
             }
+            JsonObject existingChat = getObjectOrNull(root, "chat");
+            JsonObject preservedChat = existingChat != null ? existingChat.deepCopy() : null;
+            JsonObject preservedBlockRewards = null;
+            JsonObject preservedMobRewards = null;
+            JsonArray preservedRankupRanks = null;
+            JsonObject economyObj = getObjectOrNull(root, "economy");
+            if (economyObj != null) {
+                JsonObject rewardsObj = getObjectOrNull(economyObj, "rewards");
+                if (rewardsObj != null) {
+                    JsonObject blocksObj = getObjectOrNull(rewardsObj, "blocks");
+                    if (blocksObj != null && blocksObj.has("rewards") && blocksObj.get("rewards").isJsonObject()) {
+                        preservedBlockRewards = blocksObj.getAsJsonObject("rewards").deepCopy();
+                    }
+                    JsonObject mobsObj = getObjectOrNull(rewardsObj, "mobs");
+                    if (mobsObj != null && mobsObj.has("rewards") && mobsObj.get("rewards").isJsonObject()) {
+                        preservedMobRewards = mobsObj.getAsJsonObject("rewards").deepCopy();
+                    }
+                }
+            }
+            JsonObject rankupObj = getObjectOrNull(root, "rankup");
+            if (rankupObj != null && rankupObj.has("ranks") && rankupObj.get("ranks").isJsonArray()) {
+                preservedRankupRanks = rankupObj.getAsJsonArray("ranks").deepCopy();
+            }
             boolean hadHomesEnabled = hasSectionFlag(root, "homes", "enabled");
             boolean hadWarpsEnabled = hasSectionFlag(root, "warps", "enabled");
             boolean hadKitsEnabled = hasSectionFlag(root, "kits", "enabled");
@@ -431,6 +449,29 @@ public final class ConfigManager {
             boolean hadTpaEnabled = hasSectionFlag(root, "tpa", "enabled");
             JsonObject defaults = buildDefaultConfig();
             boolean changed = mergeDefaults(root, defaults);
+            if (preservedChat != null) {
+                root.add("chat", preservedChat);
+                changed = true;
+            }
+            if (preservedBlockRewards != null) {
+                JsonObject econ = obj(root, "economy");
+                JsonObject rewards = obj(econ, "rewards");
+                JsonObject blocks = obj(rewards, "blocks");
+                blocks.add("rewards", preservedBlockRewards);
+                changed = true;
+            }
+            if (preservedMobRewards != null) {
+                JsonObject econ = obj(root, "economy");
+                JsonObject rewards = obj(econ, "rewards");
+                JsonObject mobs = obj(rewards, "mobs");
+                mobs.add("rewards", preservedMobRewards);
+                changed = true;
+            }
+            if (preservedRankupRanks != null) {
+                JsonObject rankup = obj(root, "rankup");
+                rankup.add("ranks", preservedRankupRanks);
+                changed = true;
+            }
             if (cleanupConfig(root)) {
                 changed = true;
             }
@@ -569,8 +610,13 @@ public final class ConfigManager {
             if (chatGroupFormats.isEmpty()) {
                 chatGroupFormats = defaultChatGroups();
             }
-            JsonObject groupPriorities = obj(root, "groupPriorities");
-            chatGroupPriorities = readGroupPriorities(groupPriorities, chatGroupPriorities);
+            JsonObject chatPriorities = getObjectOrNull(chat, "groupPriorities");
+            if (chatPriorities == null) {
+                JsonObject legacyPriorities = obj(root, "groupPriorities");
+                chatGroupPriorities = readGroupPriorities(legacyPriorities, chatGroupPriorities);
+            } else {
+                chatGroupPriorities = readGroupPriorities(chatPriorities, chatGroupPriorities);
+            }
 
             JsonObject spawnProtection = obj(root, "spawnProtection");
             spawnProtectionEnabled = bool(spawnProtection, "enabled", spawnProtectionEnabled);
@@ -1279,6 +1325,7 @@ public final class ConfigManager {
         chat.addProperty("overrideLuckPermsChatFormat", chatOverrideLuckPerms);
         chat.remove("overrideLuckPerms");
         chat.add("groups", toChatGroupObject(chatGroupFormats));
+        chat.add("groupPriorities", toPriorityObject(chatGroupPriorities));
 
         JsonObject spawnProtection = obj(root, "spawnProtection");
         spawnProtection.addProperty("enabled", spawnProtectionEnabled);
@@ -1323,12 +1370,6 @@ public final class ConfigManager {
         auto.addProperty("checkSeconds", rankupAutoCheckSeconds);
         auto.addProperty("useCurrency", rankupAutoUseCurrency);
         rankup.add("ranks", toRankupArray(rankupTiers));
-
-        JsonObject groupPriorities = new JsonObject();
-        for (Map.Entry<String, Integer> entry : chatGroupPriorities.entrySet()) {
-            groupPriorities.addProperty(entry.getKey(), entry.getValue());
-        }
-        root.add("groupPriorities", groupPriorities);
 
         JsonObject motd = obj(root, "motd");
         motd.addProperty("enabled", motdEnabled);
@@ -1450,6 +1491,16 @@ public final class ConfigManager {
 
     private boolean cleanupConfig(@Nonnull JsonObject root) {
         boolean changed = false;
+        JsonObject chat = getObjectOrNull(root, "chat");
+        JsonObject legacyPriorities = getObjectOrNull(root, "groupPriorities");
+        if (legacyPriorities != null) {
+            if (chat != null && !chat.has("groupPriorities") && !legacyPriorities.entrySet().isEmpty()) {
+                chat.add("groupPriorities", legacyPriorities.deepCopy());
+                changed = true;
+            }
+            root.remove("groupPriorities");
+            changed = true;
+        }
         JsonObject features = getObjectOrNull(root, "features");
         if (features != null) {
             changed |= migrateFeatureFlag(features, root, "homes");
@@ -1504,6 +1555,15 @@ public final class ConfigManager {
             changed = true;
         }
         return changed;
+    }
+
+    @Nonnull
+    private static JsonObject toPriorityObject(@Nonnull Map<String, Integer> priorities) {
+        JsonObject obj = new JsonObject();
+        for (Map.Entry<String, Integer> entry : priorities.entrySet()) {
+            obj.addProperty(entry.getKey(), entry.getValue());
+        }
+        return obj;
     }
 
     @Nonnull

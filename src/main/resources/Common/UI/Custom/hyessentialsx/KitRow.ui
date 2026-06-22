@@ -1,6 +1,47 @@
 $C = "../Common.ui";
 
-$C.@SecondaryTextButton {
-  @Text = "Kit";
-  Anchor: (Height: 32, Bottom: 4);
+Group {
+  LayoutMode: Left;
+  Anchor: (Height: 74, Bottom: 6);
+  Background: $C.@InputBoxBackground;
+  Padding: (Top: 10, Bottom: 10, Left: 12, Right: 12);
+
+  Group #Info {
+    LayoutMode: Top;
+    FlexWeight: 1;
+
+    Label #Name {
+      Text: "Kit";
+      Style: (FontSize: 14, RenderBold: true, TextColor: #FFFFFF);
+    }
+
+    Label #Status {
+      Text: "You can claim this kit now.";
+      Anchor: (Top: 4);
+      Style: (FontSize: 11, TextColor: #55FF55);
+    }
+
+    Label #Usage {
+      Text: "Unlimited";
+      Anchor: (Top: 4);
+      Style: (FontSize: 10, TextColor: #8A8A8A);
+    }
+  }
+
+  Group #Actions {
+    LayoutMode: Left;
+    Anchor: (Width: 226);
+    Padding: (Top: 11);
+
+    $C.@SecondaryTextButton #PreviewButton {
+      @Text = "Preview";
+      Anchor: (Width: 108, Height: 34);
+    }
+
+    $C.@SecondaryTextButton #ClaimButton {
+      @Text = "Claim";
+      Anchor: (Width: 108, Height: 34, Left: 8);
+    }
+  }
 }
+

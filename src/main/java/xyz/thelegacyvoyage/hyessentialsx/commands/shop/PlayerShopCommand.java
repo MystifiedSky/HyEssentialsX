@@ -539,7 +539,6 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
                     npc.setDespawnTime(0f);
                     npc.setDespawnRemainingSeconds(0f);
                     npc.setDespawnCheckRemainingSeconds(0f);
-                    commandBuffer.removeEntity(ref, RemoveReason.REMOVE);
                     commandBuffer.tryRemoveEntity(ref, RemoveReason.REMOVE);
                 } catch (Exception ignored) {
                 }
@@ -566,7 +565,6 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             } catch (Exception ignored) {
             }
             final boolean[] removed = {false};
-            final java.util.List<Ref<EntityStore>> refs = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
             store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
                 try {
                     Ref<EntityStore> ref = chunk.getReferenceTo(index);
@@ -577,24 +575,12 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
                         npc.setDespawnTime(0f);
                         npc.setDespawnRemainingSeconds(0f);
                         npc.setDespawnCheckRemainingSeconds(0f);
-                        commandBuffer.removeEntity(ref, RemoveReason.REMOVE);
                         commandBuffer.tryRemoveEntity(ref, RemoveReason.REMOVE);
-                        refs.add(ref);
                         removed[0] = true;
                     }
                 } catch (Exception ignored) {
                 }
             });
-            if (!refs.isEmpty()) {
-                world.execute(() -> {
-                    for (Ref<EntityStore> ref : refs) {
-                        try {
-                            store.removeEntity(ref, RemoveReason.REMOVE);
-                        } catch (Exception ignored) {
-                        }
-                    }
-                });
-            }
             return removed[0];
         } catch (Exception ignored) {
         }
@@ -605,7 +591,6 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
                                          @Nonnull Store<EntityStore> store,
                                          @Nonnull Vector3i position) {
         final boolean[] removed = {false};
-        final java.util.List<Ref<EntityStore>> refs = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
         store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
             try {
                 Ref<EntityStore> ref = chunk.getReferenceTo(index);
@@ -623,24 +608,12 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
                     npc.setDespawnTime(0f);
                     npc.setDespawnRemainingSeconds(0f);
                     npc.setDespawnCheckRemainingSeconds(0f);
-                    commandBuffer.removeEntity(ref, RemoveReason.REMOVE);
                     commandBuffer.tryRemoveEntity(ref, RemoveReason.REMOVE);
-                    refs.add(ref);
                     removed[0] = true;
                 }
             } catch (Exception ignored) {
             }
         });
-        if (!refs.isEmpty()) {
-            world.execute(() -> {
-                for (Ref<EntityStore> ref : refs) {
-                    try {
-                        store.removeEntity(ref, RemoveReason.REMOVE);
-                    } catch (Exception ignored) {
-                    }
-                }
-            });
-        }
         return removed[0];
     }
 }

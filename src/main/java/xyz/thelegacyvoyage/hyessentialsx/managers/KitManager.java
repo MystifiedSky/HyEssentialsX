@@ -7,6 +7,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,8 +35,65 @@ public final class KitManager {
 
     @Nonnull
     public List<String> listKits() {
+        List<String> names = new ArrayList<>();
+        for (KitModel kit : listKitModels()) {
+            if (kit == null || kit.getName() == null) continue;
+            names.add(kit.getName());
+        }
+        return names;
+    }
+
+    @Nonnull
+    public List<KitModel> listKitModels() {
         Map<String, KitModel> kits = storage.getKits();
-        return new ArrayList<>(kits.keySet());
+        List<KitModel> out = new ArrayList<>(kits.values());
+        out.sort(Comparator
+                .comparingInt(KitModel::getSortOrder)
+                .thenComparing(k -> k.getName().toLowerCase()));
+        return out;
+    }
+
+    public int nextSortOrder() {
+        int max = 0;
+        for (KitModel kit : storage.getKits().values()) {
+            if (kit == null) continue;
+            max = Math.max(max, kit.getSortOrder());
+        }
+        return max + 1;
+    }
+
+    public boolean reorderKit(@Nonnull String name, int oneBasedPosition) {
+        if (name.isBlank()) return false;
+        List<KitModel> kits = listKitModels();
+        if (kits.isEmpty()) return false;
+
+        KitModel target = null;
+        for (KitModel kit : kits) {
+            if (kit == null) continue;
+            if (kit.getName().equalsIgnoreCase(name.trim())) {
+                target = kit;
+                break;
+            }
+        }
+        if (target == null) return false;
+
+        kits.remove(target);
+        int index = Math.max(0, Math.min(kits.size(), oneBasedPosition - 1));
+        kits.add(index, target);
+
+        for (int i = 0; i < kits.size(); i++) {
+            KitModel kit = kits.get(i);
+            if (kit == null) continue;
+            KitModel updated = new KitModel(
+                    kit.getName(),
+                    kit.getCooldownSeconds(),
+                    kit.getMaxUses(),
+                    i + 1,
+                    kit.getItems()
+            );
+            setKit(updated);
+        }
+        return true;
     }
 
     public long getRemainingCooldownSeconds(@Nonnull UUID playerId, @Nonnull KitModel kit) {

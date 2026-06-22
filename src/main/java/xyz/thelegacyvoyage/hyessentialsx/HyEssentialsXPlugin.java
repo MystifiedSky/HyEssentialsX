@@ -36,6 +36,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitCreateCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitDeleteCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitEditCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitEditOrderCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitsCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.ListCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.DiscordCommand;
@@ -490,6 +491,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (configManager.isKitsEnabled()) {
             reg.accept(new KitCreateCommand(kitManager, configManager));
             reg.accept(new KitEditCommand(kitManager, configManager));
+            reg.accept(new KitEditOrderCommand(kitManager, configManager));
             reg.accept(new KitCommand(kitManager, configManager));
             reg.accept(new KitsCommand(kitManager, configManager));
             reg.accept(new KitDeleteCommand(kitManager, configManager));

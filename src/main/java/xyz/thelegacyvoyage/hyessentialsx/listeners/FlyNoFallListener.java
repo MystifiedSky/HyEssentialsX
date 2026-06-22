@@ -1,5 +1,10 @@
 package xyz.thelegacyvoyage.hyessentialsx.listeners;
 
+import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep;
+import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSomnolence;
+import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep.MorningWakeUp;
+import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep.NoddingOff;
+import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep.Slumber;
 import com.hypixel.hytale.component.ArchetypeChunk;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.ComponentRegistryProxy;
@@ -24,7 +29,10 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class FlyNoFallListener {
 
@@ -88,6 +96,7 @@ public final class FlyNoFallListener {
     private static final class FlyNoFallTickSystem extends EntityTickingSystem<EntityStore> {
 
         private final FlyManager flyManager;
+        private final Map<UUID, Boolean> sleepingState = new ConcurrentHashMap<>();
 
         private FlyNoFallTickSystem(@Nonnull FlyManager flyManager) {
             this.flyManager = flyManager;
@@ -107,7 +116,20 @@ public final class FlyNoFallListener {
 
             PlayerRef playerRef = chunk.getComponent(index, PlayerRef.getComponentType());
             if (playerRef == null) return;
-            if (!flyManager.isEnabled(playerRef.getUuid())) return;
+            UUID playerId = playerRef.getUuid();
+            if (!flyManager.isEnabled(playerId)) {
+                sleepingState.remove(playerId);
+                return;
+            }
+
+            boolean isSleeping = isSleeping(chunk, index);
+            boolean wasSleeping = sleepingState.getOrDefault(playerId, Boolean.FALSE);
+            sleepingState.put(playerId, isSleeping);
+            if (wasSleeping && !isSleeping) {
+                // Beds can silently reset movement controls; force a one-time re-apply on wake up.
+                flyManager.applyState(playerRef, true);
+            }
+
             if (flyManager.isApplyPending(playerRef.getUuid())) {
                 flyManager.tryApplyIfPending(playerRef);
             }
@@ -137,6 +159,13 @@ public final class FlyNoFallListener {
             if (player.getCurrentFallDistance() > 0d) {
                 player.setCurrentFallDistance(0d);
             }
+        }
+
+        private boolean isSleeping(@Nonnull ArchetypeChunk<EntityStore> chunk, int index) {
+            PlayerSomnolence somnolence = chunk.getComponent(index, PlayerSomnolence.getComponentType());
+            if (somnolence == null) return false;
+            PlayerSleep state = somnolence.getSleepState();
+            return state instanceof Slumber || state instanceof NoddingOff || state instanceof MorningWakeUp;
         }
     }
 

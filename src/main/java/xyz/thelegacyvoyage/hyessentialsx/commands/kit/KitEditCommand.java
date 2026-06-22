@@ -121,7 +121,7 @@ public final class KitEditCommand extends AbstractPlayerCommand {
             maxUses = maxUsesInput;
         }
 
-        KitModel updated = new KitModel(existing.getName(), cooldownSeconds, maxUses, existing.getItems());
+        KitModel updated = new KitModel(existing.getName(), cooldownSeconds, maxUses, existing.getSortOrder(), existing.getItems());
         kitManager.setKit(updated);
 
         Messages.okKey(context, "kit.edited", Map.of("kit", existing.getName()));
@@ -148,7 +148,8 @@ public final class KitEditCommand extends AbstractPlayerCommand {
             KitModel current = kitManager.getKit(existing.getName());
             int cooldownSeconds = current != null ? current.getCooldownSeconds() : existing.getCooldownSeconds();
             int maxUses = current != null ? current.getMaxUses() : existing.getMaxUses();
-            kitManager.setKit(new KitModel(existing.getName(), cooldownSeconds, maxUses, editedItems));
+            int sortOrder = current != null ? current.getSortOrder() : existing.getSortOrder();
+            kitManager.setKit(new KitModel(existing.getName(), cooldownSeconds, maxUses, sortOrder, editedItems));
             Messages.sendPrefixedKey(playerRef, "kit.edited", Map.of("kit", existing.getName()));
             container.clear();
         });

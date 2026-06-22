@@ -117,7 +117,9 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
         }
 
         List<KitItemModel> items = InventoryUtil.snapshot(inventory);
-        kitManager.setKit(new KitModel(name, cooldownSeconds, maxUses, items));
+        KitModel existing = kitManager.getKit(name);
+        int sortOrder = existing != null ? existing.getSortOrder() : kitManager.nextSortOrder();
+        kitManager.setKit(new KitModel(name, cooldownSeconds, maxUses, sortOrder, items));
 
         Messages.okKey(context, "kit.created", java.util.Map.of("kit", name));
     }

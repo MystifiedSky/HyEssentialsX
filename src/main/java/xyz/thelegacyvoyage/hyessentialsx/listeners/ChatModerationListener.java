@@ -111,8 +111,9 @@ public final class ChatModerationListener {
                 if (!config.isOverrideLuckPermsChatFormat()) {
                     return;
                 }
-                event.setCancelled(true);
-                Universe.get().sendMessage(formatted);
+                if (trySetMessage(event, formatted)) {
+                    return;
+                }
                 return;
             }
 
@@ -121,14 +122,7 @@ public final class ChatModerationListener {
                 if (trySetMessage(event, formatted)) {
                     return;
                 }
-                event.setCancelled(true);
-                String name = sender.getUsername();
-                for (PlayerRef target : Universe.get().getPlayers()) {
-                    target.sendMessage(Message.join(
-                            Message.raw(name + ": ").color("#FFFFFF"),
-                            formatted
-                    ));
-                }
+                return;
             }
         });
     }

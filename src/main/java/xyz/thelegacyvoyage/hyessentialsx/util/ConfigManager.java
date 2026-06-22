@@ -61,7 +61,7 @@ public final class ConfigManager {
     private boolean rtpEnabled = true;
     private boolean broadcastEnabled = true;
     private boolean spawnEnabled = true;
-    private int sleepPercentage = 50;
+    private int sleepPercentage = 100;
     private boolean sleepChatEnabled = true;
     private boolean tpaEnabled = true;
     private boolean tpaGuiEnabled = true;
@@ -92,11 +92,11 @@ public final class ConfigManager {
     private Map<String, Long> economyBlockRewards = defaultBlockRewards();
     private Map<String, Long> economyBlockGroupRewards = defaultBlockGroupRewards();
     private Map<String, Long> economyMobRewards = defaultMobRewards();
-    private boolean rankupEnabled = true;
+    private boolean rankupEnabled = false;
     private int rankupConfirmTimeoutSeconds = 30;
     private boolean rankupPlaytimeEnabled = true;
     private boolean rankupCurrencyEnabled = true;
-    private boolean rankupAutoEnabled = true;
+    private boolean rankupAutoEnabled = false;
     private int rankupAutoCheckSeconds = 60;
     private boolean rankupAutoUseCurrency = false;
     private List<RankupTier> rankupTiers = defaultRankupTiers();
@@ -262,14 +262,14 @@ public final class ConfigManager {
         root.add("economy", economy);
 
         JsonObject rankup = new JsonObject();
-        rankup.addProperty("enabled", true);
+        rankup.addProperty("enabled", false);
         rankup.addProperty("confirmTimeoutSeconds", 30);
         JsonObject requirements = new JsonObject();
         requirements.addProperty("playtimeEnabled", true);
         requirements.addProperty("currencyEnabled", true);
         rankup.add("requirements", requirements);
         JsonObject auto = new JsonObject();
-        auto.addProperty("enabled", true);
+        auto.addProperty("enabled", false);
         auto.addProperty("checkSeconds", 60);
         auto.addProperty("useCurrency", false);
         rankup.add("auto", auto);
@@ -283,21 +283,13 @@ public final class ConfigManager {
         root.add("groupPriorities", groupPriorities);
 
         JsonObject features = new JsonObject();
-        features.addProperty("homes", true);
-        features.addProperty("warps", true);
-        features.addProperty("kits", true);
         features.addProperty("msg", true);
-        features.addProperty("near", true);
-        features.addProperty("motd", true);
-        features.addProperty("rules", true);
-        features.addProperty("rtp", true);
         features.addProperty("broadcast", true);
-        features.addProperty("spawn", true);
-        features.addProperty("tpa", true);
         features.addProperty("adminChat", true);
         root.add("features", features);
 
             JsonObject kits = new JsonObject();
+            kits.addProperty("enabled", true);
             kits.addProperty("defaultKit", "");
             kits.addProperty("gui", true);
             kits.addProperty("requirePermission", true);
@@ -332,11 +324,13 @@ public final class ConfigManager {
         root.add("afk", afk);
 
         JsonObject homes = new JsonObject();
+        homes.addProperty("enabled", true);
         homes.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
         homes.addProperty("warmupSeconds", homeWarmupSeconds);
         root.add("homes", homes);
 
         JsonObject warps = new JsonObject();
+        warps.addProperty("enabled", true);
         warps.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
         warps.addProperty("warmupSeconds", warpWarmupSeconds);
         warps.addProperty("gui", true);
@@ -371,6 +365,7 @@ public final class ConfigManager {
         root.add("near", near);
 
         JsonObject tpa = new JsonObject();
+        tpa.addProperty("enabled", true);
         tpa.addProperty("timeoutSeconds", tpaRequestTimeoutSeconds);
         tpa.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
         tpa.addProperty("warmupSeconds", tpaWarmupSeconds);
@@ -385,6 +380,7 @@ public final class ConfigManager {
         root.add("autoBroadcast", autoBroadcast);
 
         JsonObject spawn = new JsonObject();
+        spawn.addProperty("enabled", true);
         spawn.addProperty("set", false);
         spawn.addProperty("world", "");
         spawn.addProperty("x", 0.0);
@@ -425,8 +421,19 @@ public final class ConfigManager {
             if (root == null) {
                 throw new IllegalStateException("config.json parsed to null");
             }
+            boolean hadHomesEnabled = hasSectionFlag(root, "homes", "enabled");
+            boolean hadWarpsEnabled = hasSectionFlag(root, "warps", "enabled");
+            boolean hadKitsEnabled = hasSectionFlag(root, "kits", "enabled");
+            boolean hadNearEnabled = hasSectionFlag(root, "near", "enabled");
+            boolean hadMotdEnabled = hasSectionFlag(root, "motd", "enabled");
+            boolean hadRtpEnabled = hasSectionFlag(root, "rtp", "enabled");
+            boolean hadSpawnEnabled = hasSectionFlag(root, "spawn", "enabled");
+            boolean hadTpaEnabled = hasSectionFlag(root, "tpa", "enabled");
             JsonObject defaults = buildDefaultConfig();
             boolean changed = mergeDefaults(root, defaults);
+            if (cleanupConfig(root)) {
+                changed = true;
+            }
             if (!root.has("autoBroadcast") || !root.get("autoBroadcast").isJsonObject()) {
                 root.add("autoBroadcast", defaults.get("autoBroadcast"));
                 changed = true;
@@ -492,23 +499,44 @@ public final class ConfigManager {
             autoBroadcastMessages = list(autoBroadcast, "messages", autoBroadcastMessages);
 
             JsonObject features = obj(root, "features");
-            homesEnabled = bool(features, "homes", true);
-            warpsEnabled = bool(features, "warps", true);
-            kitsEnabled = bool(features, "kits", true);
             msgEnabled = bool(features, "msg", true);
-            nearEnabled = bool(features, "near", true);
-            motdEnabled = bool(features, "motd", true);
-            rulesEnabled = bool(features, "rules", true);
-            rtpEnabled = bool(features, "rtp", true);
             broadcastEnabled = bool(features, "broadcast", true);
-            spawnEnabled = bool(features, "spawn", true);
-            tpaEnabled = bool(features, "tpa", true);
             adminChatEnabled = bool(features, "adminChat", true);
-            if (!features.has("near")) {
-                nearEnabled = bool(near, "enabled", nearEnabled);
+            homesEnabled = bool(homesSection, "enabled", homesEnabled);
+            if (!hadHomesEnabled && features.has("homes")) {
+                homesEnabled = bool(features, "homes", homesEnabled);
             }
-            if (!features.has("rtp")) {
-                rtpEnabled = bool(obj(root, "rtp"), "enabled", rtpEnabled);
+            warpsEnabled = bool(warpsSection, "enabled", warpsEnabled);
+            if (!hadWarpsEnabled && features.has("warps")) {
+                warpsEnabled = bool(features, "warps", warpsEnabled);
+            }
+            JsonObject kitsSectionEnabled = obj(root, "kits");
+            kitsEnabled = bool(kitsSectionEnabled, "enabled", kitsEnabled);
+            if (!hadKitsEnabled && features.has("kits")) {
+                kitsEnabled = bool(features, "kits", kitsEnabled);
+            }
+            nearEnabled = bool(near, "enabled", nearEnabled);
+            if (!hadNearEnabled && features.has("near")) {
+                nearEnabled = bool(features, "near", nearEnabled);
+            }
+            JsonObject motdSection = obj(root, "motd");
+            motdEnabled = bool(motdSection, "enabled", motdEnabled);
+            if (!hadMotdEnabled && features.has("motd")) {
+                motdEnabled = bool(features, "motd", motdEnabled);
+            }
+            JsonObject rtpSection = obj(root, "rtp");
+            rtpEnabled = bool(rtpSection, "enabled", rtpEnabled);
+            if (!hadRtpEnabled && features.has("rtp")) {
+                rtpEnabled = bool(features, "rtp", rtpEnabled);
+            }
+            JsonObject spawnSection = obj(root, "spawn");
+            spawnEnabled = bool(spawnSection, "enabled", spawnEnabled);
+            if (!hadSpawnEnabled && features.has("spawn")) {
+                spawnEnabled = bool(features, "spawn", spawnEnabled);
+            }
+            tpaEnabled = bool(tpa, "enabled", tpaEnabled);
+            if (!hadTpaEnabled && features.has("tpa")) {
+                tpaEnabled = bool(features, "tpa", tpaEnabled);
             }
             afkEnabled = bool(obj(root, "afk"), "enabled", afkEnabled);
 
@@ -593,7 +621,6 @@ public final class ConfigManager {
             kitsRequirePermission = bool(kits, "requirePermission", kitsRequirePermission);
 
             JsonObject motd = obj(root, "motd");
-            motdEnabled = bool(motd, "enabled", motdEnabled);
             motdShowOnJoin = bool(motd, "showOnJoin", motdShowOnJoin);
             motdMessages = list(motd, "messages", motdMessages);
 
@@ -1202,6 +1229,7 @@ public final class ConfigManager {
         general.addProperty("language", languageCode);
 
         JsonObject tpa = obj(root, "tpa");
+        tpa.addProperty("enabled", tpaEnabled);
         tpa.addProperty("timeoutSeconds", tpaRequestTimeoutSeconds);
         tpa.addProperty("warmupSeconds", tpaWarmupSeconds);
         tpa.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.TPA));
@@ -1228,17 +1256,8 @@ public final class ConfigManager {
         autoBroadcast.add("messages", toArray(autoBroadcastMessages));
 
         JsonObject features = obj(root, "features");
-        features.addProperty("homes", homesEnabled);
-        features.addProperty("warps", warpsEnabled);
-        features.addProperty("kits", kitsEnabled);
         features.addProperty("msg", msgEnabled);
-        features.addProperty("near", nearEnabled);
-        features.addProperty("motd", motdEnabled);
-        features.addProperty("rules", rulesEnabled);
-        features.addProperty("rtp", rtpEnabled);
         features.addProperty("broadcast", broadcastEnabled);
-        features.addProperty("spawn", spawnEnabled);
-        features.addProperty("tpa", tpaEnabled);
         features.addProperty("adminChat", adminChatEnabled);
 
         JsonObject welcome = obj(root, "welcomeMessage");
@@ -1317,6 +1336,7 @@ public final class ConfigManager {
         motd.add("messages", toArray(motdMessages));
 
         JsonObject kits = obj(root, "kits");
+        kits.addProperty("enabled", kitsEnabled);
         kits.addProperty("defaultKit", defaultKit);
         kits.addProperty("gui", kitsGuiEnabled);
         kits.addProperty("requirePermission", kitsRequirePermission);
@@ -1341,10 +1361,12 @@ public final class ConfigManager {
         afk.addProperty("backMessage", afkBackMessage);
 
         JsonObject homes = obj(root, "homes");
+        homes.addProperty("enabled", homesEnabled);
         homes.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.HOME));
         homes.addProperty("warmupSeconds", homeWarmupSeconds);
 
         JsonObject warps = obj(root, "warps");
+        warps.addProperty("enabled", warpsEnabled);
         warps.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.WARP));
         warps.addProperty("warmupSeconds", warpWarmupSeconds);
         warps.addProperty("gui", warpsGuiEnabled);
@@ -1363,6 +1385,7 @@ public final class ConfigManager {
         jumpTo.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.JUMPTO));
 
         JsonObject spawn = obj(root, "spawn");
+        spawn.addProperty("enabled", spawnEnabled);
         spawn.addProperty("set", spawnSet);
         spawn.addProperty("world", spawnWorld);
         spawn.addProperty("x", spawnX);
@@ -1406,6 +1429,81 @@ public final class ConfigManager {
         JsonObject created = new JsonObject();
         parent.add(key, created);
         return created;
+    }
+
+    private boolean hasSectionFlag(@Nonnull JsonObject parent, @Nonnull String section, @Nonnull String key) {
+        JsonElement el = parent.get(section);
+        if (el == null || !el.isJsonObject()) {
+            return false;
+        }
+        return el.getAsJsonObject().has(key);
+    }
+
+    @Nullable
+    private JsonObject getObjectOrNull(@Nonnull JsonObject parent, @Nonnull String key) {
+        JsonElement el = parent.get(key);
+        if (el != null && el.isJsonObject()) {
+            return el.getAsJsonObject();
+        }
+        return null;
+    }
+
+    private boolean cleanupConfig(@Nonnull JsonObject root) {
+        boolean changed = false;
+        JsonObject features = getObjectOrNull(root, "features");
+        if (features != null) {
+            changed |= migrateFeatureFlag(features, root, "homes");
+            changed |= migrateFeatureFlag(features, root, "warps");
+            changed |= migrateFeatureFlag(features, root, "kits");
+            changed |= migrateFeatureFlag(features, root, "near");
+            changed |= migrateFeatureFlag(features, root, "motd");
+            changed |= migrateFeatureFlag(features, root, "rtp");
+            changed |= migrateFeatureFlag(features, root, "spawn");
+            changed |= migrateFeatureFlag(features, root, "tpa");
+            changed |= migrateFeatureFlag(features, root, "rules");
+            if (features.entrySet().isEmpty()) {
+                root.remove("features");
+                changed = true;
+            }
+        }
+        return pruneEmptyObjects(root) || changed;
+    }
+
+    private boolean migrateFeatureFlag(@Nonnull JsonObject features, @Nonnull JsonObject root, @Nonnull String key) {
+        if (!features.has(key)) {
+            return false;
+        }
+        boolean legacyValue = bool(features, key, true);
+        JsonObject section = getObjectOrNull(root, key);
+        if (section != null && !section.has("enabled")) {
+            section.addProperty("enabled", legacyValue);
+        }
+        features.remove(key);
+        return true;
+    }
+
+    private boolean pruneEmptyObjects(@Nonnull JsonObject root) {
+        boolean changed = false;
+        List<String> toRemove = new ArrayList<>();
+        for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
+            JsonElement value = entry.getValue();
+            if (value.isJsonObject()) {
+                JsonObject obj = value.getAsJsonObject();
+                if (pruneEmptyObjects(obj)) {
+                    changed = true;
+                }
+                if (obj.entrySet().isEmpty()) {
+                    toRemove.add(entry.getKey());
+                }
+            }
+        }
+        if (!toRemove.isEmpty()) {
+            for (String key : toRemove) {
+                root.remove(key);
+            }
+            changed = true;
+        }
+        return changed;
     }
 
     @Nonnull

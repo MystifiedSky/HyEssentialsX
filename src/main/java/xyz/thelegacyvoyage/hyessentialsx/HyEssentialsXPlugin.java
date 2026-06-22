@@ -113,8 +113,13 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 
 import javax.annotation.Nonnull;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 public class HyEssentialsXPlugin extends JavaPlugin {
 
@@ -201,6 +206,8 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         afkManager = new AfkManager(configManager);
         afkManager.start();
+        unregisterHyCommands();
+        registerCommands();
         Log.info("[HyEssentialsX] Reload complete.");
     }
 
@@ -276,57 +283,89 @@ public class HyEssentialsXPlugin extends JavaPlugin {
 
     private void registerCommands() {
         getCommandRegistry().registerCommand(new HyEssentialsXPluginCommand(storage, dataDirectory, languageManager));
-        getCommandRegistry().registerCommand(new SpawnCommand(spawnManager, backManager, tpManager, configManager, cooldownManager));
-        getCommandRegistry().registerCommand(new SetSpawnCommand(spawnManager, configManager));
-        getCommandRegistry().registerCommand(new DelSpawnCommand(spawnManager, configManager));
-        getCommandRegistry().registerCommand(new SetHomeCommand(homeManager, configManager));
-        getCommandRegistry().registerCommand(new HomeCommand(homeManager, tpManager, configManager, cooldownManager));
-        getCommandRegistry().registerCommand(new HomesCommand(homeManager, tpManager, configManager, cooldownManager));
-        getCommandRegistry().registerCommand(new DelHomeCommand(homeManager, configManager));
-        getCommandRegistry().registerCommand(new SetWarpCommand(warpManager, configManager));
-        getCommandRegistry().registerCommand(new WarpCommand(warpManager, tpManager, configManager, cooldownManager));
-        getCommandRegistry().registerCommand(new WarpsCommand(warpManager, tpManager, configManager, cooldownManager));
-        getCommandRegistry().registerCommand(new DelWarpCommand(warpManager, configManager));
-        getCommandRegistry().registerCommand(new KitCreateCommand(kitManager, configManager));
-        getCommandRegistry().registerCommand(new KitCommand(kitManager, configManager));
-        getCommandRegistry().registerCommand(new KitsCommand(kitManager, configManager));
-        getCommandRegistry().registerCommand(new KitDeleteCommand(kitManager, configManager));
-        getCommandRegistry().registerCommand(new MsgCommand(messageManager, configManager));
-        getCommandRegistry().registerCommand(new ReplyCommand(messageManager, configManager));
-        getCommandRegistry().registerCommand(new AdminChatCommand(adminChatManager, configManager));
-        getCommandRegistry().registerCommand(new BroadcastCommand(configManager));
+        if (configManager.isSpawnEnabled()) {
+            getCommandRegistry().registerCommand(new SpawnCommand(spawnManager, backManager, tpManager, configManager, cooldownManager));
+            getCommandRegistry().registerCommand(new SetSpawnCommand(spawnManager, configManager));
+            getCommandRegistry().registerCommand(new DelSpawnCommand(spawnManager, configManager));
+        }
+        if (configManager.isHomesEnabled()) {
+            getCommandRegistry().registerCommand(new SetHomeCommand(homeManager, configManager));
+            getCommandRegistry().registerCommand(new HomeCommand(homeManager, tpManager, configManager, cooldownManager));
+            getCommandRegistry().registerCommand(new HomesCommand(homeManager, tpManager, configManager, cooldownManager));
+            getCommandRegistry().registerCommand(new DelHomeCommand(homeManager, configManager));
+        }
+        if (configManager.isWarpsEnabled()) {
+            getCommandRegistry().registerCommand(new SetWarpCommand(warpManager, configManager));
+            getCommandRegistry().registerCommand(new WarpCommand(warpManager, tpManager, configManager, cooldownManager));
+            getCommandRegistry().registerCommand(new WarpsCommand(warpManager, tpManager, configManager, cooldownManager));
+            getCommandRegistry().registerCommand(new DelWarpCommand(warpManager, configManager));
+        }
+        if (configManager.isKitsEnabled()) {
+            getCommandRegistry().registerCommand(new KitCreateCommand(kitManager, configManager));
+            getCommandRegistry().registerCommand(new KitCommand(kitManager, configManager));
+            getCommandRegistry().registerCommand(new KitsCommand(kitManager, configManager));
+            getCommandRegistry().registerCommand(new KitDeleteCommand(kitManager, configManager));
+        }
+        if (configManager.isMsgEnabled()) {
+            getCommandRegistry().registerCommand(new MsgCommand(messageManager, configManager));
+            getCommandRegistry().registerCommand(new ReplyCommand(messageManager, configManager));
+        }
+        if (configManager.isAdminChatEnabled()) {
+            getCommandRegistry().registerCommand(new AdminChatCommand(adminChatManager, configManager));
+        }
+        if (configManager.isBroadcastEnabled()) {
+            getCommandRegistry().registerCommand(new BroadcastCommand(configManager));
+        }
         getCommandRegistry().registerCommand(new ClearChatCommand());
-        getCommandRegistry().registerCommand(new PayCommand(economyManager));
-        getCommandRegistry().registerCommand(new MoneyCommand(economyManager, storage));
-        getCommandRegistry().registerCommand(new BalanceTopCommand(economyManager, storage, configManager));
-        getCommandRegistry().registerCommand(new ImportHomesCommand(storage, dataDirectory));
-        getCommandRegistry().registerCommand(new TpaCommand(tpManager, configManager, cooldownManager));
-        getCommandRegistry().registerCommand(new TpaAcceptCommand(tpManager, backManager, configManager));
-        getCommandRegistry().registerCommand(new TpaDenyCommand(tpManager, configManager));
-        getCommandRegistry().registerCommand(new TpaCancelCommand(tpManager, configManager));
-        getCommandRegistry().registerCommand(new TpaIgnoreCommand(tpManager, configManager));
-        getCommandRegistry().registerCommand(new TpahereCommand(tpManager, configManager, cooldownManager));
-        getCommandRegistry().registerCommand(new TpahereAllCommand(tpManager, configManager, cooldownManager));
-        getCommandRegistry().registerCommand(new TphereCommand());
+        if (configManager.isEconomyEnabled()) {
+            getCommandRegistry().registerCommand(new PayCommand(economyManager));
+            getCommandRegistry().registerCommand(new MoneyCommand(economyManager, storage));
+            getCommandRegistry().registerCommand(new BalanceTopCommand(economyManager, storage, configManager));
+        }
+        if (configManager.isHomesEnabled()) {
+            getCommandRegistry().registerCommand(new ImportHomesCommand(storage, dataDirectory));
+        }
+        if (configManager.isTpaEnabled()) {
+            getCommandRegistry().registerCommand(new TpaCommand(tpManager, configManager, cooldownManager));
+            getCommandRegistry().registerCommand(new TpaAcceptCommand(tpManager, backManager, configManager));
+            getCommandRegistry().registerCommand(new TpaDenyCommand(tpManager, configManager));
+            getCommandRegistry().registerCommand(new TpaCancelCommand(tpManager, configManager));
+            getCommandRegistry().registerCommand(new TpaIgnoreCommand(tpManager, configManager));
+            getCommandRegistry().registerCommand(new TpahereCommand(tpManager, configManager, cooldownManager));
+            getCommandRegistry().registerCommand(new TpahereAllCommand(tpManager, configManager, cooldownManager));
+            getCommandRegistry().registerCommand(new TphereCommand());
+        }
         getCommandRegistry().registerCommand(new BackCommand(backManager, tpManager, configManager, cooldownManager));
         getCommandRegistry().registerCommand(new FlyCommand(flyManager, storage));
         getCommandRegistry().registerCommand(new GodCommand(godManager));
         getCommandRegistry().registerCommand(new HealCommand(cooldownManager));
         getCommandRegistry().registerCommand(new InfiniteStaminaCommand(staminaManager));
         getCommandRegistry().registerCommand(new ListCommand());
-        getCommandRegistry().registerCommand(new RulesCommand(configManager));
-        getCommandRegistry().registerCommand(new MotdCommand(configManager));
-        getCommandRegistry().registerCommand(new NearCommand(configManager, cooldownManager));
-        getCommandRegistry().registerCommand(new AfkCommand(afkManager, configManager, cooldownManager));
+        if (configManager.isRulesEnabled()) {
+            getCommandRegistry().registerCommand(new RulesCommand(configManager));
+        }
+        if (configManager.isMotdEnabled()) {
+            getCommandRegistry().registerCommand(new MotdCommand(configManager));
+        }
+        if (configManager.isNearEnabled()) {
+            getCommandRegistry().registerCommand(new NearCommand(configManager, cooldownManager));
+        }
+        if (configManager.isAfkEnabled()) {
+            getCommandRegistry().registerCommand(new AfkCommand(afkManager, configManager, cooldownManager));
+        }
         getCommandRegistry().registerCommand(new SleepPercentCommand(configManager));
         getCommandRegistry().registerCommand(new DayCommand());
         getCommandRegistry().registerCommand(new NightCommand());
-        getCommandRegistry().registerCommand(new RankupCommand(rankupManager, economyManager));
+        if (configManager.isRankupEnabled()) {
+            getCommandRegistry().registerCommand(new RankupCommand(rankupManager, economyManager));
+        }
         getCommandRegistry().registerCommand(new WhoisCommand(storage));
         getCommandRegistry().registerCommand(new SeenCommand(storage));
         getCommandRegistry().registerCommand(new TopCommand());
         getCommandRegistry().registerCommand(new JumpToCommand(cooldownManager));
-        getCommandRegistry().registerCommand(new RtpCommand(configManager, cooldownManager, tpManager));
+        if (configManager.isRtpEnabled()) {
+            getCommandRegistry().registerCommand(new RtpCommand(configManager, cooldownManager, tpManager));
+        }
         getCommandRegistry().registerCommand(new ClearInventoryCommand());
         getCommandRegistry().registerCommand(new RepairCommand(cooldownManager));
         getCommandRegistry().registerCommand(new FreecamCommand(freecamManager));
@@ -409,6 +448,156 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             Log.warn("[HyEssentialsX] Failed to prepare data folder. Using original: " + e.getMessage());
             return original;
         }
+    }
+
+    private void unregisterHyCommands() {
+        Object manager = resolveCommandManager();
+        if (manager == null) {
+            return;
+        }
+        Map<?, ?> commands = getCommandMap(manager);
+        Map<?, ?> aliases = getAliasMap(manager);
+        if (commands == null) {
+            return;
+        }
+        int removedCount = 0;
+        Set<Object> removed = new HashSet<>();
+        @SuppressWarnings("unchecked")
+        Iterator<? extends Map.Entry<?, ?>> iterator = ((Map<?, ?>) commands).entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<?, ?> entry = iterator.next();
+            Object command = entry.getValue();
+            if (isHyCommand(command)) {
+                removed.add(command);
+                iterator.remove();
+                removedCount++;
+            }
+        }
+        if (aliases != null && !aliases.isEmpty()) {
+            @SuppressWarnings("unchecked")
+            Iterator<? extends Map.Entry<?, ?>> aliasIterator = ((Map<?, ?>) aliases).entrySet().iterator();
+            while (aliasIterator.hasNext()) {
+                Map.Entry<?, ?> entry = aliasIterator.next();
+                Object value = entry.getValue();
+                if (removed.contains(value) || isHyCommand(value)) {
+                    aliasIterator.remove();
+                }
+            }
+        }
+        if (removedCount > 0) {
+            Log.info("[HyEssentialsX] Unregistered " + removedCount + " commands");
+        }
+    }
+
+    private boolean isHyCommand(Object command) {
+        if (command == null) {
+            return false;
+        }
+        String className = command.getClass().getName();
+        return className.startsWith("xyz.thelegacyvoyage.hyessentialsx.");
+    }
+
+    private Object resolveCommandManager() {
+        Object registry = getCommandRegistry();
+        if (registry == null) {
+            return null;
+        }
+        String name = registry.getClass().getName();
+        if (name.contains("CommandManager")) {
+            return registry;
+        }
+        Field field = findField(registry.getClass(), "commandManager", "manager");
+        if (field != null) {
+            try {
+                field.setAccessible(true);
+                Object value = field.get(registry);
+                if (value != null) {
+                    return value;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        try {
+            for (var method : registry.getClass().getMethods()) {
+                if (method.getParameterCount() == 0 && method.getName().toLowerCase().contains("commandmanager")) {
+                    Object value = method.invoke(registry);
+                    if (value != null) {
+                        return value;
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return registry;
+    }
+
+    private Map<?, ?> getCommandMap(Object manager) {
+        Field field = findField(manager.getClass(),
+                "commandRegistration",
+                "commandRegistrations",
+                "commandMap",
+                "commands",
+                "registeredCommands");
+        Map<?, ?> map = readMapField(manager, field);
+        if (map != null) {
+            return map;
+        }
+        return findFirstMap(manager);
+    }
+
+    private Map<?, ?> getAliasMap(Object manager) {
+        Field field = findField(manager.getClass(),
+                "aliases",
+                "aliasMap",
+                "commandAliases",
+                "aliasMappings");
+        Map<?, ?> map = readMapField(manager, field);
+        if (map != null) {
+            return map;
+        }
+        return null;
+    }
+
+    private Map<?, ?> readMapField(Object target, Field field) {
+        if (field == null) {
+            return null;
+        }
+        try {
+            field.setAccessible(true);
+            Object value = field.get(target);
+            if (value instanceof Map<?, ?> map) {
+                return map;
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private Map<?, ?> findFirstMap(Object target) {
+        for (Field field : target.getClass().getDeclaredFields()) {
+            if (!Map.class.isAssignableFrom(field.getType())) {
+                continue;
+            }
+            Map<?, ?> map = readMapField(target, field);
+            if (map != null) {
+                return map;
+            }
+        }
+        return null;
+    }
+
+    private Field findField(Class<?> type, String... names) {
+        Class<?> current = type;
+        while (current != null && current != Object.class) {
+            for (String name : names) {
+                try {
+                    return current.getDeclaredField(name);
+                } catch (NoSuchFieldException ignored) {
+                }
+            }
+            current = current.getSuperclass();
+        }
+        return null;
     }
 
 }

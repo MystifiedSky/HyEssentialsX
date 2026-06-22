@@ -7,6 +7,7 @@ import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
+import com.hypixel.hytale.server.core.event.events.player.AddPlayerToWorldEvent;
 import com.hypixel.hytale.server.core.entity.entities.player.HiddenPlayersManager;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
@@ -54,6 +55,12 @@ public class PlayerListener {
             LOGGER.at(Level.WARNING).withCause(e).log("[HyEssentialsX] Failed to register PlayerConnectEvent");
         }
         try {
+            eventBus.registerGlobal(AddPlayerToWorldEvent.class, this::onAddPlayerToWorld);
+            LOGGER.at(Level.INFO).log("[HyEssentialsX] Registered AddPlayerToWorldEvent listener");
+        } catch (Exception e) {
+            LOGGER.at(Level.WARNING).withCause(e).log("[HyEssentialsX] Failed to register AddPlayerToWorldEvent");
+        }
+        try {
             eventBus.registerGlobal(PlayerReadyEvent.class, this::onPlayerReady);
             LOGGER.at(Level.INFO).log("[HyEssentialsX] Registered PlayerReadyEvent listener");
         } catch (Exception e) {
@@ -95,6 +102,12 @@ public class PlayerListener {
             for (String line : config.getMotdMessages()) {
                 Messages.send(player, line);
             }
+        }
+    }
+
+    private void onAddPlayerToWorld(AddPlayerToWorldEvent event) {
+        if (config.isJoinQuitEnabled()) {
+            event.setBroadcastJoinMessage(false);
         }
     }
 

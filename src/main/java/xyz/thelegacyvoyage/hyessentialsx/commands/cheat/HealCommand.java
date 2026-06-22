@@ -6,19 +6,24 @@ import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes;
+import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
+import java.util.List;
 
 public final class HealCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.heal";
     private static final String BYPASS_PERMISSION = "hyessentialsx.heal.bypass";
+    private static final String OTHERS_PERMISSION = "hyessentialsx.heal.other";
     private final CommandCooldownManager cooldowns;
 
     public HealCommand(@Nonnull CommandCooldownManager cooldowns) {
@@ -26,6 +31,7 @@ public final class HealCommand extends AbstractPlayerCommand {
         this.cooldowns = cooldowns;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        this.setAllowsExtraArguments(true);
     }
 
     @Override
@@ -49,9 +55,31 @@ public final class HealCommand extends AbstractPlayerCommand {
             return;
         }
 
-        EntityStatMap stats = store.getComponent(ref, EntityStatMap.getComponentType());
+        List<String> args = CommandInputUtil.getArgs(context);
+        PlayerRef target = playerRef;
+        if (!args.isEmpty()) {
+            String targetName = args.get(0);
+            PlayerRef found = Universe.get().getPlayerByUsername(targetName, NameMatching.EXACT_IGNORE_CASE);
+            if (found == null) {
+                Messages.errKey(context, "player.not_found", java.util.Map.of());
+                return;
+            }
+            if (!context.sender().hasPermission(OTHERS_PERMISSION)) {
+                Messages.noPerm(context, "/heal " + targetName);
+                return;
+            }
+            target = found;
+        }
+
+        Ref<EntityStore> targetRef = target.getReference();
+        Store<EntityStore> targetStore = targetRef.getStore();
+        if (targetStore == null) {
+            Messages.err(context, "Could not access target stats.");
+            return;
+        }
+        EntityStatMap stats = targetStore.getComponent(targetRef, EntityStatMap.getComponentType());
         if (stats == null) {
-            Messages.err(context, "Could not access your stats.");
+            Messages.err(context, "Could not access target stats.");
             return;
         }
 
@@ -60,7 +88,12 @@ public final class HealCommand extends AbstractPlayerCommand {
         stats.update();
 
         cooldowns.apply(playerRef, CooldownKeys.HEAL);
-        Messages.ok(context, "Healed.");
+        if (target.getUuid().equals(playerRef.getUuid())) {
+            Messages.ok(context, "Healed.");
+        } else {
+            Messages.ok(context, "Healed " + target.getUsername() + ".");
+            Messages.send(target, "&aYou were healed.");
+        }
     }
 }
 

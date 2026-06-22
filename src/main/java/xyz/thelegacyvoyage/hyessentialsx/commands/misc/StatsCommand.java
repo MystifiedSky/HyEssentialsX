@@ -12,6 +12,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StatsManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
@@ -34,13 +35,17 @@ public final class StatsCommand extends CommandBase {
     private static final int CATEGORY_LIMIT = 8;
 
     private final StatsManager stats;
+    private final PlaytimeManager playtime;
     private final StorageManager storage;
     private final OptionalArg<String> firstArg;
     private final OptionalArg<String> secondArg;
 
-    public StatsCommand(@Nonnull StatsManager stats, @Nonnull StorageManager storage) {
+    public StatsCommand(@Nonnull StatsManager stats,
+                        @Nonnull PlaytimeManager playtime,
+                        @Nonnull StorageManager storage) {
         super("stats", "View player statistics");
         this.stats = stats;
+        this.playtime = playtime;
         this.storage = storage;
         this.setPermissionGroups();
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
@@ -124,7 +129,7 @@ public final class StatsCommand extends CommandBase {
     private void sendSummary(@Nonnull CommandContext context, @Nonnull UUID targetId, @Nonnull String targetName) {
         Messages.sendKey(context, "stats.header", Map.of("player", targetName));
         Messages.sendKey(context, "stats.line.play_time", Map.of(
-                "value", TimeUtil.formatDurationSeconds(stats.get(targetId, StatsManager.CATEGORY_CUSTOM, "play_time"))
+                "value", TimeUtil.formatDurationSeconds(playtime.getPlaytimeSeconds(targetId))
         ));
         Messages.sendKey(context, "stats.line.basic", Map.of(
                 "connections", stats.formatNumber(stats.get(targetId, StatsManager.CATEGORY_CUSTOM, "times_connected")),
@@ -211,7 +216,7 @@ public final class StatsCommand extends CommandBase {
             if (player == null) {
                 return;
             }
-            new StatsUI(viewer, targetId, targetName, stats, initialTab).open(player, ref, store);
+            new StatsUI(viewer, targetId, targetName, stats, playtime, initialTab).open(player, ref, store);
         });
         return true;
     }

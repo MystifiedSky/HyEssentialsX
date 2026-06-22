@@ -1533,6 +1533,9 @@ public final class ScoreboardManager {
         long balance = economy.isEnabled() ? economy.getBalance(playerRef.getUuid()) : data.getBalance();
         placeholders.put("balance_raw", String.valueOf(balance));
         placeholders.put("balance", formatBalance(balance));
+        placeholders.put("balance_full", economy.formatAmount(balance));
+        placeholders.put("balance_amount", economy.formatAmountRaw(balance));
+        placeholders.put("balance_compact", economy.formatAmountCompact(balance));
         placeholders.put("currency_symbol", economy.getCurrencySymbol());
 
         com.hypixel.hytale.math.vector.Transform transform = playerRef.getTransform();
@@ -1591,31 +1594,13 @@ public final class ScoreboardManager {
             format = "";
         }
         String mode = format.trim().toLowerCase(Locale.ROOT);
-        String symbol = economy.getCurrencySymbol();
         return switch (mode) {
-            case "compact" -> symbol + formatCompact(amount);
-            case "full", "commas", "comma" -> symbol + String.format(Locale.US, "%,d", amount);
+            case "compact" -> economy.formatAmountCompact(amount);
+            case "amount", "number", "plain" -> economy.formatAmountRaw(amount);
+            case "full", "commas", "comma" -> economy.formatAmount(amount);
             case "raw" -> String.valueOf(amount);
-            default -> symbol + amount;
+            default -> economy.formatAmount(amount);
         };
-    }
-
-    @Nonnull
-    private String formatCompact(long amount) {
-        double value = amount;
-        String[] suffixes = {"k", "m", "b", "t"};
-        int idx = 0;
-        while (Math.abs(value) >= 1000.0 && idx < suffixes.length) {
-            value /= 1000.0;
-            idx++;
-        }
-        if (idx == 0) {
-            return String.valueOf(amount);
-        }
-        String formatted = Math.abs(value) >= 10.0
-                ? String.format(Locale.US, "%.0f", value)
-                : String.format(Locale.US, "%.1f", value);
-        return formatted + suffixes[idx - 1];
     }
 
     @Nonnull

@@ -4,7 +4,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -46,7 +46,6 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
     private final RankupManager rankups;
     private final StorageManager storage;
     private final ConfigManager config;
-    private final OptionalArg<String> actionArg;
 
     public PlaytimeCommand(@Nonnull PlaytimeManager playtime,
                            @Nonnull PlaytimeRewardManager rewards,
@@ -62,7 +61,11 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"pt"});
-        this.actionArg = withOptionalArg("action", "rewards, top, admin, help, or player", ArgTypes.STRING);
+        this.addSubCommand(new RewardsSubCommand());
+        this.addSubCommand(new TopSubCommand());
+        this.addSubCommand(new AdminSubCommand());
+        this.addSubCommand(new HelpSubCommand());
+        this.addSubCommand(new PlayerSubCommand());
     }
 
     @Override
@@ -81,37 +84,113 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
             return;
         }
 
-        if (!context.provided(actionArg)) {
-            if (tryOpenPlaytimeUi(playerRef, store, ref, PlaytimeUI.Tab.OVERVIEW)) {
+        if (tryOpenPlaytimeUi(playerRef, store, ref, PlaytimeUI.Tab.OVERVIEW)) {
+            return;
+        }
+        sendSelfPlaytime(context, playerRef);
+    }
+
+    private final class RewardsSubCommand extends AbstractPlayerCommand {
+        private RewardsSubCommand() {
+            super("rewards", "Show playtime rewards");
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
+            if (!ensurePlaytimePermission(context, "/playtime rewards")) return;
+            if (tryOpenPlaytimeUi(playerRef, store, ref, PlaytimeUI.Tab.REWARDS)) {
                 return;
             }
-            sendSelfPlaytime(context, playerRef);
-            return;
+            sendRewardsList(context, playerRef);
+        }
+    }
+
+    private final class TopSubCommand extends AbstractPlayerCommand {
+        private TopSubCommand() {
+            super("top", "Show the playtime leaderboard");
         }
 
-        String sub = context.get(actionArg);
-        if (sub == null || sub.isBlank()) {
-            Messages.errKey(context, "playtime.usage", Map.of());
-            return;
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
         }
 
-        switch (sub.toLowerCase(Locale.ROOT)) {
-            case "rewards" -> {
-                if (tryOpenPlaytimeUi(playerRef, store, ref, PlaytimeUI.Tab.REWARDS)) {
-                    return;
-                }
-                sendRewardsList(context, playerRef);
+        @Override
+        protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
+            if (!ensurePlaytimePermission(context, "/playtime top")) return;
+            if (tryOpenPlaytimeUi(playerRef, store, ref, PlaytimeUI.Tab.TOP)) {
+                return;
             }
-            case "top" -> {
-                if (tryOpenPlaytimeUi(playerRef, store, ref, PlaytimeUI.Tab.TOP)) {
-                    return;
-                }
-                sendTopList(context);
-            }
-            case "admin" -> openAdminPanel(context, playerRef, store, ref);
-            case "help" -> Messages.sendKey(context, "playtime.usage", Map.of());
-            default -> sendOtherPlaytime(context, sub);
+            sendTopList(context);
         }
+    }
+
+    private final class AdminSubCommand extends AbstractPlayerCommand {
+        private AdminSubCommand() {
+            super("admin", "Open playtime admin settings");
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
+            if (!ensurePlaytimePermission(context, "/playtime admin")) return;
+            openAdminPanel(context, playerRef, store, ref);
+        }
+    }
+
+    private final class HelpSubCommand extends AbstractPlayerCommand {
+        private HelpSubCommand() {
+            super("help", "Show playtime help");
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
+            if (!ensurePlaytimePermission(context, "/playtime help")) return;
+            Messages.sendKey(context, "playtime.usage", Map.of());
+        }
+    }
+
+    private final class PlayerSubCommand extends AbstractPlayerCommand {
+        private final RequiredArg<String> playerArg;
+
+        private PlayerSubCommand() {
+            super("player", "Show another player's playtime");
+            this.playerArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
+            this.addAliases(new String[]{"other"});
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
+            if (!ensurePlaytimePermission(context, "/playtime player")) return;
+            sendOtherPlaytime(context, context.get(playerArg));
+        }
+    }
+
+    private boolean ensurePlaytimePermission(@Nonnull CommandContext context, @Nonnull String command) {
+        if (xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+            return true;
+        }
+        Messages.noPerm(context, command);
+        return false;
     }
 
     private boolean tryOpenPlaytimeUi(@Nonnull PlayerRef playerRef,

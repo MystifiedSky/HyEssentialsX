@@ -7,7 +7,7 @@ import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.Entity;
@@ -32,6 +32,7 @@ import xyz.thelegacyvoyage.hyessentialsx.ui.ShopAdminUI;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopBrowseUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcEntityUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcRemovalUtil;
 
 import javax.annotation.Nonnull;
@@ -48,8 +49,6 @@ public final class ShopCommand extends AbstractPlayerCommand {
     private final ShopManager shopManager;
     private final EconomyManager economy;
     private final ShopAdminDraftCache draftCache;
-    private final OptionalArg<String> actionArg;
-    private final OptionalArg<String> nameArg;
 
     public ShopCommand(@Nonnull ShopManager shopManager,
                        @Nonnull EconomyManager economy,
@@ -59,8 +58,12 @@ public final class ShopCommand extends AbstractPlayerCommand {
         this.economy = economy;
         this.draftCache = draftCache;
         this.setPermissionGroups();
-        this.actionArg = withOptionalArg("action", "list, create, delete, edit, move, or shop", ArgTypes.STRING);
-        this.nameArg = withOptionalArg("name", "Shop name", ArgTypes.STRING);
+        this.addSubCommand(new ListSubCommand());
+        this.addSubCommand(new OpenSubCommand());
+        this.addSubCommand(new CreateSubCommand());
+        this.addSubCommand(new DeleteSubCommand());
+        this.addSubCommand(new EditSubCommand());
+        this.addSubCommand(new MoveSubCommand());
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -75,62 +78,112 @@ public final class ShopCommand extends AbstractPlayerCommand {
                            @Nonnull Ref<EntityStore> ref,
                            @Nonnull PlayerRef playerRef,
                            @Nonnull World world) {
-        List<String> args = new ArrayList<>();
-        if (context.provided(actionArg)) args.add(context.get(actionArg));
-        if (context.provided(nameArg)) args.add(context.get(nameArg));
-        if (args.isEmpty()) {
-            if (!hasPermission(context.sender(), playerRef, PERMISSION_NODE)
-                    && !hasPermission(context.sender(), playerRef, LEGACY_PERMISSION_NODE)) {
-                Messages.noPerm(context, "/adminshop");
+        if (!hasNodePermission(context.sender(), playerRef, PERMISSION_NODE)
+                && !hasNodePermission(context.sender(), playerRef, LEGACY_PERMISSION_NODE)) {
+            Messages.noPerm(context, "/adminshop");
+            return;
+        }
+        listShops(context);
+    }
+
+    private final class ListSubCommand extends AbstractPlayerCommand {
+        private ListSubCommand() {
+            super("list", "List admin shops");
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
+            if (!hasNodePermission(context.sender(), playerRef, PERMISSION_NODE)
+                    && !hasNodePermission(context.sender(), playerRef, LEGACY_PERMISSION_NODE)) {
+                Messages.noPerm(context, "/adminshop list");
                 return;
             }
             listShops(context);
-            return;
+        }
+    }
+
+    private final class OpenSubCommand extends AbstractPlayerCommand {
+        private final RequiredArg<String> nameArg;
+
+        private OpenSubCommand() {
+            super("open", "Open an admin shop");
+            this.nameArg = withRequiredArg("name", "Shop name", ArgTypes.STRING);
+            this.addAliases(new String[]{"shop"});
         }
 
-        String sub = args.get(0).toLowerCase();
-        if ("list".equals(sub)) {
-            if (!hasPermission(context.sender(), playerRef, PERMISSION_NODE)
-                    && !hasPermission(context.sender(), playerRef, LEGACY_PERMISSION_NODE)) {
-                Messages.noPerm(context, "/adminshop");
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
+            if (!hasNodePermission(context.sender(), playerRef, PERMISSION_NODE)
+                    && !hasNodePermission(context.sender(), playerRef, LEGACY_PERMISSION_NODE)) {
+                Messages.noPerm(context, "/adminshop open");
                 return;
             }
-            listShops(context);
-            return;
+            openBrowse(context, store, ref, playerRef, context.get(nameArg));
+        }
+    }
+
+    private final class CreateSubCommand extends AbstractPlayerCommand {
+        private final RequiredArg<String> nameArg;
+
+        private CreateSubCommand() {
+            super("create", "Create an admin shop");
+            this.nameArg = withRequiredArg("name", "Shop name", ArgTypes.STRING);
         }
 
-        if ("create".equals(sub)) {
-            if (!hasPermission(context.sender(), playerRef, ADMIN_PERMISSION)
-                    && !hasPermission(context.sender(), playerRef, LEGACY_ADMIN_PERMISSION)) {
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
+            if (!hasNodePermission(context.sender(), playerRef, ADMIN_PERMISSION)
+                    && !hasNodePermission(context.sender(), playerRef, LEGACY_ADMIN_PERMISSION)) {
                 Messages.noPerm(context, "/adminshop create");
                 return;
             }
-            if (args.size() < 2) {
-                Messages.sendKey(context, "shop.admin.usage.create", java.util.Map.of());
-                return;
-            }
-            String name = args.get(1);
-            ShopModel created = shopManager.createShop(name);
+            ShopModel created = shopManager.createShop(context.get(nameArg));
             if (created == null) {
                 Messages.sendKey(context, "shop.admin.exists_or_invalid", java.util.Map.of());
                 return;
             }
             Messages.sendKey(context, "shop.admin.created", java.util.Map.of("shop", created.getDisplayName()));
             spawnShopNpc(context, playerRef, world, created);
-            return;
+        }
+    }
+
+    private final class DeleteSubCommand extends AbstractPlayerCommand {
+        private final RequiredArg<String> nameArg;
+
+        private DeleteSubCommand() {
+            super("delete", "Delete an admin shop");
+            this.nameArg = withRequiredArg("name", "Shop name", ArgTypes.STRING);
+            this.addAliases(new String[]{"remove"});
         }
 
-        if ("delete".equals(sub) || "remove".equals(sub)) {
-            if (!hasPermission(context.sender(), playerRef, ADMIN_PERMISSION)
-                    && !hasPermission(context.sender(), playerRef, LEGACY_ADMIN_PERMISSION)) {
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
+            if (!hasNodePermission(context.sender(), playerRef, ADMIN_PERMISSION)
+                    && !hasNodePermission(context.sender(), playerRef, LEGACY_ADMIN_PERMISSION)) {
                 Messages.noPerm(context, "/adminshop delete");
                 return;
             }
-            if (args.size() < 2) {
-                Messages.sendKey(context, "shop.admin.usage.delete", java.util.Map.of());
-                return;
-            }
-            String name = args.get(1);
+            String name = context.get(nameArg);
             ShopModel shop = shopManager.getShop(name);
             if (shop != null && !shop.isPlayerShop()) {
                 removeShopNpcs(shop);
@@ -138,48 +191,50 @@ public final class ShopCommand extends AbstractPlayerCommand {
             } else if (shop == null) {
                 removeOrphanedShopNpcs(name, name);
             }
-            if (shopManager.deleteShop(name)) {
-                Messages.sendKey(context, "shop.admin.deleted", java.util.Map.of());
-            } else if (shop == null) {
+            if (shopManager.deleteShop(name) || shop == null) {
                 Messages.sendKey(context, "shop.admin.deleted", java.util.Map.of());
             } else {
                 Messages.sendKey(context, "shop.admin.not_found", java.util.Map.of());
             }
-            return;
+        }
+    }
+
+    private final class EditSubCommand extends AbstractPlayerCommand {
+        private final RequiredArg<String> nameArg;
+
+        private EditSubCommand() {
+            super("edit", "Edit an admin shop");
+            this.nameArg = withRequiredArg("name", "Shop name", ArgTypes.STRING);
         }
 
-        if ("edit".equals(sub)) {
-            if (args.size() < 2) {
-                Messages.sendKey(context, "shop.admin.usage.edit", java.util.Map.of());
-                return;
-            }
-            String name = args.get(1);
-            openAdmin(context, store, ref, playerRef, name);
-            return;
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
         }
 
-        if ("move".equals(sub)) {
-            if (args.size() < 2) {
-                Messages.sendKey(context, "shop.admin.usage.move", java.util.Map.of());
-                return;
-            }
-            String name = args.get(1);
-            moveShopNpc(context, store, ref, playerRef, world, name);
-            return;
+        @Override
+        protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
+            openAdmin(context, store, ref, playerRef, context.get(nameArg));
+        }
+    }
+
+    private final class MoveSubCommand extends AbstractPlayerCommand {
+        private final RequiredArg<String> nameArg;
+
+        private MoveSubCommand() {
+            super("move", "Move an admin shop NPC");
+            this.nameArg = withRequiredArg("name", "Shop name", ArgTypes.STRING);
         }
 
-        if (args.size() >= 2 && "move".equalsIgnoreCase(args.get(1))) {
-            String name = args.get(0);
-            moveShopNpc(context, store, ref, playerRef, world, name);
-            return;
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
         }
 
-        if (!hasPermission(context.sender(), playerRef, PERMISSION_NODE)
-                && !hasPermission(context.sender(), playerRef, LEGACY_PERMISSION_NODE)) {
-            Messages.noPerm(context, "/adminshop " + args.get(0));
-            return;
+        @Override
+        protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
+            moveShopNpc(context, store, ref, playerRef, world, context.get(nameArg));
         }
-        openBrowse(context, store, ref, playerRef, args.get(0));
     }
 
     private void listShops(@Nonnull CommandContext context) {
@@ -211,9 +266,9 @@ public final class ShopCommand extends AbstractPlayerCommand {
             return;
         }
         if (!shop.getUsePermission().isBlank()
-                && !hasPermission(context.sender(), playerRef, shop.getUsePermission())
+                && !hasNodePermission(context.sender(), playerRef, shop.getUsePermission())
                 && !(shop.getUsePermission().equalsIgnoreCase(ShopManager.DEFAULT_USE_PERMISSION)
-                && hasPermission(context.sender(), playerRef, ShopManager.LEGACY_USE_PERMISSION))) {
+                && hasNodePermission(context.sender(), playerRef, ShopManager.LEGACY_USE_PERMISSION))) {
             Messages.noPerm(context, "/adminshop " + name);
             return;
         }
@@ -237,9 +292,9 @@ public final class ShopCommand extends AbstractPlayerCommand {
             return;
         }
         if (!shop.getEditPermission().isBlank()
-                && !hasPermission(context.sender(), playerRef, shop.getEditPermission())
+                && !hasNodePermission(context.sender(), playerRef, shop.getEditPermission())
                 && !(shop.getEditPermission().equalsIgnoreCase(ShopManager.DEFAULT_EDIT_PERMISSION)
-                && hasPermission(context.sender(), playerRef, ShopManager.LEGACY_EDIT_PERMISSION))) {
+                && hasNodePermission(context.sender(), playerRef, ShopManager.LEGACY_EDIT_PERMISSION))) {
             Messages.noPerm(context, "/adminshop edit " + name);
             return;
         }
@@ -264,8 +319,8 @@ public final class ShopCommand extends AbstractPlayerCommand {
             Messages.sendKey(context, "shop.admin.not_found", java.util.Map.of());
             return;
         }
-        if (!hasPermission(context.sender(), playerRef, ADMIN_PERMISSION)
-                && !hasPermission(context.sender(), playerRef, LEGACY_ADMIN_PERMISSION)) {
+        if (!hasNodePermission(context.sender(), playerRef, ADMIN_PERMISSION)
+                && !hasNodePermission(context.sender(), playerRef, LEGACY_ADMIN_PERMISSION)) {
             Messages.noPerm(context, "/adminshop " + name + " move");
             return;
         }
@@ -290,44 +345,34 @@ public final class ShopCommand extends AbstractPlayerCommand {
             targetNpc = npcModel;
             break;
         }
-        if (targetNpc == null) {
-            spawnShopNpc(context, playerRef, world, shop);
+        ShopNpcEntityUtil.RoleSelection role = ShopNpcEntityUtil.resolveRoleSelection(shop.getNpcRole());
+        if (role == null) {
+            Messages.sendKey(context, "shop.npc.no_roles", java.util.Map.of());
             return;
         }
-        boolean moved = moveNpcEntity(world, store, targetNpc, centerPos, rot, basePos);
-        if (!moved) {
-            String targetId = targetNpc.getNpcId();
-            shop.getNpcs().removeIf(npc -> npc != null && npc.getNpcId().equalsIgnoreCase(targetId));
-            shopManager.saveShop(shop);
-            spawnShopNpc(context, playerRef, world, shop);
+        ShopNpcEntityUtil.NpcLifecycleResult result = ShopNpcEntityUtil.moveOrSpawnShopNpc(
+                world,
+                store,
+                shop,
+                targetNpc,
+                centerPos,
+                rot,
+                basePos,
+                shop.getDisplayName(),
+                playerRef.getUuid().toString(),
+                playerRef.getUsername() == null ? "" : playerRef.getUsername(),
+                role.roleName(),
+                role.roleIndex()
+        );
+        if (!result.success()) {
+            Messages.sendKey(context, "shop.npc.spawn_failed", java.util.Map.of());
             return;
         }
         shopManager.saveShop(shop);
         Messages.send(playerRef, "shop.admin.npc.moved");
     }
 
-    private boolean moveNpcEntity(@Nonnull World world,
-                                  @Nonnull Store<EntityStore> store,
-                                  @Nonnull ShopNpcModel npcModel,
-                                  @Nonnull Vector3d position,
-                                  @Nonnull com.hypixel.hytale.math.vector.Rotation3f rotation,
-                                  @Nonnull Vector3i basePos) {
-        try {
-            java.util.UUID npcUuid = java.util.UUID.fromString(npcModel.getNpcId());
-            Ref<EntityStore> npcRef = world.getEntityRef(npcUuid);
-            if (npcRef == null) return false;
-            TransformComponent transform = store.getComponent(npcRef, TransformComponent.getComponentType());
-            if (transform == null) return false;
-            transform.setPosition(position);
-            transform.setRotation(rotation);
-            npcModel.setPosition(basePos);
-            return true;
-        } catch (Exception ignored) {
-            return false;
-        }
-    }
-
-    private boolean hasPermission(@Nonnull com.hypixel.hytale.server.core.command.system.CommandSender sender,
+    private boolean hasNodePermission(@Nonnull com.hypixel.hytale.server.core.command.system.CommandSender sender,
                                   @Nonnull PlayerRef playerRef,
                                   @Nonnull String permission) {
         boolean senderHas = xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(sender, permission);
@@ -342,8 +387,51 @@ public final class ShopCommand extends AbstractPlayerCommand {
         if (!shop.getNpcs().isEmpty()) {
             return;
         }
-        ShopNpcCommand npcCommand = new ShopNpcCommand(shopManager);
-        npcCommand.spawnNpcDirect(context, playerRef, world, shop.getName());
+        Store<EntityStore> store = world.getEntityStore().getStore();
+        Ref<EntityStore> playerEntityRef = world.getEntityStore().getRefFromUUID(playerRef.getUuid());
+        if (playerEntityRef == null) {
+            Messages.sendKey(context, "shop.npc.player_entity_missing", java.util.Map.of());
+            return;
+        }
+        TransformComponent transform = store.getComponent(playerEntityRef, TransformComponent.getComponentType());
+        if (transform == null || transform.getPosition() == null) {
+            Messages.sendKey(context, "shop.npc.player_pos_failed", java.util.Map.of());
+            return;
+        }
+        Vector3d playerPos = transform.getPosition();
+        Vector3i basePos = new Vector3i(
+                (int) Math.floor(playerPos.x()),
+                (int) Math.floor(playerPos.y()),
+                (int) Math.floor(playerPos.z())
+        );
+        Vector3d spawnPos = new Vector3d(basePos.x() + 0.5D, basePos.y(), basePos.z() + 0.5D);
+        com.hypixel.hytale.math.vector.Rotation3f rotation = transform.getRotation() != null
+                ? transform.getRotation()
+                : new com.hypixel.hytale.math.vector.Rotation3f(0f, 0f, 0f);
+        ShopNpcEntityUtil.RoleSelection role = ShopNpcEntityUtil.resolveRoleSelection(shop.getNpcRole());
+        if (role == null) {
+            Messages.sendKey(context, "shop.npc.no_roles", java.util.Map.of());
+            return;
+        }
+        ShopNpcEntityUtil.NpcLifecycleResult result = ShopNpcEntityUtil.moveOrSpawnShopNpc(
+                world,
+                store,
+                shop,
+                null,
+                spawnPos,
+                rotation,
+                basePos,
+                shop.getDisplayName(),
+                playerRef.getUuid().toString(),
+                playerRef.getUsername() == null ? "" : playerRef.getUsername(),
+                role.roleName(),
+                role.roleIndex()
+        );
+        if (result.success()) {
+            shopManager.saveShop(shop);
+        } else {
+            Messages.sendKey(context, "shop.npc.spawn_failed", java.util.Map.of());
+        }
     }
 
     private void removeShopNpcs(@Nonnull ShopModel shop) {
@@ -355,12 +443,9 @@ public final class ShopCommand extends AbstractPlayerCommand {
                 for (ShopNpcModel npcModel : npcs) {
                     if (npcModel == null) continue;
                     if (!npcModel.getWorldId().equalsIgnoreCase(worldName)) continue;
-                    boolean removed = despawnNpc(world, store, npcModel.getNpcId());
-                    if (!removed) {
-                        despawnNpcByPosition(world, store, npcModel.getPosition());
-                    }
+                    ShopNpcEntityUtil.removeAllMatchingShopNpcs(store, shop, npcModel);
                 }
-                removeOrphanedShopNpcsInWorld(store, shop.getDisplayName(), shop.getName());
+                ShopNpcEntityUtil.removeAllShopNpcsInWorld(store, shop);
             });
         }
     }
@@ -375,98 +460,8 @@ public final class ShopCommand extends AbstractPlayerCommand {
     private void removeOrphanedShopNpcsInWorld(@Nonnull Store<EntityStore> store,
                                                @Nonnull String displayName,
                                                @Nonnull String rawName) {
-        store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
-                try {
-                    Ref<EntityStore> ref = chunk.getReferenceTo(index);
-                    NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
-                    if (npc == null) return;
-                    Interactions interactions = store.getComponent(ref, Interactions.getComponentType());
-                    if (interactions == null) return;
-                    String interactionId = interactions.getInteractionId(InteractionType.Use);
-                    if (interactionId == null
-                            || !interactionId.equalsIgnoreCase(ShopNpcInteractionRegistry.ADMIN_SHOP_ROOT_INTERACTION_ID)) {
-                        return;
-                    }
-                    Nameplate nameplate = store.getComponent(ref, Nameplate.getComponentType());
-                    if (nameplate == null) return;
-                    String text = nameplate.getText();
-                    if (text == null) return;
-                    if (!text.equalsIgnoreCase(displayName) && !text.equalsIgnoreCase(rawName)) return;
-                    npc.setToDespawn();
-                    npc.setDespawning(true);
-                    npc.setDespawnTime(0f);
-                    npc.setDespawnRemainingSeconds(0f);
-                    npc.setDespawnCheckRemainingSeconds(0f);
-                    commandBuffer.tryRemoveEntity(ref, RemoveReason.REMOVE);
-                } catch (Exception ignored) {
-                }
-            });
+        ShopNpcEntityUtil.removeShopNpcsByName(store, displayName, rawName);
     }
 
-    private boolean despawnNpc(@Nonnull World world,
-                               @Nonnull Store<EntityStore> store,
-                               @Nonnull String npcId) {
-        try {
-            java.util.UUID npcUuid = java.util.UUID.fromString(npcId);
-            final boolean[] removed = {false};
-            store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
-                try {
-                    Ref<EntityStore> ref = chunk.getReferenceTo(index);
-                    NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
-                    if (npc != null && npcUuid.equals(ServerCompatUtil.getUuid(npc))) {
-                        npc.setToDespawn();
-                        npc.setDespawning(true);
-                        npc.setDespawnTime(0f);
-                        npc.setDespawnRemainingSeconds(0f);
-                        npc.setDespawnCheckRemainingSeconds(0f);
-                        commandBuffer.tryRemoveEntity(ref, RemoveReason.REMOVE);
-                        removed[0] = true;
-                    }
-                } catch (Exception ignored) {
-                }
-            });
-            return removed[0];
-        } catch (Exception ignored) {
-        }
-        return false;
-    }
-
-    private boolean despawnNpcByPosition(@Nonnull World world,
-                                         @Nonnull Store<EntityStore> store,
-                                         @Nonnull Vector3i position) {
-        final boolean[] removed = {false};
-        store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
-            try {
-                Ref<EntityStore> ref = chunk.getReferenceTo(index);
-                NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
-                if (npc == null) return;
-                TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
-                if (transform == null || transform.getPosition() == null) return;
-                Vector3d pos = transform.getPosition();
-                double dx = Math.abs(pos.x() - (position.x() + 0.5D));
-                double dy = Math.abs(pos.y() - position.y());
-                double dz = Math.abs(pos.z() - (position.z() + 0.5D));
-                if (dx < 1.5D && dy < 2.0D && dz < 1.5D) {
-                    Interactions interactions = store.getComponent(ref, Interactions.getComponentType());
-                    String interactionId = interactions != null
-                            ? interactions.getInteractionId(InteractionType.Use)
-                            : null;
-                    if (interactionId == null
-                            || !interactionId.equalsIgnoreCase(ShopNpcInteractionRegistry.ADMIN_SHOP_ROOT_INTERACTION_ID)) {
-                        return;
-                    }
-                    npc.setToDespawn();
-                    npc.setDespawning(true);
-                    npc.setDespawnTime(0f);
-                    npc.setDespawnRemainingSeconds(0f);
-                    npc.setDespawnCheckRemainingSeconds(0f);
-                    commandBuffer.tryRemoveEntity(ref, RemoveReason.REMOVE);
-                    removed[0] = true;
-                }
-            } catch (Exception ignored) {
-            }
-        });
-        return removed[0];
-    }
 }
 

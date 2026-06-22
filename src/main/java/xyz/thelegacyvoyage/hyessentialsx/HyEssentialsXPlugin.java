@@ -613,7 +613,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new RankupCommand(rankupManager, economyManager, playtimeManager, playtimeRewardManager, storage, configManager));
         reg.accept(new PlaytimeCommand(playtimeManager, playtimeRewardManager, rankupManager, storage, configManager));
         if (configManager.isStatsEnabled()) {
-            reg.accept(new StatsCommand(statsManager, storage));
+            reg.accept(new StatsCommand(statsManager, playtimeManager, storage));
         }
         if (scoreboardManager != null && configManager.isScoreboardEnabled()) {
             reg.accept(new ScoreboardCommand(scoreboardManager, configManager));

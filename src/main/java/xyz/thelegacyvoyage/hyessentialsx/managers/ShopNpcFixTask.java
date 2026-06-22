@@ -23,11 +23,14 @@ import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcEntityUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcNameplateUtil;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -44,7 +47,7 @@ public final class ShopNpcFixTask {
     public void start() {
         stop();
         initTask = HytaleServer.SCHEDULED_EXECUTOR.schedule(this::initialize, 5L, TimeUnit.SECONDS);
-        periodicTask = HytaleServer.SCHEDULED_EXECUTOR.scheduleAtFixedRate(this::fixAll, 10L, 2L, TimeUnit.SECONDS);
+        periodicTask = HytaleServer.SCHEDULED_EXECUTOR.scheduleAtFixedRate(this::fixAll, 10L, 30L, TimeUnit.SECONDS);
     }
 
     public void stop() {
@@ -101,6 +104,9 @@ public final class ShopNpcFixTask {
         Store<EntityStore> store = world.getEntityStore().getStore();
         for (ShopNpcModel npc : npcs) {
             try {
+                if (!npc.getWorldId().equalsIgnoreCase(world.getName())) {
+                    continue;
+                }
                 String id = npc.getNpcId();
                 if (id.isBlank()) continue;
                 UUID npcUuid = UUID.fromString(id);
@@ -188,6 +194,7 @@ public final class ShopNpcFixTask {
         if (shopNames.isEmpty()) {
             return;
         }
+        Queue<Ref<EntityStore>> toRemove = new ConcurrentLinkedQueue<>();
         store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
             try {
                 Ref<EntityStore> ref = chunk.getReferenceTo(index);
@@ -195,34 +202,32 @@ public final class ShopNpcFixTask {
                 if (npc == null) return;
 
                 UUID currentId = ServerCompatUtil.getUuid(npc);
-                if (currentId == null || knownIds.contains(currentId)) {
+                if (currentId != null && knownIds.contains(currentId)) {
                     return;
                 }
 
-                Interactions interactions = store.getComponent(ref, Interactions.getComponentType());
-                String interactionId = interactions != null
-                        ? interactions.getInteractionId(InteractionType.Use)
-                        : null;
-                if (interactionId == null
-                        || !interactionId.equalsIgnoreCase(ShopNpcInteractionRegistry.ADMIN_SHOP_ROOT_INTERACTION_ID)) {
+                if (!ShopNpcEntityUtil.matchesAnyShopName(store, ref, shopNames)) {
                     return;
                 }
 
-                Nameplate nameplate = store.getComponent(ref, Nameplate.getComponentType());
-                String text = nameplate != null ? nameplate.getText() : null;
-                if (text == null || !shopNames.contains(text.toLowerCase(java.util.Locale.ROOT))) {
-                    return;
-                }
-
-                npc.setToDespawn();
-                npc.setDespawning(true);
-                npc.setDespawnTime(0f);
-                npc.setDespawnRemainingSeconds(0f);
-                npc.setDespawnCheckRemainingSeconds(0f);
-                commandBuffer.tryRemoveEntity(ref, RemoveReason.REMOVE);
+                toRemove.add(ref);
             } catch (Exception ignored) {
             }
         });
+        for (Ref<EntityStore> ref : toRemove) {
+            try {
+                NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
+                if (npc != null) {
+                    npc.setToDespawn();
+                    npc.setDespawning(true);
+                    npc.setDespawnTime(0f);
+                    npc.setDespawnRemainingSeconds(0f);
+                    npc.setDespawnCheckRemainingSeconds(0f);
+                }
+                store.removeEntity(ref, RemoveReason.REMOVE);
+            } catch (Exception ignored) {
+            }
+        }
     }
 }
 

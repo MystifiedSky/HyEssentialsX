@@ -10,7 +10,7 @@ import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.protocol.MovementStates;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.CommandSender;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractAsyncCommand;
 import com.hypixel.hytale.server.core.entity.Frozen;
@@ -35,10 +35,10 @@ import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopPlacementUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcEntityUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcNameplateUtil;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -47,19 +47,9 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.playershop.npc";
     private static final String ADMIN_PERMISSION = "hyessentialsx.playershop.admin";
-    private static final String[] PREFERRED_ROLES = {
-            "Klops_Merchant",
-            "Feran_Civilian",
-            "Kweebec_Civilian",
-            "Trork_Civilian",
-            "Human_Civilian"
-    };
-
     private final ShopManager shopManager;
     private final EconomyManager economy;
     private final ConfigManager config;
-    private final OptionalArg<String> actionArg;
-    private final OptionalArg<String> shopArg;
 
     public PlayerShopNpcCommand(@Nonnull ShopManager shopManager,
                                 @Nonnull EconomyManager economy,
@@ -69,12 +59,22 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
         this.economy = economy;
         this.config = config;
         this.requirePermission(PERMISSION_NODE);
-        this.actionArg = withOptionalArg("action", "shop, remove, or list", ArgTypes.STRING);
-        this.shopArg = withOptionalArg("shop", "Shop name", ArgTypes.STRING);
+        this.addSubCommand(new SpawnSubCommand());
+        this.addSubCommand(new RemoveSubCommand());
+        this.addSubCommand(new ListSubCommand());
     }
 
     @Override
     protected CompletableFuture<Void> executeAsync(CommandContext ctx) {
+        if (!config.isPlayerShopsEnabled()) {
+            Messages.sendKey(ctx, "shop.player.disabled", java.util.Map.of());
+            return CompletableFuture.completedFuture(null);
+        }
+        Messages.sendKey(ctx, "shop.player.npc.usage", java.util.Map.of());
+        return CompletableFuture.completedFuture(null);
+    }
+
+    private CompletableFuture<Void> executeNpcAction(@Nonnull CommandContext ctx, @Nonnull String action, @Nonnull String shopName) {
         if (!config.isPlayerShopsEnabled()) {
             Messages.sendKey(ctx, "shop.player.disabled", java.util.Map.of());
             return CompletableFuture.completedFuture(null);
@@ -95,11 +95,52 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
             return CompletableFuture.completedFuture(null);
         }
 
-        List<String> args = new ArrayList<>();
-        if (ctx.provided(actionArg)) args.add(ctx.get(actionArg));
-        if (ctx.provided(shopArg)) args.add(ctx.get(shopArg));
-        handleNpcCommand(ctx, playerRef, world, args, false);
+        handleNpcCommand(ctx, playerRef, world, List.of(action, shopName), false);
         return CompletableFuture.completedFuture(null);
+    }
+
+    private final class SpawnSubCommand extends AbstractAsyncCommand {
+        private final RequiredArg<String> shopArg;
+
+        private SpawnSubCommand() {
+            super("spawn", "Spawn a player shop NPC");
+            this.shopArg = withRequiredArg("shop", "Shop name", ArgTypes.STRING);
+            this.addAliases(new String[]{"create"});
+        }
+
+        @Override
+        protected CompletableFuture<Void> executeAsync(CommandContext ctx) {
+            return executeNpcAction(ctx, "spawn", ctx.get(shopArg));
+        }
+    }
+
+    private final class RemoveSubCommand extends AbstractAsyncCommand {
+        private final RequiredArg<String> shopArg;
+
+        private RemoveSubCommand() {
+            super("remove", "Remove a nearby player shop NPC");
+            this.shopArg = withRequiredArg("shop", "Shop name", ArgTypes.STRING);
+            this.addAliases(new String[]{"delete"});
+        }
+
+        @Override
+        protected CompletableFuture<Void> executeAsync(CommandContext ctx) {
+            return executeNpcAction(ctx, "remove", ctx.get(shopArg));
+        }
+    }
+
+    private final class ListSubCommand extends AbstractAsyncCommand {
+        private final RequiredArg<String> shopArg;
+
+        private ListSubCommand() {
+            super("list", "List player shop NPC IDs");
+            this.shopArg = withRequiredArg("shop", "Shop name", ArgTypes.STRING);
+        }
+
+        @Override
+        protected CompletableFuture<Void> executeAsync(CommandContext ctx) {
+            return executeNpcAction(ctx, "list", ctx.get(shopArg));
+        }
     }
 
     public void handleNpcCommand(@Nonnull CommandContext ctx,
@@ -122,6 +163,16 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
         }
 
         String action = args.get(0).toLowerCase();
+        if ("spawn".equals(action) || "create".equals(action)) {
+            if (args.size() < 2) {
+                Messages.sendKey(ctx, "shop.player.npc.usage", java.util.Map.of());
+                return;
+            }
+            String shopName = args.get(1);
+            world.execute(() -> spawnNpc(ctx, playerRef, world, shopName));
+            return;
+        }
+
         if ("remove".equals(action) || "delete".equals(action)) {
             if (args.size() < 2) {
                 Messages.sendKey(ctx, "shop.player.npc.usage.remove", java.util.Map.of());
@@ -162,19 +213,16 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
             Messages.sendKey(ctx, "shop.npc.shop_not_found", java.util.Map.of());
             return;
         }
-        if (!shop.getNpcs().isEmpty()) {
-            Store<EntityStore> store = world.getEntityStore().getStore();
-            if (cleanupStaleNpcs(world, store, shop)) {
-                Messages.sendPrefixedKey(playerRef, "shop.npc.already_exists", java.util.Map.of());
-                return;
-            }
+        Store<EntityStore> store = world.getEntityStore().getStore();
+        if (ShopNpcEntityUtil.hasExistingShopNpc(world, store, shop)) {
+            Messages.sendPrefixedKey(playerRef, "shop.npc.already_exists", java.util.Map.of());
+            return;
         }
         if (!hasAccess(ctx, playerRef, shop)) {
             Messages.noPerm(ctx, "/shopnpc " + shopName);
             return;
         }
 
-        Store<EntityStore> store = world.getEntityStore().getStore();
         Ref<EntityStore> playerEntityRef = world.getEntityStore().getRefFromUUID(playerRef.getUuid());
         if (playerEntityRef == null) {
             Messages.sendKey(ctx, "shop.npc.player_entity_missing", java.util.Map.of());
@@ -202,74 +250,30 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
         Vector3d spawnPos = new Vector3d(basePos.x() + 0.5D, basePos.y(), basePos.z() + 0.5D);
         com.hypixel.hytale.math.vector.Rotation3f rotation = transform.getRotation() != null ? transform.getRotation() : new com.hypixel.hytale.math.vector.Rotation3f(0f, 0f, 0f);
 
-        NPCPlugin npcPlugin = NPCPlugin.get();
-        List<String> availableRoles = npcPlugin.getRoleTemplateNames(true);
-        String selectedRole = null;
-        int roleIndex = -1;
-
-        String preferredRole = shop.getNpcRole();
-        if (!preferredRole.isBlank() && availableRoles.contains(preferredRole)) {
-            int idx = npcPlugin.getIndex(preferredRole);
-            if (idx >= 0) {
-                selectedRole = preferredRole;
-                roleIndex = idx;
-            }
-        }
-
-        for (String preferred : PREFERRED_ROLES) {
-            if (selectedRole != null) break;
-            if (availableRoles.contains(preferred)) {
-                roleIndex = npcPlugin.getIndex(preferred);
-                if (roleIndex >= 0) {
-                    selectedRole = preferred;
-                    break;
-                }
-            }
-        }
-
-        if (selectedRole == null && !availableRoles.isEmpty()) {
-            for (String role : availableRoles) {
-                roleIndex = npcPlugin.getIndex(role);
-                if (roleIndex >= 0) {
-                    selectedRole = role;
-                    break;
-                }
-            }
-        }
-
-        if (selectedRole == null || roleIndex < 0) {
+        ShopNpcEntityUtil.RoleSelection role = ShopNpcEntityUtil.resolveRoleSelection(shop.getNpcRole());
+        if (role == null) {
             Messages.sendKey(ctx, "shop.npc.no_roles", java.util.Map.of());
             return;
         }
 
-        Pair<Ref<EntityStore>, NPCEntity> npcPair =
-                npcPlugin.spawnEntity(store, roleIndex, spawnPos, rotation, null, null);
-        if (npcPair == null) {
-            Messages.sendKey(ctx, "shop.npc.spawn_failed", java.util.Map.of());
-            return;
-        }
-
-        Ref<EntityStore> npcRef = npcPair.first();
-        NPCEntity spawnedNpc = npcPair.second();
-        applyNpcDefaults(store, npcRef, spawnedNpc, basePos, rotation, shop.getDisplayName());
-
-        UUID spawnedNpcId = ServerCompatUtil.getUuid(spawnedNpc);
-        if (spawnedNpcId == null) {
-            Messages.sendKey(ctx, "shop.npc.spawn_failed", java.util.Map.of());
-            return;
-        }
-        String npcId = spawnedNpcId.toString();
-        ShopNpcModel loc = new ShopNpcModel(
-                npcId,
+        ShopNpcEntityUtil.NpcLifecycleResult result = ShopNpcEntityUtil.moveOrSpawnShopNpc(
+                world,
+                store,
+                shop,
+                null,
+                spawnPos,
+                rotation,
                 basePos,
-                world.getName(),
-                shop.getName(),
+                shop.getDisplayName(),
                 playerRef.getUuid().toString(),
                 playerRef.getUsername() == null ? "" : playerRef.getUsername(),
-                selectedRole
+                role.roleName(),
+                role.roleIndex()
         );
-        shop.getNpcs().removeIf(npc -> npcId.equalsIgnoreCase(npc.getNpcId()));
-        shop.getNpcs().add(loc);
+        if (!result.success()) {
+            Messages.sendKey(ctx, "shop.npc.spawn_failed", java.util.Map.of());
+            return;
+        }
         shopManager.saveShop(shop);
 
         Messages.sendPrefixedKey(playerRef, "shop.npc.spawned", java.util.Map.of("shop", shop.getDisplayName()));
@@ -311,20 +315,14 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
             if (distance(playerPos, npcModel.getPosition()) > 5.0D) {
                 continue;
             }
-            boolean removed = despawnNpc(world, store, npcModel.getNpcId());
-            if (!removed) {
-                removed = despawnNpcByPosition(world, store, npcModel.getPosition());
-            }
+            boolean removed = ShopNpcEntityUtil.removeAllMatchingShopNpcs(store, shop, npcModel) > 0;
             anyRemoved |= removed;
             shop.getNpcs().removeIf(npc -> npcModel.getNpcId().equalsIgnoreCase(npc.getNpcId()));
         }
         if (!anyRemoved) {
             ShopNpcModel nearest = findNearestNpc(shop, world.getName(), playerPos);
             if (nearest != null) {
-                boolean removed = despawnNpc(world, store, nearest.getNpcId());
-                if (!removed) {
-                    removed = despawnNpcByPosition(world, store, nearest.getPosition());
-                }
+                boolean removed = ShopNpcEntityUtil.removeAllMatchingShopNpcs(store, shop, nearest) > 0;
                 if (removed) {
                     shop.getNpcs().removeIf(npc -> nearest.getNpcId().equalsIgnoreCase(npc.getNpcId()));
                     anyRemoved = true;
@@ -397,144 +395,11 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
         return false;
     }
 
-    private boolean despawnNpc(@Nonnull World world, @Nonnull Store<EntityStore> store, @Nonnull String npcId) {
-        try {
-            UUID npcUuid = UUID.fromString(npcId);
-            final boolean[] removed = {false};
-            store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
-                try {
-                    Ref<EntityStore> ref = chunk.getReferenceTo(index);
-                    NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
-                    if (npc != null && npcUuid.equals(ServerCompatUtil.getUuid(npc))) {
-                        npc.setToDespawn();
-                        npc.setDespawning(true);
-                        npc.setDespawnTime(0f);
-                        npc.setDespawnRemainingSeconds(0f);
-                        npc.setDespawnCheckRemainingSeconds(0f);
-                        commandBuffer.tryRemoveEntity(ref, RemoveReason.REMOVE);
-                        removed[0] = true;
-                    }
-                } catch (Exception ignored) {
-                }
-            });
-            return removed[0];
-        } catch (Exception ignored) {
-        }
-        return false;
-    }
-
-    private boolean despawnNpcByPosition(@Nonnull World world, @Nonnull Store<EntityStore> store, @Nonnull Vector3i position) {
-        final boolean[] removed = {false};
-        store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
-            try {
-                Ref<EntityStore> ref = chunk.getReferenceTo(index);
-                NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
-                if (npc == null) return;
-                TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
-                if (transform == null || transform.getPosition() == null) return;
-                Vector3d pos = transform.getPosition();
-                double dx = Math.abs(pos.x() - (position.x() + 0.5D));
-                double dy = Math.abs(pos.y() - position.y());
-                double dz = Math.abs(pos.z() - (position.z() + 0.5D));
-                if (dx < 1.5D && dy < 2.0D && dz < 1.5D) {
-                    Interactions interactions = store.getComponent(ref, Interactions.getComponentType());
-                    String interactionId = interactions != null
-                            ? interactions.getInteractionId(InteractionType.Use)
-                            : null;
-                    if (interactionId == null
-                            || !interactionId.equalsIgnoreCase(ShopNpcInteractionRegistry.ADMIN_SHOP_ROOT_INTERACTION_ID)) {
-                        return;
-                    }
-                    npc.setToDespawn();
-                    npc.setDespawning(true);
-                    npc.setDespawnTime(0f);
-                    npc.setDespawnRemainingSeconds(0f);
-                    npc.setDespawnCheckRemainingSeconds(0f);
-                    commandBuffer.tryRemoveEntity(ref, RemoveReason.REMOVE);
-                    removed[0] = true;
-                }
-            } catch (Exception ignored) {
-            }
-        });
-        return removed[0];
-    }
-
     private double distance(@Nonnull Vector3d playerPos, @Nonnull Vector3i blockPos) {
         double dx = playerPos.x() - (blockPos.x() + 0.5D);
         double dy = playerPos.y() - blockPos.y();
         double dz = playerPos.z() - (blockPos.z() + 0.5D);
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
-    }
-
-    private boolean cleanupStaleNpcs(@Nonnull World world,
-                                     @Nonnull Store<EntityStore> store,
-                                     @Nonnull ShopModel shop) {
-        String worldName = world.getName();
-        boolean foundInOtherWorld = false;
-        java.util.Set<java.util.UUID> knownIds = new java.util.HashSet<>();
-        java.util.List<Vector3i> positions = new java.util.ArrayList<>();
-        java.util.List<ShopNpcModel> currentWorld = new java.util.ArrayList<>();
-        for (ShopNpcModel npc : shop.getNpcs()) {
-            if (npc == null) continue;
-            if (!npc.getWorldId().equalsIgnoreCase(worldName)) {
-                foundInOtherWorld = true;
-                continue;
-            }
-            currentWorld.add(npc);
-            positions.add(npc.getPosition());
-            String id = npc.getNpcId();
-            if (id == null || id.isBlank()) continue;
-            try {
-                knownIds.add(java.util.UUID.fromString(id));
-            } catch (Exception ignored) {
-            }
-        }
-        if (currentWorld.isEmpty()) {
-            return foundInOtherWorld;
-        }
-        java.util.concurrent.atomic.AtomicBoolean found = new java.util.concurrent.atomic.AtomicBoolean(false);
-        store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
-            if (found.get()) return;
-            try {
-                Ref<EntityStore> ref = chunk.getReferenceTo(index);
-                NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
-                if (npc == null) return;
-                Interactions interactions = store.getComponent(ref, Interactions.getComponentType());
-                String interactionId = interactions != null
-                        ? interactions.getInteractionId(InteractionType.Use)
-                        : null;
-                if (interactionId == null
-                        || !interactionId.equalsIgnoreCase(ShopNpcInteractionRegistry.ADMIN_SHOP_ROOT_INTERACTION_ID)) {
-                    return;
-                }
-                try {
-                    UUID currentId = ServerCompatUtil.getUuid(npc);
-                    if (currentId != null && knownIds.contains(currentId)) {
-                        found.set(true);
-                        return;
-                    }
-                } catch (Exception ignored) {
-                }
-                TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
-                if (transform == null || transform.getPosition() == null) return;
-                Vector3d pos = transform.getPosition();
-                for (Vector3i stored : positions) {
-                    double dx = Math.abs(pos.x() - (stored.x() + 0.5D));
-                    double dy = Math.abs(pos.y() - stored.y());
-                    double dz = Math.abs(pos.z() - (stored.z() + 0.5D));
-                    if (dx < 1.5D && dy < 2.0D && dz < 1.5D) {
-                        found.set(true);
-                        return;
-                    }
-                }
-            } catch (Exception ignored) {
-            }
-        });
-        if (!found.get()) {
-            shop.getNpcs().removeIf(npc -> npc != null && npc.getWorldId().equalsIgnoreCase(worldName));
-            shopManager.saveShop(shop);
-        }
-        return found.get() || foundInOtherWorld;
     }
 
     private ShopNpcModel findNearestNpc(@Nonnull ShopModel shop,
@@ -554,33 +419,5 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
         return best;
     }
 
-    private void applyNpcDefaults(@Nonnull Store<EntityStore> store,
-                                  @Nonnull Ref<EntityStore> npcRef,
-                                  @Nonnull NPCEntity npc,
-                                  @Nonnull Vector3i blockPos,
-                                  @Nonnull com.hypixel.hytale.math.vector.Rotation3f rotation,
-                                  @Nonnull String displayName) {
-        if (store.getComponent(npcRef, Interactable.getComponentType()) == null) {
-            store.addComponent(npcRef, Interactable.getComponentType(), Interactable.INSTANCE);
-        }
-        store.addComponent(npcRef, Invulnerable.getComponentType(), Invulnerable.INSTANCE);
-        store.addComponent(npcRef, Frozen.getComponentType(), Frozen.get());
-        ShopNpcNameplateUtil.apply(store, npcRef, displayName);
-        MovementStatesComponent movementStates = store.getComponent(npcRef, MovementStatesComponent.getComponentType());
-        if (movementStates != null) {
-            MovementStates states = movementStates.getMovementStates();
-            states.idle = true;
-            states.horizontalIdle = true;
-            states.walking = false;
-            states.running = false;
-            states.sprinting = false;
-            states.onGround = true;
-        }
-        npc.setDespawnTime(Float.MAX_VALUE);
-        npc.setDespawning(false);
-        npc.setLeashPoint(new Vector3d(blockPos.x() + 0.5D, blockPos.y(), blockPos.z() + 0.5D));
-        npc.setLeashHeading(rotation.y());
-        ShopNpcInteractionRegistry.applyNpcInteractions(store, npcRef);
-    }
 }
 

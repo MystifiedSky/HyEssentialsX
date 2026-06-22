@@ -72,7 +72,6 @@ public final class MailCommand extends CommandBase {
             super("send", "Send mail to a player");
             this.targetArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
             this.messageArg = withListRequiredArg("message", "Message", ArgTypes.STRING);
-            this.targetArg.suggest(MailCommand.this::suggestKnownPlayers);
         }
 
         @Override
@@ -516,20 +515,6 @@ public final class MailCommand extends CommandBase {
         String name = data.getLastKnownName();
         if (name != null && !name.isBlank()) return name;
         return fallback;
-    }
-
-    private void suggestKnownPlayers(com.hypixel.hytale.server.core.command.system.CommandSender sender,
-                                     String input,
-                                     int offset,
-                                     com.hypixel.hytale.server.core.command.system.suggestion.SuggestionResult result) {
-        String normalized = input == null ? "" : input.trim().toLowerCase();
-        for (UUID uuid : storage.listPlayerIds()) {
-            PlayerRef online = Universe.get().getPlayer(uuid);
-            String name = online != null ? online.getUsername() : storage.getPlayerData(uuid).getLastKnownName();
-            if (name == null || name.isBlank()) continue;
-            if (!normalized.isEmpty() && !name.toLowerCase().startsWith(normalized)) continue;
-            result.suggest(name);
-        }
     }
 
     @Nonnull

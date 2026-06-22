@@ -43,7 +43,6 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.StatsManager;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -83,7 +82,6 @@ public final class StatsListener {
         registry.registerSystem(new PickupStatsSystem(stats));
         registry.registerSystem(new DamageStatsSystem(stats, lastDamage));
         registry.registerSystem(new DeathStatsSystem(stats, lastDamage));
-        registry.registerSystem(new PlaytimeStatsSystem(stats));
         registry.registerSystem(new MovementStatsSystem(stats, lastPositions, accumulatedDistanceCm));
     }
 
@@ -379,39 +377,6 @@ public final class StatsListener {
         @Override
         public com.hypixel.hytale.component.ComponentType<EntityStore, DeathComponent> componentType() {
             return DeathComponent.getComponentType();
-        }
-    }
-
-    private static final class PlaytimeStatsSystem extends EntityTickingSystem<EntityStore> {
-        private final StatsManager stats;
-        private final Map<UUID, Double> accumulatedSeconds = new ConcurrentHashMap<>();
-
-        private PlaytimeStatsSystem(@Nonnull StatsManager stats) {
-            this.stats = stats;
-        }
-
-        @Override
-        public Query<EntityStore> getQuery() {
-            return PlayerRef.getComponentType();
-        }
-
-        @Override
-        public void tick(float deltaTime,
-                         int index,
-                         @Nonnull ArchetypeChunk<EntityStore> chunk,
-                         @Nonnull Store<EntityStore> store,
-                         @Nonnull CommandBuffer<EntityStore> buffer) {
-            if (!stats.isEnabled()) return;
-            PlayerRef player = chunk.getComponent(index, PlayerRef.getComponentType());
-            if (player == null) return;
-            double accumulated = accumulatedSeconds.getOrDefault(player.getUuid(), 0.0D) + deltaTime;
-            if (accumulated >= 1.0D) {
-                long seconds = (long) accumulated;
-                accumulatedSeconds.put(player.getUuid(), accumulated - seconds);
-                stats.increment(player.getUuid(), StatsManager.CATEGORY_CUSTOM, "play_time", seconds);
-            } else {
-                accumulatedSeconds.put(player.getUuid(), accumulated);
-            }
         }
     }
 

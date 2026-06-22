@@ -4,6 +4,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -42,8 +43,6 @@ public final class WarpCommand extends CommandBase {
     private final ConfigManager config;
     private final CommandCooldownManager cooldowns;
     private final BackManager backManager;
-    private final OptionalArg<String> warpArg;
-    private final OptionalArg<PlayerRef> targetArg;
 
     public WarpCommand(@Nonnull WarpManager warpManager,
                        @Nonnull TPManager tpManager,
@@ -57,8 +56,8 @@ public final class WarpCommand extends CommandBase {
         this.cooldowns = cooldowns;
         this.backManager = backManager;
         this.setPermissionGroups();
-        this.warpArg = withOptionalArg("warp", "Warp name", ArgTypes.STRING);
-        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
+        this.addUsageVariant(new WarpToCommand());
+        this.addSubCommand(new ListSubCommand());
     }
 
     @Override
@@ -74,12 +73,14 @@ public final class WarpCommand extends CommandBase {
         }
 
         PlayerRef senderPlayer = CommandSenderUtil.resolvePlayer(context);
-        if (!context.provided(warpArg)) {
-            handleWarpList(context, senderPlayer);
-            return;
-        }
+        handleWarpList(context, senderPlayer);
+    }
 
-        String name = context.get(warpArg);
+    private void handleWarp(@Nonnull CommandContext context,
+                            @Nullable String rawName,
+                            @Nullable PlayerRef targetOverride) {
+        PlayerRef senderPlayer = CommandSenderUtil.resolvePlayer(context);
+        String name = rawName;
         if (name == null || name.trim().isEmpty()) {
             Messages.errKey(context, "warp.not_found", Map.of());
             return;
@@ -99,12 +100,8 @@ public final class WarpCommand extends CommandBase {
         }
 
         PlayerRef target = senderPlayer;
-        if (context.provided(targetArg)) {
-            target = context.get(targetArg);
-            if (target == null) {
-                Messages.errKey(context, "player.not_found", Map.of());
-                return;
-            }
+        if (targetOverride != null) {
+            target = targetOverride;
         }
         if (target == null) {
             Messages.err(context, "&cUsage: /warp <warp> <player>");
@@ -244,6 +241,60 @@ public final class WarpCommand extends CommandBase {
         Messages.okKey(context, "teleport.success.warp", Map.of("warp", resolvedWarpName));
     }
 
+    private final class WarpToCommand extends CommandBase {
+        private final OptionalArg<PlayerRef> targetArg;
+        private final RequiredArg<String> warpArg;
+
+        private WarpToCommand() {
+            super("Teleports to a warp");
+            this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
+            this.warpArg = withRequiredArg("warp", "Warp name", ArgTypes.STRING);
+            this.warpArg.suggest(WarpCommand.this::suggestWarps);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!config.isWarpsEnabled()) {
+                Messages.errKey(context, "warp.disabled", Map.of());
+                return;
+            }
+            PlayerRef target = null;
+            if (context.provided(targetArg)) {
+                target = context.get(targetArg);
+                if (target == null) {
+                    Messages.errKey(context, "player.not_found", Map.of());
+                    return;
+                }
+            }
+            handleWarp(context, context.get(warpArg), target);
+        }
+    }
+
+    private final class ListSubCommand extends CommandBase {
+        private ListSubCommand() {
+            super("list", "List available warps");
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!config.isWarpsEnabled()) {
+                Messages.errKey(context, "warp.disabled", Map.of());
+                return;
+            }
+            handleWarpList(context, CommandSenderUtil.resolvePlayer(context));
+        }
+    }
+
     private void handleWarpList(@Nonnull CommandContext context, @Nullable PlayerRef senderPlayer) {
         List<String> warps = warpManager.listWarps();
         if (warps.isEmpty()) {
@@ -348,6 +399,18 @@ public final class WarpCommand extends CommandBase {
                 sender,
                 PER_WARP_PERMISSION_PREFIX + normalized
         );
+    }
+
+    private void suggestWarps(com.hypixel.hytale.server.core.command.system.CommandSender sender,
+                              String input,
+                              int offset,
+                              com.hypixel.hytale.server.core.command.system.suggestion.SuggestionResult result) {
+        String normalized = input == null ? "" : input.trim().toLowerCase(Locale.ROOT);
+        for (String warpName : filterAccessibleWarps(sender, warpManager.listWarps())) {
+            if (warpName == null || warpName.isBlank()) continue;
+            if (!normalized.isEmpty() && !warpName.toLowerCase(Locale.ROOT).startsWith(normalized)) continue;
+            result.suggest(warpName);
+        }
     }
 
     @Nonnull

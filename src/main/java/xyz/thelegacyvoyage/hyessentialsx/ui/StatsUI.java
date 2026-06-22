@@ -16,6 +16,7 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StatsManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
@@ -40,18 +41,21 @@ public final class StatsUI extends InteractiveCustomUIPage<StatsUI.StatsEventDat
     private final UUID targetId;
     private final String targetName;
     private final StatsManager stats;
+    private final PlaytimeManager playtime;
     private Tab currentTab;
 
     public StatsUI(@Nonnull PlayerRef viewer,
                    @Nonnull UUID targetId,
                    @Nonnull String targetName,
                    @Nonnull StatsManager stats,
+                   @Nonnull PlaytimeManager playtime,
                    @Nonnull Tab initialTab) {
         super(viewer, CustomPageLifetime.CanDismiss, StatsEventData.CODEC);
         this.viewer = viewer;
         this.targetId = targetId;
         this.targetName = targetName;
         this.stats = stats;
+        this.playtime = playtime;
         this.currentTab = initialTab;
     }
 
@@ -116,7 +120,7 @@ public final class StatsUI extends InteractiveCustomUIPage<StatsUI.StatsEventDat
     }
 
     private void buildOverviewCards(@Nonnull UICommandBuilder cmd) {
-        cmd.set("#PlayTimeValue.Text", TimeUtil.formatDurationSeconds(custom("play_time")));
+        cmd.set("#PlayTimeValue.Text", TimeUtil.formatDurationSeconds(playtimeSeconds()));
         cmd.set("#DeathsValue.Text", stats.formatNumber(custom("deaths")));
         cmd.set("#KillsValue.Text", stats.formatNumber(custom("player_kills") + custom("mob_kills")));
         cmd.set("#DistanceValue.Text", stats.formatDistance(custom("distance_traveled")));
@@ -125,7 +129,7 @@ public final class StatsUI extends InteractiveCustomUIPage<StatsUI.StatsEventDat
     private void buildGeneral(@Nonnull UICommandBuilder cmd) {
         cmd.clear("#GeneralList");
         List<StatLine> lines = new ArrayList<>();
-        lines.add(new StatLine("Play Time", TimeUtil.formatDurationSeconds(custom("play_time")), "#54e39e"));
+        lines.add(new StatLine("Play Time", TimeUtil.formatDurationSeconds(playtimeSeconds()), "#54e39e"));
         lines.add(new StatLine("Times Connected", stats.formatNumber(custom("times_connected")), "#8fd3ff"));
         lines.add(new StatLine("Messages Sent", stats.formatNumber(custom("messages_sent")), "#d0bbff"));
         lines.add(new StatLine("Deaths", stats.formatNumber(custom("deaths")), "#ff8d9a"));
@@ -276,6 +280,10 @@ public final class StatsUI extends InteractiveCustomUIPage<StatsUI.StatsEventDat
 
     private long custom(@Nonnull String stat) {
         return stats.get(targetId, StatsManager.CATEGORY_CUSTOM, stat);
+    }
+
+    private long playtimeSeconds() {
+        return playtime.getPlaytimeSeconds(targetId);
     }
 
     @Nonnull

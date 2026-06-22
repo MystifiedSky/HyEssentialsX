@@ -3,7 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.tpa;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -27,7 +27,6 @@ public final class TpaCommand extends AbstractPlayerCommand {
     private final TPManager tpManager;
     private final ConfigManager config;
     private final CommandCooldownManager cooldowns;
-    private final OptionalArg<PlayerRef> targetArg;
 
     public TpaCommand(@Nonnull TPManager tpManager,
                       @Nonnull ConfigManager config,
@@ -37,7 +36,8 @@ public final class TpaCommand extends AbstractPlayerCommand {
         this.config = config;
         this.cooldowns = cooldowns;
         this.setPermissionGroups();
-        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
+        this.addUsageVariant(new RequestSubCommand());
+        this.addSubCommand(new GuiSubCommand());
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -62,28 +62,14 @@ public final class TpaCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "tpa.disabled", java.util.Map.of());
             return;
         }
-        if (!context.provided(targetArg)) {
-            if (config.isTpaGuiEnabled()) {
-                Player player = store.getComponent(ref, Player.getComponentType());
-                if (player == null) {
-                    Messages.errKey(context, "tpa.ui_failed", java.util.Map.of());
-                    return;
-                }
-                TpaUI page = new TpaUI(playerRef, tpManager, cooldowns, config, null);
-                page.open(player, ref, store);
-                return;
-            }
-            Messages.errKey(context, "tpa.usage", java.util.Map.of());
-            return;
-        }
 
+        openTpaGui(context, store, ref, playerRef);
+    }
+
+    private void sendTpaRequest(@Nonnull CommandContext context,
+                                @Nonnull PlayerRef playerRef,
+                                @Nonnull PlayerRef target) {
         if (!cooldowns.canUse(context, playerRef, CooldownKeys.TPA, "/tpa", BYPASS_PERMISSION)) {
-            return;
-        }
-
-        PlayerRef target = context.get(targetArg);
-        if (target == null) {
-            Messages.errKey(context, "player.not_found", java.util.Map.of());
             return;
         }
 
@@ -106,6 +92,87 @@ public final class TpaCommand extends AbstractPlayerCommand {
         Messages.okKey(context, "tpa.request.sent", java.util.Map.of("player", target.getUsername()));
         Messages.sendKey(target, "tpa.request.received", java.util.Map.of("player", playerRef.getUsername()));
         cooldowns.apply(playerRef, CooldownKeys.TPA);
+    }
+
+    private void openTpaGui(@Nonnull CommandContext context,
+                            @Nonnull Store<EntityStore> store,
+                            @Nonnull Ref<EntityStore> ref,
+                            @Nonnull PlayerRef playerRef) {
+        if (config.isTpaGuiEnabled()) {
+            Player player = store.getComponent(ref, Player.getComponentType());
+            if (player == null) {
+                Messages.errKey(context, "tpa.ui_failed", java.util.Map.of());
+                return;
+            }
+            TpaUI page = new TpaUI(playerRef, tpManager, cooldowns, config, null);
+            page.open(player, ref, store);
+            return;
+        }
+        Messages.errKey(context, "tpa.usage", java.util.Map.of());
+    }
+
+    private final class RequestSubCommand extends AbstractPlayerCommand {
+        private final RequiredArg<PlayerRef> targetArg;
+
+        private RequestSubCommand() {
+            super("Request to teleport to another player");
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/tpa");
+                return;
+            }
+            if (!config.isTpaEnabled()) {
+                Messages.errKey(context, "tpa.disabled", java.util.Map.of());
+                return;
+            }
+            PlayerRef target = context.get(targetArg);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", java.util.Map.of());
+                return;
+            }
+            sendTpaRequest(context, playerRef, target);
+        }
+    }
+
+    private final class GuiSubCommand extends AbstractPlayerCommand {
+        private GuiSubCommand() {
+            super("gui", "Open the TPA request menu");
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/tpa gui");
+                return;
+            }
+            if (!config.isTpaEnabled()) {
+                Messages.errKey(context, "tpa.disabled", java.util.Map.of());
+                return;
+            }
+            openTpaGui(context, store, ref, playerRef);
+        }
     }
 }
 

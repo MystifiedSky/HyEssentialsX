@@ -23,6 +23,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import javax.annotation.Nonnull;
 import java.util.Map;
 
+@SuppressWarnings("removal")
 public final class InvSeeCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_VIEW = "hyessentialsx.invsee.view";

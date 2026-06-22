@@ -17,6 +17,7 @@ import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+@SuppressWarnings("removal")
 public final class ShopPlacementUtil {
 
     private static final Object WARN_LOCK = new Object();

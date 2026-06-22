@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+@SuppressWarnings("removal")
 public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities.player.pages.CustomUIPage {
 
     private static final String LAYOUT = "hyessentialsx/KitsPage.ui";

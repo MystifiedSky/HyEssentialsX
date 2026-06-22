@@ -16,15 +16,25 @@ public final class PluginInfoUtil {
 
     @Nonnull
     public static String getVersion() {
+        return getManifestValue("Version", "unknown");
+    }
+
+    @Nonnull
+    public static String getServerVersion() {
+        return getManifestValue("ServerVersion", "unknown");
+    }
+
+    @Nonnull
+    private static String getManifestValue(@Nonnull String key, @Nonnull String fallback) {
         try (InputStream in = PluginInfoUtil.class.getResourceAsStream("/manifest.json")) {
-            if (in == null) return "unknown";
+            if (in == null) return fallback;
             JsonObject obj = GSON.fromJson(new InputStreamReader(in, StandardCharsets.UTF_8), JsonObject.class);
-            if (obj != null && obj.has("Version")) {
-                return obj.get("Version").getAsString();
+            if (obj != null && obj.has(key)) {
+                return obj.get(key).getAsString();
             }
         } catch (Exception ignored) {
         }
-        return "unknown";
+        return fallback;
     }
 }
 

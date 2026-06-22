@@ -20,6 +20,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import javax.annotation.Nonnull;
 import java.util.List;
 
+@SuppressWarnings("removal")
 public final class MoreCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.more";
@@ -111,7 +112,6 @@ public final class MoreCommand extends AbstractPlayerCommand {
         }
         byte slot = inventory.getActiveHotbarSlot();
         hotbar.setItemStackForSlot(slot, updated);
-        inventory.markChanged();
 
         if (isSelf) {
             Messages.okKey(context, "more.success", java.util.Map.of("amount", String.valueOf(maxStack)));

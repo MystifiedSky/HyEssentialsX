@@ -26,6 +26,7 @@ import xyz.thelegacyvoyage.hyessentialsx.ui.ShopBrowseUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -183,7 +184,8 @@ public final class ShopNpcInteractionRegistry {
     private static ShopModel resolveShopForNpc(@Nonnull Store<EntityStore> store,
                                                @Nonnull Ref<EntityStore> npcRef,
                                                @Nonnull NPCEntity npc) {
-        ShopModel byId = shopManager.findShopByNpcId(npc.getUuid().toString());
+        java.util.UUID npcUuid = ServerCompatUtil.getUuid(npc);
+        ShopModel byId = npcUuid != null ? shopManager.findShopByNpcId(npcUuid.toString()) : null;
         if (byId != null) {
             return byId;
         }

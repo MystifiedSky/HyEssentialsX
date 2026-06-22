@@ -29,6 +29,7 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
+@SuppressWarnings("removal")
 public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIEventData> {
 
     private static final String LAYOUT = "hyessentialsx/ShopBrowse.ui";

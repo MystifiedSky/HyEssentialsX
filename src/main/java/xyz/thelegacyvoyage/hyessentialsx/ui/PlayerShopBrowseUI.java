@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@SuppressWarnings("removal")
 public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShopBrowseUI.UIEventData> {
 
     private static final String LAYOUT = "hyessentialsx/ShopBrowse.ui";

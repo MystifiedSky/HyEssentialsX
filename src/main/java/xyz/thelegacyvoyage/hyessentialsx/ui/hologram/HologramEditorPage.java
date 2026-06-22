@@ -5,6 +5,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.hologram.FacingDirection;
 import xyz.thelegacyvoyage.hyessentialsx.models.hologram.Hologram;
 import xyz.thelegacyvoyage.hyessentialsx.models.hologram.Vec3d;
 import xyz.thelegacyvoyage.hyessentialsx.util.HologramPermissionUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
@@ -257,7 +258,12 @@ public class HologramEditorPage extends InteractiveCustomUIPage<HologramEditorEv
                   }
 
                   try {
-                     Vector3d transformPos = player.getTransformComponent().getPosition();
+                     var transform = ServerCompatUtil.getTransform(player);
+                     if (transform == null || transform.getPosition() == null) {
+                        this.refreshUI(ref, store);
+                        return;
+                     }
+                     Vector3d transformPos = transform.getPosition();
                      playerPos = new Vec3d(transformPos.getX(), transformPos.getY(), transformPos.getZ());
                      this.plugin.getHologramManager().moveHologram(hologram, playerPos);
                      this.plugin.getHologramManager().saveHolograms();

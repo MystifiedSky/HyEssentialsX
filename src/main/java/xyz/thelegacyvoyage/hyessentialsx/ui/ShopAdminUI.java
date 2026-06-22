@@ -43,6 +43,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopContainerUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcNameplateUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -50,6 +51,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@SuppressWarnings("removal")
 public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEventData> {
 
     private static final String LAYOUT = "hyessentialsx/ShopAdmin.ui";
@@ -1060,14 +1062,18 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             ShopNpcInteractionRegistry.applyNpcInteractions(store, newRef);
             applyNameplate(store, newRef);
             applyNpcDefaults(store, newRef, newNpc, npcModel.getPosition(), rotation, shop.getDisplayName());
-            npcModel.setNpcId(newNpc.getUuid().toString());
+            UUID newNpcId = ServerCompatUtil.getUuid(newNpc);
+            if (newNpcId == null) {
+                continue;
+            }
+            npcModel.setNpcId(newNpcId.toString());
         }
     }
 
     private void queueNpcRemoval(@Nonnull Store<EntityStore> store,
                                  @Nonnull Ref<EntityStore> npcRef,
                                  @Nonnull NPCEntity existing) {
-        UUID targetUuid = existing.getUuid();
+        UUID targetUuid = ServerCompatUtil.getUuid(existing);
         store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
             try {
                 Ref<EntityStore> ref = chunk.getReferenceTo(index);
@@ -1075,7 +1081,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                 if (npc == null) {
                     return;
                 }
-                if (npcRef.equals(ref) || npc.getUuid().equals(targetUuid)) {
+                if (npcRef.equals(ref) || (targetUuid != null && targetUuid.equals(ServerCompatUtil.getUuid(npc)))) {
                     commandBuffer.tryRemoveEntity(ref, com.hypixel.hytale.component.RemoveReason.REMOVE);
                 }
             } catch (Exception ignored) {

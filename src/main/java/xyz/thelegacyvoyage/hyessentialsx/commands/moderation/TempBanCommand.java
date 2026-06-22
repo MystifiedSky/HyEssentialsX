@@ -89,10 +89,10 @@ public final class TempBanCommand extends CommandBase {
             String reasonText = (reason == null || reason.isBlank())
                     ? Messages.tr(online, "reason.none", java.util.Map.of())
                     : reason;
-            online.getPacketHandler().disconnect(Messages.tr(online, "ban.kick", java.util.Map.of(
+            online.getPacketHandler().disconnect(Messages.m(Messages.tr(online, "ban.kick", java.util.Map.of(
                     "reason", reasonText,
                     "time", TimeUtil.formatDurationSeconds(seconds)
-            )));
+            ))));
         }
 
         Messages.okKey(context, "ban.temp.success", java.util.Map.of(

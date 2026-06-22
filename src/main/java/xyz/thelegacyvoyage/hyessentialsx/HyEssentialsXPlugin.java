@@ -671,7 +671,8 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         new IpBanListener(ipBanManager, storage).register(bus);
         new CleanupListener(tpManager, backManager, flyManager, godManager, staminaManager, vanishManager).register(bus);
         new FreezeListener(freezeManager).register(bus);
-        new AfkListener(afkManager).register(bus);
+        AfkListener afkListener = new AfkListener(afkManager);
+        afkListener.register(bus);
         new CombatLogListener(combatLogManager, configManager).register(bus);
         new SpawnProtectionListener(spawnManager, configManager).register(bus);
         RespawnTeleportListener respawnTeleportListener = new RespawnTeleportListener(spawnManager);
@@ -692,6 +693,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         new EconomyRewardListener(economyManager, configManager).register(getEntityStoreRegistry());
         new CombatLogListener(combatLogManager, configManager).register(getEntityStoreRegistry());
         new FreezeListener(freezeManager).register(getEntityStoreRegistry());
+        afkListener.register(getEntityStoreRegistry());
     }
 
     private void registerWorldHooks() {

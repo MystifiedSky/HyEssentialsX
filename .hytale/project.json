@@ -2,9 +2,9 @@
   "groupId": "xyz.thelegacyvoyage",
   "artifactId": "hyessentialsx",
   "modName": "HyEssentialsX",
-  "version": "1.0.0",
+  "version": "1.4.1",
   "buildSystem": "Gradle",
   "language": "Java",
-  "jarPath": "build/libs/hyessentialsx-1.0.0.jar",
+  "jarPath": "build/libs/hyessentialsx-dev.jar",
   "buildTask": "shadowJar"
 }

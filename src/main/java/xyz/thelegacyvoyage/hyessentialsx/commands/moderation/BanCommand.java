@@ -95,10 +95,10 @@ public final class BanCommand extends CommandBase {
                     ? Messages.tr(online, "reason.none", Map.of())
                     : reason;
             String timeText = Messages.tr(online, "ban.permanent", Map.of());
-            online.getPacketHandler().disconnect(Messages.tr(online, "ban.kick", Map.of(
+            online.getPacketHandler().disconnect(Messages.m(Messages.tr(online, "ban.kick", Map.of(
                     "reason", reasonText,
                     "time", timeText
-            )));
+            ))));
         }
 
         Messages.okKey(context, "ban.temp.success", Map.of(

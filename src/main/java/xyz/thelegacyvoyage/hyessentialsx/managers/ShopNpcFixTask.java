@@ -18,6 +18,7 @@ import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
+import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcNameplateUtil;
 
 import javax.annotation.Nonnull;
@@ -110,7 +111,7 @@ public final class ShopNpcFixTask {
                 }
                 boolean matched = false;
                 try {
-                    matched = npc.getUuid().equals(npcUuid);
+                    matched = npcUuid.equals(ServerCompatUtil.getUuid(npc));
                 } catch (Exception ignored) {
                 }
                 if (!matched) {
@@ -124,7 +125,7 @@ public final class ShopNpcFixTask {
                         if (matched) {
                             UUID currentId = null;
                             try {
-                                currentId = npc.getUuid();
+                                currentId = ServerCompatUtil.getUuid(npc);
                             } catch (Exception ignored) {
                             }
                             if (currentId != null && knownIds.contains(currentId)) {

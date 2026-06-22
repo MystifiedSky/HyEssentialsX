@@ -39,6 +39,7 @@ import java.util.zip.ZipOutputStream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
+import xyz.thelegacyvoyage.hyessentialsx.util.PluginInfoUtil;
 
 public class ImageManager {
    @Nonnull
@@ -453,7 +454,7 @@ public class ImageManager {
    }
 
    private String createManifestJson() {
-      return "{\n  \"Name\": \"" + ASSET_PACK_NAME + "\",\n  \"Group\": \"xyz.thelegacyvoyage.hyessentialsx.assets\",\n  \"Version\": \"1.0.0\",\n  \"Description\": \"HyEssentialsX combined assets\",\n  \"ServerVersion\": \"2026.02.17-255364b8e\",\n  \"IncludesAssetPack\": true\n}\n";
+      return "{\n  \"Name\": \"" + ASSET_PACK_NAME + "\",\n  \"Group\": \"xyz.thelegacyvoyage.hyessentialsx.assets\",\n  \"Version\": \"" + PluginInfoUtil.getVersion() + "\",\n  \"Description\": \"HyEssentialsX combined assets\",\n  \"ServerVersion\": \"" + PluginInfoUtil.getServerVersion() + "\",\n  \"IncludesAssetPack\": true\n}\n";
    }
 
    private boolean isModelAssetLoaded(@Nonnull String modelAssetId) {

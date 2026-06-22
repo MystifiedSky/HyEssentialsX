@@ -23,6 +23,7 @@ import javax.annotation.Nonnull;
 import java.lang.reflect.Method;
 import java.util.List;
 
+@SuppressWarnings("removal")
 public final class KitCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.kit";

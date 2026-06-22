@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'xyz.thelegacyvoyage.hyessentialsx'
-version = '1.4.1'
+version = '1.4.2'
 
 repositories {
     mavenCentral()
@@ -29,6 +29,27 @@ def existingServerJars = serverJarCandidates.findAll { it.exists() }
 def selectedServerJar = existingServerJars
         ? existingServerJars.max { it.lastModified() }
         : serverJarPath
+
+def resolveServerVersionFromJar = { File jarFile ->
+    if (jarFile == null || !jarFile.exists()) {
+        return null
+    }
+    def jar = new java.util.jar.JarFile(jarFile)
+    try {
+        def propsEntry = jar.getJarEntry('META-INF/maven/com.hypixel.hytale/Server/pom.properties')
+        if (propsEntry != null) {
+            def props = new Properties()
+            props.load(jar.getInputStream(propsEntry))
+            return props.getProperty('version')
+        }
+        def manifest = jar.getManifest()
+        return manifest?.mainAttributes?.getValue('Implementation-Version')
+    } finally {
+        jar.close()
+    }
+}
+
+def selectedServerVersion = resolveServerVersionFromJar(selectedServerJar)
 
 dependencies {
     // Use the newest available HytaleServer.jar (project/server/libs), fallback to libs for clarity
@@ -109,8 +130,12 @@ tasks.named('compileJava') {
 tasks.named('processResources') {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     inputs.property('version', project.version)
+    inputs.property('serverVersion', selectedServerVersion ?: '')
     filesMatching('manifest.json') {
-        expand(version: project.version)
+        expand(
+                version: project.version,
+                serverVersion: selectedServerVersion ?: ''
+        )
     }
 }
 

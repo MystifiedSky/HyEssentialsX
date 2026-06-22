@@ -19,6 +19,7 @@ import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings("removal")
 public final class ClearInventoryCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.clearinventory";

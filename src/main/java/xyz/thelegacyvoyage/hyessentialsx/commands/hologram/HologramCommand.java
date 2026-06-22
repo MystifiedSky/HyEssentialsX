@@ -7,6 +7,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.hologram.Hologram;
 import xyz.thelegacyvoyage.hyessentialsx.models.hologram.Vec3d;
 import xyz.thelegacyvoyage.hyessentialsx.util.HologramPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
@@ -165,7 +166,7 @@ public class HologramCommand extends AbstractCommand {
                   CompletableFuture<Void> future = new CompletableFuture<>();
                   world.execute(() -> {
                      try {
-                        TransformComponent transform = player.getTransformComponent();
+                        TransformComponent transform = ServerCompatUtil.getTransform(player);
                         if (transform == null || transform.getPosition() == null) {
                             Messages.errKey(context, "error.position_unavailable", java.util.Map.of());
                            future.complete(null);
@@ -178,7 +179,13 @@ public class HologramCommand extends AbstractCommand {
                         double offsetX = -Math.sin(yawRadians) * distance;
                         double offsetZ = Math.cos(yawRadians) * distance;
                         Vec3d position = new Vec3d(playerPos.getX() + offsetX, playerPos.getY() + 1.5D, playerPos.getZ() + offsetZ);
-                        this.plugin.getHologramManager().createHologram(name, position, world.getWorldConfig().getUuid(), player.getUuid());
+                        java.util.UUID ownerId = ServerCompatUtil.getPlayerUuid(player);
+                        if (ownerId == null) {
+                           Messages.errKey(context, "error.player_unavailable", java.util.Map.of());
+                           future.complete(null);
+                           return;
+                        }
+                        this.plugin.getHologramManager().createHologram(name, position, world.getWorldConfig().getUuid(), ownerId);
                         Messages.sendKey(context, "hologram.created", Map.of("name", name));
                         Messages.sendKey(context, "hologram.created.position", Map.of(
                                 "x", String.format("%.1f", position.x()),
@@ -391,7 +398,7 @@ public class HologramCommand extends AbstractCommand {
                   }
                   CompletableFuture<Void> future = new CompletableFuture<>();
                   world.execute(() -> {
-                     TransformComponent transform = player.getTransformComponent();
+                     TransformComponent transform = ServerCompatUtil.getTransform(player);
                      if (transform == null || transform.getPosition() == null) {
                         Messages.errKey(context, "error.position_unavailable", java.util.Map.of());
                         future.complete(null);

@@ -89,7 +89,7 @@ public final class IpBanCommand extends CommandBase {
         ipBans.ban(ip, ban);
 
         if (online != null) {
-            online.getPacketHandler().disconnect("IP Banned: " + reason);
+            online.getPacketHandler().disconnect(Messages.m("IP Banned: " + reason));
         }
 
         Messages.okKey(context, "ipban.banned", Map.of(

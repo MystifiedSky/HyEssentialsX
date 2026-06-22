@@ -22,6 +22,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.LuckPermsUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.MultipleHudBridge;
 import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.PluginInfoUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.hologram.ByteArrayCommonAsset;
 
@@ -1846,9 +1847,9 @@ public final class ScoreboardManager {
         return "{\n"
                 + "  \"Name\": \"" + SCOREBOARD_ASSET_PACK + "\",\n"
                 + "  \"Group\": \"" + SCOREBOARD_ASSET_GROUP + "\",\n"
-                + "  \"Version\": \"1.0.0\",\n"
+                + "  \"Version\": \"" + PluginInfoUtil.getVersion() + "\",\n"
                 + "  \"Description\": \"HyEssentialsX scoreboard UI assets\",\n"
-                + "  \"ServerVersion\": \"2026.02.17-255364b8e\",\n"
+                + "  \"ServerVersion\": \"" + PluginInfoUtil.getServerVersion() + "\",\n"
                 + "  \"IncludesAssetPack\": true\n"
                 + "}\n";
     }

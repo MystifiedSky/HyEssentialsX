@@ -45,7 +45,7 @@ public final class IpBanListener {
         String msg = Messages.tr(null, "ipban.blocked", Map.of(
                 "reason", (reason != null && !reason.isBlank()) ? reason : "IP banned"
         ));
-        event.setReason(msg);
+        event.setReason(Messages.m(msg));
         event.setCancelled(true);
     }
 }

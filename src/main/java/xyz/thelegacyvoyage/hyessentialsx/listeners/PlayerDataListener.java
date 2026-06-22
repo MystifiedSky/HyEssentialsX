@@ -28,6 +28,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.IpUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
+import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
 import javax.annotation.Nonnull;
@@ -36,6 +37,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+@SuppressWarnings("removal")
 public final class PlayerDataListener {
 
     private final StorageManager storage;
@@ -118,7 +120,7 @@ public final class PlayerDataListener {
                 String remaining = TimeUtil.formatRemaining(ban.getExpiresAt());
                 String reason = (ban.getReason() != null && !ban.getReason().isBlank())
                         ? ban.getReason() : "Banned";
-                player.getPacketHandler().disconnect("Banned: " + reason + " (" + remaining + ")");
+                player.getPacketHandler().disconnect(Messages.m("Banned: " + reason + " (" + remaining + ")"));
             }
         });
 

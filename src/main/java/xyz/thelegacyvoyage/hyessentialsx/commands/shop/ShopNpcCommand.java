@@ -31,6 +31,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcNameplateUtil;
 
 import javax.annotation.Nonnull;
@@ -65,7 +66,7 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
             Messages.sendKey(ctx, "shop.npc.players_only", java.util.Map.of());
             return CompletableFuture.completedFuture(null);
         }
-        PlayerRef playerRef = player.getPlayerRef();
+        PlayerRef playerRef = ServerCompatUtil.getPlayerRef(player);
         if (playerRef == null) {
             Messages.sendKey(ctx, "shop.npc.player_ref_failed", java.util.Map.of());
             return CompletableFuture.completedFuture(null);
@@ -218,7 +219,12 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
         NPCEntity spawnedNpc = npcPair.second();
         applyNpcDefaults(store, npcRef, spawnedNpc, basePos, rotation, shop.getDisplayName());
 
-        String npcId = spawnedNpc.getUuid().toString();
+        UUID spawnedNpcId = ServerCompatUtil.getUuid(spawnedNpc);
+        if (spawnedNpcId == null) {
+            Messages.sendKey(ctx, "shop.npc.spawn_failed", java.util.Map.of());
+            return;
+        }
+        String npcId = spawnedNpcId.toString();
         ShopNpcModel loc = new ShopNpcModel(
                 npcId,
                 basePos,
@@ -317,7 +323,7 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
                 try {
                     Ref<EntityStore> ref = chunk.getReferenceTo(index);
                     NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
-                    if (npc != null && npc.getUuid().equals(npcUuid)) {
+                    if (npc != null && npcUuid.equals(ServerCompatUtil.getUuid(npc))) {
                         npc.setToDespawn();
                         npc.setDespawning(true);
                         npc.setDespawnTime(0f);
@@ -420,7 +426,8 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
                     return;
                 }
                 try {
-                    if (knownIds.contains(npc.getUuid())) {
+                    UUID currentId = ServerCompatUtil.getUuid(npc);
+                    if (currentId != null && knownIds.contains(currentId)) {
                         found.set(true);
                         return;
                     }

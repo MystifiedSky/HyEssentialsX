@@ -24,6 +24,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 import javax.annotation.Nonnull;
 import java.util.List;
 
+@SuppressWarnings("removal")
 public final class KitCreateCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.kitcreate";

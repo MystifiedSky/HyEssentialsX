@@ -30,6 +30,7 @@ import xyz.thelegacyvoyage.hyessentialsx.ui.ShopAdminUI;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopBrowseUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcRemovalUtil;
 
 import javax.annotation.Nonnull;
@@ -399,7 +400,7 @@ public final class ShopCommand extends AbstractPlayerCommand {
                 try {
                     Ref<EntityStore> ref = chunk.getReferenceTo(index);
                     NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
-                    if (npc != null && npc.getUuid().equals(npcUuid)) {
+                    if (npc != null && npcUuid.equals(ServerCompatUtil.getUuid(npc))) {
                         npc.setToDespawn();
                         npc.setDespawning(true);
                         npc.setDespawnTime(0f);

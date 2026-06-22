@@ -2,15 +2,18 @@ package xyz.thelegacyvoyage.hyessentialsx.util;
 
 import com.hypixel.hytale.server.core.inventory.Inventory;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
+import com.hypixel.hytale.server.core.inventory.container.CombinedItemContainer;
 import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 import org.bson.BsonDocument;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitItemModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopItemModel;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+@SuppressWarnings("removal")
 public final class InventoryUtil {
 
     private InventoryUtil() {}
@@ -18,7 +21,7 @@ public final class InventoryUtil {
     @Nonnull
     public static List<KitItemModel> snapshot(@Nonnull Inventory inventory) {
         List<KitItemModel> out = new ArrayList<>();
-        ItemContainer container = inventory.getCombinedEverything();
+        ItemContainer container = getCombinedInventory(inventory);
         if (container == null) return out;
 
         short cap = container.getCapacity();
@@ -40,7 +43,7 @@ public final class InventoryUtil {
 
     @Nonnull
     public static List<ItemStack> applyKit(@Nonnull Inventory inventory, @Nonnull List<KitItemModel> items) {
-        ItemContainer container = inventory.getCombinedEverything();
+        ItemContainer container = getCombinedInventory(inventory);
         if (container == null) return List.of();
 
         List<ItemStack> overflow = new ArrayList<>();
@@ -51,7 +54,6 @@ public final class InventoryUtil {
                 overflow.add(stack);
             }
         }
-        inventory.markChanged();
         return overflow;
     }
 
@@ -60,7 +62,7 @@ public final class InventoryUtil {
     }
 
     public static int repairAll(@Nonnull Inventory inventory) {
-        ItemContainer container = inventory.getCombinedEverything();
+        ItemContainer container = getCombinedInventory(inventory);
         if (container == null) return 0;
 
         int repaired = 0;
@@ -81,7 +83,6 @@ public final class InventoryUtil {
             container.setItemStackForSlot(i, fixed);
             repaired++;
         }
-        inventory.markChanged();
         return repaired;
     }
 
@@ -103,7 +104,6 @@ public final class InventoryUtil {
                 held.getMetadata()
         );
         hotbar.setItemStackForSlot(slot, fixed);
-        inventory.markChanged();
         return 1;
     }
 
@@ -183,7 +183,7 @@ public final class InventoryUtil {
 
     public static int countItem(@Nonnull Inventory inventory, @Nonnull String itemId) {
         if (itemId.isBlank()) return 0;
-        ItemContainer container = inventory.getCombinedEverything();
+        ItemContainer container = getCombinedInventory(inventory);
         if (container == null) return 0;
         int total = 0;
         short cap = container.getCapacity();
@@ -214,7 +214,7 @@ public final class InventoryUtil {
     public static boolean removeItems(@Nonnull Inventory inventory, @Nonnull List<ShopItemModel> items) {
         if (items.isEmpty()) return true;
         if (!hasItems(inventory, items)) return false;
-        ItemContainer container = inventory.getCombinedEverything();
+        ItemContainer container = getCombinedInventory(inventory);
         if (container == null) return false;
 
         for (ShopItemModel item : items) {
@@ -243,11 +243,9 @@ public final class InventoryUtil {
             }
 
             if (remaining > 0) {
-                inventory.markChanged();
                 return false;
             }
         }
-        inventory.markChanged();
         return true;
     }
 
@@ -259,7 +257,7 @@ public final class InventoryUtil {
     public static List<ItemStack> addItemsWithOverflow(@Nonnull Inventory inventory, @Nonnull List<ShopItemModel> items) {
         List<ItemStack> overflow = new ArrayList<>();
         if (items.isEmpty()) return overflow;
-        ItemContainer container = inventory.getCombinedEverything();
+        ItemContainer container = getCombinedInventory(inventory);
         if (container == null) {
             for (ShopItemModel item : items) {
                 if (item == null) continue;
@@ -280,8 +278,27 @@ public final class InventoryUtil {
                 overflow.add(stack);
             }
         }
-        inventory.markChanged();
         return overflow;
+    }
+
+    @Nullable
+    private static ItemContainer getCombinedInventory(@Nonnull Inventory inventory) {
+        List<ItemContainer> containers = new ArrayList<>(6);
+        addContainer(containers, inventory.getArmor());
+        addContainer(containers, inventory.getHotbar());
+        addContainer(containers, inventory.getUtility());
+        addContainer(containers, inventory.getStorage());
+        addContainer(containers, inventory.getTools());
+        addContainer(containers, inventory.getBackpack());
+        if (containers.isEmpty()) return null;
+        if (containers.size() == 1) return containers.get(0);
+        return new CombinedItemContainer(containers.toArray(new ItemContainer[0]));
+    }
+
+    private static void addContainer(@Nonnull List<ItemContainer> containers, @Nullable ItemContainer container) {
+        if (container != null) {
+            containers.add(container);
+        }
     }
 
     private static ItemStack cloneWithQuantity(@Nonnull ItemStack stack, int quantity) {

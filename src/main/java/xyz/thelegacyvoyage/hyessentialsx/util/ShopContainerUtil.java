@@ -1,5 +1,6 @@
 package xyz.thelegacyvoyage.hyessentialsx.util;
 
+import com.hypixel.hytale.component.Holder;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.util.ChunkUtil;
@@ -10,12 +11,12 @@ import com.hypixel.hytale.server.core.inventory.container.CombinedItemContainer;
 import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 import com.hypixel.hytale.server.core.inventory.transaction.ListTransaction;
 import com.hypixel.hytale.server.core.inventory.transaction.ItemStackTransaction;
+import com.hypixel.hytale.server.core.modules.block.components.ItemContainerBlock;
 import com.hypixel.hytale.server.core.modules.entity.component.HeadRotation;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
-import com.hypixel.hytale.server.core.universe.world.meta.BlockState;
-import com.hypixel.hytale.server.core.universe.world.meta.state.ItemContainerBlockState;
+import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopChestModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopItemModel;
@@ -65,11 +66,10 @@ public final class ShopContainerUtil {
         long chunkIndex = ChunkUtil.indexChunkFromBlock(pos.getX(), pos.getZ());
         WorldChunk chunk = world.getChunkIfLoaded(chunkIndex);
         if (chunk == null) return null;
-        BlockState state = chunk.getState(pos.getX(), pos.getY(), pos.getZ());
-        if (state instanceof ItemContainerBlockState containerState) {
-            return containerState.getItemContainer();
-        }
-        return null;
+        Holder<ChunkStore> holder = chunk.getBlockComponentHolder(pos.getX(), pos.getY(), pos.getZ());
+        if (holder == null) return null;
+        ItemContainerBlock containerBlock = holder.getComponent(ItemContainerBlock.getComponentType());
+        return containerBlock != null ? containerBlock.getItemContainer() : null;
     }
 
     public static boolean hasItems(@Nonnull List<ItemContainer> containers,

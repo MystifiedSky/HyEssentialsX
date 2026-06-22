@@ -101,7 +101,7 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
                                  boolean ignorePermission) {
         if (!ignorePermission) {
             CommandSender sender = ctx.sender();
-            boolean canNpc = sender.hasPermission(PERMISSION_NODE) || sender.hasPermission(ADMIN_PERMISSION);
+            boolean canNpc = xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(sender, PERMISSION_NODE) || xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(sender, ADMIN_PERMISSION);
             if (!canNpc) {
                 Messages.noPerm(ctx, "/shopnpc");
                 return;
@@ -365,7 +365,7 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
 
 
     private boolean hasAccess(@Nonnull CommandContext ctx, @Nonnull PlayerRef playerRef, @Nonnull ShopModel shop) {
-        if (ctx.sender().hasPermission(ADMIN_PERMISSION)) {
+        if (xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(ctx.sender(), ADMIN_PERMISSION)) {
             return true;
         }
         String uuid = playerRef.getUuid().toString();

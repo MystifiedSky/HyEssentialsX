@@ -44,7 +44,7 @@ public final class MoreCommand extends AbstractPlayerCommand {
                            @Nonnull Ref<EntityStore> ref,
                            @Nonnull PlayerRef playerRef,
                            @Nonnull World world) {
-        if (!context.sender().hasPermission(PERMISSION_NODE) && !context.sender().hasPermission(LEGACY_PERMISSION)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE) && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), LEGACY_PERMISSION)) {
             Messages.noPerm(context, "/more");
             return;
         }
@@ -52,7 +52,7 @@ public final class MoreCommand extends AbstractPlayerCommand {
         List<String> args = CommandInputUtil.getArgs(context);
         PlayerRef target = playerRef;
         if (!args.isEmpty()) {
-            if (!context.sender().hasPermission(OTHERS_PERMISSION)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
                 Messages.noPerm(context, "/more");
                 return;
             }

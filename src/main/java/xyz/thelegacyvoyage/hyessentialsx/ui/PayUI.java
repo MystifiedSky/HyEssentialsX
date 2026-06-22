@@ -9,7 +9,6 @@ import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
-import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -18,6 +17,7 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyAuditManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -182,7 +182,7 @@ public final class PayUI extends InteractiveCustomUIPage<PayUI.PayUIEventData> {
     }
 
     private void handleConfirm() {
-        if (!PermissionsModule.get().hasPermission(playerRef.getUuid(), PERMISSION_NODE)) {
+        if (!CommandPermissionUtil.hasPermission(playerRef, PERMISSION_NODE)) {
             Messages.sendPrefixedKey(playerRef, "error.no_permission", Map.of("command", "/pay"));
             return;
         }

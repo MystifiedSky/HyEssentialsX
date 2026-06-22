@@ -49,14 +49,14 @@ public final class BanListCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/banlist");
             return;
         }
 
         Player player = store.getComponent(ref, Player.getComponentType());
         if (player == null) {
-            Messages.err(context, "Could not open the ban list.");
+            Messages.errKey(context, "banlist.open_failed", java.util.Map.of());
             return;
         }
 

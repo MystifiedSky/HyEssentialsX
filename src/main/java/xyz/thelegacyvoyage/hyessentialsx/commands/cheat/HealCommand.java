@@ -47,7 +47,7 @@ public final class HealCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/heal");
             return;
         }
@@ -64,7 +64,7 @@ public final class HealCommand extends AbstractPlayerCommand {
                 Messages.errKey(context, "player.not_found", java.util.Map.of());
                 return;
             }
-            if (!context.sender().hasPermission(OTHERS_PERMISSION)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
                 Messages.noPerm(context, "/heal " + targetName);
                 return;
             }

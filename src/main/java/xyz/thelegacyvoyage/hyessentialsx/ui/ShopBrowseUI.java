@@ -10,7 +10,6 @@ import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
 import com.hypixel.hytale.server.core.inventory.Inventory;
-import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -22,6 +21,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopItemModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopTradeModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -171,12 +171,15 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
         try {
             Player player = store.getComponent(ref, Player.getComponentType());
             if (player != null) {
-                componentHas = player.hasPermission(permission);
+                componentHas = CommandPermissionUtil.hasPermission(player, permission);
             }
         } catch (Exception ignored) {
         }
-        boolean moduleHas = PermissionsModule.get().hasPermission(playerRef.getUuid(), permission, false);
-        if (PermissionsModule.get().getFirstPermissionProvider() == null) {
+        boolean moduleHas = CommandPermissionUtil.hasPermission(playerRef, permission);
+        if (!CommandPermissionUtil.isPermissionsSystemEnabled()) {
+            return moduleHas;
+        }
+        if (com.hypixel.hytale.server.core.permissions.PermissionsModule.get().getFirstPermissionProvider() == null) {
             return componentHas != null ? componentHas : moduleHas;
         }
         if (componentHas == null) {

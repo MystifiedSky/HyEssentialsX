@@ -65,7 +65,7 @@ public final class RtpCommand extends CommandBase {
 
     @Override
     protected void executeSync(@Nonnull CommandContext context) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/rtp");
             return;
         }
@@ -79,7 +79,7 @@ public final class RtpCommand extends CommandBase {
         String worldArg = null;
         if (args.isEmpty()) {
             if (senderPlayer == null) {
-                Messages.err(context, "Usage: /rtp <player> [world]");
+                Messages.errKey(context, "rtp.usage", Map.of());
                 return;
             }
         } else {
@@ -99,7 +99,7 @@ public final class RtpCommand extends CommandBase {
             return;
         }
         boolean isOther = senderPlayer == null || !target.getUuid().equals(senderPlayer.getUuid());
-        if (isOther && !context.sender().hasPermission(OTHER_PERMISSION)) {
+        if (isOther && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
             Messages.noPerm(context, "/rtp <player>");
             return;
         }

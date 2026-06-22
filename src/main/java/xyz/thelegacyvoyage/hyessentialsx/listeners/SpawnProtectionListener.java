@@ -5,24 +5,23 @@ import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.ComponentRegistryProxy;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.component.query.Query;
-import com.hypixel.hytale.component.system.RefChangeSystem;
-import com.hypixel.hytale.component.system.EntityEventSystem;
+import com.hypixel.hytale.component.SystemGroup;
 import com.hypixel.hytale.component.dependency.RootDependency;
-import com.hypixel.hytale.event.EventRegistry;
+import com.hypixel.hytale.component.query.Query;
+import com.hypixel.hytale.component.system.EntityEventSystem;
+import com.hypixel.hytale.component.system.RefChangeSystem;
 import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.DamageBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.PlaceBlockEvent;
-import com.hypixel.hytale.server.core.event.events.player.PlayerInteractEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.UseBlockEvent;
+import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.modules.entity.component.Invulnerable;
+import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageEventSystem;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageModule;
-import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
-import com.hypixel.hytale.server.core.modules.entity.component.Invulnerable;
-import com.hypixel.hytale.component.SystemGroup;
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
-import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
@@ -49,6 +48,7 @@ public final class SpawnProtectionListener {
     }
 
     public void register(@Nonnull ComponentRegistryProxy<EntityStore> registry) {
+        registry.registerSystem(new UseBlockProtectionSystem(spawnManager, config));
         registry.registerSystem(new BreakBlockProtectionSystem(spawnManager, config));
         registry.registerSystem(new PlaceBlockProtectionSystem(spawnManager, config));
         registry.registerSystem(new DamageBlockProtectionSystem(spawnManager, config));
@@ -56,34 +56,8 @@ public final class SpawnProtectionListener {
         registry.registerSystem(new SpawnInvulnerableSystem(spawnManager, config));
     }
 
-    public void register(@Nonnull EventRegistry events) {
-        events.registerGlobal(PlayerInteractEvent.class, event -> {
-            if (!config.isSpawnProtectionEnabled() || config.isSpawnProtectionAllowInteract()) {
-                return;
-            }
-
-            if (event.isCancelled()) {
-                return;
-            }
-
-            PlayerRef player = event.getPlayer().getPlayerRef();
-            if (player == null || canBypass(player)) {
-                return;
-            }
-
-            Vector3i target = event.getTargetBlock();
-            if (target == null) {
-                return;
-            }
-
-            Ref<EntityStore> ref = event.getPlayerRef();
-            Store<EntityStore> store = ref.getStore();
-            Player playerEntity = event.getPlayer();
-            if (playerEntity == null) return;
-            if (isProtected(target, player, playerEntity, store, spawnManager, config)) {
-                event.setCancelled(true);
-            }
-        });
+    public void register(@Nonnull com.hypixel.hytale.event.EventRegistry events) {
+        // No-op: interaction protection is handled via UseBlockEvent.Pre ECS events.
     }
 
     private static boolean canBypass(@Nonnull PlayerRef player) {
@@ -93,7 +67,6 @@ public final class SpawnProtectionListener {
     private static boolean isProtected(@Nonnull Vector3i pos,
                                        @Nonnull PlayerRef player,
                                        @Nonnull Player playerEntity,
-                                       @Nonnull Store<EntityStore> store,
                                        @Nonnull SpawnManager spawnManager,
                                        @Nonnull ConfigManager config) {
         if (!config.isSpawnProtectionEnabled()) return false;
@@ -105,6 +78,7 @@ public final class SpawnProtectionListener {
             world = Universe.get().getWorld(player.getWorldUuid());
         }
         if (world == null) return false;
+        if (!isSpawnProtectionWorldEnabled(world, config)) return false;
 
         SpawnModel spawn = spawnManager.getSpawn();
         if (spawn == null && config.isUseWorldDefaultSpawnIfUnset()) {
@@ -121,7 +95,6 @@ public final class SpawnProtectionListener {
     private static boolean isProtected(@Nonnull com.hypixel.hytale.math.vector.Vector3d pos,
                                        @Nonnull PlayerRef player,
                                        @Nonnull Player playerEntity,
-                                       @Nonnull Store<EntityStore> store,
                                        @Nonnull SpawnManager spawnManager,
                                        @Nonnull ConfigManager config) {
         if (!config.isSpawnProtectionEnabled()) return false;
@@ -133,6 +106,7 @@ public final class SpawnProtectionListener {
             world = Universe.get().getWorld(player.getWorldUuid());
         }
         if (world == null) return false;
+        if (!isSpawnProtectionWorldEnabled(world, config)) return false;
 
         SpawnModel spawn = spawnManager.getSpawn();
         if (spawn == null && config.isUseWorldDefaultSpawnIfUnset()) {
@@ -144,6 +118,54 @@ public final class SpawnProtectionListener {
         double dx = Math.abs(pos.getX() - spawn.getX());
         double dz = Math.abs(pos.getZ() - spawn.getZ());
         return dx <= radius && dz <= radius;
+    }
+
+    private static boolean isSpawnProtectionWorldEnabled(@Nonnull World world, @Nonnull ConfigManager config) {
+        for (String candidate : config.getSpawnProtectionWorlds()) {
+            if (candidate.equalsIgnoreCase(world.getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static final class UseBlockProtectionSystem extends EntityEventSystem<EntityStore, UseBlockEvent.Pre> {
+        private final SpawnManager spawnManager;
+        private final ConfigManager config;
+
+        private UseBlockProtectionSystem(@Nonnull SpawnManager spawnManager, @Nonnull ConfigManager config) {
+            super(UseBlockEvent.Pre.class);
+            this.spawnManager = spawnManager;
+            this.config = config;
+        }
+
+        @Override
+        public Query<EntityStore> getQuery() {
+            return PlayerRef.getComponentType();
+        }
+
+        @Override
+        public java.util.Set<com.hypixel.hytale.component.dependency.Dependency<EntityStore>> getDependencies() {
+            return java.util.Collections.singleton(RootDependency.first());
+        }
+
+        @Override
+        public void handle(int index,
+                           @Nonnull ArchetypeChunk<EntityStore> chunk,
+                           @Nonnull Store<EntityStore> store,
+                           @Nonnull CommandBuffer<EntityStore> buffer,
+                           @Nonnull UseBlockEvent.Pre event) {
+            if (!config.isSpawnProtectionEnabled() || config.isSpawnProtectionAllowInteract()) return;
+            Ref<EntityStore> ref = chunk.getReferenceTo(index);
+            PlayerRef player = store.getComponent(ref, PlayerRef.getComponentType());
+            if (player == null || canBypass(player)) return;
+            Vector3i pos = event.getTargetBlock();
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity == null) return;
+            if (isProtected(pos, player, playerEntity, spawnManager, config)) {
+                event.setCancelled(true);
+            }
+        }
     }
 
     private static final class BreakBlockProtectionSystem extends EntityEventSystem<EntityStore, BreakBlockEvent> {
@@ -180,7 +202,7 @@ public final class SpawnProtectionListener {
             if (pos == null) return;
             Player playerEntity = store.getComponent(ref, Player.getComponentType());
             if (playerEntity == null) return;
-            if (isProtected(pos, player, playerEntity, store, spawnManager, config)) {
+            if (isProtected(pos, player, playerEntity, spawnManager, config)) {
                 event.setCancelled(true);
             }
         }
@@ -220,7 +242,7 @@ public final class SpawnProtectionListener {
             if (pos == null) return;
             Player playerEntity = store.getComponent(ref, Player.getComponentType());
             if (playerEntity == null) return;
-            if (isProtected(pos, player, playerEntity, store, spawnManager, config)) {
+            if (isProtected(pos, player, playerEntity, spawnManager, config)) {
                 event.setCancelled(true);
             }
         }
@@ -260,7 +282,7 @@ public final class SpawnProtectionListener {
             if (pos == null) return;
             Player playerEntity = store.getComponent(ref, Player.getComponentType());
             if (playerEntity == null) return;
-            if (isProtected(pos, player, playerEntity, store, spawnManager, config)) {
+            if (isProtected(pos, player, playerEntity, spawnManager, config)) {
                 event.setCancelled(true);
             }
         }
@@ -310,7 +332,7 @@ public final class SpawnProtectionListener {
                 pos = player.getTransform().getPosition();
             }
             if (pos == null) return;
-            if (isProtected(pos, player, playerEntity, store, spawnManager, config)) {
+            if (isProtected(pos, player, playerEntity, spawnManager, config)) {
                 event.setCancelled(true);
                 event.setAmount(0f);
             }
@@ -392,7 +414,7 @@ public final class SpawnProtectionListener {
                 clearInvulnerable(ref, buffer, player);
                 return;
             }
-            boolean inProtected = isProtected(transform.getPosition(), player, playerEntity, store, spawnManager, config);
+            boolean inProtected = isProtected(transform.getPosition(), player, playerEntity, spawnManager, config);
             if (inProtected) {
                 INVULN_TRACK.add(player.getUuid());
                 buffer.addComponent(ref, Invulnerable.getComponentType());

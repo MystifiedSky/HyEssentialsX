@@ -28,7 +28,7 @@ public class ReloadSubCommand extends CommandBase {
 
     @Override
     protected void executeSync(@Nonnull CommandContext context) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             xyz.thelegacyvoyage.hyessentialsx.util.Messages.noPerm(context, "/hyessentialsx reload");
             return;
         }

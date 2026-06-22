@@ -6,7 +6,6 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -18,6 +17,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.BanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.VanillaBanUtil;
 
@@ -164,7 +164,7 @@ public final class BanListUI extends com.hypixel.hytale.server.core.entity.entit
             return;
         }
 
-        if (!PermissionsModule.get().hasPermission(playerRef.getUuid(), UNBAN_PERMISSION)) {
+        if (!CommandPermissionUtil.hasPermission(playerRef, UNBAN_PERMISSION)) {
             Messages.sendPrefixedKey(playerRef, "error.no_permission", Map.of("command", "/unban"));
             return;
         }
@@ -187,7 +187,7 @@ public final class BanListUI extends com.hypixel.hytale.server.core.entity.entit
     private void handleUnipBan(@Nonnull Ref<EntityStore> ref,
                                @Nonnull Store<EntityStore> store,
                                @Nonnull String ip) {
-        if (!PermissionsModule.get().hasPermission(playerRef.getUuid(), IPBAN_PERMISSION)) {
+        if (!CommandPermissionUtil.hasPermission(playerRef, IPBAN_PERMISSION)) {
             Messages.sendPrefixedKey(playerRef, "error.no_permission", Map.of("command", "/unipban"));
             return;
         }
@@ -219,7 +219,7 @@ public final class BanListUI extends com.hypixel.hytale.server.core.entity.entit
             String reason = resolveReason(ban);
             out.add(BanEntry.player(uuid, name, reason));
         }
-        if (PermissionsModule.get().hasPermission(playerRef.getUuid(), IPBAN_PERMISSION)) {
+        if (CommandPermissionUtil.hasPermission(playerRef, IPBAN_PERMISSION)) {
             for (IpBanModel ipBan : storage.getIpBans().values()) {
                 if (ipBan == null) continue;
                 String ip = ipBan.getIp();

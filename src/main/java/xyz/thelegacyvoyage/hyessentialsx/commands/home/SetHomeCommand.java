@@ -52,7 +52,7 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/sethome");
             return;
         }
@@ -126,14 +126,14 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
     }
 
     private int resolveMaxHomes(@Nonnull com.hypixel.hytale.server.core.command.system.CommandSender sender) {
-        if (sender.hasPermission(MAX_PERMISSION_PREFIX + "*")
-                || sender.hasPermission(MAX_PERMISSION_PREFIX + "unlimited")) {
+        if (xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(sender, MAX_PERMISSION_PREFIX + "*")
+                || xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(sender, MAX_PERMISSION_PREFIX + "unlimited")) {
             return -1;
         }
 
         int max = -1;
         for (int i = 1; i <= MAX_PERMISSION_SCAN; i++) {
-            if (sender.hasPermission(MAX_PERMISSION_PREFIX + i)) {
+            if (xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(sender, MAX_PERMISSION_PREFIX + i)) {
                 max = i;
             }
         }

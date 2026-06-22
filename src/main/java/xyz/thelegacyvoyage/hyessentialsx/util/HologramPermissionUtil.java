@@ -24,16 +24,11 @@ public final class HologramPermissionUtil {
     }
 
     public static boolean hasPermission(@Nonnull CommandSender sender, @Nonnull String permission) {
-        if (sender.hasPermission(permission)) {
+        if (CommandPermissionUtil.hasPermission(sender, permission)) {
             return true;
         }
-        if (!permission.equals(PERMISSION_ADMIN) && sender.hasPermission(PERMISSION_ADMIN)) {
-            return true;
-        }
-        if (sender.hasPermission("*")) {
-            return true;
-        }
-        return sender.hasPermission("hytale.op") || sender.hasPermission("hytale.operator");
+        return !permission.equals(PERMISSION_ADMIN)
+                && CommandPermissionUtil.hasPermission(sender, PERMISSION_ADMIN);
     }
 
     public static boolean hasPermission(@Nullable Player player) {

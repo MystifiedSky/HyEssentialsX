@@ -45,7 +45,7 @@ public final class FreezeCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/freeze");
             return;
         }
@@ -58,7 +58,7 @@ public final class FreezeCommand extends AbstractPlayerCommand {
 
         String first = args.get(0);
         if ("all".equalsIgnoreCase(first)) {
-            if (!context.sender().hasPermission(ALL_PERMISSION)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), ALL_PERMISSION)) {
                 Messages.noPerm(context, "/freeze all");
                 return;
             }

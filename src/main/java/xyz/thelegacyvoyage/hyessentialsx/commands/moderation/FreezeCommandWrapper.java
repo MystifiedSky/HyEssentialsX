@@ -54,7 +54,7 @@ public final class FreezeCommandWrapper extends AbstractCommand {
     private boolean shouldBlock(@Nonnull CommandSender sender) {
         PlayerRef player = resolvePlayer(sender);
         if (player == null) return false;
-        if (sender.hasPermission(BYPASS_PERMISSION)) return false;
+        if (xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(sender, BYPASS_PERMISSION)) return false;
         if (!freezeManager.isFrozenOrStored(player.getUuid())) return false;
         String name = delegate.getName();
         if (name != null) {

@@ -15,7 +15,6 @@ import com.hypixel.hytale.server.core.inventory.container.DelegateItemContainer;
 import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 import com.hypixel.hytale.server.core.inventory.container.SimpleItemContainer;
 import com.hypixel.hytale.server.core.inventory.container.filter.FilterType;
-import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -24,6 +23,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitItemModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -183,7 +183,7 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
             return true;
         }
         String kitPerm = "hyessentialsx.kit." + kit.getName().toLowerCase(Locale.ROOT);
-        return PermissionsModule.get().hasPermission(playerRef.getUuid(), kitPerm);
+        return CommandPermissionUtil.hasPermission(playerRef, kitPerm);
     }
 
     private void buildKitsList(@Nonnull UICommandBuilder cmd, @Nonnull UIEventBuilder evt, @Nonnull List<KitModel> kits) {
@@ -265,8 +265,8 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
 
     private boolean hasBypassForKit(@Nonnull KitModel kit) {
         String kitBypass = "hyessentialsx.kit." + kit.getName().toLowerCase(Locale.ROOT) + ".bypass";
-        return PermissionsModule.get().hasPermission(playerRef.getUuid(), BYPASS_PERMISSION)
-                || PermissionsModule.get().hasPermission(playerRef.getUuid(), kitBypass);
+        return CommandPermissionUtil.hasPermission(playerRef, BYPASS_PERMISSION)
+                || CommandPermissionUtil.hasPermission(playerRef, kitBypass);
     }
 
     private void claimKit(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store, @Nonnull String name) {
@@ -283,7 +283,7 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
 
         if (config.isKitsRequirePermission()) {
             String kitPermission = "hyessentialsx.kit." + kit.getName().toLowerCase();
-            if (!PermissionsModule.get().hasPermission(playerRef.getUuid(), kitPermission)) {
+            if (!CommandPermissionUtil.hasPermission(playerRef, kitPermission)) {
                 Messages.sendPrefixedKey(playerRef, "error.no_permission", Map.of(
                         "command", "/kit " + kit.getName()
                 ));
@@ -291,14 +291,14 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
             }
         }
 
-        if (!PermissionsModule.get().hasPermission(playerRef.getUuid(), PERMISSION_NODE)) {
+        if (!CommandPermissionUtil.hasPermission(playerRef, PERMISSION_NODE)) {
             Messages.sendPrefixedKey(playerRef, "error.no_permission", Map.of("command", "/kit"));
             return;
         }
 
         String kitBypass = "hyessentialsx.kit." + kit.getName().toLowerCase() + ".bypass";
-        boolean bypassKitCooldown = PermissionsModule.get().hasPermission(playerRef.getUuid(), BYPASS_PERMISSION)
-                || PermissionsModule.get().hasPermission(playerRef.getUuid(), kitBypass);
+        boolean bypassKitCooldown = CommandPermissionUtil.hasPermission(playerRef, BYPASS_PERMISSION)
+                || CommandPermissionUtil.hasPermission(playerRef, kitBypass);
         if (!bypassKitCooldown) {
             if (!kitManager.hasRemainingUses(playerRef.getUuid(), kit)) {
                 Messages.sendPrefixedKey(playerRef, "kit.max_uses_reached", Map.of());

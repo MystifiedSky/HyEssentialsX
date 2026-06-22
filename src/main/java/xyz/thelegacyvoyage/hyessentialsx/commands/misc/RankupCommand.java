@@ -72,7 +72,7 @@ public final class RankupCommand extends AbstractPlayerCommand {
             openAdminPanel(context, player, store, ref);
             return;
         }
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/rankup");
             return;
         }
@@ -135,7 +135,7 @@ public final class RankupCommand extends AbstractPlayerCommand {
                                 @Nonnull PlayerRef playerRef,
                                 @Nonnull Store<EntityStore> store,
                                 @Nonnull Ref<EntityStore> ref) {
-        if (!context.sender().hasPermission(ADMIN_PERMISSION)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), ADMIN_PERMISSION)) {
             Messages.noPerm(context, "/rankup admin");
             return;
         }

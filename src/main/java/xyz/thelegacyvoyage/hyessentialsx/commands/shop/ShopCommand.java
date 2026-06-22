@@ -149,7 +149,7 @@ public final class ShopCommand extends AbstractPlayerCommand {
 
         if ("move".equals(sub)) {
             if (args.size() < 2) {
-                Messages.send(context, "&cUsage: /adminshop move <name>");
+                Messages.sendKey(context, "shop.admin.usage.move", java.util.Map.of());
                 return;
             }
             String name = args.get(1);
@@ -318,7 +318,7 @@ public final class ShopCommand extends AbstractPlayerCommand {
     private boolean hasPermission(@Nonnull com.hypixel.hytale.server.core.command.system.CommandSender sender,
                                   @Nonnull PlayerRef playerRef,
                                   @Nonnull String permission) {
-        boolean senderHas = sender.hasPermission(permission);
+        boolean senderHas = xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(sender, permission);
         boolean moduleHas = PermissionsModule.get().hasPermission(playerRef.getUuid(), permission, false);
         return senderHas || moduleHas;
     }

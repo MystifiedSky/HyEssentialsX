@@ -12,6 +12,7 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -24,10 +25,11 @@ public final class SetSpawnCommand extends AbstractPlayerCommand {
     private final ConfigManager config;
 
     public SetSpawnCommand(@Nonnull SpawnManager spawnManager, @Nonnull ConfigManager config) {
-        super("setspawn", "Set the server spawn to your current location");
+        super("setspawn", "Set the server spawn (or a named spawn) to your current location");
         this.spawnManager = spawnManager;
         this.config = config;
         this.setPermissionGroup(null);
+        this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -44,7 +46,7 @@ public final class SetSpawnCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/setspawn");
             return;
         }
@@ -63,13 +65,26 @@ public final class SetSpawnCommand extends AbstractPlayerCommand {
         Vector3f rot = transform.getRotation(); // axis order depends on SDK
         float yaw = (rot != null) ? rot.getY() : 0f;
         float pitch = (rot != null) ? rot.getX() : 0f;
-
-        spawnManager.setSpawn(new SpawnModel(
+        SpawnModel spawn = new SpawnModel(
                 world.getName(),
                 pos.getX(), pos.getY(), pos.getZ(),
                 yaw, pitch
-        ));
+        );
 
+        java.util.List<String> args = CommandInputUtil.getArgs(context);
+        if (!args.isEmpty()) {
+            String rawName = args.get(0);
+            String spawnName = SpawnManager.normalizeSpawnName(rawName);
+            if (spawnName == null) {
+                Messages.errKey(context, "spawn.named.invalid_name", java.util.Map.of());
+                return;
+            }
+            spawnManager.setNamedSpawn(spawnName, spawn);
+            Messages.okKey(context, "spawn.named.set", java.util.Map.of("name", spawnName));
+            return;
+        }
+
+        spawnManager.setSpawn(spawn);
         spawnManager.syncWorldSpawnProvider();
         Messages.okKey(context, "spawn.set", java.util.Map.of());
     }

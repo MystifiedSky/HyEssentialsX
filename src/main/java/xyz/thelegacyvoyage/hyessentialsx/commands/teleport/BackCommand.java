@@ -59,14 +59,14 @@ public final class BackCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/back");
             return;
         }
         java.util.List<String> args = CommandInputUtil.getArgs(context);
         PlayerRef target = playerRef;
         if (!args.isEmpty()) {
-            if (!context.sender().hasPermission(OTHERS_PERMISSION)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
                 Messages.noPerm(context, "/back <player>");
                 return;
             }

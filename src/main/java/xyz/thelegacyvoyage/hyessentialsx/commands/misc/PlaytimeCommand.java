@@ -74,7 +74,7 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
                            @Nonnull Ref<EntityStore> ref,
                            @Nonnull PlayerRef playerRef,
                            @Nonnull World world) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/playtime");
             return;
         }
@@ -136,7 +136,7 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
     }
 
     private void sendOtherPlaytime(@Nonnull CommandContext context, @Nonnull String targetName) {
-        if (!context.sender().hasPermission(OTHERS_PERMISSION)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
             Messages.noPerm(context, "/playtime <player>");
             return;
         }
@@ -215,7 +215,7 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
                                 @Nonnull PlayerRef playerRef,
                                 @Nonnull Store<EntityStore> store,
                                 @Nonnull Ref<EntityStore> ref) {
-        if (!context.sender().hasPermission(ADMIN_PERMISSION)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), ADMIN_PERMISSION)) {
             Messages.noPerm(context, "/playtime admin");
             return;
         }

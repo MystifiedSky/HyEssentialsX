@@ -68,7 +68,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/spawn");
             return;
         }
@@ -84,7 +84,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
 
         String firstArg = args.get(0);
         if ("all".equalsIgnoreCase(firstArg)) {
-            if (!context.sender().hasPermission(ALL_PERMISSION)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), ALL_PERMISSION)) {
                 Messages.noPerm(context, "/spawn all");
                 return;
             }
@@ -120,7 +120,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             spawnSelf(context, store, ref, playerRef, world);
             return;
         }
-        if (!context.sender().hasPermission(OTHER_PERMISSION)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
             Messages.noPerm(context, "/spawn " + target.getUsername());
             return;
         }
@@ -141,10 +141,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             return;
         }
 
-        SpawnModel spawn = spawnManager.getSpawn();
-        if (spawn == null && configManager.isUseWorldDefaultSpawnIfUnset()) {
-            spawn = spawnManager.getSpawnOrWorldDefault(world, playerRef.getUuid());
-        }
+        SpawnModel spawn = spawnManager.getSpawnForPlayer(world, playerRef);
         if (spawn == null) {
             Messages.errKey(context, "spawn.not_set", Map.of());
             return;
@@ -231,10 +228,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             return SpawnResult.FAILED;
         }
 
-        SpawnModel spawn = spawnManager.getSpawn();
-        if (spawn == null && configManager.isUseWorldDefaultSpawnIfUnset()) {
-            spawn = spawnManager.getSpawnOrWorldDefault(targetWorld, target.getUuid());
-        }
+        SpawnModel spawn = spawnManager.getSpawnForPlayer(targetWorld, target);
         if (spawn == null) {
             if (notifySender) {
                 Messages.errKey(context, "spawn.not_set", Map.of());

@@ -43,7 +43,7 @@ public final class CustomTextCommand extends CommandBase {
 
     @Override
     protected void executeSync(@Nonnull CommandContext context) {
-        if (!context.sender().hasPermission(permission)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), permission)) {
             Messages.noPerm(context, "/" + this.getName());
             return;
         }

@@ -37,7 +37,7 @@ public final class VanishCommand extends CommandBase {
 
     @Override
     protected void executeSync(@Nonnull CommandContext context) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/vanish");
             return;
         }
@@ -61,7 +61,7 @@ public final class VanishCommand extends CommandBase {
         }
 
         boolean isSelf = self != null && self.getUuid().equals(target.getUuid());
-        if (!isSelf && !context.sender().hasPermission(OTHERS_PERMISSION)) {
+        if (!isSelf && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
             Messages.noPerm(context, "/vanish");
             return;
         }

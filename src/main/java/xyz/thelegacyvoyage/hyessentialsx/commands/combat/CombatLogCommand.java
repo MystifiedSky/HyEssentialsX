@@ -35,7 +35,7 @@ public final class CombatLogCommand extends CommandBase {
     protected void executeSync(@Nonnull CommandContext context) {
         List<String> args = CommandInputUtil.getArgs(context);
         if (!args.isEmpty() && args.get(0).equalsIgnoreCase("reload")) {
-            if (!context.sender().hasPermission(RELOAD_PERMISSION)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), RELOAD_PERMISSION)) {
                 Messages.noPerm(context, "/combatlog reload");
                 return;
             }

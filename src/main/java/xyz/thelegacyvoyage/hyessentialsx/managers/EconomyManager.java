@@ -53,6 +53,16 @@ public final class EconomyManager {
         return symbol + formatCompact(amount);
     }
 
+    @Nonnull
+    public String formatAmountRaw(long amount) {
+        return String.valueOf(amount);
+    }
+
+    @Nonnull
+    public String formatAmountCompactRaw(long amount) {
+        return formatCompact(amount);
+    }
+
     public long getBalance(@Nonnull UUID uuid) {
         PlayerDataModel data = storage.getPlayerData(uuid);
         long balance = data.getBalance();

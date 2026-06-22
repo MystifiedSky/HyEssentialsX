@@ -497,7 +497,7 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
     private boolean hasPermission(@Nonnull CommandSender sender,
                                   @Nonnull PlayerRef playerRef,
                                   @Nonnull String permission) {
-        boolean senderHas = sender.hasPermission(permission);
+        boolean senderHas = xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(sender, permission);
         boolean moduleHas = PermissionsModule.get().hasPermission(playerRef.getUuid(), permission, false);
         return senderHas || moduleHas;
     }

@@ -51,7 +51,7 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
                            @Nonnull Ref<EntityStore> ref,
                            @Nonnull PlayerRef playerRef,
                            @Nonnull World world) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/flyspeed");
             return;
         }
@@ -87,7 +87,7 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
 
         PlayerRef target = playerRef;
         if (args.size() >= 2) {
-            if (!context.sender().hasPermission(OTHERS_PERMISSION)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
                 Messages.noPerm(context, "/flyspeed <speed> <player>");
                 return;
             }

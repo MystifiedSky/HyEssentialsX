@@ -6,7 +6,6 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -15,6 +14,7 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -195,7 +195,7 @@ public final class TpaUI extends com.hypixel.hytale.server.core.entity.entities.
             Messages.sendPrefixedKey(playerRef, "tpa.self", Map.of());
             return;
         }
-        if (!PermissionsModule.get().hasPermission(playerRef.getUuid(), PERMISSION_NODE)) {
+        if (!CommandPermissionUtil.hasPermission(playerRef, PERMISSION_NODE)) {
             Messages.sendPrefixedKey(playerRef, "error.no_permission", Map.of("command", "/tpa"));
             return;
         }

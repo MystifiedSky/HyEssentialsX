@@ -1,8 +1,8 @@
 package xyz.thelegacyvoyage.hyessentialsx.managers;
 
-import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -67,10 +67,6 @@ public final class SocialSpyManager {
     }
 
     private boolean hasPermission(@Nonnull PlayerRef playerRef, @Nonnull String permission) {
-        try {
-            return PermissionsModule.get().hasPermission(playerRef.getUuid(), permission);
-        } catch (Throwable ignored) {
-            return false;
-        }
+        return CommandPermissionUtil.hasPermission(playerRef, permission);
     }
 }

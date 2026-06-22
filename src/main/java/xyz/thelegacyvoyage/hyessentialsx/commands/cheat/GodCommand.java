@@ -43,7 +43,7 @@ public final class GodCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/god");
             return;
         }
@@ -55,7 +55,7 @@ public final class GodCommand extends AbstractPlayerCommand {
         }
 
         if (!playerRef.getUuid().equals(target.getUuid())
-                && !context.sender().hasPermission(OTHERS_PERMISSION)) {
+                && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
             Messages.noPerm(context, "/god");
             return;
         }

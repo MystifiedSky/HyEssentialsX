@@ -4,12 +4,12 @@ import com.hypixel.hytale.event.EventRegistry;
 import com.hypixel.hytale.event.EventPriority;
 import com.hypixel.hytale.server.core.event.events.player.PlayerChatEvent;
 import com.hypixel.hytale.server.core.Message;
-import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.MuteModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.HyFactionsUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.LuckPermsUtil;
@@ -184,7 +184,7 @@ public final class ChatModerationListener {
     }
 
     private boolean hasAdminChatPermission(@Nonnull PlayerRef ref) {
-        return PermissionsModule.get().hasPermission(ref.getUuid(), ADMINCHAT_PERMISSION, false);
+        return CommandPermissionUtil.hasPermission(ref, ADMINCHAT_PERMISSION);
     }
 }
 

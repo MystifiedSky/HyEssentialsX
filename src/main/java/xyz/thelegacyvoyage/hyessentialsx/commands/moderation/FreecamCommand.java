@@ -46,7 +46,7 @@ public final class FreecamCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/freecam");
             return;
         }
@@ -58,7 +58,7 @@ public final class FreecamCommand extends AbstractPlayerCommand {
         }
 
         boolean isSelf = playerRef.getUuid().equals(target.getUuid());
-        if (!isSelf && !context.sender().hasPermission(OTHER_PERMISSION)) {
+        if (!isSelf && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
             Messages.noPerm(context, "/freecam " + target.getUsername());
             return;
         }
@@ -66,7 +66,7 @@ public final class FreecamCommand extends AbstractPlayerCommand {
         boolean activate = freecamManager.toggle(target.getUuid());
         SetFlyCameraMode packet = new SetFlyCameraMode(activate);
         if (!ServerVersion.sendPacket(target.getPacketHandler(), packet)) {
-            Messages.err(context, "Unable to send freecam packet on this server version.");
+            Messages.errKey(context, "freecam.packet_failed", Map.of());
             return;
         }
         if (isSelf) {

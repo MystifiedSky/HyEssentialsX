@@ -8,6 +8,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -20,10 +21,11 @@ public final class DelSpawnCommand extends AbstractPlayerCommand {
     private final ConfigManager config;
 
     public DelSpawnCommand(@Nonnull SpawnManager spawnManager, @Nonnull ConfigManager config) {
-        super("delspawn", "Delete the custom spawn and revert to world default");
+        super("delspawn", "Delete the custom spawn (or a named spawn) and revert to world default");
         this.spawnManager = spawnManager;
         this.config = config;
         this.setPermissionGroup(null);
+        this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -40,12 +42,28 @@ public final class DelSpawnCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/delspawn");
             return;
         }
         if (!config.isSpawnEnabled()) {
             Messages.errKey(context, "spawn.disabled", java.util.Map.of());
+            return;
+        }
+
+        java.util.List<String> args = CommandInputUtil.getArgs(context);
+        if (!args.isEmpty()) {
+            String rawName = args.get(0);
+            String spawnName = SpawnManager.normalizeSpawnName(rawName);
+            if (spawnName == null) {
+                Messages.errKey(context, "spawn.named.invalid_name", java.util.Map.of());
+                return;
+            }
+            if (!spawnManager.clearNamedSpawn(spawnName)) {
+                Messages.warnKey(context, "spawn.named.not_set", java.util.Map.of("name", spawnName));
+                return;
+            }
+            Messages.okKey(context, "spawn.named.deleted", java.util.Map.of("name", spawnName));
             return;
         }
 

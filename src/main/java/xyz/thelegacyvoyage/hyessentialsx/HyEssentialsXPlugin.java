@@ -237,6 +237,10 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         return spawnManager;
     }
 
+    public ConfigManager getConfigManager() {
+        return configManager;
+    }
+
     public synchronized void reloadPlugin() {
         Log.info("[HyEssentialsX] Reloading...");
         if (configManager != null) {
@@ -690,6 +694,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
 
     private void registerWorldHooks() {
         getEventRegistry().registerGlobal(AllWorldsLoadedEvent.class, event -> {
+            if (configManager != null) {
+                configManager.seedSpawnProtectionWorldsIfMissing();
+            }
             // Only sync if a spawn exists; initialization will happen in /spawn as needed
             spawnManager.syncWorldSpawnProvider();
             if (combatLogManager != null && configManager != null && configManager.isCombatLogEnabled()) {

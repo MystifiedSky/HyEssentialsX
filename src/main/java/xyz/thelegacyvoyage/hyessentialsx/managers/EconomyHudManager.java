@@ -170,7 +170,7 @@ public final class EconomyHudManager {
         EconomyHud.State state = new EconomyHud.State(
                 config.getEconomyHudLabel(),
                 config.getEconomyCurrencySymbol(),
-                economy.formatAmountCompact(balance),
+                economy.formatAmountCompactRaw(balance),
                 config.getEconomyHudAnchor(),
                 config.getEconomyHudOffsetX(),
                 config.getEconomyHudOffsetY(),

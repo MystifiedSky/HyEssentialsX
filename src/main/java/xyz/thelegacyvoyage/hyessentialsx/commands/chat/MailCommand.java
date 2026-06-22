@@ -54,7 +54,7 @@ public final class MailCommand extends CommandBase {
             Messages.errKey(context, "mail.disabled", Map.of());
             return;
         }
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/mail");
             return;
         }
@@ -125,7 +125,7 @@ public final class MailCommand extends CommandBase {
     }
 
     private void handleSendAll(@Nonnull CommandContext context, @Nonnull List<String> args) {
-        if (!context.sender().hasPermission(SENDALL_PERMISSION)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), SENDALL_PERMISSION)) {
             Messages.noPerm(context, "/mail sendall");
             return;
         }

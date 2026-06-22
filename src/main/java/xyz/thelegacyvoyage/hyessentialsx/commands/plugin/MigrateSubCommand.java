@@ -48,7 +48,7 @@ public final class MigrateSubCommand extends AbstractAsyncCommand {
 
     @Override
     protected CompletableFuture<Void> executeAsync(@Nonnull CommandContext context) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/hyessentialsx migrate");
             return CompletableFuture.completedFuture(null);
         }

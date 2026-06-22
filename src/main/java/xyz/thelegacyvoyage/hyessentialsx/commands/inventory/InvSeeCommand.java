@@ -50,8 +50,8 @@ public final class InvSeeCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        boolean canEdit = context.sender().hasPermission(PERMISSION_EDIT);
-        boolean canView = canEdit || context.sender().hasPermission(PERMISSION_VIEW);
+        boolean canEdit = xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_EDIT);
+        boolean canView = canEdit || xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_VIEW);
         if (!canView) {
             Messages.noPerm(context, "/invsee");
             return;

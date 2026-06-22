@@ -36,7 +36,7 @@ public final class SocialSpyCommand extends AbstractPlayerCommand {
                            @Nonnull Ref<EntityStore> ref,
                            @Nonnull PlayerRef playerRef,
                            @Nonnull World world) {
-        if (!context.sender().hasPermission(SocialSpyManager.PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), SocialSpyManager.PERMISSION_NODE)) {
             Messages.noPerm(context, "/socialspy");
             return;
         }

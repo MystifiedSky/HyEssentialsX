@@ -73,7 +73,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/home");
             return;
         }
@@ -199,7 +199,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
                                    @Nonnull PlayerRef playerRef,
                                    @Nonnull World world,
                                    @Nonnull List<String> args) {
-        if (!context.sender().hasPermission(OTHER_PERMISSION)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
             Messages.noPerm(context, "/home player");
             return;
         }

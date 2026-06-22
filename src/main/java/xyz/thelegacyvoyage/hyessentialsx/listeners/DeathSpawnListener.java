@@ -74,7 +74,7 @@ public final class DeathSpawnListener {
                         if (tryTeleportToBed(ref, store, buffer, worldName)) return;
                     }
                     case "setspawn" -> {
-                        SpawnModel spawn = spawnManager.getSpawn();
+                        SpawnModel spawn = spawnManager.getConfiguredSpawnForPlayer(player);
                         if (spawn == null) break;
                         if (!worldName.equalsIgnoreCase(spawn.getWorldName())) {
                             if (Universe.get().getWorld(spawn.getWorldName()) == null) {

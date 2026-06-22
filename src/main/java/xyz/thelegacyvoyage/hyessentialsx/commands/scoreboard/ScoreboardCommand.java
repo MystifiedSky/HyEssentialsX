@@ -79,7 +79,7 @@ public final class ScoreboardCommand extends AbstractCommand {
                                @Nonnull Ref<EntityStore> ref,
                                @Nonnull PlayerRef playerRef,
                                @Nonnull World world) {
-            if (!context.sender().hasPermission(PERMISSION_NODE)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
                 Messages.noPerm(context, "/scoreboard move");
                 return;
             }
@@ -123,7 +123,7 @@ public final class ScoreboardCommand extends AbstractCommand {
                                @Nonnull Ref<EntityStore> ref,
                                @Nonnull PlayerRef playerRef,
                                @Nonnull World world) {
-            if (!context.sender().hasPermission(PERMISSION_NODE)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
                 Messages.noPerm(context, "/scoreboard edit");
                 return;
             }
@@ -167,7 +167,7 @@ public final class ScoreboardCommand extends AbstractCommand {
                                @Nonnull Ref<EntityStore> ref,
                                @Nonnull PlayerRef playerRef,
                                @Nonnull World world) {
-            if (!context.sender().hasPermission(PERMISSION_NODE)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
                 Messages.noPerm(context, "/scoreboard reset");
                 return;
             }
@@ -207,7 +207,7 @@ public final class ScoreboardCommand extends AbstractCommand {
                                @Nonnull Ref<EntityStore> ref,
                                @Nonnull PlayerRef playerRef,
                                @Nonnull World world) {
-            if (!context.sender().hasPermission(PERMISSION_NODE)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
                 Messages.noPerm(context, "/scoreboard adminmove");
                 return;
             }
@@ -251,7 +251,7 @@ public final class ScoreboardCommand extends AbstractCommand {
                                @Nonnull Ref<EntityStore> ref,
                                @Nonnull PlayerRef playerRef,
                                @Nonnull World world) {
-            if (!context.sender().hasPermission(PERMISSION_NODE)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
                 Messages.noPerm(context, "/scoreboard show");
                 return;
             }
@@ -291,7 +291,7 @@ public final class ScoreboardCommand extends AbstractCommand {
                                @Nonnull Ref<EntityStore> ref,
                                @Nonnull PlayerRef playerRef,
                                @Nonnull World world) {
-            if (!context.sender().hasPermission(PERMISSION_NODE)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
                 Messages.noPerm(context, "/scoreboard hide");
                 return;
             }

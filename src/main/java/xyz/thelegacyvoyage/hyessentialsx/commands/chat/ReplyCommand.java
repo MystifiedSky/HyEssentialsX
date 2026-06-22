@@ -56,7 +56,7 @@ public final class ReplyCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/r");
             return;
         }
@@ -84,7 +84,7 @@ public final class ReplyCommand extends AbstractPlayerCommand {
             return;
         }
         if (ignoreManager.isIgnoring(target.getUuid(), playerRef.getUuid())
-                && !context.sender().hasPermission("hyessentialsx.msg.ignore.bypass")) {
+                && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), "hyessentialsx.msg.ignore.bypass")) {
             Messages.errKey(context, "msg.target_ignoring", Map.of("player", target.getUsername()));
             return;
         }

@@ -69,8 +69,8 @@ public final class MoneyCommand extends CommandBase {
                 Messages.errKey(context, "error.player_only", Map.of());
                 return;
             }
-            if (!context.sender().hasPermission(PERMISSION_NODE)
-                    && !context.sender().hasPermission(ADMIN_PERMISSION)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)
+                    && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), ADMIN_PERMISSION)) {
                 Messages.noPerm(context, "/balance");
                 return;
             }
@@ -80,7 +80,7 @@ public final class MoneyCommand extends CommandBase {
 
         String sub = args.get(0).toLowerCase();
         if (!sub.equals("set") && !sub.equals("give") && args.size() == 1) {
-            if (!context.sender().hasPermission(BALANCE_OTHERS_PERMISSION)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), BALANCE_OTHERS_PERMISSION)) {
                 Messages.noPerm(context, "/balance " + sub);
                 return;
             }
@@ -105,7 +105,7 @@ public final class MoneyCommand extends CommandBase {
         }
 
         String requiredPerm = sub.equals("set") ? MONEY_SET_PERMISSION : MONEY_GIVE_PERMISSION;
-        if (!context.sender().hasPermission(requiredPerm) && !context.sender().hasPermission(ADMIN_PERMISSION)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), requiredPerm) && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), ADMIN_PERMISSION)) {
             Messages.noPerm(context, "/money " + sub);
             return;
         }

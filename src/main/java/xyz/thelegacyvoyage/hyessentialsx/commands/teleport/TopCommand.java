@@ -50,7 +50,7 @@ public final class TopCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/top");
             return;
         }
@@ -62,7 +62,7 @@ public final class TopCommand extends AbstractPlayerCommand {
         }
 
         boolean isSelf = playerRef.getUuid().equals(target.getUuid());
-        if (!isSelf && !context.sender().hasPermission(OTHER_PERMISSION)) {
+        if (!isSelf && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
             Messages.noPerm(context, "/top " + target.getUsername());
             return;
         }

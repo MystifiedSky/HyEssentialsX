@@ -53,7 +53,7 @@ public final class KitCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/kit");
             return;
         }
@@ -99,15 +99,15 @@ public final class KitCommand extends AbstractPlayerCommand {
 
         if (config.isKitsRequirePermission()) {
             String kitPermission = "hyessentialsx.kit." + kit.getName().toLowerCase();
-            if (!context.sender().hasPermission(kitPermission)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), kitPermission)) {
                 Messages.noPerm(context, "/kit " + kit.getName());
                 return;
             }
         }
 
         String kitBypass = "hyessentialsx.kit." + kit.getName().toLowerCase() + ".bypass";
-        boolean bypassKitCooldown = context.sender().hasPermission(BYPASS_PERMISSION)
-                || context.sender().hasPermission(kitBypass);
+        boolean bypassKitCooldown = xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), BYPASS_PERMISSION)
+                || xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), kitBypass);
         if (!bypassKitCooldown) {
             if (!kitManager.hasRemainingUses(playerRef.getUuid(), kit)) {
                 Messages.warnKey(context, "kit.max_uses_reached", java.util.Map.of());

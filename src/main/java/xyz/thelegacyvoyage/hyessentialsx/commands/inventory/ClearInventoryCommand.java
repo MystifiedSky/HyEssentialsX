@@ -45,7 +45,7 @@ public final class ClearInventoryCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/clearinventory");
             return;
         }
@@ -53,7 +53,7 @@ public final class ClearInventoryCommand extends AbstractPlayerCommand {
         List<String> args = CommandInputUtil.getArgs(context);
         PlayerRef target = playerRef;
         if (!args.isEmpty()) {
-            if (!context.sender().hasPermission(OTHER_PERMISSION)) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
                 Messages.noPerm(context, "/clearinventory <player>");
                 return;
             }

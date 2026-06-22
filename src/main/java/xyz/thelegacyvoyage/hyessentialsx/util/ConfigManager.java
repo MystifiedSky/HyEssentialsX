@@ -5,6 +5,9 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.hypixel.hytale.server.core.HytaleServer;
+import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.universe.world.World;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlaytimeRewardModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.RankupTier;
@@ -26,15 +29,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.lang.reflect.Method;
+import java.util.regex.Pattern;
 
 public final class ConfigManager {
 
     private static final int DEFAULT_COMMAND_COOLDOWN_SECONDS = 30;
     private static final int DEFAULT_TELEPORT_WARMUP_SECONDS = 5;
     private static final List<String> DEFAULT_SPAWN_RESPAWN_PRIORITY = List.of("bed", "setspawn", "world");
+    private static final List<String> DEFAULT_SPAWN_PROTECTION_WORLDS = List.of("default");
     private static final List<String> DEFAULT_COMBAT_BLOCKED_COMMANDS = List.of("home", "spawn", "tpa", "tp", "warp");
     private static final int DEFAULT_SCOREBOARD_MAX_LINES = 30;
     private static final int DEFAULT_SCOREBOARD_LINE_MAX_LENGTH = 256;
+    private static final Pattern NAMED_SPAWN_PATTERN = Pattern.compile("^[a-z0-9_-]{1,32}$");
 
     private final Path configPath;
     private final Path economyPath;
@@ -49,6 +56,7 @@ public final class ConfigManager {
     private JsonObject root;
 
     private boolean debugMode = false;
+    private boolean usePermissionsSystem = true;
     private boolean useWorldDefaultSpawnIfUnset = true;
     private String languageCode = "en-us";
     private boolean hologramsEnabled = true;
@@ -126,6 +134,7 @@ public final class ConfigManager {
     private boolean spawnProtectionAllowPlace = false;
     private boolean spawnProtectionAllowDamage = false;
     private boolean spawnProtectionAllowInteract = true;
+    private List<String> spawnProtectionWorlds = new ArrayList<>(DEFAULT_SPAWN_PROTECTION_WORLDS);
     private List<String> spawnRespawnPriority = DEFAULT_SPAWN_RESPAWN_PRIORITY;
     private boolean combatLogEnabled = false;
     private boolean combatLogOnlyPlayerDamage = true;
@@ -284,6 +293,7 @@ public final class ConfigManager {
     private double spawnZ = 0;
     private float spawnYaw = 0f;
     private float spawnPitch = 0f;
+    private final Map<String, SpawnModel> namedSpawns = new LinkedHashMap<>();
 
     private String storageType = "sqlite";
     private String sqliteFile = "hyessentialsx.db";
@@ -360,6 +370,7 @@ public final class ConfigManager {
         JsonObject root = new JsonObject();
         root.addProperty("version", "1.0.0");
         root.addProperty("debugMode", false);
+        root.addProperty("UsePermissionsSystem", true);
 
         JsonObject welcome = new JsonObject();
         welcome.addProperty("enabled", true);
@@ -619,6 +630,7 @@ public final class ConfigManager {
         spawn.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
         spawn.addProperty("warmupSeconds", spawnWarmupSeconds);
         spawn.add("respawnPriority", toArray(spawnRespawnPriority));
+        spawn.add("named", toSpawnMapObject(namedSpawns));
         root.add("spawn", spawn);
 
         JsonObject combatLog = new JsonObject();
@@ -766,6 +778,8 @@ public final class ConfigManager {
             }
 
             debugMode = bool(root, "debugMode", debugMode);
+            usePermissionsSystem = bool(root, "UsePermissionsSystem",
+                    bool(root, "usePermissionsSystem", usePermissionsSystem));
             JsonObject general = obj(root, "general");
             useWorldDefaultSpawnIfUnset = bool(general, "spawnFallbackToWorldDefault", true);
             languageCode = str(general, "language", languageCode).toLowerCase();
@@ -949,6 +963,13 @@ public final class ConfigManager {
             spawnProtectionAllowPlace = bool(spawnProtection, "allowPlace", spawnProtectionAllowPlace);
             spawnProtectionAllowDamage = bool(spawnProtection, "allowDamage", spawnProtectionAllowDamage);
             spawnProtectionAllowInteract = bool(spawnProtection, "allowInteract", spawnProtectionAllowInteract);
+            if (spawnProtection.has("worlds") && spawnProtection.get("worlds").isJsonArray()) {
+                spawnProtectionWorlds = readSpawnProtectionWorlds(spawnProtection);
+            } else {
+                spawnProtectionWorlds = new ArrayList<>(List.of(resolveServerDefaultWorldName()));
+                spawnProtection.add("worlds", toArray(spawnProtectionWorlds));
+                changed = true;
+            }
 
             JsonObject economy = obj(root, "economy");
             economyEnabled = bool(economy, "enabled", economyEnabled);
@@ -1088,6 +1109,33 @@ public final class ConfigManager {
             spawnPitch = (float) dbl(spawn, "pitch", 0.0);
             spawnWarmupSeconds = intVal(spawn, "warmupSeconds", spawnWarmupSeconds);
             spawnRespawnPriority = normalizeRespawnPriority(list(spawn, "respawnPriority", spawnRespawnPriority));
+            namedSpawns.clear();
+            JsonObject namedSpawnObject = getObjectOrNull(spawn, "named");
+            if (namedSpawnObject == null) {
+                JsonObject legacyNamedSpawns = getObjectOrNull(spawn, "namedSpawns");
+                if (legacyNamedSpawns != null) {
+                    namedSpawnObject = legacyNamedSpawns;
+                    spawn.add("named", legacyNamedSpawns.deepCopy());
+                    spawn.remove("namedSpawns");
+                    changed = true;
+                }
+            }
+            if (namedSpawnObject != null) {
+                for (Map.Entry<String, JsonElement> entry : namedSpawnObject.entrySet()) {
+                    String key = normalizeSpawnName(entry.getKey());
+                    SpawnModel model = readSpawnModel(entry.getValue());
+                    if (key == null || model == null) {
+                        changed = true;
+                        continue;
+                    }
+                    if (!entry.getKey().equals(key)) {
+                        changed = true;
+                    }
+                    if (namedSpawns.putIfAbsent(key, model) != null) {
+                        changed = true;
+                    }
+                }
+            }
 
             JsonObject combatLog = obj(root, "combatLog");
             combatLogEnabled = bool(combatLog, "enabled", combatLogEnabled);
@@ -1367,6 +1415,10 @@ public final class ConfigManager {
 
     public boolean isDebugMode() {
         return debugMode;
+    }
+
+    public boolean isUsePermissionsSystem() {
+        return usePermissionsSystem;
     }
 
     public boolean isHologramsEnabled() {
@@ -1678,6 +1730,22 @@ public final class ConfigManager {
 
     public boolean isSpawnProtectionAllowInteract() {
         return spawnProtectionAllowInteract;
+    }
+
+    @Nonnull
+    public List<String> getSpawnProtectionWorlds() {
+        return Collections.unmodifiableList(spawnProtectionWorlds);
+    }
+
+    public void seedSpawnProtectionWorldsIfMissing() {
+        if (root == null) return;
+        JsonObject spawnProtection = obj(root, "spawnProtection");
+        if (spawnProtection.has("worlds") && spawnProtection.get("worlds").isJsonArray()) {
+            return;
+        }
+        spawnProtectionWorlds = new ArrayList<>(List.of(resolveServerDefaultWorldName()));
+        spawnProtection.add("worlds", toArray(spawnProtectionWorlds));
+        save();
     }
 
     public boolean isEconomyEnabled() {
@@ -2213,6 +2281,46 @@ public final class ConfigManager {
         save();
     }
 
+    public boolean hasNamedSpawn(@Nullable String name) {
+        String key = normalizeSpawnName(name);
+        return key != null && namedSpawns.containsKey(key);
+    }
+
+    @Nullable
+    public SpawnModel getNamedSpawn(@Nullable String name) {
+        String key = normalizeSpawnName(name);
+        if (key == null) return null;
+        SpawnModel spawn = namedSpawns.get(key);
+        return spawn == null ? null : copySpawnModel(spawn);
+    }
+
+    @Nonnull
+    public Map<String, SpawnModel> getNamedSpawns() {
+        Map<String, SpawnModel> out = new LinkedHashMap<>();
+        for (Map.Entry<String, SpawnModel> entry : namedSpawns.entrySet()) {
+            out.put(entry.getKey(), copySpawnModel(entry.getValue()));
+        }
+        return Collections.unmodifiableMap(out);
+    }
+
+    public void setNamedSpawn(@Nonnull String name, @Nonnull SpawnModel spawn) {
+        String key = normalizeSpawnName(name);
+        if (key == null) {
+            throw new IllegalArgumentException("Invalid spawn name: " + name);
+        }
+        namedSpawns.put(key, copySpawnModel(spawn));
+        save();
+    }
+
+    public boolean clearNamedSpawn(@Nullable String name) {
+        String key = normalizeSpawnName(name);
+        if (key == null) return false;
+        SpawnModel removed = namedSpawns.remove(key);
+        if (removed == null) return false;
+        save();
+        return true;
+    }
+
     @Nonnull
     public String getStorageType() {
         return storageType;
@@ -2277,6 +2385,8 @@ public final class ConfigManager {
         if (root == null) root = buildDefaultConfig();
 
         root.addProperty("version", PluginInfoUtil.getVersion());
+        root.addProperty("debugMode", debugMode);
+        root.addProperty("UsePermissionsSystem", usePermissionsSystem);
 
         JsonObject general = obj(root, "general");
         general.addProperty("spawnFallbackToWorldDefault", useWorldDefaultSpawnIfUnset);
@@ -2387,6 +2497,7 @@ public final class ConfigManager {
         spawnProtection.addProperty("allowPlace", spawnProtectionAllowPlace);
         spawnProtection.addProperty("allowDamage", spawnProtectionAllowDamage);
         spawnProtection.addProperty("allowInteract", spawnProtectionAllowInteract);
+        spawnProtection.add("worlds", toArray(spawnProtectionWorlds));
 
         JsonObject economy = obj(root, "economy");
         economy.addProperty("enabled", economyEnabled);
@@ -2519,6 +2630,7 @@ public final class ConfigManager {
         spawn.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.SPAWN));
         spawn.addProperty("warmupSeconds", spawnWarmupSeconds);
         spawn.add("respawnPriority", toArray(spawnRespawnPriority));
+        spawn.add("named", toSpawnMapObject(namedSpawns));
 
         JsonObject combatLog = obj(root, "combatLog");
         combatLog.addProperty("enabled", combatLogEnabled);
@@ -3132,6 +3244,119 @@ public final class ConfigManager {
     }
 
     @Nonnull
+    private List<String> listAllowEmpty(@Nonnull JsonObject obj, @Nonnull String key, @Nonnull List<String> def) {
+        JsonElement el = obj.get(key);
+        if (el == null || !el.isJsonArray()) return def;
+        List<String> out = new ArrayList<>();
+        for (JsonElement entry : el.getAsJsonArray()) {
+            if (entry.isJsonPrimitive()) out.add(entry.getAsString());
+        }
+        return out;
+    }
+
+    @Nonnull
+    private List<String> readSpawnProtectionWorlds(@Nonnull JsonObject spawnProtection) {
+        if (!spawnProtection.has("worlds") || !spawnProtection.get("worlds").isJsonArray()) {
+            return new ArrayList<>(List.of(resolveServerDefaultWorldName()));
+        }
+        List<String> out = new ArrayList<>();
+        for (String raw : listAllowEmpty(spawnProtection, "worlds", List.of())) {
+            if (raw == null) continue;
+            String worldName = raw.trim().toLowerCase(Locale.ROOT);
+            if (worldName.isBlank()) continue;
+            if (!out.contains(worldName)) {
+                out.add(worldName);
+            }
+        }
+        return out;
+    }
+
+    @Nonnull
+    private String resolveServerDefaultWorldName() {
+        try {
+            HytaleServer server = HytaleServer.get();
+            if (server != null) {
+                Object config = server.getConfig();
+                Object defaults = tryInvokeNoArgs(config, "getDefaults");
+                Object world = tryInvokeNoArgs(defaults, "getWorld");
+                if (world instanceof String worldName && !worldName.isBlank()) {
+                    return worldName.trim();
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+
+        try {
+            Map<String, World> worlds = Universe.get().getWorlds();
+            if (worlds != null && !worlds.isEmpty()) {
+                for (World world : worlds.values()) {
+                    if (world != null && world.getName() != null && !world.getName().isBlank()) {
+                        return world.getName();
+                    }
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return DEFAULT_SPAWN_PROTECTION_WORLDS.get(0);
+    }
+
+    @Nullable
+    private Object tryInvokeNoArgs(@Nullable Object target, @Nonnull String methodName) {
+        if (target == null) return null;
+        try {
+            Method method = target.getClass().getMethod(methodName);
+            if (method.getParameterCount() != 0) {
+                return null;
+            }
+            return method.invoke(target);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    @Nullable
+    private SpawnModel readSpawnModel(@Nullable JsonElement element) {
+        if (element == null || !element.isJsonObject()) {
+            return null;
+        }
+        JsonObject obj = element.getAsJsonObject();
+        String world = str(obj, "world", "").trim();
+        if (world.isBlank()) {
+            return null;
+        }
+        return new SpawnModel(
+                world,
+                dbl(obj, "x", 0.0),
+                dbl(obj, "y", 0.0),
+                dbl(obj, "z", 0.0),
+                (float) dbl(obj, "yaw", 0.0),
+                (float) dbl(obj, "pitch", 0.0)
+        );
+    }
+
+    @Nullable
+    private String normalizeSpawnName(@Nullable String rawName) {
+        if (rawName == null) return null;
+        String value = rawName.trim().toLowerCase(Locale.ROOT);
+        if (!NAMED_SPAWN_PATTERN.matcher(value).matches()) {
+            return null;
+        }
+        return value;
+    }
+
+    @Nonnull
+    private SpawnModel copySpawnModel(@Nonnull SpawnModel spawn) {
+        return new SpawnModel(
+                spawn.getWorldName(),
+                spawn.getX(),
+                spawn.getY(),
+                spawn.getZ(),
+                spawn.getYaw(),
+                spawn.getPitch()
+        );
+    }
+
+    @Nonnull
     private List<String> readStringList(@Nonnull JsonObject obj,
                                         @Nonnull String listKey,
                                         @Nonnull String legacyKey,
@@ -3360,6 +3585,26 @@ public final class ConfigManager {
         JsonObject obj = new JsonObject();
         for (Map.Entry<String, Long> entry : values.entrySet()) {
             obj.addProperty(entry.getKey(), entry.getValue());
+        }
+        return obj;
+    }
+
+    @Nonnull
+    private JsonObject toSpawnMapObject(@Nonnull Map<String, SpawnModel> values) {
+        JsonObject obj = new JsonObject();
+        for (Map.Entry<String, SpawnModel> entry : values.entrySet()) {
+            SpawnModel spawn = entry.getValue();
+            if (spawn == null || spawn.getWorldName().isBlank()) {
+                continue;
+            }
+            JsonObject spawnObj = new JsonObject();
+            spawnObj.addProperty("world", spawn.getWorldName());
+            spawnObj.addProperty("x", spawn.getX());
+            spawnObj.addProperty("y", spawn.getY());
+            spawnObj.addProperty("z", spawn.getZ());
+            spawnObj.addProperty("yaw", spawn.getYaw());
+            spawnObj.addProperty("pitch", spawn.getPitch());
+            obj.add(entry.getKey(), spawnObj);
         }
         return obj;
     }

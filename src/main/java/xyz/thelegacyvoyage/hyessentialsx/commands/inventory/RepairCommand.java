@@ -51,7 +51,7 @@ public final class RepairCommand extends AbstractPlayerCommand {
             @Nonnull PlayerRef playerRef,
             @Nonnull World world
     ) {
-        if (!context.sender().hasPermission(PERMISSION_NODE)) {
+        if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/repair");
             return;
         }
@@ -89,11 +89,11 @@ public final class RepairCommand extends AbstractPlayerCommand {
         }
 
         boolean isSelf = playerRef.getUuid().equals(target.getUuid());
-        if (!isSelf && !context.sender().hasPermission(OTHER_PERMISSION)) {
+        if (!isSelf && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
             Messages.noPerm(context, "/repair " + target.getUsername());
             return;
         }
-        if (repairAll && !context.sender().hasPermission(ALL_PERMISSION)) {
+        if (repairAll && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), ALL_PERMISSION)) {
             Messages.noPerm(context, "/repair all");
             return;
         }

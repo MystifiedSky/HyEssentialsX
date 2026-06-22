@@ -8,6 +8,8 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.WorldConfig;
 import com.hypixel.hytale.server.core.universe.world.spawn.GlobalSpawnProvider;
 import com.hypixel.hytale.server.core.universe.world.spawn.ISpawnProvider;
+import com.hypixel.hytale.server.core.permissions.PermissionsModule;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
@@ -16,13 +18,17 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 public final class SpawnManager {
 
     private static final float RESPAWN_TELEPORT_DELAY_SECONDS = 0.25f;
+    private static final String NAMED_SPAWN_PERMISSION_PREFIX = "hyessentialsx.spawn.";
+    private static final Pattern NAMED_SPAWN_NAME_PATTERN = Pattern.compile("^[a-z0-9_-]{1,32}$");
 
     private final ConfigManager config;
     private final Map<UUID, PendingRespawnTeleport> pendingRespawnTeleports = new ConcurrentHashMap<>();
@@ -38,8 +44,21 @@ public final class SpawnManager {
         }
     }
 
+    public void setNamedSpawn(@Nonnull String name, @Nonnull SpawnModel point) {
+        String key = normalizeSpawnName(name);
+        if (key == null) {
+            throw new IllegalArgumentException("Invalid named spawn: " + name);
+        }
+        config.setNamedSpawn(key, point);
+    }
+
     public void clearSpawn() {
         config.clearSpawn();
+    }
+
+    public boolean clearNamedSpawn(@Nonnull String name) {
+        String key = normalizeSpawnName(name);
+        return key != null && config.clearNamedSpawn(key);
     }
 
     @Nullable
@@ -47,8 +66,50 @@ public final class SpawnManager {
         return config.getSpawn();
     }
 
+    @Nullable
+    public SpawnModel getNamedSpawn(@Nonnull String name) {
+        String key = normalizeSpawnName(name);
+        return key == null ? null : config.getNamedSpawn(key);
+    }
+
     public boolean hasSpawn() {
         return config.hasSpawn();
+    }
+
+    public boolean hasNamedSpawn(@Nonnull String name) {
+        String key = normalizeSpawnName(name);
+        return key != null && config.hasNamedSpawn(key);
+    }
+
+    @Nullable
+    public SpawnModel getConfiguredSpawnForPlayer(@Nonnull PlayerRef player) {
+        return getConfiguredSpawnForPlayer(player.getUuid());
+    }
+
+    @Nullable
+    public SpawnModel getConfiguredSpawnForPlayer(@Nonnull UUID playerId) {
+        SpawnModel permissionSpawn = getPermissionSpawn(playerId);
+        if (permissionSpawn != null) {
+            return permissionSpawn;
+        }
+        return getSpawn();
+    }
+
+    @Nullable
+    public SpawnModel getSpawnForPlayer(@Nonnull World world, @Nonnull PlayerRef player) {
+        return getSpawnForPlayer(world, player.getUuid());
+    }
+
+    @Nullable
+    public SpawnModel getSpawnForPlayer(@Nonnull World world, @Nonnull UUID playerId) {
+        SpawnModel configuredSpawn = getConfiguredSpawnForPlayer(playerId);
+        if (configuredSpawn != null) {
+            return configuredSpawn;
+        }
+        if (!config.isUseWorldDefaultSpawnIfUnset()) {
+            return null;
+        }
+        return getWorldDefaultSpawn(world, playerId);
     }
 
     public void queueRespawnTeleport(@Nonnull UUID playerId, @Nonnull SpawnModel spawn) {
@@ -147,6 +208,35 @@ public final class SpawnManager {
     }
 
     // ---------- helpers ----------
+
+    public static boolean isValidSpawnName(@Nullable String name) {
+        return normalizeSpawnName(name) != null;
+    }
+
+    @Nullable
+    public static String normalizeSpawnName(@Nullable String name) {
+        if (name == null) return null;
+        String value = name.trim().toLowerCase(Locale.ROOT);
+        if (!NAMED_SPAWN_NAME_PATTERN.matcher(value).matches()) {
+            return null;
+        }
+        return value;
+    }
+
+    @Nullable
+    private SpawnModel getPermissionSpawn(@Nonnull UUID playerId) {
+        Map<String, SpawnModel> namedSpawns = config.getNamedSpawns();
+        if (namedSpawns.isEmpty()) {
+            return null;
+        }
+        for (Map.Entry<String, SpawnModel> entry : namedSpawns.entrySet()) {
+            String permission = NAMED_SPAWN_PERMISSION_PREFIX + entry.getKey();
+            if (PermissionsModule.get().hasPermission(playerId, permission)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
 
     @Nullable
     private World firstLoadedWorld() {

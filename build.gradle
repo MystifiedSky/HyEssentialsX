@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'xyz.thelegacyvoyage.hyessentialsx'
-version = '1.4.0HF'
+version = '1.4.1'
 
 repositories {
     mavenCentral()
@@ -43,6 +43,8 @@ dependencies {
     implementation 'org.mongodb:mongodb-driver-sync:5.1.4'
     implementation 'com.h2database:h2:2.3.232'
     implementation 'org.yaml:snakeyaml:2.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.12.2'
 }
 
 java {
@@ -110,6 +112,10 @@ tasks.named('processResources') {
     filesMatching('manifest.json') {
         expand(version: project.version)
     }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }
 
 // Deploy plugin JAR to server mods folder

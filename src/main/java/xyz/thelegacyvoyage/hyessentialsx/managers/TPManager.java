@@ -18,7 +18,7 @@ public final class TPManager {
 
     private final ConcurrentHashMap<UUID, PendingTeleport> pending = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, TpaRequest>> tpaByTarget = new ConcurrentHashMap<>();
-    private final long tpaRequestTimeoutMs;
+    private volatile long tpaRequestTimeoutMs;
     private final ConcurrentHashMap<UUID, Boolean> tpaIgnore = new ConcurrentHashMap<>();
 
     public TPManager() {
@@ -27,6 +27,10 @@ public final class TPManager {
 
     public TPManager(long tpaRequestTimeoutMs) {
         this.tpaRequestTimeoutMs = tpaRequestTimeoutMs;
+    }
+
+    public void setTpaRequestTimeoutMs(long tpaRequestTimeoutMs) {
+        this.tpaRequestTimeoutMs = Math.max(0L, tpaRequestTimeoutMs);
     }
 
     public boolean hasPending(@Nonnull UUID playerId) {

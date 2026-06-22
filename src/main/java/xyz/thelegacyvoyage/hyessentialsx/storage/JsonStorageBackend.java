@@ -8,6 +8,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.AtomicFileUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
 import javax.annotation.Nonnull;
@@ -59,7 +60,7 @@ public final class JsonStorageBackend implements StorageBackend {
     @Override
     public void savePlayerData(@Nonnull UUID uuid, @Nonnull PlayerDataModel data) {
         try {
-            Files.writeString(playerFile(uuid), gson.toJson(data), StandardCharsets.UTF_8);
+            AtomicFileUtil.writeStringAtomically(playerFile(uuid), gson.toJson(data), StandardCharsets.UTF_8);
         } catch (Exception e) {
             Log.error("Failed to save player data for " + uuid + ": " + e.getMessage());
         }
@@ -69,9 +70,11 @@ public final class JsonStorageBackend implements StorageBackend {
     @Nonnull
     public Set<UUID> listPlayerIds() {
         Set<UUID> ids = new HashSet<>();
-        try {
-            if (!Files.exists(playersFolder())) return ids;
-            Files.list(playersFolder()).forEach(path -> {
+        if (!Files.exists(playersFolder())) {
+            return ids;
+        }
+        try (var stream = Files.list(playersFolder())) {
+            stream.forEach(path -> {
                 String name = path.getFileName().toString();
                 if (!name.endsWith(".json")) return;
                 String raw = name.substring(0, name.length() - 5);
@@ -104,7 +107,7 @@ public final class JsonStorageBackend implements StorageBackend {
     @Override
     public void saveWarps(@Nonnull Map<String, WarpModel> warps) {
         try {
-            Files.writeString(warpsFile(), gson.toJson(warps), StandardCharsets.UTF_8);
+            AtomicFileUtil.writeStringAtomically(warpsFile(), gson.toJson(warps), StandardCharsets.UTF_8);
         } catch (Exception e) {
             Log.error("Failed to save warps.json: " + e.getMessage());
         }
@@ -129,7 +132,7 @@ public final class JsonStorageBackend implements StorageBackend {
     @Override
     public void saveKits(@Nonnull Map<String, KitModel> kits) {
         try {
-            Files.writeString(kitsFile(), gson.toJson(kits), StandardCharsets.UTF_8);
+            AtomicFileUtil.writeStringAtomically(kitsFile(), gson.toJson(kits), StandardCharsets.UTF_8);
         } catch (Exception e) {
             Log.error("Failed to save kits.json: " + e.getMessage());
         }
@@ -154,7 +157,7 @@ public final class JsonStorageBackend implements StorageBackend {
     @Override
     public void saveShops(@Nonnull Map<String, ShopModel> shops) {
         try {
-            Files.writeString(shopsFile(), gson.toJson(shops), StandardCharsets.UTF_8);
+            AtomicFileUtil.writeStringAtomically(shopsFile(), gson.toJson(shops), StandardCharsets.UTF_8);
         } catch (Exception e) {
             Log.error("Failed to save shops.json: " + e.getMessage());
         }
@@ -179,7 +182,7 @@ public final class JsonStorageBackend implements StorageBackend {
     @Override
     public void saveIpBans(@Nonnull Map<String, IpBanModel> bans) {
         try {
-            Files.writeString(ipBansFile(), gson.toJson(bans), StandardCharsets.UTF_8);
+            AtomicFileUtil.writeStringAtomically(ipBansFile(), gson.toJson(bans), StandardCharsets.UTF_8);
         } catch (Exception e) {
             Log.error("Failed to save ipbans.json: " + e.getMessage());
         }

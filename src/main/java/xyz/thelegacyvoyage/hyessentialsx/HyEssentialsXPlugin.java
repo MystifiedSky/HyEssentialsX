@@ -246,49 +246,49 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (configManager != null) {
             configManager.reload();
         }
+        if (rankupManager != null) {
+            rankupManager.shutdown();
+        }
+        if (paycheckManager != null) {
+            paycheckManager.shutdown();
+        }
+        if (playtimeRewardManager != null) {
+            playtimeRewardManager.shutdown();
+        }
+        if (tpManager != null && configManager != null) {
+            tpManager.setTpaRequestTimeoutMs(configManager.getTpaRequestTimeoutSeconds() * 1000L);
+        }
+        if (storage != null) {
+            storage.reloadCaches();
+        }
         if (languageManager != null && configManager != null) {
             languageManager.reload(configManager.getLanguage());
         }
         if (customCommandManager != null) {
             customCommandManager.reload();
         }
-        if (storage != null) {
-            storage.reloadCaches();
-        }
         if (spawnManager != null) {
             spawnManager.syncWorldSpawnProvider();
         }
         if (autoBroadcastManager != null) {
-            autoBroadcastManager.shutdown();
+            autoBroadcastManager.reload();
         }
-        autoBroadcastManager = new AutoBroadcastManager(configManager);
-        autoBroadcastManager.start();
         if (rankupManager != null) {
-            rankupManager.shutdown();
+            rankupManager.start();
         }
-        rankupManager = new RankupManager(configManager, economyManager, storage, playtimeManager);
-        rankupManager.start();
         if (paycheckManager != null) {
-            paycheckManager.shutdown();
+            paycheckManager.clearCachedAmounts();
+            paycheckManager.start();
         }
-        paycheckManager = new PaycheckManager(configManager, economyManager, storage, playtimeManager);
-        paycheckManager.start();
         if (playtimeRewardManager != null) {
-            playtimeRewardManager.shutdown();
+            playtimeRewardManager.start();
         }
-        playtimeRewardManager = new PlaytimeRewardManager(configManager, playtimeManager, storage);
-        playtimeRewardManager.start();
         if (afkManager != null) {
-            afkManager.shutdown();
+            afkManager.reload();
         }
-        afkManager = new AfkManager(configManager);
-        afkManager.start();
         if (scoreboardManager != null) {
-            scoreboardManager.shutdown();
+            scoreboardManager.reloadConfiguration();
         }
-        scoreboardManager = new ScoreboardManager(configManager, storage, economyManager, playtimeManager, dataDirectory);
-        scoreboardManager.start();
-        scoreboardManager.refreshAll();
         if (economyHudManager != null) {
             economyHudManager.start();
             economyHudManager.refreshAll();
@@ -309,6 +309,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (shopNpcFixTask != null) {
             shopNpcFixTask.start();
         }
+        unregisterPlaceholderExpansion();
         registerPlaceholderExpansion();
         VaultUnlockedIntegration.refresh();
         Log.info("[HyEssentialsX] Reload complete.");

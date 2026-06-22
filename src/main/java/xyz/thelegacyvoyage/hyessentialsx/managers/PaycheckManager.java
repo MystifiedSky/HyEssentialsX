@@ -12,6 +12,7 @@ import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -21,6 +22,7 @@ public final class PaycheckManager {
 
     private static final String PAYCHECK_PERMISSION_PREFIX = "hyessentialsx.paycheck.amount.";
     private static final int MAX_PERMISSION_SCAN = 100000;
+    private static final long PERMISSION_CACHE_TTL_MS = TimeUnit.MINUTES.toMillis(5L);
 
     private final ConfigManager config;
     private final EconomyManager economy;
@@ -29,6 +31,7 @@ public final class PaycheckManager {
 
     private ScheduledExecutorService scheduler;
     private ScheduledFuture<?> task;
+    private final Map<UUID, CachedPaycheckAmount> cachedAmounts = new ConcurrentHashMap<>();
 
     public PaycheckManager(@Nonnull ConfigManager config,
                            @Nonnull EconomyManager economy,
@@ -61,6 +64,10 @@ public final class PaycheckManager {
             scheduler.shutdownNow();
             scheduler = null;
         }
+    }
+
+    public void clearCachedAmounts() {
+        cachedAmounts.clear();
     }
 
     private void tick() {
@@ -106,11 +113,13 @@ public final class PaycheckManager {
             long nextPaycheckAt = Math.min(playtimeSeconds, last + intervalSeconds);
             if (amount <= 0L) {
                 data.setLastPaycheckPlaytimeSeconds(nextPaycheckAt);
+                data.setLastPaycheckAt(System.currentTimeMillis());
                 storage.savePlayerDataAsync(uuid, data);
                 continue;
             }
             economy.deposit(uuid, amount);
             data.setLastPaycheckPlaytimeSeconds(nextPaycheckAt);
+            data.setLastPaycheckAt(System.currentTimeMillis());
             storage.savePlayerDataAsync(uuid, data);
             Messages.sendPrefixedKey(ref, "economy.paycheck", Map.of(
                     "amount", economy.formatAmount(amount)
@@ -119,18 +128,29 @@ public final class PaycheckManager {
     }
 
     private long resolvePaycheckAmount(@Nonnull UUID uuid) {
+        long now = System.currentTimeMillis();
+        CachedPaycheckAmount cached = cachedAmounts.get(uuid);
+        if (cached != null && now - cached.cachedAtMs() <= PERMISSION_CACHE_TTL_MS) {
+            return cached.amount();
+        }
+
         long base = config.getPaycheckAmount();
-        int best = -1;
         if (PermissionsModule.get().hasPermission(uuid, PAYCHECK_PERMISSION_PREFIX + "*")
                 || PermissionsModule.get().hasPermission(uuid, PAYCHECK_PERMISSION_PREFIX + "unlimited")) {
+            cachedAmounts.put(uuid, new CachedPaycheckAmount(base, now));
             return base;
         }
+        int best = -1;
         for (int i = 1; i <= MAX_PERMISSION_SCAN; i++) {
             if (PermissionsModule.get().hasPermission(uuid, PAYCHECK_PERMISSION_PREFIX + i)) {
                 best = i;
             }
         }
-        return best > 0 ? best : base;
+        long resolved = best > 0 ? best : base;
+        cachedAmounts.put(uuid, new CachedPaycheckAmount(resolved, now));
+        return resolved;
     }
+
+    private record CachedPaycheckAmount(long amount, long cachedAtMs) {}
 }
 

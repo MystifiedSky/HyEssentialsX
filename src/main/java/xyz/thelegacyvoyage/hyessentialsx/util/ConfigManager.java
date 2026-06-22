@@ -2874,7 +2874,7 @@ public final class ConfigManager {
     }
 
     private void writeJson(@Nonnull Path path, @Nonnull JsonObject data) throws Exception {
-        Files.writeString(path, gson.toJson(data), StandardCharsets.UTF_8);
+        AtomicFileUtil.writeStringAtomically(path, gson.toJson(data), StandardCharsets.UTF_8);
     }
 
     @Nonnull

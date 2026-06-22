@@ -13,11 +13,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -32,7 +32,7 @@ public final class RankupManager {
 
     private ScheduledExecutorService scheduler;
     private ScheduledFuture<?> autoTask;
-    private final Map<UUID, PendingRankup> pendingConfirm = new HashMap<>();
+    private final Map<UUID, PendingRankup> pendingConfirm = new ConcurrentHashMap<>();
 
     public RankupManager(@Nonnull ConfigManager config,
                          @Nonnull EconomyManager economy,

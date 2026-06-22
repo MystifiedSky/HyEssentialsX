@@ -1,5 +1,7 @@
 package xyz.thelegacyvoyage.hyessentialsx.managers;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
@@ -16,18 +18,22 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public final class StorageManager {
 
     private final StorageBackend backend;
     private final ExecutorService ioPool;
+    private final Gson snapshotGson;
 
     private final ConcurrentHashMap<UUID, PlayerDataModel> playerCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, UUID> nameIndex = new ConcurrentHashMap<>();
@@ -37,18 +43,31 @@ public final class StorageManager {
     private final ConcurrentHashMap<String, IpBanModel> ipBans = new ConcurrentHashMap<>();
 
     public StorageManager(@Nonnull Path dataFolder, @Nonnull ConfigManager config) {
-        this.ioPool = Executors.newSingleThreadExecutor(r -> {
+        this(createBackend(dataFolder, config), createIoExecutor());
+    }
+
+    StorageManager(@Nonnull StorageBackend backend) {
+        this(backend, createIoExecutor());
+    }
+
+    private StorageManager(@Nonnull StorageBackend backend, @Nonnull ExecutorService ioPool) {
+        this.backend = backend;
+        this.ioPool = ioPool;
+        this.snapshotGson = new GsonBuilder().create();
+        loadAll();
+    }
+
+    @Nonnull
+    private static ExecutorService createIoExecutor() {
+        return Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "HyEssentialsX-IO");
             t.setDaemon(true);
             return t;
         });
-
-        this.backend = createBackend(dataFolder, config);
-        loadAll();
     }
 
-    private StorageBackend createBackend(Path dataFolder, ConfigManager config) {
-        String type = config.getStorageType().toLowerCase();
+    private static StorageBackend createBackend(Path dataFolder, ConfigManager config) {
+        String type = config.getStorageType().toLowerCase(Locale.ROOT);
         if ("sqlite".equals(type)) {
             try {
                 StorageBackend backend = new SqliteStorageBackend(config.getSqliteFile(dataFolder));
@@ -116,6 +135,7 @@ public final class StorageManager {
     }
 
     public void reloadCaches() {
+        flush();
         playerCache.clear();
         loadAll();
     }
@@ -126,7 +146,7 @@ public final class StorageManager {
         for (UUID id : ids) {
             PlayerDataModel data = sanitizePlayerData(backend.loadPlayerData(id));
             if (data != null && data.getLastKnownName() != null) {
-                nameIndex.put(data.getLastKnownName().toLowerCase(), id);
+                nameIndex.put(data.getLastKnownName().toLowerCase(Locale.ROOT), id);
             }
         }
     }
@@ -143,19 +163,21 @@ public final class StorageManager {
     }
 
     public void savePlayerDataAsync(@Nonnull UUID uuid, @Nonnull PlayerDataModel data) {
-        data.sanitizeForStorage();
-        CompletableFuture.runAsync(() -> {
-            data.sanitizeForStorage();
-            backend.savePlayerData(uuid, data);
-        }, ioPool);
+        PlayerDataModel snapshot = snapshotPlayerData(data);
+        submitIoTask(() -> backend.savePlayerData(uuid, snapshot));
     }
 
     public void unloadPlayer(@Nonnull UUID uuid) {
+        PlayerDataModel data = playerCache.get(uuid);
+        if (data != null) {
+            savePlayerDataAsync(uuid, data);
+            flush();
+        }
         playerCache.remove(uuid);
     }
 
     public void updatePlayerName(@Nonnull UUID uuid, @Nonnull String name) {
-        String key = name.toLowerCase();
+        String key = name.toLowerCase(Locale.ROOT);
         nameIndex.put(key, uuid);
         PlayerDataModel data = getPlayerData(uuid);
         data.setLastKnownName(name);
@@ -164,7 +186,7 @@ public final class StorageManager {
 
     @Nullable
     public UUID resolvePlayerIdByName(@Nonnull String name) {
-        return nameIndex.get(name.toLowerCase());
+        return nameIndex.get(name.toLowerCase(Locale.ROOT));
     }
 
     @Nonnull
@@ -181,16 +203,16 @@ public final class StorageManager {
 
     @Nullable
     public WarpModel getWarp(@Nonnull String name) {
-        return warps.get(name.toLowerCase());
+        return warps.get(name.toLowerCase(Locale.ROOT));
     }
 
     public void setWarp(@Nonnull String name, @Nonnull WarpModel warp) {
-        warps.put(name.toLowerCase(), warp);
+        warps.put(name.toLowerCase(Locale.ROOT), warp);
         saveWarpsAsync();
     }
 
     public boolean deleteWarp(@Nonnull String name) {
-        WarpModel removed = warps.remove(name.toLowerCase());
+        WarpModel removed = warps.remove(name.toLowerCase(Locale.ROOT));
         if (removed != null) {
             saveWarpsAsync();
             return true;
@@ -200,7 +222,7 @@ public final class StorageManager {
 
     private void saveWarpsAsync() {
         Map<String, WarpModel> snapshot = Map.copyOf(warps);
-        CompletableFuture.runAsync(() -> backend.saveWarps(snapshot), ioPool);
+        submitIoTask(() -> backend.saveWarps(snapshot));
     }
 
     @Nonnull
@@ -210,16 +232,16 @@ public final class StorageManager {
 
     @Nullable
     public KitModel getKit(@Nonnull String name) {
-        return kits.get(name.toLowerCase());
+        return kits.get(name.toLowerCase(Locale.ROOT));
     }
 
     public void setKit(@Nonnull String name, @Nonnull KitModel kit) {
-        kits.put(name.toLowerCase(), kit);
+        kits.put(name.toLowerCase(Locale.ROOT), kit);
         saveKitsAsync();
     }
 
     public boolean deleteKit(@Nonnull String name) {
-        KitModel removed = kits.remove(name.toLowerCase());
+        KitModel removed = kits.remove(name.toLowerCase(Locale.ROOT));
         if (removed != null) {
             saveKitsAsync();
             return true;
@@ -229,7 +251,7 @@ public final class StorageManager {
 
     private void saveKitsAsync() {
         Map<String, KitModel> snapshot = Map.copyOf(kits);
-        CompletableFuture.runAsync(() -> backend.saveKits(snapshot), ioPool);
+        submitIoTask(() -> backend.saveKits(snapshot));
     }
 
     @Nonnull
@@ -239,16 +261,16 @@ public final class StorageManager {
 
     @Nullable
     public ShopModel getShop(@Nonnull String name) {
-        return shops.get(name.toLowerCase());
+        return shops.get(name.toLowerCase(Locale.ROOT));
     }
 
     public void setShop(@Nonnull String name, @Nonnull ShopModel shop) {
-        shops.put(name.toLowerCase(), shop);
+        shops.put(name.toLowerCase(Locale.ROOT), shop);
         saveShopsAsync();
     }
 
     public boolean deleteShop(@Nonnull String name) {
-        ShopModel removed = shops.remove(name.toLowerCase());
+        ShopModel removed = shops.remove(name.toLowerCase(Locale.ROOT));
         if (removed != null) {
             saveShopsAsync();
             return true;
@@ -258,7 +280,7 @@ public final class StorageManager {
 
     private void saveShopsAsync() {
         Map<String, ShopModel> snapshot = Map.copyOf(shops);
-        CompletableFuture.runAsync(() -> backend.saveShops(snapshot), ioPool);
+        submitIoTask(() -> backend.saveShops(snapshot));
     }
 
     @Nonnull
@@ -287,7 +309,7 @@ public final class StorageManager {
 
     private void saveIpBansAsync() {
         Map<String, IpBanModel> snapshot = Map.copyOf(ipBans);
-        CompletableFuture.runAsync(() -> backend.saveIpBans(snapshot), ioPool);
+        submitIoTask(() -> backend.saveIpBans(snapshot));
     }
 
     @Nullable
@@ -332,19 +354,40 @@ public final class StorageManager {
 
     public void shutdown() {
         try {
+            flush();
             backend.saveWarps(Map.copyOf(warps));
             backend.saveKits(Map.copyOf(kits));
             backend.saveShops(Map.copyOf(shops));
             backend.saveIpBans(Map.copyOf(ipBans));
             for (Map.Entry<UUID, PlayerDataModel> entry : playerCache.entrySet()) {
-                entry.getValue().sanitizeForStorage();
-                backend.savePlayerData(entry.getKey(), entry.getValue());
+                backend.savePlayerData(entry.getKey(), snapshotPlayerData(entry.getValue()));
             }
         } catch (Exception e) {
             Log.error("Failed to flush storage on shutdown: " + e.getMessage());
         } finally {
-            ioPool.shutdownNow();
+            ioPool.shutdown();
+            try {
+                if (!ioPool.awaitTermination(5L, TimeUnit.SECONDS)) {
+                    ioPool.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                ioPool.shutdownNow();
+            }
             backend.shutdown();
+        }
+    }
+
+    public void flush() {
+        if (ioPool.isShutdown()) {
+            return;
+        }
+        try {
+            Future<?> barrier = ioPool.submit(() -> {});
+            barrier.get();
+        } catch (RejectedExecutionException ignored) {
+        } catch (Exception e) {
+            Log.warn("Failed to flush storage queue: " + e.getMessage());
         }
     }
 
@@ -353,6 +396,25 @@ public final class StorageManager {
         PlayerDataModel safe = data != null ? data : new PlayerDataModel();
         safe.sanitizeForStorage();
         return safe;
+    }
+
+    @Nonnull
+    private PlayerDataModel snapshotPlayerData(@Nonnull PlayerDataModel data) {
+        data.sanitizeForStorage();
+        PlayerDataModel snapshot = snapshotGson.fromJson(snapshotGson.toJson(data), PlayerDataModel.class);
+        return sanitizePlayerData(snapshot);
+    }
+
+    private void submitIoTask(@Nonnull Runnable task) {
+        if (ioPool.isShutdown()) {
+            task.run();
+            return;
+        }
+        try {
+            ioPool.execute(task);
+        } catch (RejectedExecutionException ignored) {
+            task.run();
+        }
     }
 }
 

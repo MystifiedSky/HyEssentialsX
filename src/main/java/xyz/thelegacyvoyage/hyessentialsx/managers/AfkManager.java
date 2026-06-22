@@ -14,6 +14,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public final class AfkManager {
@@ -26,6 +27,7 @@ public final class AfkManager {
     private final Map<UUID, Boolean> manualAfk = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastActivity = new ConcurrentHashMap<>();
     private final Map<UUID, Vector3d> lastPositions = new ConcurrentHashMap<>();
+    private ScheduledFuture<?> task;
 
     public AfkManager(@Nonnull ConfigManager config) {
         this.config = config;
@@ -36,11 +38,28 @@ public final class AfkManager {
         });
     }
 
-    public void start() {
-        scheduler.scheduleAtFixedRate(this::tick, 5, 5, TimeUnit.SECONDS);
+    public synchronized void start() {
+        if (scheduler.isShutdown() || scheduler.isTerminated()) {
+            return;
+        }
+        if (!config.isAfkEnabled()) {
+            cancelTaskLocked();
+            return;
+        }
+        ScheduledFuture<?> existing = task;
+        if (existing != null && !existing.isCancelled() && !existing.isDone()) {
+            return;
+        }
+        task = scheduler.scheduleAtFixedRate(this::tick, 5L, 5L, TimeUnit.SECONDS);
     }
 
-    public void shutdown() {
+    public synchronized void reload() {
+        cancelTaskLocked();
+        start();
+    }
+
+    public synchronized void shutdown() {
+        cancelTaskLocked();
         scheduler.shutdownNow();
     }
 
@@ -165,6 +184,14 @@ public final class AfkManager {
         double dy = current.getY() - last.getY();
         double dz = current.getZ() - last.getZ();
         return (dx * dx + dy * dy + dz * dz) > MOVE_EPSILON_SQ;
+    }
+
+    private void cancelTaskLocked() {
+        ScheduledFuture<?> existing = task;
+        task = null;
+        if (existing != null) {
+            existing.cancel(false);
+        }
     }
 }
 

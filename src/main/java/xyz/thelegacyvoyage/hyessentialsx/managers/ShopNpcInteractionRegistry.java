@@ -8,6 +8,7 @@ import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.protocol.InteractionSyncData;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.entities.player.pages.CustomUIPage;
 import com.hypixel.hytale.server.core.modules.interaction.Interactions;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Interaction;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.RootInteraction;
@@ -19,7 +20,10 @@ import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import xyz.thelegacyvoyage.hyessentialsx.HyEssentialsXPlugin;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
+import xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache;
+import xyz.thelegacyvoyage.hyessentialsx.ui.PlayerShopBrowseUI;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopBrowseUI;
+import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -34,10 +38,15 @@ public final class ShopNpcInteractionRegistry {
     private static final String ADMIN_SHOP_INTERACTION_ID = "hyessentialsx/open_admin_shop_ui";
     private static final String ADMIN_SHOP_HINT = "Press F to open shop";
     private static final double FALLBACK_DISTANCE_SQ = 2.25D;
+    private static final String PLAYER_SHOP_USE_PERMISSION = "hyessentialsx.playershop.use";
+    private static final String PLAYER_SHOP_LEGACY_PERMISSION = "hyessentialsx.playershop";
+    private static final String PLAYER_SHOP_ADMIN_PERMISSION = "hyessentialsx.playershop.admin";
 
     private static volatile boolean registered;
     private static ShopManager shopManager;
     private static EconomyManager economyManager;
+    private static ConfigManager configManager;
+    private static ShopAdminDraftCache draftCache;
     private static Field interactionIdField;
     private static Field customPageSupplierField;
 
@@ -46,9 +55,13 @@ public final class ShopNpcInteractionRegistry {
 
     public static void register(@Nonnull HyEssentialsXPlugin plugin,
                                 @Nonnull ShopManager shopManager,
-                                @Nonnull EconomyManager economyManager) {
+                                @Nonnull EconomyManager economyManager,
+                                @Nonnull ConfigManager configManager,
+                                @Nonnull ShopAdminDraftCache draftCache) {
         ShopNpcInteractionRegistry.shopManager = shopManager;
         ShopNpcInteractionRegistry.economyManager = economyManager;
+        ShopNpcInteractionRegistry.configManager = configManager;
+        ShopNpcInteractionRegistry.draftCache = draftCache;
         if (registered) {
             return;
         }
@@ -88,7 +101,7 @@ public final class ShopNpcInteractionRegistry {
     }
 
     @Nullable
-    private static ShopBrowseUI createPageForInteraction(@Nonnull Ref<EntityStore> playerEntityRef,
+    private static CustomUIPage createPageForInteraction(@Nonnull Ref<EntityStore> playerEntityRef,
                                                          @Nonnull ComponentAccessor<EntityStore> accessor,
                                                          @Nonnull PlayerRef playerRef,
                                                          @Nonnull com.hypixel.hytale.server.core.entity.InteractionContext context) {
@@ -108,12 +121,27 @@ public final class ShopNpcInteractionRegistry {
         if (shop == null) {
             return null;
         }
+        if (shop.isPlayerShop()) {
+            if (!hasPermission(store, playerEntityRef, playerRef, PLAYER_SHOP_ADMIN_PERMISSION)
+                    && !hasPermission(store, playerEntityRef, playerRef, PLAYER_SHOP_USE_PERMISSION)
+                    && !hasPermission(store, playerEntityRef, playerRef, PLAYER_SHOP_LEGACY_PERMISSION)) {
+                Messages.sendPrefixedKey(playerRef, "shop.use.no_permission", java.util.Map.of());
+                return null;
+            }
+            if (configManager != null && !configManager.isPlayerShopsEnabled()) {
+                Messages.sendPrefixedKey(playerRef, "shop.player.disabled", java.util.Map.of());
+                return null;
+            }
+            return new PlayerShopBrowseUI(playerRef, shopManager, economyManager, configManager, shop, shopManager.getStorage(), draftCache);
+        }
         if (!shop.getUsePermission().isBlank()
-                && !hasPermission(store, playerEntityRef, playerRef, shop.getUsePermission())) {
+                && !hasPermission(store, playerEntityRef, playerRef, shop.getUsePermission())
+                && !(shop.getUsePermission().equalsIgnoreCase(ShopManager.DEFAULT_USE_PERMISSION)
+                && hasPermission(store, playerEntityRef, playerRef, ShopManager.LEGACY_USE_PERMISSION))) {
             Messages.sendPrefixedKey(playerRef, "shop.use.no_permission", java.util.Map.of());
             return null;
         }
-        return new ShopBrowseUI(playerRef, shopManager, economyManager, shop);
+        return new ShopBrowseUI(playerRef, shopManager, economyManager, shop, draftCache);
     }
 
     @Nullable
@@ -206,12 +234,15 @@ public final class ShopNpcInteractionRegistry {
         }
         boolean moduleHas = PermissionsModule.get().hasPermission(playerRef.getUuid(), permission, false);
         if (PermissionsModule.get().getFirstPermissionProvider() == null) {
-            return componentHas != null && componentHas;
+            if (componentHas != null) {
+                return componentHas;
+            }
+            return moduleHas;
         }
         if (componentHas == null) {
             return moduleHas;
         }
-        return moduleHas && componentHas;
+        return moduleHas || componentHas;
     }
 
     private static void setInteractionId(@Nonnull Interaction interaction, @Nonnull String id) {

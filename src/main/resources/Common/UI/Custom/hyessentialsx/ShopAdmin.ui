@@ -365,7 +365,7 @@ $C.@PageOverlay {
           }
         }
 
-        Group {
+        Group #MoneyStockSection {
           Anchor: (Height: 45, Top: 12, Bottom: 6);
           LayoutMode: Left;
 
@@ -387,7 +387,7 @@ $C.@PageOverlay {
           }
         }
 
-        Group {
+        Group #StockResetSection {
           Anchor: (Height: 45, Top: 6, Bottom: 8);
           LayoutMode: Left;
 
@@ -405,6 +405,88 @@ $C.@PageOverlay {
           $C.@TextButton #SaveStockSettings {
             Text: "Save";
             Anchor: (Width: 120, Height: 35, Left: 56);
+          }
+        }
+
+        Group #PlayerShopSettings {
+          Anchor: (Height: 150, Top: 10);
+          LayoutMode: Top;
+          Visible: false;
+
+          Label {
+            Anchor: (Bottom: 10);
+            Style: (FontSize: 15, TextColor: #93844c, RenderBold: true);
+            Text: "Player Shop Settings";
+          }
+
+          Group #EditorRow {
+            Anchor: (Height: 40, Bottom: 6);
+            LayoutMode: Left;
+
+            Label {
+              Anchor: (Width: 120);
+              Style: (FontSize: 14, TextColor: #aaaaaa);
+              Text: "Editors:";
+            }
+
+            Group {
+              Anchor: (Width: 260);
+              $C.@HeaderSearch #EditorInput {}
+            }
+
+            $C.@TextButton #AddEditor {
+              Text: "Add";
+              Anchor: (Width: 90, Height: 32, Left: 8);
+            }
+
+            $C.@TextButton #RemoveEditor {
+              Text: "Remove";
+              Anchor: (Width: 140, Height: 32, Left: 8);
+            }
+          }
+
+          Label #EditorsList {
+            Anchor: (Height: 22, Bottom: 12);
+            Style: (FontSize: 12, TextColor: #888888);
+            Text: "Editors: none";
+          }
+
+          Group #ChestRow {
+            Anchor: (Height: 40, Bottom: 6);
+            LayoutMode: Left;
+
+            Label #LinkedChestsLabel {
+              Anchor: (Width: 180);
+              Style: (FontSize: 14, TextColor: #aaaaaa);
+              Text: "Linked chests: 0";
+            }
+
+            Label #LinkedChestsCount {
+              Anchor: (Width: 1, Height: 1);
+              Visible: false;
+              Text: "0";
+            }
+
+            $C.@TextButton #LinkChest {
+              Text: "Link";
+              Anchor: (Width: 120, Height: 32, Left: 8);
+            }
+
+            $C.@TextButton #UnlinkChest {
+              Text: "Unlink";
+              Anchor: (Width: 140, Height: 32, Left: 8);
+            }
+
+            $C.@TextButton #ClearChests {
+              Text: "Clear";
+              Anchor: (Width: 120, Height: 32, Left: 8);
+            }
+          }
+
+          Label {
+            Anchor: (Height: 20);
+            Style: (FontSize: 11, TextColor: #777777);
+            Text: "Look at a chest and click Link/Unlink.";
           }
         }
       }

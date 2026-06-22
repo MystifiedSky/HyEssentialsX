@@ -10,8 +10,11 @@ import java.util.List;
 
 public final class ShopManager {
 
-    public static final String DEFAULT_USE_PERMISSION = "hyessentialsx.shop.use";
-    public static final String DEFAULT_EDIT_PERMISSION = "hyessentialsx.shop.edit";
+    public static final String DEFAULT_USE_PERMISSION = "hyessentialsx.adminshop.use";
+    public static final String DEFAULT_EDIT_PERMISSION = "hyessentialsx.adminshop.edit";
+    public static final String LEGACY_USE_PERMISSION = "hyessentialsx.shop.use";
+    public static final String LEGACY_EDIT_PERMISSION = "hyessentialsx.shop.edit";
+    public static final String DEFAULT_PLAYER_USE_PERMISSION = "hyessentialsx.playershop.use";
     public static final String DEFAULT_NPC_ROLE = "Klops_Merchant";
     private static final int DEFAULT_STOCK_RESET_DAYS = 0;
 
@@ -22,8 +25,39 @@ public final class ShopManager {
     }
 
     @Nonnull
+    public StorageManager getStorage() {
+        return storage;
+    }
+
+    @Nonnull
     public List<String> listShops() {
         List<String> names = new ArrayList<>(storage.getShops().keySet());
+        names.sort(Comparator.naturalOrder());
+        return names;
+    }
+
+    @Nonnull
+    public List<String> listAdminShops() {
+        List<String> names = new ArrayList<>();
+        for (var entry : storage.getShops().entrySet()) {
+            ShopModel shop = entry.getValue();
+            if (shop != null && !shop.isPlayerShop()) {
+                names.add(entry.getKey());
+            }
+        }
+        names.sort(Comparator.naturalOrder());
+        return names;
+    }
+
+    @Nonnull
+    public List<String> listPlayerShops() {
+        List<String> names = new ArrayList<>();
+        for (var entry : storage.getShops().entrySet()) {
+            ShopModel shop = entry.getValue();
+            if (shop != null && shop.isPlayerShop()) {
+                names.add(entry.getKey());
+            }
+        }
         names.sort(Comparator.naturalOrder());
         return names;
     }
@@ -57,6 +91,24 @@ public final class ShopManager {
         return model;
     }
 
+    @Nullable
+    public ShopModel createPlayerShop(@Nonnull String name, @Nonnull String ownerUuid) {
+        String trimmed = name.trim();
+        if (trimmed.isBlank()) return null;
+        String key = trimmed.toLowerCase();
+        if (storage.getShop(key) != null) {
+            return null;
+        }
+        ShopModel model = new ShopModel(key);
+        model.setDisplayName(trimmed);
+        model.setPlayerShop(true);
+        model.setOwnerUuid(ownerUuid);
+        model.setUsePermission(DEFAULT_PLAYER_USE_PERMISSION);
+        normalize(model);
+        storage.setShop(key, model);
+        return model;
+    }
+
     public boolean deleteShop(@Nonnull String name) {
         return storage.deleteShop(name);
     }
@@ -75,9 +127,13 @@ public final class ShopManager {
             shop.setDisplayName(shop.getName());
         }
         if (shop.getUsePermission().isBlank()) {
+            shop.setUsePermission(shop.isPlayerShop() ? DEFAULT_PLAYER_USE_PERMISSION : DEFAULT_USE_PERMISSION);
+        } else if (!shop.isPlayerShop() && shop.getUsePermission().equalsIgnoreCase(LEGACY_USE_PERMISSION)) {
             shop.setUsePermission(DEFAULT_USE_PERMISSION);
         }
         if (shop.getEditPermission().isBlank()) {
+            shop.setEditPermission(DEFAULT_EDIT_PERMISSION);
+        } else if (!shop.isPlayerShop() && shop.getEditPermission().equalsIgnoreCase(LEGACY_EDIT_PERMISSION)) {
             shop.setEditPermission(DEFAULT_EDIT_PERMISSION);
         }
         if (shop.getTrades() == null) {
@@ -85,6 +141,12 @@ public final class ShopManager {
         }
         if (shop.getNpcs() == null) {
             shop.setNpcs(new java.util.ArrayList<>());
+        }
+        if (shop.getEditors() == null) {
+            shop.setEditors(new java.util.ArrayList<>());
+        }
+        if (shop.getChests() == null) {
+            shop.setChests(new java.util.ArrayList<>());
         }
         if (shop.getNpcRole().isBlank()) {
             shop.setNpcRole(DEFAULT_NPC_ROLE);

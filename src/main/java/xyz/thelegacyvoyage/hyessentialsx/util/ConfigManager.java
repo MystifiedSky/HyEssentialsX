@@ -15,6 +15,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,6 +33,9 @@ public final class ConfigManager {
     private static final List<String> DEFAULT_COMBAT_BLOCKED_COMMANDS = List.of("home", "spawn", "tpa", "tp", "warp");
 
     private final Path configPath;
+    private final Path economyPath;
+    private final Path rankupPath;
+    private final Path chatPath;
     private final Gson gson = new GsonBuilder()
             .setPrettyPrinting()
             .disableHtmlEscaping()
@@ -124,6 +129,11 @@ public final class ConfigManager {
     private List<RankupTier> rankupTiers = defaultRankupTiers();
     private String defaultKit = "";
 
+    private boolean playerShopsEnabled = true;
+    private int playerShopMaxShopsPerPlayer = 1;
+    private long playerShopCreationCost = 0L;
+    private int playerShopChestLinkRadius = 8;
+
     private double nearRadius = 50.0;
     private boolean nearShowDistance = true;
 
@@ -198,21 +208,56 @@ public final class ConfigManager {
     private String mysqlUser = "root";
     private String mysqlPassword = "";
 
+    private boolean needsSplitMigration = false;
+
     public ConfigManager(@Nonnull Path dataFolder) {
         this.configPath = dataFolder.resolve("config.json");
+        this.economyPath = dataFolder.resolve("economyConfig.json");
+        this.rankupPath = dataFolder.resolve("rankupConfig.json");
+        this.chatPath = dataFolder.resolve("chatConfig.json");
         ensureExists();
         load();
     }
 
     private void ensureExists() {
-        if (Files.exists(configPath)) return;
         try {
             Files.createDirectories(configPath.getParent());
-            JsonObject defaults = buildDefaultConfig();
-            Files.writeString(configPath, gson.toJson(defaults), StandardCharsets.UTF_8);
-            Log.info("Created default config.json");
         } catch (Exception e) {
-            Log.error("Failed to create config.json: " + e.getMessage(), e);
+            Log.error("Failed to create config folder: " + e.getMessage(), e);
+            return;
+        }
+
+        boolean hasMain = Files.exists(configPath);
+        boolean hasEconomy = Files.exists(economyPath);
+        boolean hasRankup = Files.exists(rankupPath);
+        boolean hasChat = Files.exists(chatPath);
+
+        if (hasMain && hasEconomy && hasRankup && hasChat) return;
+
+        if (hasMain && (!hasEconomy || !hasRankup || !hasChat)) {
+            needsSplitMigration = true;
+            return;
+        }
+
+        try {
+            if (!hasMain) {
+                writeJson(configPath, buildDefaultMainRoot());
+                Log.info("Created default config.json");
+            }
+            if (!hasEconomy) {
+                writeJson(economyPath, buildDefaultEconomyRoot());
+                Log.info("Created default economyConfig.json");
+            }
+            if (!hasRankup) {
+                writeJson(rankupPath, buildDefaultRankupRoot());
+                Log.info("Created default rankupConfig.json");
+            }
+            if (!hasChat) {
+                writeJson(chatPath, buildDefaultChatRoot());
+                Log.info("Created default chatConfig.json");
+            }
+        } catch (Exception e) {
+            Log.error("Failed to create default config files: " + e.getMessage(), e);
         }
     }
 
@@ -434,6 +479,13 @@ public final class ConfigManager {
         storage.addProperty("mysqlPassword", "");
         root.add("storage", storage);
 
+        JsonObject playerShops = new JsonObject();
+        playerShops.addProperty("enabled", playerShopsEnabled);
+        playerShops.addProperty("maxShopsPerPlayer", playerShopMaxShopsPerPlayer);
+        playerShops.addProperty("shopCreationCost", playerShopCreationCost);
+        playerShops.addProperty("chestLinkRadius", playerShopChestLinkRadius);
+        root.add("playerShops", playerShops);
+
         JsonObject general = new JsonObject();
         general.addProperty("spawnFallbackToWorldDefault", true);
         general.addProperty("language", languageCode);
@@ -444,8 +496,7 @@ public final class ConfigManager {
 
     public void load() {
         try {
-            String content = Files.readString(configPath, StandardCharsets.UTF_8);
-            root = gson.fromJson(content, JsonObject.class);
+            root = readCombinedRoot();
             if (root == null) {
                 throw new IllegalStateException("config.json parsed to null");
             }
@@ -771,12 +822,24 @@ public final class ConfigManager {
                 mysqlPassword = str(storage, "mariadbPassword", mysqlPassword);
             }
 
+            JsonObject playerShops = obj(root, "playerShops");
+            playerShopsEnabled = bool(playerShops, "enabled", playerShopsEnabled);
+            playerShopMaxShopsPerPlayer = Math.max(0, intVal(playerShops, "maxShopsPerPlayer", playerShopMaxShopsPerPlayer));
+            playerShopCreationCost = Math.max(0L, longVal(playerShops, "shopCreationCost", playerShopCreationCost));
+            playerShopChestLinkRadius = Math.max(1, intVal(playerShops, "chestLinkRadius", playerShopChestLinkRadius));
+
             if (changed) {
                 applyFieldsToRoot();
                 save();
-                Log.info("Updated config.json with new defaults at: " + configPath);
+                Log.info("Updated config files with new defaults.");
             }
             setVersionFromPlugin();
+            if (needsSplitMigration) {
+                backupLegacyConfig();
+                save();
+                needsSplitMigration = false;
+                Log.info("Migrated config.json into split config files.");
+            }
         } catch (Exception e) {
             backupBadConfig();
             Log.warn("Failed to load config.json, using defaults: " + e.getMessage());
@@ -1197,6 +1260,22 @@ public final class ConfigManager {
         return rankupAutoUseCurrency;
     }
 
+    public boolean isPlayerShopsEnabled() {
+        return playerShopsEnabled;
+    }
+
+    public int getPlayerShopMaxShopsPerPlayer() {
+        return playerShopMaxShopsPerPlayer;
+    }
+
+    public long getPlayerShopCreationCost() {
+        return playerShopCreationCost;
+    }
+
+    public int getPlayerShopChestLinkRadius() {
+        return playerShopChestLinkRadius;
+    }
+
     @Nonnull
     public List<RankupTier> getRankupTiers() {
         return List.copyOf(rankupTiers);
@@ -1393,9 +1472,9 @@ public final class ConfigManager {
     private void save() {
         try {
             applyFieldsToRoot();
-            Files.writeString(configPath, gson.toJson(root), StandardCharsets.UTF_8);
+            writeSplitConfigs();
         } catch (Exception e) {
-            Log.warn("Failed to save config.json: " + e.getMessage());
+            Log.warn("Failed to save config files: " + e.getMessage());
         }
     }
 
@@ -1589,6 +1668,172 @@ public final class ConfigManager {
         storage.addProperty("mysqlDatabase", mysqlDatabase);
         storage.addProperty("mysqlUser", mysqlUser);
         storage.addProperty("mysqlPassword", mysqlPassword);
+
+        JsonObject playerShops = obj(root, "playerShops");
+        playerShops.addProperty("enabled", playerShopsEnabled);
+        playerShops.addProperty("maxShopsPerPlayer", playerShopMaxShopsPerPlayer);
+        playerShops.addProperty("shopCreationCost", Math.max(0L, playerShopCreationCost));
+        playerShops.addProperty("chestLinkRadius", playerShopChestLinkRadius);
+    }
+
+    @Nonnull
+    private JsonObject readCombinedRoot() throws Exception {
+        JsonObject main = readOrDefault(configPath, buildDefaultMainRoot());
+        boolean hasEconomy = Files.exists(economyPath);
+        boolean hasRankup = Files.exists(rankupPath);
+        boolean hasChat = Files.exists(chatPath);
+        JsonObject economy = hasEconomy ? readOrDefault(economyPath, buildDefaultEconomyRoot()) : new JsonObject();
+        JsonObject rankup = hasRankup ? readOrDefault(rankupPath, buildDefaultRankupRoot()) : new JsonObject();
+        JsonObject chat = hasChat ? readOrDefault(chatPath, buildDefaultChatRoot()) : new JsonObject();
+
+        JsonObject merged = main.deepCopy();
+        if (hasEconomy && economy.has("economy")) {
+            merged.add("economy", economy.get("economy"));
+        } else if (main.has("economy")) {
+            merged.add("economy", main.get("economy"));
+        } else {
+            JsonObject defEconomy = buildDefaultEconomyRoot();
+            if (defEconomy.has("economy")) {
+                merged.add("economy", defEconomy.get("economy"));
+            }
+        }
+        if (hasRankup && rankup.has("rankup")) {
+            merged.add("rankup", rankup.get("rankup"));
+        } else if (main.has("rankup")) {
+            merged.add("rankup", main.get("rankup"));
+        } else {
+            JsonObject defRankup = buildDefaultRankupRoot();
+            if (defRankup.has("rankup")) {
+                merged.add("rankup", defRankup.get("rankup"));
+            }
+        }
+        if (hasChat && !chat.entrySet().isEmpty()) {
+            for (Map.Entry<String, JsonElement> entry : chat.entrySet()) {
+                merged.add(entry.getKey(), entry.getValue());
+            }
+        } else {
+            JsonObject defChat = buildDefaultChatRoot();
+            for (Map.Entry<String, JsonElement> entry : defChat.entrySet()) {
+                if (!merged.has(entry.getKey())) {
+                    merged.add(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+        return merged;
+    }
+
+    @Nonnull
+    private JsonObject readOrDefault(@Nonnull Path path, @Nonnull JsonObject def) {
+        if (!Files.exists(path)) {
+            return def;
+        }
+        try {
+            return readJsonRoot(path);
+        } catch (Exception e) {
+            backupJsonFile(path);
+            return def;
+        }
+    }
+
+    @Nonnull
+    private JsonObject readJsonRoot(@Nonnull Path path) throws Exception {
+        String content = Files.readString(path, StandardCharsets.UTF_8);
+        JsonObject obj = gson.fromJson(content, JsonObject.class);
+        if (obj == null) {
+            throw new IllegalStateException("Config parsed to null: " + path.getFileName());
+        }
+        return obj;
+    }
+
+    private void writeSplitConfigs() throws Exception {
+        JsonObject full = root != null ? root : buildDefaultConfig();
+        JsonObject main = full.deepCopy();
+        main.remove("economy");
+        main.remove("rankup");
+        stripChatSections(main);
+
+        JsonObject economy = buildDefaultEconomyRoot();
+        if (full.has("economy")) {
+            economy.add("economy", full.get("economy"));
+        }
+        JsonObject rankup = buildDefaultRankupRoot();
+        if (full.has("rankup")) {
+            rankup.add("rankup", full.get("rankup"));
+        }
+        JsonObject chat = buildDefaultChatRoot();
+        fillChatRoot(chat, full);
+
+        writeJson(configPath, main);
+        writeJson(economyPath, economy);
+        writeJson(rankupPath, rankup);
+        writeJson(chatPath, chat);
+    }
+
+    private void writeJson(@Nonnull Path path, @Nonnull JsonObject data) throws Exception {
+        Files.writeString(path, gson.toJson(data), StandardCharsets.UTF_8);
+    }
+
+    @Nonnull
+    private JsonObject buildDefaultMainRoot() {
+        JsonObject root = buildDefaultConfig();
+        root.remove("economy");
+        root.remove("rankup");
+        stripChatSections(root);
+        return root;
+    }
+
+    @Nonnull
+    private JsonObject buildDefaultEconomyRoot() {
+        JsonObject root = new JsonObject();
+        JsonObject defaults = buildDefaultConfig();
+        if (defaults.has("economy")) {
+            root.add("economy", defaults.get("economy"));
+        }
+        return root;
+    }
+
+    @Nonnull
+    private JsonObject buildDefaultRankupRoot() {
+        JsonObject root = new JsonObject();
+        JsonObject defaults = buildDefaultConfig();
+        if (defaults.has("rankup")) {
+            root.add("rankup", defaults.get("rankup"));
+        }
+        return root;
+    }
+
+    @Nonnull
+    private JsonObject buildDefaultChatRoot() {
+        JsonObject root = new JsonObject();
+        JsonObject defaults = buildDefaultConfig();
+        fillChatRoot(root, defaults);
+        return root;
+    }
+
+    private void stripChatSections(@Nonnull JsonObject root) {
+        root.remove("chat");
+        root.remove("welcomeMessage");
+        root.remove("joinAndQuit");
+        root.remove("deathMessages");
+        root.remove("motd");
+        root.remove("rules");
+        root.remove("autoBroadcast");
+    }
+
+    private void fillChatRoot(@Nonnull JsonObject target, @Nonnull JsonObject source) {
+        copySection(target, source, "chat");
+        copySection(target, source, "welcomeMessage");
+        copySection(target, source, "joinAndQuit");
+        copySection(target, source, "deathMessages");
+        copySection(target, source, "motd");
+        copySection(target, source, "rules");
+        copySection(target, source, "autoBroadcast");
+    }
+
+    private void copySection(@Nonnull JsonObject target, @Nonnull JsonObject source, @Nonnull String key) {
+        if (source.has(key)) {
+            target.add(key, source.get(key));
+        }
     }
 
     private void backupBadConfig() {
@@ -1599,6 +1844,30 @@ public final class ConfigManager {
             Log.warn("Backed up invalid config.json to: " + backupPath);
         } catch (Exception e) {
             Log.warn("Failed to backup invalid config.json: " + e.getMessage());
+        }
+    }
+
+    private void backupLegacyConfig() {
+        try {
+            if (!Files.exists(configPath)) return;
+            String stamp = LocalDateTime.now()
+                    .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+            Path backupPath = configPath.resolveSibling("config.json.bak-" + stamp);
+            Files.move(configPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
+            Log.info("Backed up legacy config.json to: " + backupPath);
+        } catch (Exception e) {
+            Log.warn("Failed to backup legacy config.json: " + e.getMessage());
+        }
+    }
+
+    private void backupJsonFile(@Nonnull Path path) {
+        try {
+            if (!Files.exists(path)) return;
+            Path backupPath = path.resolveSibling(path.getFileName().toString() + ".bak");
+            Files.move(path, backupPath, StandardCopyOption.REPLACE_EXISTING);
+            Log.warn("Backed up invalid config file to: " + backupPath);
+        } catch (Exception e) {
+            Log.warn("Failed to backup invalid config file: " + e.getMessage());
         }
     }
 

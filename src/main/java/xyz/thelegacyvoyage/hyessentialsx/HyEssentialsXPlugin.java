@@ -72,7 +72,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.economy.BalanceTopCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.economy.MoneyCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.economy.PayCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.shop.ShopCommand;
-import xyz.thelegacyvoyage.hyessentialsx.commands.shop.ShopNpcCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.shop.PlayerShopCommand;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.ChatModerationListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.CleanupListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.CombatLogListener;
@@ -285,7 +285,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         shopManager = new ShopManager(storage);
         shopNpcFixTask = new ShopNpcFixTask(shopManager);
         shopAdminDraftCache = new xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache();
-        ShopNpcInteractionRegistry.register(this, shopManager, economyManager);
+        ShopNpcInteractionRegistry.register(this, shopManager, economyManager, configManager, shopAdminDraftCache);
 
         Log.info("[HyEssentialsX] Setup complete!");
     }
@@ -435,7 +435,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             reg.accept(new RtpCommand(configManager, cooldownManager, tpManager, backManager));
         }
         reg.accept(new ShopCommand(shopManager, economyManager, shopAdminDraftCache));
-        reg.accept(new ShopNpcCommand(shopManager));
+        reg.accept(new PlayerShopCommand(shopManager, economyManager, shopAdminDraftCache, configManager, storage));
         reg.accept(new ClearInventoryCommand());
         reg.accept(new RepairCommand(cooldownManager));
         reg.accept(new FreecamCommand(freecamManager));

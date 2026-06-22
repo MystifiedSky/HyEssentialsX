@@ -211,6 +211,9 @@ public final class RankupManager {
         Object manager = resolveCommandManager();
         if (manager == null) return;
         Object consoleSender = resolveConsoleSender();
+        if (consoleSender == null) {
+            consoleSender = createProxyConsoleSender();
+        }
         Object sender = consoleSender != null ? consoleSender : fallback;
         try {
             Method handle = findHandleCommand(manager.getClass(), sender);
@@ -218,7 +221,7 @@ public final class RankupManager {
                 handle.invoke(manager, sender, cmd);
                 return;
             }
-            if (!(sender instanceof PlayerRef) && fallback != null) {
+            if (consoleSender == null && fallback != null) {
                 Method playerHandle = findHandleCommand(manager.getClass(), fallback);
                 if (playerHandle != null) {
                     playerHandle.invoke(manager, fallback, cmd);
@@ -278,6 +281,48 @@ public final class RankupManager {
         } catch (Throwable ignored) {
         }
         return null;
+    }
+
+    @Nullable
+    private Object createProxyConsoleSender() {
+        Class<?> senderInterface = loadCommandSenderInterface();
+        if (senderInterface == null || !senderInterface.isInterface()) return null;
+        return java.lang.reflect.Proxy.newProxyInstance(
+                senderInterface.getClassLoader(),
+                new Class<?>[]{senderInterface},
+                (proxy, method, args) -> {
+                    String name = method.getName();
+                    if ("getDisplayName".equals(name)) return "Console";
+                    if ("getUuid".equals(name)) return new UUID(0L, 0L);
+                    if ("hasPermission".equals(name)) return true;
+                    if ("sendMessage".equals(name)) return null;
+                    Class<?> returnType = method.getReturnType();
+                    if (returnType == Void.TYPE) return null;
+                    if (!returnType.isPrimitive()) return null;
+                    if (returnType == Boolean.TYPE) return false;
+                    if (returnType == Byte.TYPE) return (byte) 0;
+                    if (returnType == Short.TYPE) return (short) 0;
+                    if (returnType == Integer.TYPE) return 0;
+                    if (returnType == Long.TYPE) return 0L;
+                    if (returnType == Float.TYPE) return 0f;
+                    if (returnType == Double.TYPE) return 0d;
+                    if (returnType == Character.TYPE) return '\0';
+                    return null;
+                }
+        );
+    }
+
+    @Nullable
+    private Class<?> loadCommandSenderInterface() {
+        try {
+            return Class.forName("com.hypixel.hytale.server.core.command.system.CommandSender");
+        } catch (Throwable ignored) {
+        }
+        try {
+            return Class.forName("com.hypixel.hytale.server.core.command.CommandSender");
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     public static final class Eligibility {

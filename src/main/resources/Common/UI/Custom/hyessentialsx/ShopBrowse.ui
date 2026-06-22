@@ -82,6 +82,12 @@ $C.@PageOverlay {
         }
 
         Group { FlexWeight: 1; }
+
+        $C.@TextButton #EditShopButton {
+          Anchor: (Width: 120, Height: 28, Left: 6);
+          Text: "Edit";
+          Visible: false;
+        }
       }
     }
   }

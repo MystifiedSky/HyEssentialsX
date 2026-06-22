@@ -9,8 +9,8 @@ public final class ShopModel {
     private String name;
     private String displayName;
     private boolean open = true;
-    private String usePermission = "hyessentialsx.shop.use";
-    private String editPermission = "hyessentialsx.shop.edit";
+    private String usePermission = "hyessentialsx.adminshop.use";
+    private String editPermission = "hyessentialsx.adminshop.edit";
     private List<ShopTradeModel> trades = new ArrayList<>();
     private List<ShopNpcModel> npcs = new ArrayList<>();
     private String npcRole;
@@ -18,6 +18,10 @@ public final class ShopModel {
     private long stockResetAt;
     private int moneyStockLimit;
     private long moneyStockCurrent;
+    private boolean playerShop;
+    private String ownerUuid;
+    private List<String> editors = new ArrayList<>();
+    private List<ShopChestModel> chests = new ArrayList<>();
 
     public ShopModel() {
     }
@@ -137,5 +141,46 @@ public final class ShopModel {
 
     public void setMoneyStockCurrent(long moneyStockCurrent) {
         this.moneyStockCurrent = Math.max(0L, moneyStockCurrent);
+    }
+
+    public boolean isPlayerShop() {
+        return playerShop;
+    }
+
+    public void setPlayerShop(boolean playerShop) {
+        this.playerShop = playerShop;
+    }
+
+    @Nonnull
+    public String getOwnerUuid() {
+        return ownerUuid == null ? "" : ownerUuid;
+    }
+
+    public void setOwnerUuid(@Nonnull String ownerUuid) {
+        this.ownerUuid = ownerUuid;
+    }
+
+    @Nonnull
+    public List<String> getEditors() {
+        if (editors == null) {
+            editors = new ArrayList<>();
+        }
+        return editors;
+    }
+
+    public void setEditors(@Nonnull List<String> editors) {
+        this.editors = editors;
+    }
+
+    @Nonnull
+    public List<ShopChestModel> getChests() {
+        if (chests == null) {
+            chests = new ArrayList<>();
+        }
+        return chests;
+    }
+
+    public void setChests(@Nonnull List<ShopChestModel> chests) {
+        this.chests = chests;
     }
 }

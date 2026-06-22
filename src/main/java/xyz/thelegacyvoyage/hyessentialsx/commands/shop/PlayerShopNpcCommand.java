@@ -12,7 +12,6 @@ import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractAsyncCommand;
 import com.hypixel.hytale.server.core.entity.Frozen;
 import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.modules.entity.component.Interactable;
 import com.hypixel.hytale.server.core.modules.entity.component.Invulnerable;
@@ -23,11 +22,13 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import it.unimi.dsi.fastutil.Pair;
+import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopNpcInteractionRegistry;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcNameplateUtil;
 
@@ -36,10 +37,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public final class ShopNpcCommand extends AbstractAsyncCommand {
+public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
 
-    private static final String PERMISSION_NODE = "hyessentialsx.adminshop.npc";
-    private static final String LEGACY_PERMISSION_NODE = "hyessentialsx.shop.npc";
+    private static final String PERMISSION_NODE = "hyessentialsx.playershop.npc";
+    private static final String ADMIN_PERMISSION = "hyessentialsx.playershop.admin";
     private static final String[] PREFERRED_ROLES = {
             "Klops_Merchant",
             "Feran_Civilian",
@@ -49,15 +50,26 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
     };
 
     private final ShopManager shopManager;
+    private final EconomyManager economy;
+    private final ConfigManager config;
 
-    public ShopNpcCommand(@Nonnull ShopManager shopManager) {
-        super("adminshopnpc", "Spawn or remove admin shop NPCs");
+    public PlayerShopNpcCommand(@Nonnull ShopManager shopManager,
+                                @Nonnull EconomyManager economy,
+                                @Nonnull ConfigManager config) {
+        super("shopnpc", "Spawn or remove player shop NPCs");
         this.shopManager = shopManager;
+        this.economy = economy;
+        this.config = config;
+        this.requirePermission(PERMISSION_NODE);
         this.setAllowsExtraArguments(true);
     }
 
     @Override
     protected CompletableFuture<Void> executeAsync(CommandContext ctx) {
+        if (!config.isPlayerShopsEnabled()) {
+            Messages.sendKey(ctx, "shop.player.disabled", java.util.Map.of());
+            return CompletableFuture.completedFuture(null);
+        }
         CommandSender sender = ctx.sender();
         if (!(sender instanceof Player player)) {
             Messages.sendKey(ctx, "shop.npc.players_only", java.util.Map.of());
@@ -84,23 +96,24 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
                                  @Nonnull World world,
                                  @Nonnull List<String> args,
                                  boolean ignorePermission) {
-        CommandSender sender = ctx.sender();
-        if (!ignorePermission
-                && !hasPermission(sender, playerRef, PERMISSION_NODE)
-                && !hasPermission(sender, playerRef, LEGACY_PERMISSION_NODE)) {
-            Messages.noPerm(ctx, "/adminshopnpc");
-            return;
+        if (!ignorePermission) {
+            CommandSender sender = ctx.sender();
+            boolean canNpc = sender.hasPermission(PERMISSION_NODE) || sender.hasPermission(ADMIN_PERMISSION);
+            if (!canNpc) {
+                Messages.noPerm(ctx, "/shopnpc");
+                return;
+            }
         }
 
         if (args.isEmpty()) {
-            Messages.sendKey(ctx, "shop.npc.usage", java.util.Map.of());
+            Messages.sendKey(ctx, "shop.player.npc.usage", java.util.Map.of());
             return;
         }
 
         String action = args.get(0).toLowerCase();
         if ("remove".equals(action) || "delete".equals(action)) {
             if (args.size() < 2) {
-                Messages.sendKey(ctx, "shop.npc.usage.remove", java.util.Map.of());
+                Messages.sendKey(ctx, "shop.player.npc.usage.remove", java.util.Map.of());
                 return;
             }
             String shopName = args.get(1);
@@ -110,7 +123,7 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
 
         if ("list".equals(action)) {
             if (args.size() < 2) {
-                Messages.sendKey(ctx, "shop.npc.usage.list", java.util.Map.of());
+                Messages.sendKey(ctx, "shop.player.npc.usage.list", java.util.Map.of());
                 return;
             }
             String shopName = args.get(1);
@@ -134,17 +147,26 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
                           @Nonnull World world,
                           @Nonnull String shopName) {
         ShopModel shop = shopManager.getShop(shopName);
-        if (shop == null || shop.isPlayerShop()) {
+        if (shop == null || !shop.isPlayerShop()) {
             Messages.sendKey(ctx, "shop.npc.shop_not_found", java.util.Map.of());
             return;
         }
-        Store<EntityStore> store = world.getEntityStore().getStore();
         if (!shop.getNpcs().isEmpty()) {
+            Store<EntityStore> store = world.getEntityStore().getStore();
             if (cleanupStaleNpcs(world, store, shop)) {
                 Messages.sendPrefixedKey(playerRef, "shop.npc.already_exists", java.util.Map.of());
                 return;
             }
         }
+        if (!hasAccess(ctx, playerRef, shop)) {
+            Messages.noPerm(ctx, "/shopnpc " + shopName);
+            return;
+        }
+        if (!chargeNpcCost(ctx, playerRef)) {
+            return;
+        }
+
+        Store<EntityStore> store = world.getEntityStore().getStore();
         Ref<EntityStore> playerEntityRef = world.getEntityStore().getRefFromUUID(playerRef.getUuid());
         if (playerEntityRef == null) {
             Messages.sendKey(ctx, "shop.npc.player_entity_missing", java.util.Map.of());
@@ -238,8 +260,12 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
                            @Nonnull World world,
                            @Nonnull String shopName) {
         ShopModel shop = shopManager.getShop(shopName);
-        if (shop == null || shop.isPlayerShop()) {
+        if (shop == null || !shop.isPlayerShop()) {
             Messages.sendKey(ctx, "shop.npc.shop_not_found", java.util.Map.of());
+            return;
+        }
+        if (!hasAccess(ctx, playerRef, shop)) {
+            Messages.noPerm(ctx, "/shopnpc remove " + shopName);
             return;
         }
         if (shop.getNpcs().isEmpty()) {
@@ -295,7 +321,7 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
 
     private void listNpcs(@Nonnull CommandContext ctx, @Nonnull String shopName) {
         ShopModel shop = shopManager.getShop(shopName);
-        if (shop == null || shop.isPlayerShop()) {
+        if (shop == null || !shop.isPlayerShop()) {
             Messages.sendKey(ctx, "shop.npc.shop_not_found", java.util.Map.of());
             return;
         }
@@ -305,6 +331,50 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
         }
         String ids = String.join(", ", shop.getNpcs().stream().map(ShopNpcModel::getNpcId).toList());
         Messages.sendKey(ctx, "shop.npc.list", java.util.Map.of("ids", ids));
+    }
+
+    // NPC count limits are enforced at the shop level (one NPC per shop).
+
+    private boolean chargeNpcCost(@Nonnull CommandContext ctx, @Nonnull PlayerRef playerRef) {
+        long cost = Math.max(0L, config.getPlayerShopCreationCost());
+        if (cost <= 0L) {
+            return true;
+        }
+        if (!economy.isEnabled()) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.npc.economy_disabled", java.util.Map.of());
+            return false;
+        }
+        if (economy.getBalance(playerRef.getUuid()) < cost) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.npc.cost_insufficient",
+                    java.util.Map.of("amount", economy.formatAmount(cost)));
+            return false;
+        }
+        if (!economy.withdraw(playerRef.getUuid(), cost)) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.npc.cost_failed", java.util.Map.of());
+            return false;
+        }
+        return true;
+    }
+
+
+    private boolean hasAccess(@Nonnull CommandContext ctx, @Nonnull PlayerRef playerRef, @Nonnull ShopModel shop) {
+        if (ctx.sender().hasPermission(ADMIN_PERMISSION)) {
+            return true;
+        }
+        String uuid = playerRef.getUuid().toString();
+        if (uuid.equalsIgnoreCase(shop.getOwnerUuid())) {
+            return true;
+        }
+        for (String editor : shop.getEditors()) {
+            if (editor == null) continue;
+            if (editor.equalsIgnoreCase(uuid)) {
+                return true;
+            }
+            if (playerRef.getUsername() != null && editor.equalsIgnoreCase(playerRef.getUsername())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean despawnNpc(@Nonnull World world, @Nonnull Store<EntityStore> store, @Nonnull String npcId) {
@@ -500,13 +570,5 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
         npc.setLeashPoint(new Vector3d(blockPos.getX() + 0.5D, blockPos.getY(), blockPos.getZ() + 0.5D));
         npc.setLeashHeading(rotation.getY());
         ShopNpcInteractionRegistry.applyNpcInteractions(store, npcRef);
-    }
-
-    private boolean hasPermission(@Nonnull CommandSender sender,
-                                  @Nonnull PlayerRef playerRef,
-                                  @Nonnull String permission) {
-        boolean senderHas = sender.hasPermission(permission);
-        boolean moduleHas = PermissionsModule.get().hasPermission(playerRef.getUuid(), permission, false);
-        return senderHas || moduleHas;
     }
 }

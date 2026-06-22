@@ -18,6 +18,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
@@ -34,12 +35,16 @@ public final class ShopNpcListener implements Consumer<PlayerInteractEvent> {
 
     private final ShopManager shopManager;
     private final EconomyManager economy;
+    private final ShopAdminDraftCache draftCache;
     private static final double INTERACTION_DISTANCE_SQ = 9.0D;
     private static final boolean DEBUG = true;
 
-    public ShopNpcListener(@Nonnull ShopManager shopManager, @Nonnull EconomyManager economy) {
+    public ShopNpcListener(@Nonnull ShopManager shopManager,
+                           @Nonnull EconomyManager economy,
+                           @Nonnull ShopAdminDraftCache draftCache) {
         this.shopManager = shopManager;
         this.economy = economy;
+        this.draftCache = draftCache;
     }
 
     public void register(@Nonnull EventRegistry events) {
@@ -185,7 +190,7 @@ public final class ShopNpcListener implements Consumer<PlayerInteractEvent> {
             return true;
         }
 
-        ShopBrowseUI ui = new ShopBrowseUI(playerRefComponent, shopManager, economy, shop);
+        ShopBrowseUI ui = new ShopBrowseUI(playerRefComponent, shopManager, economy, shop, draftCache);
         com.hypixel.hytale.server.core.universe.world.World world = player.getWorld();
         if (world != null) {
             world.execute(() -> ui.open(player, playerRef, store));

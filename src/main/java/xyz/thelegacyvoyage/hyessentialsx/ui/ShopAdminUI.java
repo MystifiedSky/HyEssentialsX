@@ -23,14 +23,19 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
+import com.hypixel.hytale.math.vector.Vector3i;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopNpcInteractionRegistry;
+import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.models.ShopChestModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopItemModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopTradeModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.ShopContainerUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcNameplateUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -53,6 +58,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
     private final ShopManager shopManager;
     private final EconomyManager economy;
     private final ShopAdminDraftCache draftCache;
+    private final StorageManager storage;
+    private final ConfigManager config;
     private ShopModel shop;
 
     private Tab tab = Tab.TRADES;
@@ -69,6 +76,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
     private String pendingStockLimitText = "";
     private String pendingStockResetDaysText = "";
     private String pendingMoneyStockLimitText = "";
+    private String pendingEditorInputText = "";
     private int editingIndex = -1;
 
     public ShopAdminUI(@Nonnull PlayerRef playerRef,
@@ -76,12 +84,24 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                        @Nonnull EconomyManager economy,
                        @Nonnull ShopModel shop,
                        @Nonnull ShopAdminDraftCache draftCache) {
+        this(playerRef, shopManager, economy, shop, draftCache, null, null);
+    }
+
+    public ShopAdminUI(@Nonnull PlayerRef playerRef,
+                       @Nonnull ShopManager shopManager,
+                       @Nonnull EconomyManager economy,
+                       @Nonnull ShopModel shop,
+                       @Nonnull ShopAdminDraftCache draftCache,
+                       @Nullable StorageManager storage,
+                       @Nullable ConfigManager config) {
         super(playerRef, CustomPageLifetime.CanDismiss, UIEventData.CODEC);
         this.playerRef = playerRef;
         this.shopManager = shopManager;
         this.economy = economy;
         this.shop = shop;
         this.draftCache = draftCache;
+        this.storage = storage;
+        this.config = config;
         restoreDraft();
     }
 
@@ -112,6 +132,9 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         }
         if (data.moneyStockLimitInput != null) {
             pendingMoneyStockLimitText = data.moneyStockLimitInput;
+        }
+        if (data.editorInput != null) {
+            pendingEditorInputText = data.editorInput;
         }
 
         if (data.action == null) return;
@@ -146,6 +169,11 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             case "save_name" -> saveName();
             case "toggle_open" -> toggleOpen();
             case "save_stock_settings" -> saveStockSettings();
+            case "add_editor" -> addEditor();
+            case "remove_editor" -> removeEditor();
+            case "link_chest" -> linkChest(ref, store);
+            case "unlink_chest" -> unlinkChest(ref, store);
+            case "clear_chests" -> clearChests();
             default -> {
             }
         }
@@ -179,7 +207,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         cmd.set("#OutputSection.Visible", !(useMoney && sellTrade));
         cmd.set("#MoneyModeBuy.Disabled", !sellTrade);
         cmd.set("#MoneyModeSell.Disabled", sellTrade);
-        cmd.set("#StockLimitSection.Visible", !(useMoney && sellTrade));
+        boolean showStockLimit = !(useMoney && sellTrade) && !shop.isPlayerShop();
+        cmd.set("#StockLimitSection.Visible", showStockLimit);
         cmd.set("#NpcRoleLabel.Text", npcRoleSelected.isBlank() ? "None" : npcRoleSelected);
         cmd.set("#NpcRolePrev.Disabled", npcRoles.size() <= 1);
         cmd.set("#NpcRoleNext.Disabled", npcRoles.size() <= 1);
@@ -189,6 +218,10 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         cmd.set("#StockLimitInput #SearchInput.Value", pendingStockLimitText == null ? "" : pendingStockLimitText);
         cmd.set("#StockResetInput #SearchInput.Value", pendingStockResetDaysText == null ? "" : pendingStockResetDaysText);
         cmd.set("#MoneyStockLimitInput #SearchInput.Value", pendingMoneyStockLimitText == null ? "" : pendingMoneyStockLimitText);
+        cmd.set("#EditorInput #SearchInput.Value", pendingEditorInputText == null ? "" : pendingEditorInputText);
+        cmd.set("#MoneyStockSection.Visible", !shop.isPlayerShop());
+        cmd.set("#StockResetSection.Visible", !shop.isPlayerShop());
+        cmd.set("#PlayerShopSettings.Visible", shop.isPlayerShop());
 
         buildTradeList(cmd, evt);
         buildSelectedItems(cmd);
@@ -239,6 +272,16 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                 EventData.of("Action", "toggle_open"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#SaveStockSettings",
                 EventData.of("Action", "save_stock_settings"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#AddEditor",
+                EventData.of("Action", "add_editor"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#RemoveEditor",
+                EventData.of("Action", "remove_editor"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#LinkChest",
+                EventData.of("Action", "link_chest"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#UnlinkChest",
+                EventData.of("Action", "unlink_chest"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ClearChests",
+                EventData.of("Action", "clear_chests"), false);
 
         evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#PriceInput #SearchInput",
                 EventData.of("@PriceInput", "#PriceInput #SearchInput.Value"), false);
@@ -250,6 +293,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                 EventData.of("@StockResetInput", "#StockResetInput #SearchInput.Value"), false);
         evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#MoneyStockLimitInput #SearchInput",
                 EventData.of("@MoneyStockLimitInput", "#MoneyStockLimitInput #SearchInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#EditorInput #SearchInput",
+                EventData.of("@EditorInput", "#EditorInput #SearchInput.Value"), false);
     }
 
     private void buildTradeList(@Nonnull UICommandBuilder cmd, @Nonnull UIEventBuilder evt) {
@@ -366,6 +411,40 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         if (pendingMoneyStockLimitText == null || pendingMoneyStockLimitText.isBlank()) {
             pendingMoneyStockLimitText = String.valueOf(shop.getMoneyStockLimit());
         }
+        if (shop.isPlayerShop()) {
+            buildPlayerSettings(cmd);
+        }
+    }
+
+    private void buildPlayerSettings(@Nonnull UICommandBuilder cmd) {
+        int chestCount = shop.getChests().size();
+        cmd.set("#LinkedChestsCount.Text", String.valueOf(chestCount));
+        cmd.set("#LinkedChestsLabel.Text", "Linked chests: " + chestCount);
+        cmd.set("#EditorsList.Text", formatEditors());
+    }
+
+    @Nonnull
+    private String formatEditors() {
+        if (shop.getEditors().isEmpty()) {
+            return "Editors: none";
+        }
+        List<String> names = new ArrayList<>();
+        for (String raw : shop.getEditors()) {
+            if (raw == null || raw.isBlank()) continue;
+            String display = raw;
+            if (storage != null) {
+                try {
+                    java.util.UUID uuid = java.util.UUID.fromString(raw);
+                    var data = storage.getPlayerData(uuid);
+                    if (data != null && data.getLastKnownName() != null && !data.getLastKnownName().isBlank()) {
+                        display = data.getLastKnownName();
+                    }
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            names.add(display);
+        }
+        return "Editors: " + (names.isEmpty() ? "none" : String.join(", ", names));
     }
 
     private void buildPreview(@Nonnull UICommandBuilder cmd) {
@@ -545,22 +624,27 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             shop.getTrades().add(trade);
         }
         int newLimit = parsePositiveInt(pendingStockLimitText);
-        trade.setStockLimit(newLimit);
-        if (newLimit <= 0) {
+        if (shop.isPlayerShop()) {
+            trade.setStockLimit(0);
             trade.setStockCurrent(0);
-        } else if (previousLimit != newLimit) {
-            if (trade.isSellTrade()) {
-                trade.setStockCurrent(Math.min(trade.getStockCurrent(), newLimit));
-            } else {
-                int current = trade.getStockCurrent();
-                if (current <= 0) {
-                    trade.setStockCurrent(newLimit);
+        } else {
+            trade.setStockLimit(newLimit);
+            if (newLimit <= 0) {
+                trade.setStockCurrent(0);
+            } else if (previousLimit != newLimit) {
+                if (trade.isSellTrade()) {
+                    trade.setStockCurrent(Math.min(trade.getStockCurrent(), newLimit));
                 } else {
-                    trade.setStockCurrent(Math.min(current, newLimit));
+                    int current = trade.getStockCurrent();
+                    if (current <= 0) {
+                        trade.setStockCurrent(newLimit);
+                    } else {
+                        trade.setStockCurrent(Math.min(current, newLimit));
+                    }
                 }
+            } else if (trade.getStockCurrent() <= 0 && !trade.isSellTrade()) {
+                trade.setStockCurrent(newLimit);
             }
-        } else if (trade.getStockCurrent() <= 0 && !trade.isSellTrade()) {
-            trade.setStockCurrent(newLimit);
         }
         shopManager.saveShop(shop);
         clearPending();
@@ -568,6 +652,10 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
     }
 
     private void saveStockSettings() {
+        if (shop.isPlayerShop()) {
+            Messages.sendPrefixedKey(playerRef, "shop.admin.stock_not_applicable", java.util.Map.of());
+            return;
+        }
         int days = parsePositiveInt(pendingStockResetDaysText);
         shop.setStockResetDays(days);
         if (days > 0) {
@@ -606,6 +694,143 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         shop.setOpen(!shop.isOpen());
         shopManager.saveShop(shop);
         Messages.sendPrefixedKey(playerRef, shop.isOpen() ? "shop.admin.opened" : "shop.admin.closed", java.util.Map.of());
+    }
+
+    private void addEditor() {
+        if (!canManagePlayerSettings()) return;
+        String input = pendingEditorInputText == null ? "" : pendingEditorInputText.trim();
+        if (input.isBlank()) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.editor.invalid", java.util.Map.of());
+            return;
+        }
+        UUID uuid = resolvePlayerUuid(input);
+        if (uuid == null) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.editor.not_found", java.util.Map.of());
+            return;
+        }
+        String uuidStr = uuid.toString();
+        if (shop.getOwnerUuid().equalsIgnoreCase(uuidStr)) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.editor.is_owner", java.util.Map.of());
+            return;
+        }
+        if (shop.getEditors().stream().anyMatch(id -> id.equalsIgnoreCase(uuidStr))) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.editor.exists", java.util.Map.of());
+            return;
+        }
+        shop.getEditors().add(uuidStr);
+        shopManager.saveShop(shop);
+        Messages.sendPrefixedKey(playerRef, "shop.player.editor.added", java.util.Map.of());
+    }
+
+    private void removeEditor() {
+        if (!canManagePlayerSettings()) return;
+        String input = pendingEditorInputText == null ? "" : pendingEditorInputText.trim();
+        if (input.isBlank()) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.editor.invalid", java.util.Map.of());
+            return;
+        }
+        UUID uuid = resolvePlayerUuid(input);
+        String match = uuid != null ? uuid.toString() : input;
+        boolean removed = shop.getEditors().removeIf(id -> id != null && id.equalsIgnoreCase(match));
+        if (!removed && uuid != null) {
+            removed = shop.getEditors().removeIf(id -> id != null && id.equalsIgnoreCase(input));
+        }
+        if (!removed) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.editor.not_found", java.util.Map.of());
+            return;
+        }
+        shopManager.saveShop(shop);
+        Messages.sendPrefixedKey(playerRef, "shop.player.editor.removed", java.util.Map.of());
+    }
+
+    private void linkChest(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
+        if (!canManagePlayerSettings()) return;
+        World world = resolveWorld(store);
+        if (world == null) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.chest.world_failed", java.util.Map.of());
+            return;
+        }
+        int radius = config.getPlayerShopChestLinkRadius();
+        Vector3i pos = ShopContainerUtil.findTargetedContainer(world, store, ref, Math.max(5, radius + 1));
+        if (pos == null) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.chest.look_at", java.util.Map.of());
+            return;
+        }
+        boolean already = shop.getChests().stream().anyMatch(chest ->
+                chest != null
+                        && chest.getWorldId().equalsIgnoreCase(world.getName())
+                        && chest.getPosition().equals(pos));
+        if (already) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.chest.already", java.util.Map.of());
+            return;
+        }
+        if (!shop.getNpcs().isEmpty() && !ShopContainerUtil.isWithinRadius(pos, shop.getNpcs(), radius)) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.chest.too_far", java.util.Map.of());
+            return;
+        }
+        shop.getChests().add(new ShopChestModel(pos, world.getName()));
+        shopManager.saveShop(shop);
+        Messages.sendPrefixedKey(playerRef, "shop.player.chest.linked", java.util.Map.of());
+    }
+
+    private void unlinkChest(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
+        if (!canManagePlayerSettings()) return;
+        World world = resolveWorld(store);
+        if (world == null) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.chest.world_failed", java.util.Map.of());
+            return;
+        }
+        int radius = config.getPlayerShopChestLinkRadius();
+        Vector3i pos = ShopContainerUtil.findTargetedContainer(world, store, ref, Math.max(5, radius + 1));
+        if (pos == null) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.chest.look_at", java.util.Map.of());
+            return;
+        }
+        boolean removed = shop.getChests().removeIf(chest ->
+                chest != null
+                        && chest.getWorldId().equalsIgnoreCase(world.getName())
+                        && chest.getPosition().equals(pos));
+        if (!removed) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.chest.not_found", java.util.Map.of());
+            return;
+        }
+        shopManager.saveShop(shop);
+        Messages.sendPrefixedKey(playerRef, "shop.player.chest.unlinked", java.util.Map.of());
+    }
+
+    private void clearChests() {
+        if (!canManagePlayerSettings()) return;
+        if (shop.getChests().isEmpty()) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.chest.not_found", java.util.Map.of());
+            return;
+        }
+        shop.getChests().clear();
+        shopManager.saveShop(shop);
+        Messages.sendPrefixedKey(playerRef, "shop.player.chest.cleared", java.util.Map.of());
+    }
+
+    private boolean canManagePlayerSettings() {
+        return shop.isPlayerShop() && storage != null && config != null;
+    }
+
+    @Nullable
+    private UUID resolvePlayerUuid(@Nonnull String input) {
+        if (input.isBlank()) return null;
+        try {
+            return UUID.fromString(input);
+        } catch (IllegalArgumentException ignored) {
+        }
+        if (storage == null) return null;
+        return storage.resolvePlayerIdByName(input);
+    }
+
+    @Nullable
+    private World resolveWorld(@Nonnull Store<EntityStore> store) {
+        Object external = store.getExternalData();
+        if (external instanceof EntityStore entityStore) {
+            return entityStore.getWorld();
+        }
+        return null;
     }
 
     private void updateNpcNameplates() {
@@ -907,6 +1132,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                 .addField(new KeyedCodec<>("@StockLimitInput", Codec.STRING), (e, v) -> e.stockLimitInput = v, e -> e.stockLimitInput)
                 .addField(new KeyedCodec<>("@StockResetInput", Codec.STRING), (e, v) -> e.stockResetInput = v, e -> e.stockResetInput)
                 .addField(new KeyedCodec<>("@MoneyStockLimitInput", Codec.STRING), (e, v) -> e.moneyStockLimitInput = v, e -> e.moneyStockLimitInput)
+                .addField(new KeyedCodec<>("@EditorInput", Codec.STRING), (e, v) -> e.editorInput = v, e -> e.editorInput)
                 .build();
 
         private String action;
@@ -916,6 +1142,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         private String stockLimitInput;
         private String stockResetInput;
         private String moneyStockLimitInput;
+        private String editorInput;
     }
 
     private enum Tab {

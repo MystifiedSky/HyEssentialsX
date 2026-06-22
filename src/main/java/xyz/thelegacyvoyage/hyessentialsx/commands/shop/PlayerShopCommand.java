@@ -18,35 +18,44 @@ import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
+import xyz.thelegacyvoyage.hyessentialsx.ui.PlayerShopBrowseUI;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopAdminUI;
-import xyz.thelegacyvoyage.hyessentialsx.ui.ShopBrowseUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class ShopCommand extends AbstractPlayerCommand {
+public final class PlayerShopCommand extends AbstractPlayerCommand {
 
-    private static final String PERMISSION_NODE = "hyessentialsx.adminshop.use";
-    private static final String ADMIN_PERMISSION = "hyessentialsx.adminshop.admin";
-    private static final String LEGACY_PERMISSION_NODE = "hyessentialsx.shop";
-    private static final String LEGACY_ADMIN_PERMISSION = "hyessentialsx.shop.admin";
+    private static final String PERMISSION_NODE = "hyessentialsx.playershop.use";
+    private static final String ADMIN_PERMISSION = "hyessentialsx.playershop.admin";
+    private static final String LEGACY_PERMISSION = "hyessentialsx.playershop";
+    private static final String CREATE_PERMISSION = "hyessentialsx.playershop.create";
+    private static final String DELETE_PERMISSION = "hyessentialsx.playershop.delete";
 
     private final ShopManager shopManager;
     private final EconomyManager economy;
     private final ShopAdminDraftCache draftCache;
+    private final ConfigManager config;
+    private final StorageManager storage;
 
-    public ShopCommand(@Nonnull ShopManager shopManager,
-                       @Nonnull EconomyManager economy,
-                       @Nonnull ShopAdminDraftCache draftCache) {
-        super("adminshop", "Open or manage admin shops");
+    public PlayerShopCommand(@Nonnull ShopManager shopManager,
+                             @Nonnull EconomyManager economy,
+                             @Nonnull ShopAdminDraftCache draftCache,
+                             @Nonnull ConfigManager config,
+                             @Nonnull StorageManager storage) {
+        super("shop", "Open or manage player shops");
         this.shopManager = shopManager;
         this.economy = economy;
         this.draftCache = draftCache;
+        this.config = config;
+        this.storage = storage;
         this.setPermissionGroup(null);
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
@@ -63,75 +72,89 @@ public final class ShopCommand extends AbstractPlayerCommand {
                            @Nonnull Ref<EntityStore> ref,
                            @Nonnull PlayerRef playerRef,
                            @Nonnull World world) {
+        if (!config.isPlayerShopsEnabled()) {
+            Messages.sendKey(context, "shop.player.disabled", java.util.Map.of());
+            return;
+        }
+
         List<String> args = CommandInputUtil.getArgs(context);
         if (args.isEmpty()) {
-            if (!hasPermission(context.sender(), playerRef, PERMISSION_NODE)
-                    && !hasPermission(context.sender(), playerRef, LEGACY_PERMISSION_NODE)) {
-                Messages.noPerm(context, "/adminshop");
+            if (!hasUsePermission(context.sender(), playerRef)) {
+                Messages.noPerm(context, "/shop");
                 return;
             }
-            listShops(context);
+            listShops(context, playerRef);
             return;
         }
 
         String sub = args.get(0).toLowerCase();
         if ("list".equals(sub)) {
-            if (!hasPermission(context.sender(), playerRef, PERMISSION_NODE)
-                    && !hasPermission(context.sender(), playerRef, LEGACY_PERMISSION_NODE)) {
-                Messages.noPerm(context, "/adminshop");
+            if (!hasUsePermission(context.sender(), playerRef)) {
+                Messages.noPerm(context, "/shop");
                 return;
             }
-            listShops(context);
+            listShops(context, playerRef);
             return;
         }
 
         if ("create".equals(sub)) {
             if (!hasPermission(context.sender(), playerRef, ADMIN_PERMISSION)
-                    && !hasPermission(context.sender(), playerRef, LEGACY_ADMIN_PERMISSION)) {
-                Messages.noPerm(context, "/adminshop create");
+                    && !hasPermission(context.sender(), playerRef, CREATE_PERMISSION)) {
+                Messages.noPerm(context, "/shop create");
                 return;
             }
             if (args.size() < 2) {
-                Messages.sendKey(context, "shop.admin.usage.create", java.util.Map.of());
+                Messages.sendKey(context, "shop.player.usage.create", java.util.Map.of());
                 return;
             }
+            if (!hasPermission(context.sender(), playerRef, ADMIN_PERMISSION)) {
+                int limit = config.getPlayerShopMaxShopsPerPlayer();
+                if (limit > 0 && countShopsForOwner(playerRef.getUuid().toString()) >= limit) {
+                    Messages.sendKey(context, "shop.player.limit_reached",
+                            java.util.Map.of("limit", String.valueOf(limit)));
+                    return;
+                }
+            }
             String name = args.get(1);
-            ShopModel created = shopManager.createShop(name);
+            ShopModel created = shopManager.createPlayerShop(name, playerRef.getUuid().toString());
             if (created == null) {
                 Messages.sendKey(context, "shop.admin.exists_or_invalid", java.util.Map.of());
                 return;
             }
-            Messages.sendKey(context, "shop.admin.created", java.util.Map.of("shop", created.getDisplayName()));
+            Messages.sendKey(context, "shop.player.created", java.util.Map.of("shop", created.getDisplayName()));
             spawnShopNpc(context, playerRef, world, created);
             return;
         }
 
         if ("delete".equals(sub) || "remove".equals(sub)) {
-            if (!hasPermission(context.sender(), playerRef, ADMIN_PERMISSION)
-                    && !hasPermission(context.sender(), playerRef, LEGACY_ADMIN_PERMISSION)) {
-                Messages.noPerm(context, "/adminshop delete");
-                return;
-            }
             if (args.size() < 2) {
-                Messages.sendKey(context, "shop.admin.usage.delete", java.util.Map.of());
+                Messages.sendKey(context, "shop.player.usage.delete", java.util.Map.of());
                 return;
             }
             String name = args.get(1);
             ShopModel shop = shopManager.getShop(name);
-            if (shop != null && !shop.isPlayerShop()) {
-                removeShopNpcs(shop);
+            if (shop == null || !shop.isPlayerShop()) {
+                Messages.sendKey(context, "shop.player.not_found", java.util.Map.of());
+                return;
             }
+            if (!hasPermission(context.sender(), playerRef, ADMIN_PERMISSION)
+                    && !hasPermission(context.sender(), playerRef, DELETE_PERMISSION)
+                    && !isOwner(playerRef, shop)) {
+                Messages.noPerm(context, "/shop delete " + name);
+                return;
+            }
+            removeShopNpcs(shop);
             if (shopManager.deleteShop(name)) {
-                Messages.sendKey(context, "shop.admin.deleted", java.util.Map.of());
+                Messages.sendKey(context, "shop.player.deleted", java.util.Map.of());
             } else {
-                Messages.sendKey(context, "shop.admin.not_found", java.util.Map.of());
+                Messages.sendKey(context, "shop.player.not_found", java.util.Map.of());
             }
             return;
         }
 
         if ("edit".equals(sub)) {
             if (args.size() < 2) {
-                Messages.sendKey(context, "shop.admin.usage.edit", java.util.Map.of());
+                Messages.sendKey(context, "shop.player.usage.edit", java.util.Map.of());
                 return;
             }
             String name = args.get(1);
@@ -139,30 +162,48 @@ public final class ShopCommand extends AbstractPlayerCommand {
             return;
         }
 
-        if (!hasPermission(context.sender(), playerRef, PERMISSION_NODE)
-                && !hasPermission(context.sender(), playerRef, LEGACY_PERMISSION_NODE)) {
-            Messages.noPerm(context, "/adminshop " + args.get(0));
+        if (!hasUsePermission(context.sender(), playerRef)) {
+            Messages.noPerm(context, "/shop " + args.get(0));
             return;
         }
         openBrowse(context, store, ref, playerRef, args.get(0));
     }
 
-    private void listShops(@Nonnull CommandContext context) {
-        List<String> names = shopManager.listAdminShops();
-        if (names.isEmpty()) {
-            Messages.sendKey(context, "shop.admin.none_configured", java.util.Map.of());
-            return;
-        }
+    private void listShops(@Nonnull CommandContext context, @Nonnull PlayerRef playerRef) {
+        boolean isAdmin = hasPermission(context.sender(), playerRef, ADMIN_PERMISSION);
+        List<String> names = shopManager.listPlayerShops();
         List<String> display = new ArrayList<>();
-        for (String name : names) {
-            ShopModel shop = shopManager.getShop(name);
-            if (shop != null && !shop.getDisplayName().equalsIgnoreCase(name)) {
-                display.add(name + " (" + shop.getDisplayName() + ")");
-            } else {
-                display.add(name);
+        if (isAdmin) {
+            for (String name : names) {
+                ShopModel shop = shopManager.getShop(name);
+                if (shop != null && !shop.getDisplayName().equalsIgnoreCase(name)) {
+                    display.add(name + " (" + shop.getDisplayName() + ")");
+                } else {
+                    display.add(name);
+                }
+            }
+            if (display.isEmpty()) {
+                Messages.sendKey(context, "shop.player.none_configured", java.util.Map.of());
+                return;
+            }
+        } else {
+            String owner = playerRef.getUuid().toString();
+            for (String name : names) {
+                ShopModel shop = shopManager.getShop(name);
+                if (shop == null || !shop.isPlayerShop()) continue;
+                if (!owner.equalsIgnoreCase(shop.getOwnerUuid())) continue;
+                if (!shop.getDisplayName().equalsIgnoreCase(name)) {
+                    display.add(name + " (" + shop.getDisplayName() + ")");
+                } else {
+                    display.add(name);
+                }
+            }
+            if (display.isEmpty()) {
+                Messages.sendKey(context, "shop.player.none_owned", java.util.Map.of());
+                return;
             }
         }
-        Messages.sendKey(context, "shop.admin.list", java.util.Map.of("shops", String.join(", ", display)));
+        Messages.sendKey(context, "shop.player.list", java.util.Map.of("shops", String.join(", ", display)));
     }
 
     private void openBrowse(@Nonnull CommandContext context,
@@ -171,15 +212,12 @@ public final class ShopCommand extends AbstractPlayerCommand {
                             @Nonnull PlayerRef playerRef,
                             @Nonnull String name) {
         ShopModel shop = shopManager.getShop(name);
-        if (shop == null || shop.isPlayerShop()) {
-            Messages.sendKey(context, "shop.admin.not_found", java.util.Map.of());
+        if (shop == null || !shop.isPlayerShop()) {
+            Messages.sendKey(context, "shop.player.not_found", java.util.Map.of());
             return;
         }
-        if (!shop.getUsePermission().isBlank()
-                && !hasPermission(context.sender(), playerRef, shop.getUsePermission())
-                && !(shop.getUsePermission().equalsIgnoreCase(ShopManager.DEFAULT_USE_PERMISSION)
-                && hasPermission(context.sender(), playerRef, ShopManager.LEGACY_USE_PERMISSION))) {
-            Messages.noPerm(context, "/adminshop " + name);
+        if (!hasUsePermission(context.sender(), playerRef)) {
+            Messages.noPerm(context, "/shop " + name);
             return;
         }
         Player player = store.getComponent(ref, Player.getComponentType());
@@ -187,7 +225,7 @@ public final class ShopCommand extends AbstractPlayerCommand {
             Messages.sendKey(context, "shop.admin.ui_failed", java.util.Map.of());
             return;
         }
-        ShopBrowseUI ui = new ShopBrowseUI(playerRef, shopManager, economy, shop, draftCache);
+        PlayerShopBrowseUI ui = new PlayerShopBrowseUI(playerRef, shopManager, economy, config, shop, storage, draftCache);
         ui.open(player, ref, store);
     }
 
@@ -197,15 +235,12 @@ public final class ShopCommand extends AbstractPlayerCommand {
                            @Nonnull PlayerRef playerRef,
                            @Nonnull String name) {
         ShopModel shop = shopManager.getShop(name);
-        if (shop == null || shop.isPlayerShop()) {
-            Messages.sendKey(context, "shop.admin.not_found", java.util.Map.of());
+        if (shop == null || !shop.isPlayerShop()) {
+            Messages.sendKey(context, "shop.player.not_found", java.util.Map.of());
             return;
         }
-        if (!shop.getEditPermission().isBlank()
-                && !hasPermission(context.sender(), playerRef, shop.getEditPermission())
-                && !(shop.getEditPermission().equalsIgnoreCase(ShopManager.DEFAULT_EDIT_PERMISSION)
-                && hasPermission(context.sender(), playerRef, ShopManager.LEGACY_EDIT_PERMISSION))) {
-            Messages.noPerm(context, "/adminshop edit " + name);
+        if (!hasEditAccess(context, playerRef, shop)) {
+            Messages.noPerm(context, "/shop edit " + name);
             return;
         }
         Player player = store.getComponent(ref, Player.getComponentType());
@@ -213,8 +248,35 @@ public final class ShopCommand extends AbstractPlayerCommand {
             Messages.sendKey(context, "shop.admin.ui_failed", java.util.Map.of());
             return;
         }
-        ShopAdminUI ui = new ShopAdminUI(playerRef, shopManager, economy, shop, draftCache);
+        ShopAdminUI ui = new ShopAdminUI(playerRef, shopManager, economy, shop, draftCache, storage, config);
         ui.open(player, ref, store);
+    }
+
+    private boolean hasEditAccess(@Nonnull CommandContext context, @Nonnull PlayerRef playerRef, @Nonnull ShopModel shop) {
+        if (hasPermission(context.sender(), playerRef, ADMIN_PERMISSION)) {
+            return true;
+        }
+        if (isOwner(playerRef, shop)) {
+            return true;
+        }
+        String uuid = playerRef.getUuid().toString();
+        for (String editor : shop.getEditors()) {
+            if (editor == null) continue;
+            if (editor.equalsIgnoreCase(uuid)) {
+                return true;
+            }
+            if (playerRef.getUsername() != null && editor.equalsIgnoreCase(playerRef.getUsername())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasUsePermission(@Nonnull com.hypixel.hytale.server.core.command.system.CommandSender sender,
+                                     @Nonnull PlayerRef playerRef) {
+        return hasPermission(sender, playerRef, ADMIN_PERMISSION)
+                || hasPermission(sender, playerRef, PERMISSION_NODE)
+                || hasPermission(sender, playerRef, LEGACY_PERMISSION);
     }
 
     private boolean hasPermission(@Nonnull com.hypixel.hytale.server.core.command.system.CommandSender sender,
@@ -222,7 +284,27 @@ public final class ShopCommand extends AbstractPlayerCommand {
                                   @Nonnull String permission) {
         boolean senderHas = sender.hasPermission(permission);
         boolean moduleHas = PermissionsModule.get().hasPermission(playerRef.getUuid(), permission, false);
+        if (PermissionsModule.get().getFirstPermissionProvider() == null) {
+            return senderHas || moduleHas;
+        }
         return senderHas || moduleHas;
+    }
+
+    private boolean isOwner(@Nonnull PlayerRef playerRef, @Nonnull ShopModel shop) {
+        String owner = shop.getOwnerUuid();
+        return !owner.isBlank() && owner.equalsIgnoreCase(playerRef.getUuid().toString());
+    }
+
+    private int countShopsForOwner(@Nonnull String ownerUuid) {
+        int total = 0;
+        for (String name : shopManager.listPlayerShops()) {
+            ShopModel shop = shopManager.getShop(name);
+            if (shop == null || !shop.isPlayerShop()) continue;
+            if (ownerUuid.equalsIgnoreCase(shop.getOwnerUuid())) {
+                total++;
+            }
+        }
+        return total;
     }
 
     private void spawnShopNpc(@Nonnull CommandContext context,
@@ -232,7 +314,7 @@ public final class ShopCommand extends AbstractPlayerCommand {
         if (!shop.getNpcs().isEmpty()) {
             return;
         }
-        ShopNpcCommand npcCommand = new ShopNpcCommand(shopManager);
+        PlayerShopNpcCommand npcCommand = new PlayerShopNpcCommand(shopManager, economy, config);
         npcCommand.spawnNpcDirect(context, playerRef, world, shop.getName());
     }
 

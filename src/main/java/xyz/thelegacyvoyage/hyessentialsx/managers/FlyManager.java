@@ -18,6 +18,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 public final class FlyManager {
 
     private final ConcurrentHashMap<UUID, Boolean> enabled = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Boolean> pendingApply = new ConcurrentHashMap<>();
 
     public boolean isEnabled(@Nonnull UUID playerId) {
         return enabled.containsKey(playerId);
@@ -40,8 +41,29 @@ public final class FlyManager {
         enabled.remove(playerId);
     }
 
+    public void queueApply(@Nonnull UUID playerId) {
+        pendingApply.put(playerId, Boolean.TRUE);
+    }
+
+    public boolean isApplyPending(@Nonnull UUID playerId) {
+        return pendingApply.containsKey(playerId);
+    }
+
+    public void clearPending(@Nonnull UUID playerId) {
+        pendingApply.remove(playerId);
+    }
+
+    public boolean tryApplyIfPending(@Nonnull PlayerRef target) {
+        UUID playerId = target.getUuid();
+        if (!isApplyPending(playerId)) return false;
+        if (!applyState(target, true)) return false;
+        clearPending(playerId);
+        return true;
+    }
+
     public boolean applyState(@Nonnull PlayerRef target, boolean enabled) {
         Ref<EntityStore> targetRef = target.getReference();
+        if (targetRef == null) return false;
         Store<EntityStore> targetStore = targetRef.getStore();
         if (targetStore == null) return false;
 

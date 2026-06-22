@@ -27,6 +27,7 @@ public final class ConfigManager {
 
     private static final int DEFAULT_COMMAND_COOLDOWN_SECONDS = 30;
     private static final int DEFAULT_TELEPORT_WARMUP_SECONDS = 5;
+    private static final List<String> DEFAULT_SPAWN_RESPAWN_PRIORITY = List.of("bed", "setspawn", "world");
 
     private final Path configPath;
     private final Gson gson = new GsonBuilder()
@@ -77,6 +78,7 @@ public final class ConfigManager {
     private boolean spawnProtectionAllowPlace = false;
     private boolean spawnProtectionAllowDamage = false;
     private boolean spawnProtectionAllowInteract = true;
+    private List<String> spawnRespawnPriority = DEFAULT_SPAWN_RESPAWN_PRIORITY;
     private boolean economyEnabled = true;
     private String economyCurrencySymbol = "$";
     private long economyStartingBalance = 0L;
@@ -388,6 +390,7 @@ public final class ConfigManager {
         spawn.addProperty("pitch", 0.0);
         spawn.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
         spawn.addProperty("warmupSeconds", spawnWarmupSeconds);
+        spawn.add("respawnPriority", toArray(spawnRespawnPriority));
         root.add("spawn", spawn);
 
         JsonObject jumpTo = new JsonObject();
@@ -706,6 +709,7 @@ public final class ConfigManager {
             spawnYaw = (float) dbl(spawn, "yaw", 0.0);
             spawnPitch = (float) dbl(spawn, "pitch", 0.0);
             spawnWarmupSeconds = intVal(spawn, "warmupSeconds", spawnWarmupSeconds);
+            spawnRespawnPriority = normalizeRespawnPriority(list(spawn, "respawnPriority", spawnRespawnPriority));
 
             JsonObject storage = obj(root, "storage");
             storageType = str(storage, "type", "sqlite");
@@ -804,6 +808,11 @@ public final class ConfigManager {
 
     public int getSpawnWarmupSeconds() {
         return Math.max(0, spawnWarmupSeconds);
+    }
+
+    @Nonnull
+    public List<String> getSpawnRespawnPriority() {
+        return Collections.unmodifiableList(spawnRespawnPriority);
     }
 
     public int getRtpWarmupSeconds() {
@@ -1447,6 +1456,7 @@ public final class ConfigManager {
         spawn.addProperty("pitch", spawnPitch);
         spawn.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.SPAWN));
         spawn.addProperty("warmupSeconds", spawnWarmupSeconds);
+        spawn.add("respawnPriority", toArray(spawnRespawnPriority));
 
         JsonObject storage = obj(root, "storage");
         storage.addProperty("type", storageType);
@@ -1661,6 +1671,28 @@ public final class ConfigManager {
             if (!value.isBlank()) return List.of(value);
         }
         return def;
+    }
+
+    @Nonnull
+    private List<String> normalizeRespawnPriority(@Nonnull List<String> input) {
+        if (input.isEmpty()) return DEFAULT_SPAWN_RESPAWN_PRIORITY;
+
+        List<String> out = new ArrayList<>();
+        for (String raw : input) {
+            if (raw == null) continue;
+            String key = raw.trim().toLowerCase(Locale.ROOT);
+            if (key.isBlank()) continue;
+            if ("spawn".equals(key) || "set".equals(key)) {
+                key = "setspawn";
+            }
+            if (!"bed".equals(key) && !"setspawn".equals(key) && !"world".equals(key)) {
+                continue;
+            }
+            if (!out.contains(key)) {
+                out.add(key);
+            }
+        }
+        return out.isEmpty() ? DEFAULT_SPAWN_RESPAWN_PRIORITY : out;
     }
 
     @Nonnull

@@ -68,7 +68,9 @@ public final class PlayerDataListener {
             PlayerDataModel data = storage.getPlayerData(player.getUuid());
             if (data.isFlyEnabled()) {
                 fly.setEnabled(player.getUuid(), true);
-                fly.applyState(player, true);
+                if (!fly.applyState(player, true)) {
+                    fly.queueApply(player.getUuid());
+                }
             }
 
             BanModel ban = bans.getBan(player.getUuid());

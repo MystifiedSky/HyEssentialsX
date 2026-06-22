@@ -56,6 +56,9 @@ public final class FlyNoFallListener {
             PlayerRef playerRef = chunk.getComponent(index, PlayerRef.getComponentType());
             if (playerRef == null) return;
             if (!flyManager.isEnabled(playerRef.getUuid())) return;
+            if (flyManager.isApplyPending(playerRef.getUuid())) {
+                flyManager.tryApplyIfPending(playerRef);
+            }
 
             // Portals/world changes can reset movement settings; re-apply fly ability.
             MovementManager movementManager = chunk.getComponent(index, MovementManager.getComponentType());
@@ -111,7 +114,7 @@ public final class FlyNoFallListener {
                            @Nonnull Damage event) {
             PlayerRef playerRef = chunk.getComponent(index, PlayerRef.getComponentType());
             if (playerRef == null) return;
-            if (!flyManager.isEnabled(playerRef.getUuid())) return;
+            if (!isFlyEnabled(chunk, index, playerRef)) return;
 
             if (!isFallDamage(event)) return;
 
@@ -119,9 +122,28 @@ public final class FlyNoFallListener {
             event.setAmount(0f);
         }
 
+        private boolean isFlyEnabled(@Nonnull ArchetypeChunk<EntityStore> chunk,
+                                     int index,
+                                     @Nonnull PlayerRef playerRef) {
+            if (flyManager.isEnabled(playerRef.getUuid())) return true;
+            MovementManager movementManager = chunk.getComponent(index, MovementManager.getComponentType());
+            if (movementManager == null) return false;
+            MovementSettings settings = movementManager.getSettings();
+            if (settings != null && settings.canFly) return true;
+            MovementSettings defaults = movementManager.getDefaultSettings();
+            return defaults != null && defaults.canFly;
+        }
+
         private static boolean isFallDamage(@Nonnull Damage event) {
             String cause = resolveCauseName(event);
-            return cause != null && cause.contains("fall");
+            if (cause != null && cause.contains("fall")) return true;
+
+            Damage.Source source = event.getSource();
+            if (source == null) return false;
+            String sourceName = source.getClass().getSimpleName();
+            if (sourceName != null && sourceName.toLowerCase().contains("fall")) return true;
+            String sourceText = source.toString();
+            return sourceText != null && sourceText.toLowerCase().contains("fall");
         }
 
         private static String resolveCauseName(@Nonnull Damage event) {

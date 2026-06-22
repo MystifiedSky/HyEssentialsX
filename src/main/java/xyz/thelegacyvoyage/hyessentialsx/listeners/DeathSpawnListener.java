@@ -6,9 +6,6 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.RefChangeSystem;
-import com.hypixel.hytale.math.vector.Transform;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.server.core.modules.entity.damage.DeathComponent;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -58,51 +55,58 @@ public final class DeathSpawnListener {
                 @Nonnull Store<EntityStore> store,
                 @Nonnull CommandBuffer<EntityStore> buffer
         ) {
-            PlayerRef player = store.getComponent(ref, PlayerRef.getComponentType());
-            if (player == null) return;
+            // Wait for respawn (DeathComponent removed) so we can override any
+            // engine bed respawn if needed.
+        }
 
-            World world = store.getExternalData().getWorld();
-            if (world == null) return;
-
-            if (!configManager.isSpawnEnabled()) return;
-
+        private void applyRespawnByPriority(
+                @Nonnull Ref<EntityStore> ref,
+                @Nonnull Store<EntityStore> store,
+                @Nonnull CommandBuffer<EntityStore> buffer,
+                @Nonnull PlayerRef player,
+                @Nonnull World world
+        ) {
             String worldName = world.getName();
-            Player playerEntity = store.getComponent(ref, Player.getComponentType());
-            if (playerEntity != null && hasRespawnPoint(playerEntity, worldName)) {
-                Transform respawn = null;
-                try {
-                    respawn = Player.getRespawnPosition(ref, worldName, store);
-                } catch (Throwable ignored) {
-                }
-                if (respawn != null && respawn.getPosition() != null) {
-                    Vector3d pos = respawn.getPosition();
-                    Vector3f rot = respawn.getRotation();
-                    float yaw = (rot != null) ? rot.getY() : 0f;
-                    float pitch = (rot != null) ? rot.getX() : 0f;
-                    String err = TeleportationUtil.teleportToLocation(
-                            buffer,
-                            ref,
-                            worldName,
-                            pos.getX(), pos.getY(), pos.getZ(),
-                            yaw, pitch
-                    );
-                    if (err != null) {
-                        Log.warn("Respawn teleport failed: " + err);
+            for (String source : configManager.getSpawnRespawnPriority()) {
+                switch (source) {
+                    case "bed" -> {
+                        if (tryTeleportToBed(ref, store, buffer, worldName)) return;
                     }
-                    return;
+                    case "setspawn" -> {
+                        SpawnModel spawn = spawnManager.getSpawn();
+                        if (spawn == null) break;
+                        String err = TeleportationUtil.teleportToSpawn(store, ref, spawn, buffer);
+                        if (err != null) {
+                            Log.warn("Respawn teleport failed: " + err);
+                            break;
+                        }
+                        return;
+                    }
+                    case "world" -> {
+                        if (!configManager.isUseWorldDefaultSpawnIfUnset()) break;
+                        SpawnModel spawn = spawnManager.getWorldDefaultSpawn(world, player.getUuid());
+                        if (spawn == null) break;
+                        String err = TeleportationUtil.teleportToSpawn(store, ref, spawn, buffer);
+                        if (err != null) {
+                            Log.warn("Respawn teleport failed: " + err);
+                            break;
+                        }
+                        return;
+                    }
+                    default -> {
+                    }
                 }
             }
+        }
 
-            SpawnModel spawn = spawnManager.getSpawn();
-            if (spawn == null && configManager.isUseWorldDefaultSpawnIfUnset()) {
-                spawn = spawnManager.getSpawnOrWorldDefault(world, player.getUuid());
-            }
-            if (spawn == null) return;
-
-            String err = TeleportationUtil.teleportToSpawn(store, ref, spawn, buffer);
-            if (err != null) {
-                Log.warn("Respawn teleport failed: " + err);
-            }
+        private boolean tryTeleportToBed(
+                @Nonnull Ref<EntityStore> ref,
+                @Nonnull Store<EntityStore> store,
+                @Nonnull CommandBuffer<EntityStore> buffer,
+                @Nonnull String worldName
+        ) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            return playerEntity != null && hasRespawnPoint(playerEntity, worldName);
         }
 
         private boolean hasRespawnPoint(@Nonnull Player player, @Nonnull String worldName) {
@@ -133,7 +137,17 @@ public final class DeathSpawnListener {
                 @Nonnull DeathComponent component,
                 @Nonnull Store<EntityStore> store,
                 @Nonnull CommandBuffer<EntityStore> buffer
-        ) { }
+        ) {
+            PlayerRef player = store.getComponent(ref, PlayerRef.getComponentType());
+            if (player == null) return;
+
+            World world = store.getExternalData().getWorld();
+            if (world == null) return;
+
+            if (!configManager.isSpawnEnabled()) return;
+
+            applyRespawnByPriority(ref, store, buffer, player, world);
+        }
 
         @Override
         public com.hypixel.hytale.component.ComponentType<EntityStore, DeathComponent> componentType() {

@@ -3,6 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.managers;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import xyz.thelegacyvoyage.hyessentialsx.models.AuctionHouseDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
@@ -173,6 +174,14 @@ class StorageManagerTest {
 
         @Override
         public void saveIpBans(Map<String, IpBanModel> bans) {}
+
+        @Override
+        public AuctionHouseDataModel loadAuctionHouseData() {
+            return new AuctionHouseDataModel();
+        }
+
+        @Override
+        public void saveAuctionHouseData(AuctionHouseDataModel data) {}
 
         @Override
         public void shutdown() {}

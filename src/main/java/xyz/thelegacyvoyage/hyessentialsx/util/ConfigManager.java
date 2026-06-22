@@ -227,6 +227,12 @@ public final class ConfigManager {
     private long playerShopCreationCost = 0L;
     private int playerShopChestLinkRadius = 8;
     private int playerShopMaxTradeQuantity = ShopTradeQuantityUtil.DEFAULT_MAX_QUANTITY;
+    private boolean auctionHouseEnabled = true;
+    private long auctionHouseMaxListingSeconds = 172800L;
+    private long auctionHouseDefaultListingSeconds = 172800L;
+    private int auctionHouseMaxListingsPerPlayer = 5;
+    private long auctionHouseListingCost = 0L;
+    private String auctionHouseNpcRole = "";
 
     private boolean mailEnabled = true;
     private int mailCooldownSeconds = 15;
@@ -722,6 +728,15 @@ public final class ConfigManager {
         adminShops.addProperty("enabled", adminShopsEnabled);
         adminShops.addProperty("maxTradeQuantity", adminShopMaxTradeQuantity);
         root.add("adminShops", adminShops);
+
+        JsonObject auctionHouse = new JsonObject();
+        auctionHouse.addProperty("enabled", auctionHouseEnabled);
+        auctionHouse.addProperty("maxListingSeconds", auctionHouseMaxListingSeconds);
+        auctionHouse.addProperty("defaultListingSeconds", auctionHouseDefaultListingSeconds);
+        auctionHouse.addProperty("maxListingsPerPlayer", auctionHouseMaxListingsPerPlayer);
+        auctionHouse.addProperty("listingCost", auctionHouseListingCost);
+        auctionHouse.addProperty("npcRole", auctionHouseNpcRole);
+        root.add("auctionHouse", auctionHouse);
 
         JsonObject mail = new JsonObject();
         mail.addProperty("enabled", mailEnabled);
@@ -1271,6 +1286,17 @@ public final class ConfigManager {
             JsonObject adminShops = obj(root, "adminShops");
             adminShopsEnabled = bool(adminShops, "enabled", adminShopsEnabled);
             adminShopMaxTradeQuantity = Math.max(1, intVal(adminShops, "maxTradeQuantity", adminShopMaxTradeQuantity));
+
+            JsonObject auctionHouse = obj(root, "auctionHouse");
+            auctionHouseEnabled = bool(auctionHouse, "enabled", auctionHouseEnabled);
+            auctionHouseMaxListingSeconds = Math.max(60L, longVal(auctionHouse, "maxListingSeconds", auctionHouseMaxListingSeconds));
+            auctionHouseDefaultListingSeconds = Math.max(60L, Math.min(
+                    longVal(auctionHouse, "defaultListingSeconds", auctionHouseDefaultListingSeconds),
+                    auctionHouseMaxListingSeconds
+            ));
+            auctionHouseMaxListingsPerPlayer = Math.max(0, intVal(auctionHouse, "maxListingsPerPlayer", auctionHouseMaxListingsPerPlayer));
+            auctionHouseListingCost = Math.max(0L, moneyVal(auctionHouse, "listingCost", auctionHouseListingCost));
+            auctionHouseNpcRole = str(auctionHouse, "npcRole", auctionHouseNpcRole);
 
             JsonObject mail = obj(root, "mail");
             mailEnabled = bool(mail, "enabled", mailEnabled);
@@ -2253,6 +2279,31 @@ public final class ConfigManager {
         return playerShopMaxTradeQuantity;
     }
 
+    public boolean isAuctionHouseEnabled() {
+        return auctionHouseEnabled;
+    }
+
+    public long getAuctionHouseMaxListingSeconds() {
+        return auctionHouseMaxListingSeconds;
+    }
+
+    public long getAuctionHouseDefaultListingSeconds() {
+        return auctionHouseDefaultListingSeconds;
+    }
+
+    public int getAuctionHouseMaxListingsPerPlayer() {
+        return auctionHouseMaxListingsPerPlayer;
+    }
+
+    public long getAuctionHouseListingCost() {
+        return auctionHouseListingCost;
+    }
+
+    @Nonnull
+    public String getAuctionHouseNpcRole() {
+        return auctionHouseNpcRole == null ? "" : auctionHouseNpcRole;
+    }
+
     public boolean isMailEnabled() {
         return mailEnabled;
     }
@@ -2869,6 +2920,14 @@ public final class ConfigManager {
         JsonObject adminShops = obj(root, "adminShops");
         adminShops.addProperty("enabled", adminShopsEnabled);
         adminShops.addProperty("maxTradeQuantity", adminShopMaxTradeQuantity);
+
+        JsonObject auctionHouse = obj(root, "auctionHouse");
+        auctionHouse.addProperty("enabled", auctionHouseEnabled);
+        auctionHouse.addProperty("maxListingSeconds", auctionHouseMaxListingSeconds);
+        auctionHouse.addProperty("defaultListingSeconds", auctionHouseDefaultListingSeconds);
+        auctionHouse.addProperty("maxListingsPerPlayer", auctionHouseMaxListingsPerPlayer);
+        auctionHouse.addProperty("listingCost", formatMoneyConfig(auctionHouseListingCost));
+        auctionHouse.addProperty("npcRole", auctionHouseNpcRole);
 
         JsonObject mail = obj(root, "mail");
         mail.addProperty("enabled", mailEnabled);

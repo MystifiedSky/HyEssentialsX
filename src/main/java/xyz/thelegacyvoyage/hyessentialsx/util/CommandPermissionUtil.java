@@ -60,7 +60,9 @@ public final class CommandPermissionUtil {
             "hyessentialsx.playershop",
             "hyessentialsx.playershop.use",
             "hyessentialsx.playershop.create",
-            "hyessentialsx.playershop.delete"
+            "hyessentialsx.playershop.delete",
+            "hyessentialsx.auctionhouse.use",
+            "hyessentialsx.auctionhouse.sell"
     );
 
     private static final List<String> PLAYER_PERMISSION_PREFIXES = List.of(
@@ -128,6 +130,7 @@ public final class CommandPermissionUtil {
             "hyessentialsx.shop.npc",
             "hyessentialsx.playershop.admin",
             "hyessentialsx.playershop.npc",
+            "hyessentialsx.auctionhouse.admin",
             "hyessentialsx.playtime.admin",
             "hyessentialsx.reload",
             "hyessentialsx.ui",
@@ -137,6 +140,8 @@ public final class CommandPermissionUtil {
             "hyessentialsx.invsee",
             "hyessentialsx.combatlog",
             "hyessentialsx.hologram",
+            "hyessentialsx.auctionhouse.listings",
+            "hyessentialsx.auctionhouse.duration",
             "hologramservice.",
             "hyessentialsx.back.other",
             "hyessentialsx.warp.other",

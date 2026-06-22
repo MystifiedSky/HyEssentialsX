@@ -285,6 +285,36 @@ public final class InventoryUtil {
     }
 
     @Nonnull
+    public static List<ItemStack> addItemStacksWithOverflow(@Nonnull Inventory inventory, @Nonnull List<ItemStack> stacks) {
+        List<ItemStack> overflow = new ArrayList<>();
+        if (stacks.isEmpty()) return overflow;
+        ItemContainer container = getCombinedInventory(inventory);
+        if (container == null) {
+            for (ItemStack stack : stacks) {
+                if (stack != null && !stack.isEmpty()) {
+                    overflow.addAll(splitIntoMaxStacks(stack));
+                }
+            }
+            return overflow;
+        }
+        for (ItemStack stack : stacks) {
+            if (stack == null || stack.isEmpty()) continue;
+            ItemStack remainder = addStackWithOverflow(container, stack);
+            if (remainder != null && !remainder.isEmpty()) {
+                overflow.addAll(splitIntoMaxStacks(remainder));
+            }
+        }
+        return overflow;
+    }
+
+    public static boolean clearActiveHand(@Nonnull Inventory inventory) {
+        ItemContainer hotbar = inventory.getHotbar();
+        if (hotbar == null) return false;
+        setSlotEmpty(hotbar, inventory.getActiveHotbarSlot());
+        return true;
+    }
+
+    @Nonnull
     public static List<ItemStack> addItemsWithOverflow(@Nonnull Inventory inventory, @Nonnull List<ShopItemModel> items) {
         List<ItemStack> overflow = new ArrayList<>();
         if (items.isEmpty()) return overflow;

@@ -39,6 +39,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitEditCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitEditOrderCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitsCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.ListCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.misc.AuctionHouseCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.DiscordCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.MotdCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.NearCommand;
@@ -125,6 +126,8 @@ import xyz.thelegacyvoyage.hyessentialsx.listeners.TeleportWarmupListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.WorldBorderListener;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AfkManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.AuctionHouseManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.AuctionHouseNpcInteractionRegistry;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CombatLogManager;
@@ -230,6 +233,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private CommandCooldownManager cooldownManager;
     private LanguageManager languageManager;
     private ShopManager shopManager;
+    private AuctionHouseManager auctionHouseManager;
     private ShopNpcFixTask shopNpcFixTask;
     private xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache shopAdminDraftCache;
     private HologramService hologramService;
@@ -385,9 +389,11 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         customCommandManager = new CustomCommandManager(dataDirectory);
         autoBroadcastManager = new AutoBroadcastManager(configManager);
         shopManager = new ShopManager(storage, configManager);
+        auctionHouseManager = new AuctionHouseManager(storage, configManager);
         shopNpcFixTask = new ShopNpcFixTask(shopManager);
         shopAdminDraftCache = new xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache();
         ShopNpcInteractionRegistry.register(this, shopManager, economyManager, configManager, shopAdminDraftCache);
+        AuctionHouseNpcInteractionRegistry.register(auctionHouseManager, economyManager, configManager);
         HyEssentialsXApiProvider.register(new DefaultHyEssentialsXApi(economyManager, playtimeManager, shopManager));
         hologramService = new HologramService(this, dataDirectory, configManager);
         VaultUnlockedIntegration.configure(economyManager, storage);
@@ -458,6 +464,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (economyHudManager != null) economyHudManager.shutdown();
         if (economyAuditManager != null) economyAuditManager.shutdown();
         if (shopNpcFixTask != null) shopNpcFixTask.stop();
+        AuctionHouseNpcInteractionRegistry.unregister();
         ShopNpcInteractionRegistry.unregister();
         unregisterPlaceholderExpansion();
         if (hologramService != null) {
@@ -583,6 +590,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
                 reg.accept(new EcoAdminCommand(economyManager, storage, configManager, economyHudManager, economyAuditManager));
             }
         }
+        if (configManager.isAuctionHouseEnabled() && configManager.isEconomyEnabled() && auctionHouseManager != null) {
+            reg.accept(new AuctionHouseCommand(auctionHouseManager, economyManager, configManager));
+        }
         if (configManager.isHomesEnabled()) {
             reg.accept(new ImportHomesCommand(storage, dataDirectory));
         }
@@ -643,7 +653,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             reg.accept(new ShopCommand(shopManager, economyManager, shopAdminDraftCache));
         }
         if (configManager.isPlayerShopsEnabled() || configManager.isAdminShopsEnabled()) {
-            reg.accept(new PlayerShopCommand(shopManager, economyManager, shopAdminDraftCache, configManager, storage));
+            reg.accept(new PlayerShopCommand(shopManager, economyManager, shopAdminDraftCache, configManager, storage, auctionHouseManager));
         }
         reg.accept(new ClearInventoryCommand());
         reg.accept(new InvSeeCommand());

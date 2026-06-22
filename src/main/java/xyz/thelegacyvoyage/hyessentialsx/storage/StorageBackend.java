@@ -1,6 +1,7 @@
 package xyz.thelegacyvoyage.hyessentialsx.storage;
 
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.AuctionHouseDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
@@ -41,6 +42,11 @@ public interface StorageBackend {
     Map<String, IpBanModel> loadIpBans();
 
     void saveIpBans(@Nonnull Map<String, IpBanModel> bans);
+
+    @Nonnull
+    AuctionHouseDataModel loadAuctionHouseData();
+
+    void saveAuctionHouseData(@Nonnull AuctionHouseDataModel data);
 
     void shutdown();
 }

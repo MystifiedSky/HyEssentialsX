@@ -1,0 +1,70 @@
+$C = "../Common.ui";
+
+Group {
+  Anchor: (Height: 68, Bottom: 8);
+  Padding: 9;
+  Background: (Color: #1a1a1a(0.75));
+  LayoutMode: Left;
+
+  Group #IconBox {
+    Anchor: (Width: 50, Height: 50, Right: 10);
+    Background: (Color: #2a2a2a(0.7));
+
+    ItemIcon #ItemIcon {
+      Anchor: (Width: 42, Height: 42, Left: 4, Top: 4);
+    }
+  }
+
+  Group #TextColumn {
+    FlexWeight: 1;
+    LayoutMode: Top;
+
+    Label #ItemName {
+      Anchor: (Height: 22);
+      Style: (FontSize: 16, TextColor: #ffffff, RenderBold: true);
+      Text: "";
+    }
+
+    Label #Seller {
+      Anchor: (Height: 18);
+      Style: (FontSize: 12, TextColor: #aaaaaa);
+      Text: "";
+    }
+
+    Label #Time {
+      Anchor: (Height: 18);
+      Style: (FontSize: 12, TextColor: #d5c77e);
+      Text: "";
+    }
+  }
+
+  Label #Price {
+    Anchor: (Width: 130, Vertical: 0, Right: 10);
+    Style: (FontSize: 14, TextColor: #64f0b7, RenderBold: true, HorizontalAlignment: End, VerticalAlignment: Center);
+    Text: "$0";
+  }
+
+  Label #StatusLabel {
+    Anchor: (Width: 95, Vertical: 0);
+    Style: (FontSize: 12, TextColor: #aaaaaa, HorizontalAlignment: Center, VerticalAlignment: Center);
+    Text: "";
+    Visible: false;
+  }
+
+  $C.@TextButton #BuyButton {
+    Anchor: (Width: 95, Height: 32, Vertical: 0);
+    Text: "Buy";
+  }
+
+  $C.@TextButton #CancelButton {
+    Anchor: (Width: 95, Height: 32, Vertical: 0);
+    Text: "Cancel";
+    Visible: false;
+  }
+
+  $C.@TextButton #ClaimButton {
+    Anchor: (Width: 95, Height: 32, Vertical: 0);
+    Text: "Claim";
+    Visible: false;
+  }
+}

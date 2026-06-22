@@ -1,0 +1,156 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {
+  $C.@Container {
+    @CloseButton = true;
+    Anchor: (Width: 820, Height: 580);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Auction House";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 14, Right: 14, Top: 4, Bottom: 10);
+
+      Group #Tabs {
+        Anchor: (Height: 36, Bottom: 8);
+        LayoutMode: Left;
+
+        $C.@TextButton #TabBrowse {
+          Text: "Browse";
+          Anchor: (Width: 120, Height: 30, Right: 8);
+        }
+
+        $C.@TextButton #TabMine {
+          Text: "Mine";
+          Anchor: (Width: 100, Height: 30, Right: 8);
+        }
+
+        $C.@TextButton #TabList {
+          Text: "List Item";
+          Anchor: (Width: 120, Height: 30);
+        }
+
+        Group { FlexWeight: 1; }
+      }
+
+      Group {
+        Anchor: (Height: 1, Bottom: 8);
+        Background: (Color: #93844c(0.4));
+      }
+
+      Group #RowsContainer {
+        FlexWeight: 1;
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+
+        Label #EmptyLabel {
+          Anchor: (Height: 60);
+          Style: (FontSize: 15, TextColor: #777777, HorizontalAlignment: Center, VerticalAlignment: Center);
+          Text: "No active listings";
+          Visible: false;
+        }
+
+        Group #AuctionRows {
+          LayoutMode: Top;
+          Padding: (Right: 10);
+        }
+      }
+
+      Group #ListingPanel {
+        FlexWeight: 1;
+        LayoutMode: Top;
+        Visible: false;
+        Padding: (Top: 12, Left: 10, Right: 10);
+
+        Group {
+          Anchor: (Height: 72, Bottom: 10);
+          LayoutMode: Top;
+
+          Label {
+            Anchor: (Height: 20);
+            Style: (FontSize: 13, TextColor: #d5c77e, RenderBold: true);
+            Text: "Price";
+          }
+
+          $C.@TextField #PriceInput {
+            Anchor: (Height: 38);
+            PlaceholderText: "0.00";
+          }
+        }
+
+        Group {
+          Anchor: (Height: 72, Bottom: 10);
+          LayoutMode: Top;
+
+          Label {
+            Anchor: (Height: 20);
+            Style: (FontSize: 13, TextColor: #d5c77e, RenderBold: true);
+            Text: "Hours";
+          }
+
+          $C.@TextField #HoursInput {
+            Anchor: (Height: 38);
+            PlaceholderText: "Default";
+          }
+        }
+
+        Group {
+          Anchor: (Height: 28, Bottom: 10);
+          LayoutMode: Left;
+
+          Label #ListCost {
+            FlexWeight: 1;
+            Style: (FontSize: 12, TextColor: #aaaaaa, VerticalAlignment: Center);
+            Text: "Listing cost: $0";
+          }
+
+          Label #DefaultDuration {
+            Anchor: (Width: 160, Vertical: 0);
+            Style: (FontSize: 12, TextColor: #aaaaaa, HorizontalAlignment: End, VerticalAlignment: Center);
+            Text: "Default: 48h";
+          }
+        }
+
+        $C.@TextButton #ListHeldButton {
+          Anchor: (Width: 170, Height: 36);
+          Text: "List Held Item";
+        }
+      }
+
+      Group #Pager {
+        Anchor: (Height: 36, Top: 8);
+        LayoutMode: Left;
+
+        Label #ResultInfo {
+          FlexWeight: 1;
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+          Text: "";
+        }
+
+        $C.@TextButton #PrevPage {
+          Anchor: (Width: 92, Height: 28, Vertical: 0, Right: 8);
+          Text: "< Prev";
+        }
+
+        Label #PageInfo {
+          Anchor: (Width: 130, Vertical: 0, Right: 8);
+          Style: (FontSize: 12, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+          Text: "Page 1/1";
+        }
+
+        $C.@TextButton #NextPage {
+          Anchor: (Width: 92, Height: 28, Vertical: 0);
+          Text: "Next >";
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

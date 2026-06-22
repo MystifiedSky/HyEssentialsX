@@ -22,6 +22,7 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import com.hypixel.hytale.protocol.InteractionType;
+import xyz.thelegacyvoyage.hyessentialsx.managers.AuctionHouseManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
@@ -57,18 +58,21 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
     private final ShopAdminDraftCache draftCache;
     private final ConfigManager config;
     private final StorageManager storage;
+    private final AuctionHouseManager auctionHouseManager;
 
     public PlayerShopCommand(@Nonnull ShopManager shopManager,
                              @Nonnull EconomyManager economy,
                              @Nonnull ShopAdminDraftCache draftCache,
                              @Nonnull ConfigManager config,
-                             @Nonnull StorageManager storage) {
+                             @Nonnull StorageManager storage,
+                             @Nonnull AuctionHouseManager auctionHouseManager) {
         super("shop", "Open or manage player shops");
         this.shopManager = shopManager;
         this.economy = economy;
         this.draftCache = draftCache;
         this.config = config;
         this.storage = storage;
+        this.auctionHouseManager = auctionHouseManager;
         this.setPermissionGroups();
         this.addAliases(new String[]{"shops"});
         this.addSubCommand(new ListSubCommand());
@@ -358,7 +362,7 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             Messages.sendKey(context, "shop.admin.ui_failed", java.util.Map.of());
             return;
         }
-        ShopDirectoryUI ui = new ShopDirectoryUI(playerRef, shopManager, economy, draftCache, config, storage);
+        ShopDirectoryUI ui = new ShopDirectoryUI(playerRef, shopManager, economy, draftCache, config, storage, auctionHouseManager);
         ui.open(player, ref, store);
     }
 

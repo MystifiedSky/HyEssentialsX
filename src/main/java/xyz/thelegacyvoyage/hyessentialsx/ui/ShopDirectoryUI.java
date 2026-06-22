@@ -15,6 +15,7 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.AuctionHouseManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
@@ -46,6 +47,7 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
     private static final String PLAYER_SHOP_USE_PERMISSION = "hyessentialsx.playershop.use";
     private static final String PLAYER_SHOP_ADMIN_PERMISSION = "hyessentialsx.playershop.admin";
     private static final String LEGACY_PLAYER_SHOP_USE_PERMISSION = "hyessentialsx.playershop";
+    private static final String AUCTION_HOUSE_USE_PERMISSION = "hyessentialsx.auctionhouse.use";
 
     private final PlayerRef playerRef;
     private final ShopManager shopManager;
@@ -53,6 +55,7 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
     private final ShopAdminDraftCache draftCache;
     private final ConfigManager config;
     private final StorageManager storage;
+    private final AuctionHouseManager auctionHouseManager;
     private String tab = "player";
     private String search = "";
     private int page;
@@ -62,7 +65,8 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
                            @Nonnull EconomyManager economy,
                            @Nonnull ShopAdminDraftCache draftCache,
                            @Nonnull ConfigManager config,
-                           @Nonnull StorageManager storage) {
+                           @Nonnull StorageManager storage,
+                           @Nonnull AuctionHouseManager auctionHouseManager) {
         super(playerRef, CustomPageLifetime.CanDismiss, UIEventData.CODEC);
         this.playerRef = playerRef;
         this.shopManager = shopManager;
@@ -70,6 +74,7 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
         this.draftCache = draftCache;
         this.config = config;
         this.storage = storage;
+        this.auctionHouseManager = auctionHouseManager;
     }
 
     @Override
@@ -89,6 +94,10 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
         switch (data.action) {
             case "tab" -> {
                 String next = normalizeTab(data.tab);
+                if ("auction".equals(next)) {
+                    openAuctionHouse(ref, store);
+                    return;
+                }
                 if (!tab.equals(next)) {
                     tab = next;
                     page = 0;
@@ -149,17 +158,17 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
         cmd.set("#SearchInput.Value", search);
         cmd.set("#TabPlayer.Disabled", tab.equals("player"));
         cmd.set("#TabAdmin.Disabled", tab.equals("admin"));
-        cmd.set("#TabAuction.Disabled", tab.equals("auction"));
-        cmd.set("#ShopRows.Visible", !shops.isEmpty() && !tab.equals("auction"));
-        cmd.set("#EmptyLabel.Visible", shops.isEmpty() || tab.equals("auction"));
-        cmd.set("#EmptyLabel.Text", tab.equals("auction") ? "Auction is coming soon" : "No shops found");
+        cmd.set("#TabAuction.Disabled", false);
+        cmd.set("#ShopRows.Visible", !shops.isEmpty());
+        cmd.set("#EmptyLabel.Visible", shops.isEmpty());
+        cmd.set("#EmptyLabel.Text", "No shops found");
         cmd.set("#PageInfo.Text", "Page " + (page + 1) + "/" + totalPages);
-        cmd.set("#PrevPage.Disabled", page <= 0 || tab.equals("auction"));
-        cmd.set("#NextPage.Disabled", page >= totalPages - 1 || tab.equals("auction"));
+        cmd.set("#PrevPage.Disabled", page <= 0);
+        cmd.set("#NextPage.Disabled", page >= totalPages - 1);
         cmd.set("#ResultInfo.Text", formatResultInfo(shops.size()));
         cmd.clear("#ShopRows");
 
-        for (int idx = start; idx < end && !tab.equals("auction"); idx++) {
+        for (int idx = start; idx < end; idx++) {
             ShopModel shop = shops.get(idx);
             String selector = "#ShopRows[" + (idx - start) + "]";
             cmd.append("#ShopRows", ROW_LAYOUT);
@@ -215,9 +224,6 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
     @Nonnull
     private List<ShopModel> getVisibleShops(@Nonnull Store<EntityStore> store,
                                             @Nonnull Ref<EntityStore> ref) {
-        if (tab.equals("auction")) {
-            return List.of();
-        }
         List<String> names = tab.equals("admin") ? shopManager.listAdminShops() : shopManager.listPlayerShops();
         List<ShopModel> out = new ArrayList<>();
         for (String name : names) {
@@ -370,13 +376,31 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
         }
     }
 
+    private void openAuctionHouse(@Nonnull Ref<EntityStore> ref,
+                                  @Nonnull Store<EntityStore> store) {
+        if (!config.isAuctionHouseEnabled() || !economy.isEnabled()) {
+            Messages.sendPrefixedKey(playerRef, "auction.disabled", java.util.Map.of());
+            return;
+        }
+        if (!CommandPermissionUtil.hasPermission(playerRef, AUCTION_HOUSE_USE_PERMISSION)) {
+            Messages.sendPrefixedKey(playerRef, "auction.no_permission", java.util.Map.of());
+            return;
+        }
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            Messages.sendPrefixedKey(playerRef, "auction.ui_failed", java.util.Map.of());
+            return;
+        }
+        player.getPageManager().openCustomPage(ref, store,
+                new AuctionHouseUI(playerRef, auctionHouseManager, economy, config));
+    }
+
     private int getTotalPages(int count) {
         return Math.max(1, (int) Math.ceil(count / (double) SHOPS_PER_PAGE));
     }
 
     @Nonnull
     private String formatResultInfo(int count) {
-        if (tab.equals("auction")) return "Auction";
         String type = tab.equals("admin") ? "admin shop" : "player shop";
         return count + " " + type + (count == 1 ? "" : "s");
     }

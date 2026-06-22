@@ -2,6 +2,7 @@ package xyz.thelegacyvoyage.hyessentialsx.storage;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import xyz.thelegacyvoyage.hyessentialsx.models.AuctionHouseDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
@@ -54,6 +55,7 @@ public final class SqliteStorageBackend implements StorageBackend {
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_kits (name TEXT PRIMARY KEY, json TEXT)");
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_shops (name TEXT PRIMARY KEY, json TEXT)");
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_ipbans (ip TEXT PRIMARY KEY, json TEXT)");
+                st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_auctionhouse (id TEXT PRIMARY KEY, json TEXT)");
             }
             available = true;
         } catch (Exception e) {
@@ -294,6 +296,41 @@ public final class SqliteStorageBackend implements StorageBackend {
         } catch (Exception e) {
             if (handleWriteException(e)) return;
             Log.warn("Failed to save ip bans to SQLite: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Nonnull
+    public AuctionHouseDataModel loadAuctionHouseData() {
+        if (!available) return new AuctionHouseDataModel();
+        try (Connection conn = open();
+             PreparedStatement ps = conn.prepareStatement("SELECT json FROM hex_auctionhouse WHERE id = ?")) {
+            ps.setString(1, "global");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    AuctionHouseDataModel data = gson.fromJson(rs.getString(1), AuctionHouseDataModel.class);
+                    return data != null ? data : new AuctionHouseDataModel();
+                }
+            }
+        } catch (Exception e) {
+            Log.warn("Failed to load auction house data from SQLite: " + e.getMessage());
+        }
+        return new AuctionHouseDataModel();
+    }
+
+    @Override
+    public void saveAuctionHouseData(@Nonnull AuctionHouseDataModel data) {
+        if (!available || readOnly) return;
+        try (Connection conn = open();
+             PreparedStatement ps = conn.prepareStatement(
+                     "INSERT INTO hex_auctionhouse (id, json) VALUES (?, ?) " +
+                             "ON CONFLICT(id) DO UPDATE SET json = excluded.json")) {
+            ps.setString(1, "global");
+            ps.setString(2, gson.toJson(data));
+            ps.executeUpdate();
+        } catch (Exception e) {
+            if (handleWriteException(e)) return;
+            Log.warn("Failed to save auction house data to SQLite: " + e.getMessage());
         }
     }
 

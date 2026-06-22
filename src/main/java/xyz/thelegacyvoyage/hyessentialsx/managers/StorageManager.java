@@ -2,6 +2,7 @@ package xyz.thelegacyvoyage.hyessentialsx.managers;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import xyz.thelegacyvoyage.hyessentialsx.models.AuctionHouseDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
@@ -41,6 +42,7 @@ public final class StorageManager {
     private final ConcurrentHashMap<String, KitModel> kits = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, ShopModel> shops = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, IpBanModel> ipBans = new ConcurrentHashMap<>();
+    private AuctionHouseDataModel auctionHouseData = new AuctionHouseDataModel();
 
     public StorageManager(@Nonnull Path dataFolder, @Nonnull ConfigManager config) {
         this(createBackend(dataFolder, config), createIoExecutor());
@@ -130,6 +132,8 @@ public final class StorageManager {
 
         ipBans.clear();
         ipBans.putAll(backend.loadIpBans());
+
+        auctionHouseData = backend.loadAuctionHouseData();
 
         rebuildNameIndex();
     }
@@ -324,6 +328,19 @@ public final class StorageManager {
         submitIoTask(() -> backend.saveIpBans(snapshot));
     }
 
+    @Nonnull
+    public synchronized AuctionHouseDataModel getAuctionHouseData() {
+        AuctionHouseDataModel snapshot = snapshotGson.fromJson(snapshotGson.toJson(auctionHouseData), AuctionHouseDataModel.class);
+        return snapshot != null ? snapshot : new AuctionHouseDataModel();
+    }
+
+    public synchronized void saveAuctionHouseData(@Nonnull AuctionHouseDataModel data) {
+        AuctionHouseDataModel snapshot = snapshotGson.fromJson(snapshotGson.toJson(data), AuctionHouseDataModel.class);
+        auctionHouseData = snapshot != null ? snapshot : new AuctionHouseDataModel();
+        AuctionHouseDataModel asyncSnapshot = getAuctionHouseData();
+        submitIoTask(() -> backend.saveAuctionHouseData(asyncSnapshot));
+    }
+
     @Nullable
     public xyz.thelegacyvoyage.hyessentialsx.models.MuteModel getMute(@Nonnull UUID uuid) {
         PlayerDataModel data = getPlayerData(uuid);
@@ -371,6 +388,7 @@ public final class StorageManager {
             backend.saveKits(Map.copyOf(kits));
             backend.saveShops(Map.copyOf(shops));
             backend.saveIpBans(Map.copyOf(ipBans));
+            backend.saveAuctionHouseData(getAuctionHouseData());
             for (Map.Entry<UUID, PlayerDataModel> entry : playerCache.entrySet()) {
                 backend.savePlayerData(entry.getKey(), snapshotPlayerData(entry.getValue()));
             }

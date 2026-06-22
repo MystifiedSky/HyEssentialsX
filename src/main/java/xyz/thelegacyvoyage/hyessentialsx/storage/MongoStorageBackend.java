@@ -11,6 +11,7 @@ import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.ReplaceOptions;
 import org.bson.Document;
+import xyz.thelegacyvoyage.hyessentialsx.models.AuctionHouseDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
@@ -38,6 +39,7 @@ public final class MongoStorageBackend implements StorageBackend {
     private final MongoCollection<Document> kitsCollection;
     private final MongoCollection<Document> shopsCollection;
     private final MongoCollection<Document> ipBansCollection;
+    private final MongoCollection<Document> auctionHouseCollection;
 
     public MongoStorageBackend(@Nonnull String uri,
                                @Nonnull String databaseName,
@@ -50,6 +52,7 @@ public final class MongoStorageBackend implements StorageBackend {
         this.kitsCollection = database.getCollection(prefix + "kits");
         this.shopsCollection = database.getCollection(prefix + "shops");
         this.ipBansCollection = database.getCollection(prefix + "ipbans");
+        this.auctionHouseCollection = database.getCollection(prefix + "auctionhouse");
         ensureIndexes();
     }
 
@@ -60,6 +63,7 @@ public final class MongoStorageBackend implements StorageBackend {
             kitsCollection.createIndex(Indexes.ascending("name"));
             shopsCollection.createIndex(Indexes.ascending("name"));
             ipBansCollection.createIndex(Indexes.ascending("ip"));
+            auctionHouseCollection.createIndex(Indexes.ascending("id"));
         } catch (Exception e) {
             Log.warn("Failed to ensure MongoDB indexes: " + e.getMessage());
         }
@@ -161,6 +165,36 @@ public final class MongoStorageBackend implements StorageBackend {
     @Override
     public void saveIpBans(@Nonnull Map<String, IpBanModel> bans) {
         saveNamedCollection(ipBansCollection, "ip", bans);
+    }
+
+    @Override
+    @Nonnull
+    public AuctionHouseDataModel loadAuctionHouseData() {
+        try {
+            Document document = auctionHouseCollection.find(Filters.eq("id", "global")).first();
+            if (document == null) return new AuctionHouseDataModel();
+            String json = document.getString("json");
+            if (json == null || json.isBlank()) return new AuctionHouseDataModel();
+            AuctionHouseDataModel loaded = gson.fromJson(json, AuctionHouseDataModel.class);
+            return loaded != null ? loaded : new AuctionHouseDataModel();
+        } catch (Exception e) {
+            Log.warn("Failed to load auction house data from MongoDB: " + e.getMessage());
+            return new AuctionHouseDataModel();
+        }
+    }
+
+    @Override
+    public void saveAuctionHouseData(@Nonnull AuctionHouseDataModel data) {
+        try {
+            Document document = new Document("id", "global").append("json", gson.toJson(data));
+            auctionHouseCollection.replaceOne(
+                    Filters.eq("id", "global"),
+                    document,
+                    new ReplaceOptions().upsert(true)
+            );
+        } catch (Exception e) {
+            Log.warn("Failed to save auction house data to MongoDB: " + e.getMessage());
+        }
     }
 
     @Override

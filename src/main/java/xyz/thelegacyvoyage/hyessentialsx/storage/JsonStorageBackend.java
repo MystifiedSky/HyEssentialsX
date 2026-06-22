@@ -3,6 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.storage;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import xyz.thelegacyvoyage.hyessentialsx.models.AuctionHouseDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
@@ -189,6 +190,30 @@ public final class JsonStorageBackend implements StorageBackend {
     }
 
     @Override
+    @Nonnull
+    public AuctionHouseDataModel loadAuctionHouseData() {
+        Path file = auctionHouseFile();
+        if (!Files.exists(file)) return new AuctionHouseDataModel();
+        try {
+            String json = Files.readString(file, StandardCharsets.UTF_8);
+            AuctionHouseDataModel loaded = gson.fromJson(json, AuctionHouseDataModel.class);
+            return loaded != null ? loaded : new AuctionHouseDataModel();
+        } catch (Exception e) {
+            Log.warn("Failed to load auctionhouse.json: " + e.getMessage());
+            return new AuctionHouseDataModel();
+        }
+    }
+
+    @Override
+    public void saveAuctionHouseData(@Nonnull AuctionHouseDataModel data) {
+        try {
+            AtomicFileUtil.writeStringAtomically(auctionHouseFile(), gson.toJson(data), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            Log.error("Failed to save auctionhouse.json: " + e.getMessage());
+        }
+    }
+
+    @Override
     public void shutdown() {
         // no-op
     }
@@ -215,6 +240,10 @@ public final class JsonStorageBackend implements StorageBackend {
 
     private Path ipBansFile() {
         return dataFolder.resolve("ipbans.json");
+    }
+
+    private Path auctionHouseFile() {
+        return dataFolder.resolve("auctionhouse.json");
     }
 
     

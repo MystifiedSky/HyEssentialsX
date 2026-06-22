@@ -2,5 +2,5 @@ $C = "../Common.ui";
 
 $C.@SecondaryTextButton {
   @Text = "Warp";
-  Anchor: (Height: 32, Bottom: 4);
+  Anchor: (Height: 36, Bottom: 6);
 }

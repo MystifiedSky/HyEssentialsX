@@ -1,23 +1,27 @@
 $C = "../Common.ui";
 
 Group {
-  Anchor: (Width: 520, Height: 420);
-  Background: #141c26(0.98);
+  Anchor: (Width: 560, Height: 460);
+  Background: (Color: #151515(0.92));
+  OutlineColor: #7d6b3a;
+  OutlineSize: 1;
   LayoutMode: Top;
-  Padding: (Full: 16);
+  Padding: (Left: 16, Right: 16, Top: 14, Bottom: 14);
 
   Label #EditorTitle {
     Text: "Scoreboard Editor";
-    Anchor: (Height: 26);
-    Style: (FontSize: 18, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center);
+    Anchor: (Height: 30);
+    Style: (FontSize: 20, TextColor: #f5f7ff, RenderBold: true, RenderUppercase: true, LetterSpacing: 2, HorizontalAlignment: Center, VerticalAlignment: Center);
   }
 
   Group { Anchor: (Height: 8); }
 
   Group #LinesContainer {
     Anchor: (Height: 220);
-    Background: #0d1218(0.5);
-    Padding: (Full: 8);
+    Background: (Color: #111417(0.9));
+    OutlineColor: #3a3425;
+    OutlineSize: 1;
+    Padding: (Left: 8, Right: 8, Top: 8, Bottom: 8);
 
     Group #LinesList {
       FlexWeight: 1;
@@ -32,7 +36,7 @@ Group {
     Text: "Editing line";
     Anchor: (Height: 18);
     Visible: false;
-    Style: (FontSize: 12, TextColor: #FBBF24);
+    Style: (FontSize: 12, TextColor: #ffd166, RenderBold: true);
   }
 
   $C.@TextField #NewLineInput {

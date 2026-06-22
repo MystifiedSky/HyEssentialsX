@@ -1,70 +1,91 @@
 $C = "../Common.ui";
 
 Group {
-  Anchor: (Height: 68, Bottom: 8);
-  Padding: 9;
-  Background: (Color: #1a1a1a(0.75));
+  Anchor: (Height: 104, Bottom: 10);
+  Padding: 10;
+  Background: (Color: #181818(0.82));
+  OutlineColor: #3a3425;
+  OutlineSize: 1;
   LayoutMode: Left;
 
   Group #IconBox {
-    Anchor: (Width: 50, Height: 50, Right: 10);
-    Background: (Color: #2a2a2a(0.7));
+    Anchor: (Width: 84, Right: 12);
+    LayoutMode: CenterMiddle;
+    Background: (Color: #111417(0.9));
 
-    ItemIcon #ItemIcon {
-      Anchor: (Width: 42, Height: 42, Left: 4, Top: 4);
+    Group {
+      Anchor: (Width: 64, Height: 64);
+      Background: (Color: #26221a(0.92));
+
+      ItemIcon #ItemIcon {
+        Anchor: (Width: 52, Height: 52, Left: 6, Top: 6);
+      }
     }
   }
 
   Group #TextColumn {
     FlexWeight: 1;
     LayoutMode: Top;
+    Padding: (Top: 4, Bottom: 4);
 
     Label #ItemName {
-      Anchor: (Height: 22);
-      Style: (FontSize: 16, TextColor: #ffffff, RenderBold: true);
+      Anchor: (Height: 26, Bottom: 4);
+      Style: (FontSize: 17, TextColor: #f5f3e8, RenderBold: true, VerticalAlignment: Center, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 11);
       Text: "";
     }
 
     Label #Seller {
-      Anchor: (Height: 18);
-      Style: (FontSize: 12, TextColor: #aaaaaa);
+      Anchor: (Height: 20, Bottom: 4);
+      Style: (FontSize: 12, TextColor: #a8abb2, VerticalAlignment: Center);
       Text: "";
     }
 
     Label #Time {
-      Anchor: (Height: 18);
-      Style: (FontSize: 12, TextColor: #d5c77e);
+      Anchor: (Height: 20);
+      Style: (FontSize: 12, TextColor: #d5c77e, VerticalAlignment: Center);
       Text: "";
     }
   }
 
-  Label #Price {
-    Anchor: (Width: 130, Vertical: 0, Right: 10);
-    Style: (FontSize: 14, TextColor: #64f0b7, RenderBold: true, HorizontalAlignment: End, VerticalAlignment: Center);
-    Text: "$0";
+  Group #PriceBox {
+    Anchor: (Width: 150, Vertical: 0, Right: 12);
+    LayoutMode: CenterMiddle;
+
+    Label #Price {
+      Anchor: (Width: 140, Height: 34);
+      Background: (Color: #14211b(0.9));
+      Style: (FontSize: 14, TextColor: #64f0b7, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 8);
+      Text: "$0";
+    }
   }
 
-  Label #StatusLabel {
-    Anchor: (Width: 95, Vertical: 0);
-    Style: (FontSize: 12, TextColor: #aaaaaa, HorizontalAlignment: Center, VerticalAlignment: Center);
-    Text: "";
-    Visible: false;
-  }
+  Group #ActionColumn {
+    Anchor: (Width: 116, Vertical: 0);
+    LayoutMode: CenterMiddle;
 
-  $C.@TextButton #BuyButton {
-    Anchor: (Width: 95, Height: 32, Vertical: 0);
-    Text: "Buy";
-  }
+    Label #StatusLabel {
+      Anchor: (Width: 110, Height: 34);
+      Background: (Color: #111417(0.9));
+      Style: (FontSize: 11, TextColor: #aaaaaa, HorizontalAlignment: Center, VerticalAlignment: Center, RenderUppercase: true, LetterSpacing: 1, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 8);
+      Text: "";
+      Visible: false;
+    }
 
-  $C.@TextButton #CancelButton {
-    Anchor: (Width: 95, Height: 32, Vertical: 0);
-    Text: "Cancel";
-    Visible: false;
-  }
+    $C.@TextButton #BuyButton {
+      Anchor: (Width: 110, Height: 34);
+      Text: "Buy";
+    }
 
-  $C.@TextButton #ClaimButton {
-    Anchor: (Width: 95, Height: 32, Vertical: 0);
-    Text: "Claim";
-    Visible: false;
+    $C.@TextButton #CancelButton {
+      Anchor: (Width: 110, Height: 34);
+      Text: "Cancel";
+      Visible: false;
+    }
+
+    $C.@TextButton #ClaimButton {
+      Anchor: (Width: 110, Height: 34);
+      Text: "Claim";
+      Visible: false;
+    }
   }
 }

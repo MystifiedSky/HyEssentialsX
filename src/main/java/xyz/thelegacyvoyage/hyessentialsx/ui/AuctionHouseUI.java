@@ -25,7 +25,10 @@ import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -45,6 +48,8 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
     private int page;
     private String priceInput = "";
     private String hoursInput = "";
+    private String search = "";
+    private String sort = "ending";
 
     public AuctionHouseUI(@Nonnull PlayerRef playerRef,
                           @Nonnull AuctionHouseManager manager,
@@ -88,6 +93,25 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
             case "hours" -> {
                 hoursInput = safe(data.hours);
             }
+            case "search" -> {
+                search = safe(data.search);
+                page = 0;
+                refresh();
+            }
+            case "clear-search" -> {
+                search = "";
+                page = 0;
+                refresh();
+            }
+            case "sort" -> {
+                sort = switch (safe(data.sort).toLowerCase(Locale.ROOT)) {
+                    case "price-low" -> "price-low";
+                    case "price-high" -> "price-high";
+                    default -> "ending";
+                };
+                page = 0;
+                refresh();
+            }
             case "list-held" -> listHeld(ref, store);
             case "prev" -> {
                 if (page > 0) {
@@ -129,8 +153,13 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
         cmd.set("#ListingPanel.Visible", tab.equals("list"));
         cmd.set("#RowsContainer.Visible", !tab.equals("list"));
         cmd.set("#Pager.Visible", !tab.equals("list"));
+        cmd.set("#AuctionSearchInput.Value", search);
+        cmd.set("#SortEndingButton.Disabled", sort.equals("ending"));
+        cmd.set("#SortPriceLowButton.Disabled", sort.equals("price-low"));
+        cmd.set("#SortPriceHighButton.Disabled", sort.equals("price-high"));
         cmd.set("#PriceInput.Value", priceInput);
         cmd.set("#HoursInput.Value", hoursInput);
+        cmd.set("#AuctionBalanceValue.Text", economy.isEnabled() ? economy.formatAmount(economy.getBalance(playerRef.getUuid())) : "Disabled");
         cmd.set("#ListCost.Text", "Listing cost: " + economy.formatAmount(config.getAuctionHouseListingCost()));
         cmd.set("#DefaultDuration.Text", "Default: " + Math.max(1L, config.getAuctionHouseDefaultListingSeconds() / 3600L) + "h");
         cmd.set("#PageInfo.Text", "Page " + (page + 1) + "/" + totalPages);
@@ -157,6 +186,16 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
                 EventData.of("Action", "price").append("@Price", "#PriceInput.Value"), false);
         evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#HoursInput",
                 EventData.of("Action", "hours").append("@Hours", "#HoursInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#AuctionSearchInput",
+                EventData.of("Action", "search").append("@Search", "#AuctionSearchInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ClearAuctionSearchButton",
+                EventData.of("Action", "clear-search"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#SortEndingButton",
+                EventData.of("Action", "sort").append("Sort", "ending"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#SortPriceLowButton",
+                EventData.of("Action", "sort").append("Sort", "price-low"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#SortPriceHighButton",
+                EventData.of("Action", "sort").append("Sort", "price-high"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#ListHeldButton", EventData.of("Action", "list-held"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#PrevPage", EventData.of("Action", "prev"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#NextPage", EventData.of("Action", "next"), false);
@@ -386,9 +425,34 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
 
     @Nonnull
     private List<AuctionListingModel> currentListings() {
-        if (tab.equals("mine")) return manager.listOwn(playerRef.getUuid());
-        if (tab.equals("list")) return List.of();
-        return manager.listActive();
+        List<AuctionListingModel> listings;
+        if (tab.equals("mine")) {
+            listings = manager.listOwn(playerRef.getUuid());
+        } else if (tab.equals("list")) {
+            return List.of();
+        } else {
+            listings = manager.listActive();
+        }
+        String needle = search.trim().toLowerCase(Locale.ROOT);
+        List<AuctionListingModel> filtered = new ArrayList<>();
+        for (AuctionListingModel listing : listings) {
+            if (needle.isBlank() || auctionSearchText(listing).contains(needle)) {
+                filtered.add(listing);
+            }
+        }
+        Comparator<AuctionListingModel> comparator = switch (sort) {
+            case "price-low" -> Comparator.comparingLong(AuctionListingModel::getPrice);
+            case "price-high" -> Comparator.comparingLong(AuctionListingModel::getPrice).reversed();
+            default -> Comparator.comparingLong(AuctionListingModel::getExpiresAt);
+        };
+        filtered.sort(comparator.thenComparing(AuctionListingModel::getItemId));
+        return filtered;
+    }
+
+    @Nonnull
+    private String auctionSearchText(@Nonnull AuctionListingModel listing) {
+        return (listing.getItemId() + " " + simpleName(listing.getItemId()) + " " + listing.getSellerName() + " " + listing.getStatus())
+                .toLowerCase(Locale.ROOT);
     }
 
     private int getTotalPages(int size) {
@@ -448,6 +512,8 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
                 .append(new KeyedCodec<>("Id", Codec.STRING), (d, v) -> d.id = v, d -> d.id).add()
                 .append(new KeyedCodec<>("@Price", Codec.STRING), (d, v) -> d.price = v, d -> d.price).add()
                 .append(new KeyedCodec<>("@Hours", Codec.STRING), (d, v) -> d.hours = v, d -> d.hours).add()
+                .append(new KeyedCodec<>("@Search", Codec.STRING), (d, v) -> d.search = v, d -> d.search).add()
+                .append(new KeyedCodec<>("Sort", Codec.STRING), (d, v) -> d.sort = v, d -> d.sort).add()
                 .build();
 
         private String action;
@@ -455,5 +521,7 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
         private String id;
         private String price;
         private String hours;
+        private String search;
+        private String sort;
     }
 }

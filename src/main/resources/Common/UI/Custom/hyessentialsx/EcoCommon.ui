@@ -16,29 +16,29 @@
 );
 
 @EcoButtonStyle = TextButtonStyle(
-  Default: (Background: (Color: #22344f), LabelStyle: @EcoButtonLabelUpperStyle),
-  Hovered: (Background: (Color: #2e486d), LabelStyle: @EcoButtonLabelUpperStyle),
-  Pressed: (Background: (Color: #1a2a42), LabelStyle: @EcoButtonLabelUpperStyle),
+  Default: (Background: (Color: #263544), LabelStyle: @EcoButtonLabelUpperStyle),
+  Hovered: (Background: (Color: #34495f), LabelStyle: @EcoButtonLabelUpperStyle),
+  Pressed: (Background: (Color: #1d2a36), LabelStyle: @EcoButtonLabelUpperStyle),
   Disabled: (Background: (Color: #2a2f3a), LabelStyle: @EcoButtonLabelUpperStyle)
 );
 
 @EcoButtonGreenStyle = TextButtonStyle(
-  Default: (Background: (Color: #1f6f4a), LabelStyle: @EcoButtonLabelUpperStyle),
-  Hovered: (Background: (Color: #2a8f60), LabelStyle: @EcoButtonLabelUpperStyle),
-  Pressed: (Background: (Color: #17573a), LabelStyle: @EcoButtonLabelUpperStyle),
+  Default: (Background: (Color: #1d6f4a), LabelStyle: @EcoButtonLabelUpperStyle),
+  Hovered: (Background: (Color: #29875e), LabelStyle: @EcoButtonLabelUpperStyle),
+  Pressed: (Background: (Color: #16583b), LabelStyle: @EcoButtonLabelUpperStyle),
   Disabled: (Background: (Color: #2a2f3a), LabelStyle: @EcoButtonLabelUpperStyle)
 );
 
 @EcoButtonRedStyle = TextButtonStyle(
   Default: (Background: (Color: #7c3742), LabelStyle: @EcoButtonLabelUpperStyle),
-  Hovered: (Background: (Color: #954653), LabelStyle: @EcoButtonLabelUpperStyle),
+  Hovered: (Background: (Color: #a04a59), LabelStyle: @EcoButtonLabelUpperStyle),
   Pressed: (Background: (Color: #612a33), LabelStyle: @EcoButtonLabelUpperStyle),
   Disabled: (Background: (Color: #2a2f3a), LabelStyle: @EcoButtonLabelUpperStyle)
 );
 
 @EcoButtonAccentStyle = TextButtonStyle(
-  Default: (Background: (Color: #0f7b92), LabelStyle: @EcoButtonLabelUpperStyle),
-  Hovered: (Background: (Color: #1497b2), LabelStyle: @EcoButtonLabelUpperStyle),
-  Pressed: (Background: (Color: #0d6073), LabelStyle: @EcoButtonLabelUpperStyle),
+  Default: (Background: (Color: #7d6b3a), LabelStyle: @EcoButtonLabelUpperStyle),
+  Hovered: (Background: (Color: #9a8549), LabelStyle: @EcoButtonLabelUpperStyle),
+  Pressed: (Background: (Color: #5f512c), LabelStyle: @EcoButtonLabelUpperStyle),
   Disabled: (Background: (Color: #2a2f3a), LabelStyle: @EcoButtonLabelUpperStyle)
 );

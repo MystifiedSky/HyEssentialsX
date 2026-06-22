@@ -41,7 +41,7 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
     private static final String ROW_LAYOUT = "hyessentialsx/ShopDirectoryRow.ui";
     private static final String ICON_LAYOUT = "hyessentialsx/ShopTradeItemIconSmall.ui";
     private static final int SHOPS_PER_PAGE = 6;
-    private static final int PREVIEW_ITEM_LIMIT = 5;
+    private static final int PREVIEW_ITEM_LIMIT = 6;
     private static final String ADMIN_SHOP_USE_PERMISSION = "hyessentialsx.adminshop.use";
     private static final String LEGACY_ADMIN_SHOP_USE_PERMISSION = "hyessentialsx.shop";
     private static final String PLAYER_SHOP_USE_PERMISSION = "hyessentialsx.playershop.use";

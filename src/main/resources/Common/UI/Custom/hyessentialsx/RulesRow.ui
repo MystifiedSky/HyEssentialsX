@@ -2,16 +2,16 @@ $C = "../Common.ui";
 
 Group {
   LayoutMode: Top;
-  Anchor: (Bottom: 6);
-  Background: (Color: #1a1a1a(0.65));
-  OutlineColor: #93844c(0.32);
+  Anchor: (Bottom: 8);
+  Background: (Color: #181818(0.82));
+  OutlineColor: #3a3425;
   OutlineSize: 1;
   Padding: (Left: 10, Right: 10, Top: 8, Bottom: 8);
 
   Label #RuleIndex {
     Text: "#1";
     Anchor: (Bottom: 4);
-    Style: (FontSize: 11, TextColor: #93844c, RenderBold: true);
+    Style: (FontSize: 11, TextColor: #ffd166, RenderBold: true, RenderUppercase: true, LetterSpacing: 1);
   }
 
   Label #RuleText {

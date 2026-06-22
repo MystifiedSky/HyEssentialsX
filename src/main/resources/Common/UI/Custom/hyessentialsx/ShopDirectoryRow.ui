@@ -1,50 +1,72 @@
 $C = "../Common.ui";
 
 Group {
-  Anchor: (Height: 78, Bottom: 8);
+  Anchor: (Height: 104, Bottom: 10);
   Padding: 10;
-  Background: (Color: #1a1a1a(0.75));
+  Background: (Color: #181818(0.82));
+  OutlineColor: #3a3425;
+  OutlineSize: 1;
   LayoutMode: Left;
 
   Group #IconBox {
-    Anchor: (Width: 58, Height: 58, Right: 12);
-    Background: (Color: #2a2a2a(0.7));
+    Anchor: (Width: 84, Right: 12);
+    LayoutMode: CenterMiddle;
+    Background: (Color: #111417(0.9));
 
-    ItemIcon #MainIcon {
-      Anchor: (Width: 48, Height: 48, Left: 5, Top: 5);
+    Group {
+      Anchor: (Width: 64, Height: 64);
+      Background: (Color: #26221a(0.92));
+
+      ItemIcon #MainIcon {
+        Anchor: (Width: 52, Height: 52, Left: 6, Top: 6);
+      }
     }
   }
 
   Group #TextColumn {
-    Anchor: (Width: 300, Right: 12);
+    Anchor: (Width: 270, Right: 12);
     LayoutMode: Top;
+    Padding: (Top: 4, Bottom: 4);
 
     Label #ShopName {
-      Anchor: (Height: 24);
-      Style: (FontSize: 17, TextColor: #ffffff, RenderBold: true);
+      Anchor: (Height: 26, Bottom: 4);
+      Style: (FontSize: 17, TextColor: #f5f3e8, RenderBold: true, VerticalAlignment: Center, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 11);
       Text: "";
     }
 
     Label #ShopMeta {
-      Anchor: (Height: 18);
-      Style: (FontSize: 12, TextColor: #aaaaaa);
+      Anchor: (Height: 20, Bottom: 4);
+      Style: (FontSize: 12, TextColor: #a8abb2, VerticalAlignment: Center);
       Text: "";
     }
 
     Label #ShopItems {
-      Anchor: (Height: 18);
-      Style: (FontSize: 12, TextColor: #d5c77e);
+      Anchor: (Height: 20);
+      Style: (FontSize: 12, TextColor: #d5c77e, VerticalAlignment: Center);
       Text: "";
     }
   }
 
-  Group #PreviewItems {
+  Group #PreviewShell {
     FlexWeight: 1;
-    LayoutMode: Left;
+    LayoutMode: Top;
+    Padding: (Left: 8, Right: 8, Top: 8, Bottom: 8);
+    Background: (Color: #111417(0.9));
+
+    Label {
+      Anchor: (Height: 16, Bottom: 4);
+      Style: (FontSize: 10, TextColor: #94a3b8, RenderBold: true, RenderUppercase: true, LetterSpacing: 2, VerticalAlignment: Center);
+      Text: "PREVIEW";
+    }
+
+    Group #PreviewItems {
+      FlexWeight: 1;
+      LayoutMode: Left;
+    }
   }
 
   $C.@TextButton #OpenButton {
-    Anchor: (Width: 95, Height: 34, Left: 10, Vertical: 0);
+    Anchor: (Width: 92, Height: 34, Left: 12, Vertical: 0);
     Text: "Open";
   }
 }

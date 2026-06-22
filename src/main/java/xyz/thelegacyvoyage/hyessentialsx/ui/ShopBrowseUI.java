@@ -29,6 +29,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.ShopTradeQuantityUtil;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @SuppressWarnings("removal")
 public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIEventData> {
@@ -47,6 +48,8 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
     private final ShopAdminDraftCache draftCache;
     private ShopModel shop;
     private int page;
+    private String search = "";
+    private String filter = "all";
 
     public ShopBrowseUI(@Nonnull PlayerRef playerRef,
                         @Nonnull ShopManager shopManager,
@@ -83,11 +86,30 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                 }
             }
             case "next" -> {
-                int totalPages = getTotalPages();
+                int totalPages = getTotalPages(filteredTradeViews().size());
                 if (page < totalPages - 1) {
                     page++;
                     refresh(ref, store);
                 }
+            }
+            case "search" -> {
+                search = safe(data.search);
+                page = 0;
+                refresh(ref, store);
+            }
+            case "clear-search" -> {
+                search = "";
+                page = 0;
+                refresh(ref, store);
+            }
+            case "filter" -> {
+                filter = switch (safe(data.filter).toLowerCase(Locale.ROOT)) {
+                    case "buy" -> "buy";
+                    case "sell" -> "sell";
+                    default -> "all";
+                };
+                page = 0;
+                refresh(ref, store);
             }
             case "buy" -> {
                 if (data.tradeIndex != null) {
@@ -122,9 +144,24 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                          @Nonnull UIEventBuilder evt) {
         reloadShop();
         cmd.set("#ShopTitle.Text", shop.getDisplayName());
+        cmd.set("#WalletBalance.Text", economy.isEnabled() ? economy.formatAmount(economy.getBalance(playerRef.getUuid())) : "Disabled");
+        cmd.set("#ShopSearchInput.Value", search);
+        cmd.set("#FilterAllButton.Disabled", filter.equals("all"));
+        cmd.set("#FilterBuyButton.Disabled", filter.equals("buy"));
+        cmd.set("#FilterSellButton.Disabled", filter.equals("sell"));
         updateFundsLabel(cmd);
         buildTradeList(ref, store, cmd, evt);
 
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#ShopSearchInput",
+                EventData.of("Action", "search").append("@Search", "#ShopSearchInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ClearShopSearchButton",
+                EventData.of("Action", "clear-search"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#FilterAllButton",
+                EventData.of("Action", "filter").append("Filter", "all"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#FilterBuyButton",
+                EventData.of("Action", "filter").append("Filter", "buy"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#FilterSellButton",
+                EventData.of("Action", "filter").append("Filter", "sell"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#PrevPage",
                 EventData.of("Action", "prev"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#NextPage",
@@ -196,8 +233,8 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                                 @Nonnull Store<EntityStore> store,
                                 @Nonnull UICommandBuilder cmd,
                                 @Nonnull UIEventBuilder evt) {
-        List<ShopTradeModel> trades = new ArrayList<>(shop.getTrades());
-        int totalPages = Math.max(1, (int) Math.ceil(trades.size() / (double) TRADES_PER_PAGE));
+        List<TradeView> trades = filteredTradeViews();
+        int totalPages = getTotalPages(trades.size());
         if (page >= totalPages) page = totalPages - 1;
         int start = page * TRADES_PER_PAGE;
         int end = Math.min(trades.size(), start + TRADES_PER_PAGE);
@@ -216,7 +253,8 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
         }
 
         for (int idx = start; idx < end; idx++) {
-            ShopTradeModel trade = trades.get(idx);
+            TradeView view = trades.get(idx);
+            ShopTradeModel trade = view.trade();
             String cardSelector = "#TradeCards[" + (idx - start) + "]";
             cmd.append("#TradeCards", ROW_LAYOUT);
 
@@ -263,13 +301,51 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                     cardSelector + " #TradeButton",
                     new EventData()
                             .append("Action", "buy")
-                            .append("Trade", String.valueOf(idx))
+                            .append("Trade", String.valueOf(view.index()))
                             .append("Quantity", "1"),
                     false
             );
-            bindQuickTrade(evt, cardSelector, idx, "TradeOneButton", 1);
-            bindQuickTrade(evt, cardSelector, idx, "TradeTenButton", 10);
-            bindQuickTrade(evt, cardSelector, idx, "TradeHundredButton", 100);
+            bindQuickTrade(evt, cardSelector, view.index(), "TradeOneButton", 1);
+            bindQuickTrade(evt, cardSelector, view.index(), "TradeTenButton", 10);
+            bindQuickTrade(evt, cardSelector, view.index(), "TradeHundredButton", 100);
+        }
+    }
+
+    @Nonnull
+    private List<TradeView> filteredTradeViews() {
+        String needle = search.trim().toLowerCase(Locale.ROOT);
+        List<TradeView> out = new ArrayList<>();
+        List<ShopTradeModel> trades = shop.getTrades();
+        for (int i = 0; i < trades.size(); i++) {
+            ShopTradeModel trade = trades.get(i);
+            if (!matchesFilter(trade)) continue;
+            if (!needle.isBlank() && !tradeSearchText(trade).contains(needle)) continue;
+            out.add(new TradeView(i, trade));
+        }
+        return out;
+    }
+
+    private boolean matchesFilter(@Nonnull ShopTradeModel trade) {
+        if (filter.equals("buy")) return !trade.isSellTrade();
+        if (filter.equals("sell")) return trade.isSellTrade();
+        return true;
+    }
+
+    @Nonnull
+    private String tradeSearchText(@Nonnull ShopTradeModel trade) {
+        StringBuilder sb = new StringBuilder();
+        appendItems(sb, trade.getCostItems());
+        appendItems(sb, trade.getRewardItems());
+        sb.append(' ').append(trade.isSellTrade() ? "sell" : "buy");
+        sb.append(' ').append(trade.isMoneyTrade() ? "money" : "items");
+        return sb.toString().toLowerCase(Locale.ROOT);
+    }
+
+    private void appendItems(@Nonnull StringBuilder sb, @Nonnull List<ShopItemModel> items) {
+        for (ShopItemModel item : items) {
+            if (item != null && item.getItemId() != null) {
+                sb.append(' ').append(item.getItemId());
+            }
         }
     }
 
@@ -565,9 +641,12 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
         return String.join(", ", parts);
     }
 
-    private int getTotalPages() {
-        int trades = shop.getTrades().size();
+    private int getTotalPages(int trades) {
         return Math.max(1, (int) Math.ceil(trades / (double) TRADES_PER_PAGE));
+    }
+
+    private static String safe(String value) {
+        return value == null ? "" : value;
     }
 
     private void updateFundsLabel(@Nonnull UICommandBuilder cmd) {
@@ -706,11 +785,18 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                 .append(new KeyedCodec<>("Action", Codec.STRING), (e, v) -> e.action = v, e -> e.action).add()
                 .append(new KeyedCodec<>("Trade", Codec.STRING), (e, v) -> e.tradeIndex = v, e -> e.tradeIndex).add()
                 .append(new KeyedCodec<>("Quantity", Codec.STRING), (e, v) -> e.quantity = v, e -> e.quantity).add()
+                .append(new KeyedCodec<>("@Search", Codec.STRING), (e, v) -> e.search = v, e -> e.search).add()
+                .append(new KeyedCodec<>("Filter", Codec.STRING), (e, v) -> e.filter = v, e -> e.filter).add()
                 .build();
 
         private String action;
         private String tradeIndex;
         private String quantity;
+        private String search;
+        private String filter;
+    }
+
+    private record TradeView(int index, ShopTradeModel trade) {
     }
 }
 

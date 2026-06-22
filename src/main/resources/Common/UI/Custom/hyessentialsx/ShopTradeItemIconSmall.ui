@@ -1,17 +1,17 @@
 Group {
-  Anchor: (Width: 58, Height: 56, Left: -12);
+  Anchor: (Width: 48, Height: 56, Right: 4);
 
   Group {
-    Anchor: (Width: 36, Height: 36, Left: 11, Top: 6);
+    Anchor: (Width: 36, Height: 36, Left: 6, Top: 6);
     Background: (Color: #2a2a2a(0.6));
   }
 
   ItemIcon #ItemIcon {
-    Anchor: (Width: 34, Height: 34, Left: 12, Top: 7);
+    Anchor: (Width: 34, Height: 34, Left: 7, Top: 7);
   }
 
   Label #Quantity {
-    Anchor: (Left: 30, Top: 28);
+    Anchor: (Left: 25, Top: 28);
     Background: (Color: #1a1a1a(0.9));
     Padding: (Left: 3, Right: 3, Top: 1, Bottom: 1);
     Style: (FontSize: 10, RenderBold: true, TextColor: #ffffff);

@@ -103,6 +103,9 @@ public final class ScoreboardManager {
         if (!config.isScoreboardEnabled()) {
             return;
         }
+        if (scheduler.isShutdown() || scheduler.isTerminated()) {
+            return;
+        }
         int interval = config.getScoreboardUpdateIntervalMs();
         scheduler.scheduleAtFixedRate(this::tick, interval, interval, TimeUnit.MILLISECONDS);
     }
@@ -113,6 +116,9 @@ public final class ScoreboardManager {
     }
 
     public void scheduleInitial(@Nonnull PlayerRef playerRef) {
+        if (scheduler.isShutdown() || scheduler.isTerminated()) {
+            return;
+        }
         scheduler.schedule(() -> refreshPlayer(playerRef), INITIAL_DELAY_MS, TimeUnit.MILLISECONDS);
     }
 

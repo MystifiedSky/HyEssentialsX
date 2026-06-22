@@ -709,8 +709,8 @@ public final class ConfigManager {
             scoreboardEnabled = bool(scoreboard, "enabled", scoreboardEnabled);
             scoreboardUpdateIntervalMs = intVal(scoreboard, "updateIntervalMs", scoreboardUpdateIntervalMs);
             scoreboardAnchor = normalizeScoreboardAnchor(str(scoreboard, "anchor", scoreboardAnchor));
-            scoreboardOffsetX = intVal(scoreboard, "offsetX", scoreboardOffsetX);
-            scoreboardOffsetY = intVal(scoreboard, "offsetY", scoreboardOffsetY);
+            scoreboardOffsetX = Math.max(0, intVal(scoreboard, "offsetX", scoreboardOffsetX));
+            scoreboardOffsetY = Math.max(0, intVal(scoreboard, "offsetY", scoreboardOffsetY));
             scoreboardWidth = intVal(scoreboard, "width", scoreboardWidth);
             scoreboardHeight = intVal(scoreboard, "height", scoreboardHeight);
             scoreboardLineSpacing = intVal(scoreboard, "lineSpacing", scoreboardLineSpacing);

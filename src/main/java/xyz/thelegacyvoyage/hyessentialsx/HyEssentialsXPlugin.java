@@ -139,6 +139,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.CustomCommandManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.LanguageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.VaultUnlockedIntegration;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.api.DefaultHyEssentialsXApi;
 import xyz.thelegacyvoyage.hyessentialsx.api.HyEssentialsXApiProvider;
@@ -268,6 +269,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (shopNpcFixTask != null) {
             shopNpcFixTask.start();
         }
+        VaultUnlockedIntegration.refresh();
         Log.info("[HyEssentialsX] Reload complete.");
     }
 
@@ -319,6 +321,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         ShopNpcInteractionRegistry.register(this, shopManager, economyManager, configManager, shopAdminDraftCache);
         HyEssentialsXApiProvider.register(new DefaultHyEssentialsXApi(economyManager, playtimeManager, shopManager));
         hologramService = new HologramService(this, dataDirectory, configManager);
+        VaultUnlockedIntegration.configure(economyManager, storage);
 
         Log.info("[HyEssentialsX] Setup complete!");
     }
@@ -352,6 +355,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             scoreboardManager.start();
             scoreboardManager.refreshAll();
         }
+        VaultUnlockedIntegration.refresh();
 
         Log.info("[HyEssentialsX] Started! Use /hyessentialsx help");
     }
@@ -376,6 +380,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (hologramService != null) {
             hologramService.shutdown();
         }
+        VaultUnlockedIntegration.unregister();
         if (storage != null) storage.shutdown();
         HyEssentialsXApiProvider.clear();
         instance = null;

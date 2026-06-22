@@ -34,6 +34,7 @@ public final class ScoreboardCommand extends AbstractCommand {
         this.config = config;
         this.addAliases(new String[]{"sb"});
         this.addSubCommand(new MoveCommand(scoreboardManager, config));
+        this.addSubCommand(new ResetCommand(scoreboardManager, config));
         this.addSubCommand(new AdminMoveCommand(scoreboardManager, config));
         this.addSubCommand(new EditCommand(scoreboardManager, config));
         this.addSubCommand(new ShowCommand(scoreboardManager, config));
@@ -48,7 +49,7 @@ public final class ScoreboardCommand extends AbstractCommand {
     @Nullable
     @Override
     public CompletableFuture<Void> execute(@Nonnull CommandContext context) {
-        Messages.send(context, "Use /scoreboard move or /scoreboard edit.");
+        Messages.send(context, "Use /scoreboard move, /scoreboard reset, or /scoreboard edit.");
         return CompletableFuture.completedFuture(null);
     }
 
@@ -137,6 +138,46 @@ public final class ScoreboardCommand extends AbstractCommand {
             }
             ScoreboardEditUI page = new ScoreboardEditUI(playerRef, config, scoreboardManager);
             player.getPageManager().openCustomPage(ref, store, page);
+        }
+    }
+
+    private static final class ResetCommand extends AbstractPlayerCommand {
+
+        private static final String PERMISSION_NODE = "hyessentialsx.scoreboard.reset";
+        private final ScoreboardManager scoreboardManager;
+        private final ConfigManager config;
+
+        private ResetCommand(@Nonnull ScoreboardManager scoreboardManager,
+                             @Nonnull ConfigManager config) {
+            super("reset", "Reset your scoreboard position");
+            this.scoreboardManager = scoreboardManager;
+            this.config = config;
+            this.setPermissionGroup(null);
+            CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!context.sender().hasPermission(PERMISSION_NODE)) {
+                Messages.noPerm(context, "/scoreboard reset");
+                return;
+            }
+            if (!config.isScoreboardEnabled()) {
+                Messages.err(context, "Scoreboard is disabled.");
+                return;
+            }
+            scoreboardManager.resetPlayerOffset(playerRef.getUuid());
+            scoreboardManager.refreshPlayer(playerRef);
+            Messages.ok(context, "Scoreboard position reset.");
         }
     }
 

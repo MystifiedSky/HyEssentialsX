@@ -7,7 +7,10 @@ import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.entity.Entity;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.nameplate.Nameplate;
+import com.hypixel.hytale.server.core.modules.interaction.Interactions;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -15,15 +18,18 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
+import com.hypixel.hytale.protocol.InteractionType;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.ShopNpcInteractionRegistry;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopAdminUI;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopBrowseUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcRemovalUtil;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -120,6 +126,7 @@ public final class ShopCommand extends AbstractPlayerCommand {
             ShopModel shop = shopManager.getShop(name);
             if (shop != null && !shop.isPlayerShop()) {
                 removeShopNpcs(shop);
+                ShopNpcRemovalUtil.removeNearbyNpc(world, store, ref, shop);
             }
             if (shopManager.deleteShop(name)) {
                 Messages.sendKey(context, "shop.admin.deleted", java.util.Map.of());
@@ -237,7 +244,6 @@ public final class ShopCommand extends AbstractPlayerCommand {
     }
 
     private void removeShopNpcs(@Nonnull ShopModel shop) {
-        if (shop.getNpcs().isEmpty()) return;
         List<ShopNpcModel> npcs = List.copyOf(shop.getNpcs());
         for (World world : Universe.get().getWorlds().values()) {
             String worldName = world.getName();
@@ -253,8 +259,44 @@ public final class ShopCommand extends AbstractPlayerCommand {
                 });
             }
         }
+        removeOrphanedShopNpcs(shop);
         shop.getNpcs().clear();
         shopManager.saveShop(shop);
+    }
+
+    private void removeOrphanedShopNpcs(@Nonnull ShopModel shop) {
+        String displayName = shop.getDisplayName();
+        String rawName = shop.getName();
+        for (World world : Universe.get().getWorlds().values()) {
+            Store<EntityStore> store = world.getEntityStore().getStore();
+            world.execute(() -> store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
+                try {
+                    Ref<EntityStore> ref = chunk.getReferenceTo(index);
+                    NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
+                    if (npc == null) return;
+                    Interactions interactions = store.getComponent(ref, Interactions.getComponentType());
+                    if (interactions == null) return;
+                    String interactionId = interactions.getInteractionId(InteractionType.Use);
+                    if (interactionId == null
+                            || !interactionId.equalsIgnoreCase(ShopNpcInteractionRegistry.ADMIN_SHOP_ROOT_INTERACTION_ID)) {
+                        return;
+                    }
+                    Nameplate nameplate = store.getComponent(ref, Nameplate.getComponentType());
+                    if (nameplate == null) return;
+                    String text = nameplate.getText();
+                    if (text == null) return;
+                    if (!text.equalsIgnoreCase(displayName) && !text.equalsIgnoreCase(rawName)) return;
+                    npc.setToDespawn();
+                    npc.setDespawning(true);
+                    npc.setDespawnTime(0f);
+                    npc.setDespawnRemainingSeconds(0f);
+                    npc.setDespawnCheckRemainingSeconds(0f);
+                    commandBuffer.removeEntity(ref, RemoveReason.REMOVE);
+                    commandBuffer.tryRemoveEntity(ref, RemoveReason.REMOVE);
+                } catch (Exception ignored) {
+                }
+            }));
+        }
     }
 
     private boolean despawnNpc(@Nonnull World world,
@@ -262,6 +304,19 @@ public final class ShopCommand extends AbstractPlayerCommand {
                                @Nonnull String npcId) {
         try {
             java.util.UUID npcUuid = java.util.UUID.fromString(npcId);
+            try {
+                Ref<EntityStore> directRef = world.getEntityRef(npcUuid);
+                if (directRef != null) {
+                    store.removeEntity(directRef, RemoveReason.REMOVE);
+                    return true;
+                }
+                Entity entity = world.getEntity(npcUuid);
+                if (entity != null) {
+                    entity.remove();
+                    return true;
+                }
+            } catch (Exception ignored) {
+            }
             final boolean[] removed = {false};
             final java.util.List<Ref<EntityStore>> refs = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
             store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {

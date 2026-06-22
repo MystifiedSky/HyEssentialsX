@@ -45,6 +45,7 @@
     "shop.admin.exists_or_invalid": "&cShop already exists or name invalid.",
     "shop.admin.created": "&aShop created: &f{shop}",
     "shop.player.created": "&aPlayer shop created: &f{shop}",
+    "shop.player.claim_blocked": "&cYou cannot create a shop here. You don't have permission to build in this claim.",
     "shop.player.limit_reached": "&cYou have reached your player shop limit (&f{limit}&c).",
     "shop.player.none_owned": "&cYou don't have any player shops.",
     "shop.player.not_found": "&cPlayer shop not found.",
@@ -208,6 +209,8 @@
     "playtime.other": "&aPlaytime for &f{player}&a: &f{time}",
     "shop.npc.already_exists": "&cA shop NPC already exists for this shop."
 }
+
+
 
 
 

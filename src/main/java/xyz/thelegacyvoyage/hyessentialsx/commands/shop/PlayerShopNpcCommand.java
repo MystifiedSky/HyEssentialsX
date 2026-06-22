@@ -30,6 +30,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.ShopPlacementUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopNpcNameplateUtil;
 
 import javax.annotation.Nonnull;
@@ -162,9 +163,6 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
             Messages.noPerm(ctx, "/shopnpc " + shopName);
             return;
         }
-        if (!chargeNpcCost(ctx, playerRef)) {
-            return;
-        }
 
         Store<EntityStore> store = world.getEntityStore().getStore();
         Ref<EntityStore> playerEntityRef = world.getEntityStore().getRefFromUUID(playerRef.getUuid());
@@ -179,6 +177,13 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
         }
 
         Vector3d playerPos = transform.getPosition();
+        if (!ShopPlacementUtil.canPlaceShop(playerRef, world, store, playerEntityRef, playerPos)) {
+            Messages.sendPrefixedKey(playerRef, "shop.player.claim_blocked", java.util.Map.of());
+            return;
+        }
+        if (!chargeNpcCost(ctx, playerRef)) {
+            return;
+        }
         Vector3i basePos = new Vector3i(
                 (int) Math.floor(playerPos.getX()),
                 (int) Math.floor(playerPos.getY()),

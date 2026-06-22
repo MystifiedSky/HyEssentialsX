@@ -1,0 +1,223 @@
+$E = "EcoCommon.ui";
+
+Group #PlaytimeRoot {
+  Anchor: (Left: 0, Top: 0, Right: 0, Bottom: 0);
+  LayoutMode: Center;
+
+  Group #PlaytimeWindow {
+    Anchor: (Width: 760, Height: 520);
+    LayoutMode: Top;
+    Background: (Color: #0f1726ee);
+    Padding: (Top: 10, Bottom: 12, Left: 12, Right: 12);
+    OutlineColor: #2f4a72;
+    OutlineSize: 1;
+
+    Group #Header {
+      LayoutMode: Left;
+      Anchor: (Height: 60, Bottom: 8);
+      Background: (Color: #15263d);
+      Padding: (Left: 12, Right: 10, Top: 6, Bottom: 6);
+      OutlineColor: #355986;
+      OutlineSize: 1;
+
+      Group {
+        LayoutMode: Top;
+        FlexWeight: 1;
+
+        Label #Title {
+          Text: "Playtime Center";
+          Style: (FontSize: 19, TextColor: #f2f7ff, RenderBold: true);
+          Anchor: (Bottom: 1);
+        }
+
+        Label #Subtitle {
+          Text: "Track your progress, rewards, and leaderboard rank";
+          Style: (FontSize: 10, TextColor: #8ea9cc, Wrap: true);
+          Anchor: (Left: 0, Right: 0);
+        }
+      }
+
+      TextButton #CloseButton {
+        Text: "X";
+        Style: $E.@EcoButtonRedStyle;
+        Anchor: (Width: 30, Height: 28, Vertical: 0);
+      }
+    }
+
+    Group #TabRow {
+      LayoutMode: Left;
+      Anchor: (Height: 34, Bottom: 8);
+
+      TextButton #TabOverview {
+        Text: "OVERVIEW";
+        Style: $E.@EcoButtonStyle;
+        Anchor: (Width: 130, Height: 30, Vertical: 0, Right: 6);
+      }
+      TextButton #TabRewards {
+        Text: "REWARDS";
+        Style: $E.@EcoButtonStyle;
+        Anchor: (Width: 130, Height: 30, Vertical: 0, Right: 6);
+      }
+      TextButton #TabTop {
+        Text: "TOP";
+        Style: $E.@EcoButtonStyle;
+        Anchor: (Width: 130, Height: 30, Vertical: 0);
+      }
+    }
+
+    Group #OverviewContent {
+      LayoutMode: Top;
+      FlexWeight: 1;
+
+      Group #OverviewStats {
+        LayoutMode: Left;
+        Anchor: (Height: 90, Bottom: 10);
+
+        Group {
+          LayoutMode: Top;
+          Background: (Color: #111f34);
+          FlexWeight: 1;
+          Anchor: (Right: 8);
+          Padding: (Top: 10, Bottom: 10, Left: 10, Right: 10);
+          OutlineColor: #2f4a72;
+          OutlineSize: 1;
+
+          Label { Text: "Your Playtime"; Style: (FontSize: 10, TextColor: #8ba6ca); }
+          Label #MyPlaytimeValue { Text: "0s"; Style: (FontSize: 20, TextColor: #54e39e, RenderBold: true); }
+        }
+
+        Group {
+          LayoutMode: Top;
+          Background: (Color: #111f34);
+          FlexWeight: 1;
+          Anchor: (Right: 8);
+          Padding: (Top: 10, Bottom: 10, Left: 10, Right: 10);
+          OutlineColor: #2f4a72;
+          OutlineSize: 1;
+
+          Label { Text: "Your Rank"; Style: (FontSize: 10, TextColor: #8ba6ca); }
+          Label #MyRankValue { Text: "#0"; Style: (FontSize: 20, TextColor: #8fd3ff, RenderBold: true); }
+        }
+
+        Group {
+          LayoutMode: Top;
+          Background: (Color: #111f34);
+          FlexWeight: 1;
+          Anchor: (Right: 8);
+          Padding: (Top: 10, Bottom: 10, Left: 10, Right: 10);
+          OutlineColor: #2f4a72;
+          OutlineSize: 1;
+
+          Label { Text: "Tracked Players"; Style: (FontSize: 10, TextColor: #8ba6ca); }
+          Label #PlayerCountValue { Text: "0"; Style: (FontSize: 20, TextColor: #d0bbff, RenderBold: true); }
+        }
+
+        Group {
+          LayoutMode: Top;
+          Background: (Color: #111f34);
+          FlexWeight: 1;
+          Padding: (Top: 10, Bottom: 10, Left: 10, Right: 10);
+          OutlineColor: #2f4a72;
+          OutlineSize: 1;
+
+          Label { Text: "Rewards Ready"; Style: (FontSize: 10, TextColor: #8ba6ca); }
+          Label #RewardsReadyValue { Text: "0"; Style: (FontSize: 20, TextColor: #f2be5c, RenderBold: true); }
+        }
+      }
+
+      Group {
+        LayoutMode: Top;
+        Background: (Color: #111f34);
+        FlexWeight: 1;
+        Padding: (Top: 12, Bottom: 12, Left: 12, Right: 12);
+        OutlineColor: #2f4a72;
+        OutlineSize: 1;
+
+        Label {
+          Text: "Use the tabs above to view rewards and leaderboard details.";
+          Style: (FontSize: 12, TextColor: #a4c1e6, Wrap: true);
+          Anchor: (Left: 0, Right: 0);
+        }
+      }
+    }
+
+    Group #RewardsContent {
+      LayoutMode: Top;
+      FlexWeight: 1;
+      Visible: false;
+
+      Group {
+        LayoutMode: Left;
+        Anchor: (Height: 30, Bottom: 6);
+        Label #RewardSummary {
+          Text: "Available now: 0 / 0";
+          Style: (FontSize: 11, TextColor: #8da8cc);
+          FlexWeight: 1;
+          Anchor: (Vertical: 0);
+        }
+      }
+
+      Group #RewardListContainer {
+        LayoutMode: TopScrolling;
+        Background: (Color: #111f34);
+        FlexWeight: 1;
+        Padding: (Top: 8, Bottom: 8, Left: 8, Right: 8);
+        OutlineColor: #2f4a72;
+        OutlineSize: 1;
+
+        Group #RewardList {
+          LayoutMode: Top;
+        }
+      }
+    }
+
+    Group #TopContent {
+      LayoutMode: Top;
+      FlexWeight: 1;
+      Visible: false;
+
+      Group #TopHeader {
+        LayoutMode: Left;
+        Anchor: (Height: 28, Bottom: 4);
+        Background: (Color: #0b1524);
+        Padding: (Left: 10, Right: 10);
+        OutlineColor: #2f4a72;
+        OutlineSize: 1;
+
+        Label { Text: "Rank"; Style: (FontSize: 11, TextColor: #89a6cb, RenderBold: true); Anchor: (Width: 72, Vertical: 0); }
+        Label { Text: "Player"; Style: (FontSize: 11, TextColor: #89a6cb, RenderBold: true); FlexWeight: 1; Anchor: (Vertical: 0); }
+        Label { Text: "Playtime"; Style: (FontSize: 11, TextColor: #89a6cb, RenderBold: true, HorizontalAlignment: End); Anchor: (Width: 180, Vertical: 0); }
+      }
+
+      Group #TopListContainer {
+        LayoutMode: TopScrolling;
+        Background: (Color: #111f34);
+        FlexWeight: 1;
+        Padding: (Top: 8, Bottom: 8, Left: 8, Right: 8);
+        OutlineColor: #2f4a72;
+        OutlineSize: 1;
+
+        Group #TopList {
+          LayoutMode: Top;
+        }
+      }
+
+      Group {
+        LayoutMode: Left;
+        Anchor: (Height: 28, Top: 8);
+
+        Label #SelfRank {
+          Text: "Your Rank: N/A";
+          Style: (FontSize: 11, TextColor: #8da8cc);
+          FlexWeight: 1;
+          Anchor: (Vertical: 0);
+        }
+        Label #SelfTime {
+          Text: "Your Time: 0s";
+          Style: (FontSize: 11, TextColor: #8da8cc);
+          Anchor: (Vertical: 0);
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+Group #EconomyHudRoot {
+  Anchor: (Right: 12, Bottom: 152, Width: 180, Height: 28);
+  Background: (Color: #10233ad8);
+  Padding: (Left: 10, Right: 10, Top: 4, Bottom: 4);
+  LayoutMode: Left;
+
+  Label #CurrencyName {
+    Text: "";
+    Style: (
+      FontSize: 12,
+      TextColor: #8fb0d8,
+      VerticalAlignment: Center
+    );
+    Padding: (Right: 8);
+    Anchor: (Vertical: 0);
+  }
+
+  Label #BalanceSymbol {
+    Text: "$";
+    Style: (
+      FontSize: 15,
+      TextColor: #4cc9ff,
+      VerticalAlignment: Center,
+      RenderBold: true
+    );
+    Padding: (Right: 2);
+    Anchor: (Vertical: 0);
+  }
+
+  Label #BalanceAmount {
+    Text: "0";
+    Style: (
+      FontSize: 15,
+      TextColor: #ffffff,
+      VerticalAlignment: Center,
+      RenderBold: true
+    );
+    Anchor: (Vertical: 0);
+  }
+}

@@ -86,6 +86,8 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.warp.WarpCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.warp.WarpsCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.custom.CustomTextCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.economy.BalanceTopCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.economy.EcoAdminCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.economy.EcoGuiCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.economy.MoneyCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.economy.PayCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.shop.ShopCommand;
@@ -98,6 +100,7 @@ import xyz.thelegacyvoyage.hyessentialsx.listeners.CombatLogListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.DeathBackListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.DeathMessageListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.DeathSpawnListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.EconomyHudListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.EconomyRewardListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.FlyNoFallListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.GodHealthListener;
@@ -118,6 +121,8 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.AfkManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CombatLogManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyAuditManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyHudManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FreecamManager;
@@ -133,6 +138,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.MailManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PaycheckManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeRewardManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.RankupManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SleepPercentManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SocialSpyManager;
@@ -199,8 +205,11 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private VanishManager vanishManager;
     private SleepPercentManager sleepPercentManager;
     private EconomyManager economyManager;
+    private EconomyAuditManager economyAuditManager;
+    private EconomyHudManager economyHudManager;
     private PaycheckManager paycheckManager;
     private PlaytimeManager playtimeManager;
+    private PlaytimeRewardManager playtimeRewardManager;
     private ScoreboardManager scoreboardManager;
     private RankupManager rankupManager;
     private CustomCommandManager customCommandManager;
@@ -260,6 +269,11 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         paycheckManager = new PaycheckManager(configManager, economyManager, storage, playtimeManager);
         paycheckManager.start();
+        if (playtimeRewardManager != null) {
+            playtimeRewardManager.shutdown();
+        }
+        playtimeRewardManager = new PlaytimeRewardManager(configManager, playtimeManager, storage);
+        playtimeRewardManager.start();
         if (afkManager != null) {
             afkManager.shutdown();
         }
@@ -271,6 +285,10 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         scoreboardManager = new ScoreboardManager(configManager, storage, economyManager, playtimeManager, dataDirectory);
         scoreboardManager.start();
         scoreboardManager.refreshAll();
+        if (economyHudManager != null) {
+            economyHudManager.start();
+            economyHudManager.refreshAll();
+        }
         unregisterHyCommands();
         registerCommands();
         if (combatLogManager != null && configManager != null) {
@@ -333,7 +351,10 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         vanishManager = new VanishManager();
         sleepPercentManager = new SleepPercentManager(configManager);
         economyManager = new EconomyManager(storage, configManager);
+        economyAuditManager = new EconomyAuditManager(dataDirectory);
+        economyHudManager = new EconomyHudManager(configManager, storage, economyManager);
         playtimeManager = new PlaytimeManager(storage);
+        playtimeRewardManager = new PlaytimeRewardManager(configManager, playtimeManager, storage);
         paycheckManager = new PaycheckManager(configManager, economyManager, storage, playtimeManager);
         scoreboardManager = new ScoreboardManager(configManager, storage, economyManager, playtimeManager, dataDirectory);
         rankupManager = new RankupManager(configManager, economyManager, storage, playtimeManager);
@@ -375,9 +396,16 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         sleepPercentManager.start();
         rankupManager.start();
         paycheckManager.start();
+        if (playtimeRewardManager != null) {
+            playtimeRewardManager.start();
+        }
         if (scoreboardManager != null) {
             scoreboardManager.start();
             scoreboardManager.refreshAll();
+        }
+        if (economyHudManager != null) {
+            economyHudManager.start();
+            economyHudManager.refreshAll();
         }
         registerPlaceholderExpansion();
         VaultUnlockedIntegration.refresh();
@@ -400,7 +428,10 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (sleepPercentManager != null) sleepPercentManager.shutdown();
         if (rankupManager != null) rankupManager.shutdown();
         if (paycheckManager != null) paycheckManager.shutdown();
+        if (playtimeRewardManager != null) playtimeRewardManager.shutdown();
         if (scoreboardManager != null) scoreboardManager.shutdown();
+        if (economyHudManager != null) economyHudManager.shutdown();
+        if (economyAuditManager != null) economyAuditManager.shutdown();
         if (shopNpcFixTask != null) shopNpcFixTask.stop();
         unregisterPlaceholderExpansion();
         if (hologramService != null) {
@@ -512,9 +543,13 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new ClearChatCommand());
         reg.accept(new MailCommand(mailManager, storage, configManager));
         if (configManager.isEconomyEnabled()) {
-            reg.accept(new PayCommand(economyManager));
-            reg.accept(new MoneyCommand(economyManager, storage));
+            reg.accept(new PayCommand(economyManager, economyAuditManager));
+            reg.accept(new MoneyCommand(economyManager, storage, economyAuditManager));
             reg.accept(new BalanceTopCommand(economyManager, storage, configManager));
+            if (economyHudManager != null) {
+                reg.accept(new EcoGuiCommand(economyManager, economyHudManager, configManager));
+                reg.accept(new EcoAdminCommand(economyManager, storage, configManager, economyHudManager, economyAuditManager));
+            }
         }
         if (configManager.isHomesEnabled()) {
             reg.accept(new ImportHomesCommand(storage, dataDirectory));
@@ -554,10 +589,8 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new SleepPercentCommand(configManager));
         reg.accept(new DayCommand());
         reg.accept(new NightCommand());
-        if (configManager.isRankupEnabled()) {
-            reg.accept(new RankupCommand(rankupManager, economyManager));
-        }
-        reg.accept(new PlaytimeCommand(playtimeManager, storage));
+        reg.accept(new RankupCommand(rankupManager, economyManager, playtimeManager, playtimeRewardManager, storage, configManager));
+        reg.accept(new PlaytimeCommand(playtimeManager, playtimeRewardManager, rankupManager, storage, configManager));
         if (scoreboardManager != null && configManager.isScoreboardEnabled()) {
             reg.accept(new ScoreboardCommand(scoreboardManager, configManager));
         }
@@ -624,6 +657,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         ).register(bus);
         if (scoreboardManager != null && configManager.isScoreboardEnabled()) {
             new ScoreboardListener(scoreboardManager).register(bus);
+        }
+        if (economyHudManager != null && configManager.isEconomyEnabled()) {
+            new EconomyHudListener(economyHudManager).register(bus);
         }
         new ChatModerationListener(muteManager, adminChatManager, configManager).register(bus);
         new IpBanListener(ipBanManager, storage).register(bus);

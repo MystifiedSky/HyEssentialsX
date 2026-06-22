@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import xyz.thelegacyvoyage.hyessentialsx.models.PlaytimeRewardModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.RankupTier;
 import xyz.thelegacyvoyage.hyessentialsx.util.PluginInfoUtil;
@@ -18,6 +19,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -36,6 +38,7 @@ public final class ConfigManager {
 
     private final Path configPath;
     private final Path economyPath;
+    private final Path rewardsPath;
     private final Path rankupPath;
     private final Path chatPath;
     private final Path scoreboardPath;
@@ -144,6 +147,19 @@ public final class ConfigManager {
     private boolean economyEnabled = true;
     private String economyCurrencySymbol = "$";
     private long economyStartingBalance = 0L;
+    private boolean economyHudEnabled = true;
+    private boolean economyHudDefaultHidden = false;
+    private String economyHudLabel = "HyCoins";
+    private int economyHudUpdateIntervalMs = 1000;
+    private String economyHudAnchor = "bottom_right";
+    private int economyHudOffsetX = 12;
+    private int economyHudOffsetY = 152;
+    private int economyHudWidth = 180;
+    private int economyHudHeight = 28;
+    private String economyHudBackgroundColor = "#1a1e2dd8";
+    private String economyHudLabelColor = "#888888";
+    private String economyHudSymbolColor = "#e8b923";
+    private String economyHudAmountColor = "#ffffff";
     private boolean paycheckEnabled = true;
     private long paycheckAmount = 100L;
     private double paycheckIntervalHours = 1.0;
@@ -158,14 +174,21 @@ public final class ConfigManager {
     private Map<String, Long> economyBlockRewards = defaultBlockRewards();
     private Map<String, Long> economyBlockGroupRewards = defaultBlockGroupRewards();
     private Map<String, Long> economyMobRewards = defaultMobRewards();
-    private boolean rankupEnabled = false;
+    // Legacy compatibility flag. Rankup enablement now follows playtime rewards enablement.
+    private boolean rankupEnabled = true;
     private int rankupConfirmTimeoutSeconds = 30;
     private boolean rankupPlaytimeEnabled = true;
     private boolean rankupCurrencyEnabled = true;
     private boolean rankupAutoEnabled = false;
     private int rankupAutoCheckSeconds = 60;
     private boolean rankupAutoUseCurrency = false;
-    private List<RankupTier> rankupTiers = defaultRankupTiers();
+    private List<RankupTier> rankupTiers = List.of();
+    private boolean playtimeGuiEnabled = true;
+    private int playtimeTopLimit = 100;
+    private boolean playtimeRewardsEnabled = true;
+    private boolean playtimeRewardsAutoClaim = true;
+    private int playtimeRewardsCheckIntervalSeconds = 30;
+    private List<PlaytimeRewardModel> playtimeRewards = defaultPlaytimeRewards();
     private String defaultKit = "";
 
     private boolean adminShopsEnabled = true;
@@ -275,6 +298,7 @@ public final class ConfigManager {
     public ConfigManager(@Nonnull Path dataFolder) {
         this.configPath = dataFolder.resolve("config.json");
         this.economyPath = dataFolder.resolve("economyConfig.json");
+        this.rewardsPath = dataFolder.resolve("rewardsConfig.json");
         this.rankupPath = dataFolder.resolve("rankupConfig.json");
         this.chatPath = dataFolder.resolve("chatConfig.json");
         this.scoreboardPath = dataFolder.resolve("scoreboardConfig.json");
@@ -292,13 +316,13 @@ public final class ConfigManager {
 
         boolean hasMain = Files.exists(configPath);
         boolean hasEconomy = Files.exists(economyPath);
-        boolean hasRankup = Files.exists(rankupPath);
+        boolean hasRewards = Files.exists(rewardsPath);
         boolean hasChat = Files.exists(chatPath);
         boolean hasScoreboard = Files.exists(scoreboardPath);
 
-        if (hasMain && hasEconomy && hasRankup && hasChat && hasScoreboard) return;
+        if (hasMain && hasEconomy && hasRewards && hasChat && hasScoreboard) return;
 
-        if (hasMain && (!hasEconomy || !hasRankup || !hasChat || !hasScoreboard)) {
+        if (hasMain && (!hasEconomy || !hasRewards || !hasChat || !hasScoreboard)) {
             needsSplitMigration = true;
             return;
         }
@@ -312,9 +336,9 @@ public final class ConfigManager {
                 writeJson(economyPath, buildDefaultEconomyRoot());
                 Log.info("Created default economyConfig.json");
             }
-            if (!hasRankup) {
-                writeJson(rankupPath, buildDefaultRankupRoot());
-                Log.info("Created default rankupConfig.json");
+            if (!hasRewards) {
+                writeJson(rewardsPath, buildDefaultRewardsRoot());
+                Log.info("Created default rewardsConfig.json");
             }
             if (!hasChat) {
                 writeJson(chatPath, buildDefaultChatRoot());
@@ -405,6 +429,23 @@ public final class ConfigManager {
         economy.addProperty("currencySymbol", "$");
         economy.addProperty("startingBalance", 0);
         economy.addProperty("baltopGui", true);
+        JsonObject hud = new JsonObject();
+        hud.addProperty("enabled", true);
+        hud.addProperty("defaultHidden", false);
+        hud.addProperty("label", "HyCoins");
+        hud.addProperty("updateIntervalMs", 1000);
+        hud.addProperty("anchor", "bottom_right");
+        hud.addProperty("offsetX", 12);
+        hud.addProperty("offsetY", 152);
+        hud.addProperty("width", 180);
+        hud.addProperty("height", 28);
+        JsonObject hudColors = new JsonObject();
+        hudColors.addProperty("background", "#1a1e2dd8");
+        hudColors.addProperty("label", "#888888");
+        hudColors.addProperty("symbol", "#e8b923");
+        hudColors.addProperty("amount", "#ffffff");
+        hud.add("colors", hudColors);
+        economy.add("hud", hud);
         JsonObject paycheck = new JsonObject();
         paycheck.addProperty("enabled", true);
         paycheck.addProperty("amount", 100);
@@ -431,7 +472,6 @@ public final class ConfigManager {
         root.add("economy", economy);
 
         JsonObject rankup = new JsonObject();
-        rankup.addProperty("enabled", false);
         rankup.addProperty("confirmTimeoutSeconds", 30);
         JsonObject requirements = new JsonObject();
         requirements.addProperty("playtimeEnabled", true);
@@ -442,8 +482,18 @@ public final class ConfigManager {
         auto.addProperty("checkSeconds", 60);
         auto.addProperty("useCurrency", false);
         rankup.add("auto", auto);
-        rankup.add("ranks", toRankupArray(rankupTiers));
         root.add("rankup", rankup);
+
+        JsonObject playtime = new JsonObject();
+        playtime.addProperty("guiEnabled", true);
+        playtime.addProperty("topLimit", 100);
+        JsonObject playtimeRewardSection = new JsonObject();
+        playtimeRewardSection.addProperty("enabled", true);
+        playtimeRewardSection.addProperty("autoClaim", true);
+        playtimeRewardSection.addProperty("checkIntervalSeconds", 30);
+        playtimeRewardSection.add("entries", toPlaytimeRewardsArray(defaultPlaytimeRewards()));
+        playtime.add("rewards", playtimeRewardSection);
+        root.add("playtime", playtime);
 
         JsonObject features = new JsonObject();
         features.addProperty("msg", true);
@@ -646,7 +696,6 @@ public final class ConfigManager {
             JsonObject preservedChat = existingChat != null ? existingChat.deepCopy() : null;
             JsonObject preservedBlockRewards = null;
             JsonObject preservedMobRewards = null;
-            JsonArray preservedRankupRanks = null;
             JsonObject economyObj = getObjectOrNull(root, "economy");
             if (economyObj != null) {
                 JsonObject rewardsObj = getObjectOrNull(economyObj, "rewards");
@@ -660,10 +709,6 @@ public final class ConfigManager {
                         preservedMobRewards = mobsObj.getAsJsonObject("rewards").deepCopy();
                     }
                 }
-            }
-            JsonObject rankupObj = getObjectOrNull(root, "rankup");
-            if (rankupObj != null && rankupObj.has("ranks") && rankupObj.get("ranks").isJsonArray()) {
-                preservedRankupRanks = rankupObj.getAsJsonArray("ranks").deepCopy();
             }
             boolean hadHomesEnabled = hasSectionFlag(root, "homes", "enabled");
             boolean hadWarpsEnabled = hasSectionFlag(root, "warps", "enabled");
@@ -693,11 +738,6 @@ public final class ConfigManager {
                 mobs.add("rewards", preservedMobRewards);
                 changed = true;
             }
-            if (preservedRankupRanks != null) {
-                JsonObject rankup = obj(root, "rankup");
-                rankup.add("ranks", preservedRankupRanks);
-                changed = true;
-            }
             if (cleanupConfig(root)) {
                 changed = true;
             }
@@ -707,7 +747,7 @@ public final class ConfigManager {
             }
             if (changed) {
                 try {
-                    Files.writeString(configPath, gson.toJson(root), StandardCharsets.UTF_8);
+                    writeSplitConfigs();
                 } catch (Exception e) {
                     Log.warn("Failed to persist updated config defaults: " + e.getMessage());
                 }
@@ -903,6 +943,24 @@ public final class ConfigManager {
             economyCurrencySymbol = str(economy, "currencySymbol", economyCurrencySymbol);
             economyStartingBalance = Math.max(0L, longVal(economy, "startingBalance", economyStartingBalance));
             economyBaltopGuiEnabled = bool(economy, "baltopGui", economyBaltopGuiEnabled);
+            JsonObject hud = obj(economy, "hud");
+            economyHudEnabled = bool(hud, "enabled", economyHudEnabled);
+            economyHudDefaultHidden = bool(hud, "defaultHidden", economyHudDefaultHidden);
+            economyHudLabel = str(hud, "label", economyHudLabel);
+            if (economyHudLabel.isBlank()) {
+                economyHudLabel = "HyCoins";
+            }
+            economyHudUpdateIntervalMs = Math.max(250, intVal(hud, "updateIntervalMs", economyHudUpdateIntervalMs));
+            economyHudAnchor = normalizeEconomyHudAnchor(str(hud, "anchor", economyHudAnchor));
+            economyHudOffsetX = Math.max(0, intVal(hud, "offsetX", economyHudOffsetX));
+            economyHudOffsetY = Math.max(0, intVal(hud, "offsetY", economyHudOffsetY));
+            economyHudWidth = Math.max(120, intVal(hud, "width", economyHudWidth));
+            economyHudHeight = Math.max(20, intVal(hud, "height", economyHudHeight));
+            JsonObject hudColors = obj(hud, "colors");
+            economyHudBackgroundColor = str(hudColors, "background", economyHudBackgroundColor);
+            economyHudLabelColor = str(hudColors, "label", economyHudLabelColor);
+            economyHudSymbolColor = str(hudColors, "symbol", economyHudSymbolColor);
+            economyHudAmountColor = str(hudColors, "amount", economyHudAmountColor);
             JsonObject paycheck = obj(economy, "paycheck");
             paycheckEnabled = bool(paycheck, "enabled", paycheckEnabled);
             paycheckAmount = Math.max(0L, longVal(paycheck, "amount", paycheckAmount));
@@ -933,6 +991,45 @@ public final class ConfigManager {
             rankupAutoCheckSeconds = intVal(auto, "checkSeconds", rankupAutoCheckSeconds);
             rankupAutoUseCurrency = bool(auto, "useCurrency", rankupAutoUseCurrency);
             rankupTiers = readRankupTiers(rankup);
+            boolean hasLegacyRankupEntries = rankup.has("ranks")
+                    && rankup.get("ranks").isJsonArray()
+                    && rankup.getAsJsonArray("ranks").size() > 0;
+            if (rankup.has("ranks")) {
+                rankup.remove("ranks");
+                changed = true;
+            }
+
+            JsonObject playtime = obj(root, "playtime");
+            playtimeGuiEnabled = bool(playtime, "guiEnabled", playtimeGuiEnabled);
+            playtimeTopLimit = Math.max(10, intVal(playtime, "topLimit", playtimeTopLimit));
+            JsonObject playtimeRewardSection = obj(playtime, "rewards");
+            playtimeRewardsEnabled = bool(playtimeRewardSection, "enabled", playtimeRewardsEnabled);
+            playtimeRewardsAutoClaim = bool(playtimeRewardSection, "autoClaim", playtimeRewardsAutoClaim);
+            playtimeRewardsCheckIntervalSeconds = Math.max(
+                    5,
+                    intVal(playtimeRewardSection, "checkIntervalSeconds", playtimeRewardsCheckIntervalSeconds)
+            );
+            playtimeRewards = readPlaytimeRewards(playtimeRewardSection, playtimeRewards);
+            List<PlaytimeRewardModel> legacyRankupRewards = hasLegacyRankupEntries
+                    ? toPlaytimeRewards(rankupTiers)
+                    : List.of();
+            if (!legacyRankupRewards.isEmpty()) {
+                int beforeCount = playtimeRewards.size();
+                playtimeRewards = mergePlaytimeRewards(playtimeRewards, legacyRankupRewards);
+                rankupTiers = toRankupTiers(playtimeRewards);
+                if (playtimeRewards.size() != beforeCount) {
+                    changed = true;
+                }
+            }
+            // Rankup enablement is unified under playtime rewards enablement.
+            if (rankupEnabled != playtimeRewardsEnabled) {
+                rankupEnabled = playtimeRewardsEnabled;
+                changed = true;
+            }
+            List<RankupTier> unifiedRankupTiers = toRankupTiers(playtimeRewards);
+            if (!unifiedRankupTiers.isEmpty()) {
+                rankupTiers = unifiedRankupTiers;
+            }
 
             JsonObject kits = obj(root, "kits");
             defaultKit = str(kits, "defaultKit", defaultKit).trim();
@@ -1564,6 +1661,122 @@ public final class ConfigManager {
         return economyStartingBalance;
     }
 
+    public boolean isEconomyHudEnabled() {
+        return economyHudEnabled;
+    }
+
+    public boolean isEconomyHudDefaultHidden() {
+        return economyHudDefaultHidden;
+    }
+
+    @Nonnull
+    public String getEconomyHudLabel() {
+        return economyHudLabel;
+    }
+
+    public int getEconomyHudUpdateIntervalMs() {
+        return Math.max(250, economyHudUpdateIntervalMs);
+    }
+
+    @Nonnull
+    public String getEconomyHudAnchor() {
+        return economyHudAnchor;
+    }
+
+    public int getEconomyHudOffsetX() {
+        return Math.max(0, economyHudOffsetX);
+    }
+
+    public int getEconomyHudOffsetY() {
+        return Math.max(0, economyHudOffsetY);
+    }
+
+    public int getEconomyHudWidth() {
+        return Math.max(120, economyHudWidth);
+    }
+
+    public int getEconomyHudHeight() {
+        return Math.max(20, economyHudHeight);
+    }
+
+    @Nonnull
+    public String getEconomyHudBackgroundColor() {
+        return economyHudBackgroundColor;
+    }
+
+    @Nonnull
+    public String getEconomyHudLabelColor() {
+        return economyHudLabelColor;
+    }
+
+    @Nonnull
+    public String getEconomyHudSymbolColor() {
+        return economyHudSymbolColor;
+    }
+
+    @Nonnull
+    public String getEconomyHudAmountColor() {
+        return economyHudAmountColor;
+    }
+
+    public void setEconomyCurrencySymbol(@Nonnull String currencySymbol) {
+        String sanitized = currencySymbol.trim();
+        if (sanitized.length() > 8) {
+            sanitized = sanitized.substring(0, 8);
+        }
+        economyCurrencySymbol = sanitized;
+        save();
+    }
+
+    public void setEconomyStartingBalance(long startingBalance) {
+        economyStartingBalance = Math.max(0L, startingBalance);
+        save();
+    }
+
+    public void setEconomyHudEnabled(boolean enabled) {
+        economyHudEnabled = enabled;
+        save();
+    }
+
+    public void setEconomyHudDefaultHidden(boolean hidden) {
+        economyHudDefaultHidden = hidden;
+        save();
+    }
+
+    public void setEconomyHudLabel(@Nonnull String label) {
+        String sanitized = label.trim();
+        if (sanitized.isBlank()) {
+            sanitized = "HyCoins";
+        }
+        if (sanitized.length() > 24) {
+            sanitized = sanitized.substring(0, 24);
+        }
+        economyHudLabel = sanitized;
+        save();
+    }
+
+    public void setEconomyHudUpdateIntervalMs(int intervalMs) {
+        economyHudUpdateIntervalMs = Math.max(250, intervalMs);
+        save();
+    }
+
+    public void setEconomyHudAnchor(@Nonnull String anchor) {
+        economyHudAnchor = normalizeEconomyHudAnchor(anchor);
+        save();
+    }
+
+    public void setEconomyHudOffsets(int offsetX, int offsetY) {
+        economyHudOffsetX = Math.max(0, offsetX);
+        economyHudOffsetY = Math.max(0, offsetY);
+        save();
+    }
+
+    public void setEconomyHudSize(int width, int height) {
+        economyHudWidth = Math.max(120, width);
+        economyHudHeight = Math.max(20, height);
+        save();
+    }
+
     public boolean isPaycheckEnabled() {
         return paycheckEnabled;
     }
@@ -1624,8 +1837,69 @@ public final class ConfigManager {
         return Collections.unmodifiableMap(economyMobRewards);
     }
 
+    public boolean isPlaytimeGuiEnabled() {
+        return playtimeGuiEnabled;
+    }
+
+    public int getPlaytimeTopLimit() {
+        return Math.max(10, playtimeTopLimit);
+    }
+
+    public boolean isPlaytimeRewardsEnabled() {
+        return playtimeRewardsEnabled;
+    }
+
+    public boolean isPlaytimeRewardsAutoClaim() {
+        return playtimeRewardsAutoClaim;
+    }
+
+    public int getPlaytimeRewardsCheckIntervalSeconds() {
+        return Math.max(5, playtimeRewardsCheckIntervalSeconds);
+    }
+
+    @Nonnull
+    public List<PlaytimeRewardModel> getPlaytimeRewards() {
+        return List.copyOf(playtimeRewards);
+    }
+
+    public void setPlaytimeGuiEnabled(boolean enabled) {
+        playtimeGuiEnabled = enabled;
+        save();
+    }
+
+    public void setPlaytimeTopLimit(int limit) {
+        playtimeTopLimit = Math.max(10, limit);
+        save();
+    }
+
+    public void setPlaytimeRewardsEnabled(boolean enabled) {
+        playtimeRewardsEnabled = enabled;
+        rankupEnabled = enabled;
+        save();
+    }
+
+    public void setPlaytimeRewardsAutoClaim(boolean autoClaim) {
+        playtimeRewardsAutoClaim = autoClaim;
+        save();
+    }
+
+    public void setPlaytimeRewardsCheckIntervalSeconds(int intervalSeconds) {
+        playtimeRewardsCheckIntervalSeconds = Math.max(5, intervalSeconds);
+        save();
+    }
+
+    public void setPlaytimeRewards(@Nonnull List<PlaytimeRewardModel> rewards) {
+        playtimeRewards = sanitizePlaytimeRewards(rewards);
+        rankupTiers = toRankupTiers(playtimeRewards);
+        save();
+    }
+
     public boolean isRankupEnabled() {
-        return rankupEnabled;
+        return playtimeRewardsEnabled;
+    }
+
+    public void setRankupEnabled(boolean enabled) {
+        setPlaytimeRewardsEnabled(enabled);
     }
 
     public int getRankupConfirmTimeoutSeconds() {
@@ -1636,20 +1910,45 @@ public final class ConfigManager {
         return rankupPlaytimeEnabled;
     }
 
+    public void setRankupPlaytimeEnabled(boolean enabled) {
+        rankupPlaytimeEnabled = enabled;
+        save();
+    }
+
     public boolean isRankupCurrencyEnabled() {
         return rankupCurrencyEnabled;
+    }
+
+    public void setRankupCurrencyEnabled(boolean enabled) {
+        rankupCurrencyEnabled = enabled;
+        save();
     }
 
     public boolean isRankupAutoEnabled() {
         return rankupAutoEnabled;
     }
 
+    public void setRankupAutoEnabled(boolean enabled) {
+        rankupAutoEnabled = enabled;
+        save();
+    }
+
     public int getRankupAutoCheckSeconds() {
         return rankupAutoCheckSeconds;
     }
 
+    public void setRankupAutoCheckSeconds(int checkSeconds) {
+        rankupAutoCheckSeconds = Math.max(1, checkSeconds);
+        save();
+    }
+
     public boolean isRankupAutoUseCurrency() {
         return rankupAutoUseCurrency;
+    }
+
+    public void setRankupAutoUseCurrency(boolean useCurrency) {
+        rankupAutoUseCurrency = useCurrency;
+        save();
     }
 
     public boolean isPlayerShopsEnabled() {
@@ -1718,6 +2017,10 @@ public final class ConfigManager {
 
     @Nonnull
     public List<RankupTier> getRankupTiers() {
+        List<RankupTier> unified = toRankupTiers(playtimeRewards);
+        if (!unified.isEmpty()) {
+            return List.copyOf(unified);
+        }
         return List.copyOf(rankupTiers);
     }
 
@@ -2043,6 +2346,21 @@ public final class ConfigManager {
         economy.addProperty("currencySymbol", economyCurrencySymbol);
         economy.addProperty("startingBalance", Math.max(0L, economyStartingBalance));
         economy.addProperty("baltopGui", economyBaltopGuiEnabled);
+        JsonObject hud = obj(economy, "hud");
+        hud.addProperty("enabled", economyHudEnabled);
+        hud.addProperty("defaultHidden", economyHudDefaultHidden);
+        hud.addProperty("label", economyHudLabel);
+        hud.addProperty("updateIntervalMs", Math.max(250, economyHudUpdateIntervalMs));
+        hud.addProperty("anchor", economyHudAnchor);
+        hud.addProperty("offsetX", Math.max(0, economyHudOffsetX));
+        hud.addProperty("offsetY", Math.max(0, economyHudOffsetY));
+        hud.addProperty("width", Math.max(120, economyHudWidth));
+        hud.addProperty("height", Math.max(20, economyHudHeight));
+        JsonObject hudColors = obj(hud, "colors");
+        hudColors.addProperty("background", economyHudBackgroundColor);
+        hudColors.addProperty("label", economyHudLabelColor);
+        hudColors.addProperty("symbol", economyHudSymbolColor);
+        hudColors.addProperty("amount", economyHudAmountColor);
         JsonObject paycheck = obj(economy, "paycheck");
         paycheck.addProperty("enabled", paycheckEnabled);
         paycheck.addProperty("amount", Math.max(0L, paycheckAmount));
@@ -2063,7 +2381,7 @@ public final class ConfigManager {
         mobRewards.add("rewards", toLongMapObject(economyMobRewards));
 
         JsonObject rankup = obj(root, "rankup");
-        rankup.addProperty("enabled", rankupEnabled);
+        rankup.remove("enabled");
         rankup.addProperty("confirmTimeoutSeconds", rankupConfirmTimeoutSeconds);
         JsonObject requirements = obj(rankup, "requirements");
         requirements.addProperty("playtimeEnabled", rankupPlaytimeEnabled);
@@ -2072,7 +2390,16 @@ public final class ConfigManager {
         auto.addProperty("enabled", rankupAutoEnabled);
         auto.addProperty("checkSeconds", rankupAutoCheckSeconds);
         auto.addProperty("useCurrency", rankupAutoUseCurrency);
-        rankup.add("ranks", toRankupArray(rankupTiers));
+        rankup.remove("ranks");
+
+        JsonObject playtime = obj(root, "playtime");
+        playtime.addProperty("guiEnabled", playtimeGuiEnabled);
+        playtime.addProperty("topLimit", Math.max(10, playtimeTopLimit));
+        JsonObject playtimeRewardSection = obj(playtime, "rewards");
+        playtimeRewardSection.addProperty("enabled", playtimeRewardsEnabled);
+        playtimeRewardSection.addProperty("autoClaim", playtimeRewardsAutoClaim);
+        playtimeRewardSection.addProperty("checkIntervalSeconds", Math.max(5, playtimeRewardsCheckIntervalSeconds));
+        playtimeRewardSection.add("entries", toPlaytimeRewardsArray(playtimeRewards));
 
         JsonObject motd = obj(root, "motd");
         motd.addProperty("enabled", motdEnabled);
@@ -2190,10 +2517,12 @@ public final class ConfigManager {
     private JsonObject readCombinedRoot() throws Exception {
         JsonObject main = readOrDefault(configPath, buildDefaultMainRoot());
         boolean hasEconomy = Files.exists(economyPath);
+        boolean hasRewards = Files.exists(rewardsPath);
         boolean hasRankup = Files.exists(rankupPath);
         boolean hasChat = Files.exists(chatPath);
         boolean hasScoreboard = Files.exists(scoreboardPath);
         JsonObject economy = hasEconomy ? readOrDefault(economyPath, buildDefaultEconomyRoot()) : new JsonObject();
+        JsonObject rewards = hasRewards ? readOrDefault(rewardsPath, buildDefaultRewardsRoot()) : new JsonObject();
         JsonObject rankup = hasRankup ? readOrDefault(rankupPath, buildDefaultRankupRoot()) : new JsonObject();
         JsonObject chat = hasChat ? readOrDefault(chatPath, buildDefaultChatRoot()) : new JsonObject();
         JsonObject scoreboard = hasScoreboard ? readOrDefault(scoreboardPath, buildDefaultScoreboardRoot()) : new JsonObject();
@@ -2209,15 +2538,24 @@ public final class ConfigManager {
                 merged.add("economy", defEconomy.get("economy"));
             }
         }
-        if (hasRankup && rankup.has("rankup")) {
-            merged.add("rankup", rankup.get("rankup"));
-        } else if (main.has("rankup")) {
-            merged.add("rankup", main.get("rankup"));
-        } else {
-            JsonObject defRankup = buildDefaultRankupRoot();
-            if (defRankup.has("rankup")) {
-                merged.add("rankup", defRankup.get("rankup"));
-            }
+        JsonObject defRewards = buildDefaultRewardsRoot();
+        if (hasRewards && rewards.has("playtime")) {
+            merged.add("playtime", rewards.get("playtime"));
+        } else if (defRewards.has("playtime")) {
+            merged.add("playtime", defRewards.get("playtime"));
+        }
+        JsonObject defaultRankup = defRewards.has("rankup") && defRewards.get("rankup").isJsonObject()
+                ? defRewards.getAsJsonObject("rankup")
+                : new JsonObject();
+        JsonObject rewardsRankup = hasRewards && rewards.has("rankup") && rewards.get("rankup").isJsonObject()
+                ? rewards.getAsJsonObject("rankup")
+                : null;
+        JsonObject legacyRankup = hasRankup && rankup.has("rankup") && rankup.get("rankup").isJsonObject()
+                ? rankup.getAsJsonObject("rankup")
+                : null;
+        JsonObject mergedRankup = mergeRankupSection(rewardsRankup, legacyRankup, defaultRankup);
+        if (!mergedRankup.entrySet().isEmpty()) {
+            merged.add("rankup", mergedRankup);
         }
         if (hasScoreboard && scoreboard.has("scoreboard")) {
             merged.add("scoreboard", scoreboard.get("scoreboard"));
@@ -2242,6 +2580,67 @@ public final class ConfigManager {
             }
         }
         return merged;
+    }
+
+    @Nonnull
+    private JsonObject mergeRankupSection(@Nullable JsonObject rewardsRankup,
+                                          @Nullable JsonObject legacyRankup,
+                                          @Nonnull JsonObject defaultRankup) {
+        JsonObject merged = rewardsRankup != null ? rewardsRankup.deepCopy() : defaultRankup.deepCopy();
+        if (legacyRankup == null) {
+            return merged;
+        }
+
+        copyLegacyRankupValue(merged, legacyRankup, defaultRankup, "confirmTimeoutSeconds");
+
+        JsonObject mergedRequirements = obj(merged, "requirements");
+        JsonObject legacyRequirements = getObjectOrNull(legacyRankup, "requirements");
+        JsonObject defaultRequirements = getObjectOrNull(defaultRankup, "requirements");
+        if (legacyRequirements != null) {
+            JsonObject fallbackDefaults = defaultRequirements != null ? defaultRequirements : new JsonObject();
+            copyLegacyRankupValue(mergedRequirements, legacyRequirements, fallbackDefaults, "playtimeEnabled");
+            copyLegacyRankupValue(mergedRequirements, legacyRequirements, fallbackDefaults, "currencyEnabled");
+        }
+
+        JsonObject mergedAuto = obj(merged, "auto");
+        JsonObject legacyAuto = getObjectOrNull(legacyRankup, "auto");
+        JsonObject defaultAuto = getObjectOrNull(defaultRankup, "auto");
+        if (legacyAuto != null) {
+            JsonObject fallbackDefaults = defaultAuto != null ? defaultAuto : new JsonObject();
+            copyLegacyRankupValue(mergedAuto, legacyAuto, fallbackDefaults, "enabled");
+            copyLegacyRankupValue(mergedAuto, legacyAuto, fallbackDefaults, "checkSeconds");
+            copyLegacyRankupValue(mergedAuto, legacyAuto, fallbackDefaults, "useCurrency");
+        }
+
+        if (legacyRankup.has("ranks") && legacyRankup.get("ranks").isJsonArray()) {
+            JsonArray legacyRanks = legacyRankup.getAsJsonArray("ranks");
+            boolean hasMergedRanks = merged.has("ranks")
+                    && merged.get("ranks").isJsonArray()
+                    && merged.getAsJsonArray("ranks").size() > 0;
+            if (!hasMergedRanks && legacyRanks.size() > 0) {
+                merged.add("ranks", legacyRanks.deepCopy());
+            }
+        }
+
+        return merged;
+    }
+
+    private void copyLegacyRankupValue(@Nonnull JsonObject target,
+                                       @Nonnull JsonObject legacy,
+                                       @Nonnull JsonObject defaults,
+                                       @Nonnull String key) {
+        if (!legacy.has(key)) {
+            return;
+        }
+        if (!target.has(key) || isDefaultValue(target, defaults, key)) {
+            target.add(key, legacy.get(key).deepCopy());
+        }
+    }
+
+    private boolean isDefaultValue(@Nonnull JsonObject target,
+                                   @Nonnull JsonObject defaults,
+                                   @Nonnull String key) {
+        return defaults.has(key) && target.has(key) && target.get(key).equals(defaults.get(key));
     }
 
     @Nonnull
@@ -2271,6 +2670,7 @@ public final class ConfigManager {
         JsonObject full = root != null ? root : buildDefaultConfig();
         JsonObject main = full.deepCopy();
         main.remove("economy");
+        main.remove("playtime");
         main.remove("rankup");
         main.remove("scoreboard");
         stripChatSections(main);
@@ -2279,9 +2679,12 @@ public final class ConfigManager {
         if (full.has("economy")) {
             economy.add("economy", full.get("economy"));
         }
-        JsonObject rankup = buildDefaultRankupRoot();
+        JsonObject rewards = buildDefaultRewardsRoot();
+        if (full.has("playtime")) {
+            rewards.add("playtime", full.get("playtime"));
+        }
         if (full.has("rankup")) {
-            rankup.add("rankup", full.get("rankup"));
+            rewards.add("rankup", full.get("rankup"));
         }
         JsonObject chat = buildDefaultChatRoot();
         fillChatRoot(chat, full);
@@ -2292,9 +2695,20 @@ public final class ConfigManager {
 
         writeJson(configPath, main);
         writeJson(economyPath, economy);
-        writeJson(rankupPath, rankup);
+        writeJson(rewardsPath, rewards);
         writeJson(chatPath, chat);
         writeJson(scoreboardPath, scoreboard);
+        try {
+            if (Files.exists(rankupPath)) {
+                Path backupPath = rankupPath.resolveSibling("rankupConfig.json.migrated.bak");
+                Files.copy(rankupPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+            if (Files.deleteIfExists(rankupPath)) {
+                Log.info("Removed deprecated rankupConfig.json after migration to rewardsConfig.json.");
+            }
+        } catch (Exception e) {
+            Log.warn("Failed to remove deprecated rankupConfig.json: " + e.getMessage());
+        }
     }
 
     private void writeJson(@Nonnull Path path, @Nonnull JsonObject data) throws Exception {
@@ -2305,6 +2719,7 @@ public final class ConfigManager {
     private JsonObject buildDefaultMainRoot() {
         JsonObject root = buildDefaultConfig();
         root.remove("economy");
+        root.remove("playtime");
         root.remove("rankup");
         root.remove("scoreboard");
         stripChatSections(root);
@@ -2325,6 +2740,19 @@ public final class ConfigManager {
     private JsonObject buildDefaultRankupRoot() {
         JsonObject root = new JsonObject();
         JsonObject defaults = buildDefaultConfig();
+        if (defaults.has("rankup")) {
+            root.add("rankup", defaults.get("rankup"));
+        }
+        return root;
+    }
+
+    @Nonnull
+    private JsonObject buildDefaultRewardsRoot() {
+        JsonObject root = new JsonObject();
+        JsonObject defaults = buildDefaultConfig();
+        if (defaults.has("playtime")) {
+            root.add("playtime", defaults.get("playtime"));
+        }
         if (defaults.has("rankup")) {
             root.add("rankup", defaults.get("rankup"));
         }
@@ -2472,6 +2900,11 @@ public final class ConfigManager {
                 root.remove("features");
                 changed = true;
             }
+        }
+        JsonObject rankup = getObjectOrNull(root, "rankup");
+        if (rankup != null && rankup.has("enabled")) {
+            rankup.remove("enabled");
+            changed = true;
         }
         return pruneEmptyObjects(root) || changed;
     }
@@ -2669,6 +3102,26 @@ public final class ConfigManager {
     }
 
     @Nonnull
+    private String normalizeEconomyHudAnchor(@Nullable String anchor) {
+        if (anchor == null) {
+            return "bottom_right";
+        }
+        String value = anchor.trim().toLowerCase(Locale.ROOT);
+        if (value.isBlank()) {
+            return "bottom_right";
+        }
+        value = value.replace('-', '_');
+        value = value.replace(' ', '_');
+        return switch (value) {
+            case "topright", "top_right" -> "top_right";
+            case "topleft", "top_left" -> "top_left";
+            case "bottomleft", "bottom_left" -> "bottom_left";
+            case "bottomright", "bottom_right" -> "bottom_right";
+            default -> "bottom_right";
+        };
+    }
+
+    @Nonnull
     private List<String> sanitizeScoreboardLines(@Nonnull List<String> input) {
         if (input.isEmpty()) {
             return defaultScoreboardLines();
@@ -2839,10 +3292,242 @@ public final class ConfigManager {
     }
 
     @Nonnull
+    private JsonArray toPlaytimeRewardsArray(@Nonnull List<PlaytimeRewardModel> rewards) {
+        JsonArray arr = new JsonArray();
+        for (PlaytimeRewardModel reward : sanitizePlaytimeRewards(rewards)) {
+            JsonObject obj = new JsonObject();
+            obj.addProperty("id", reward.getId());
+            obj.addProperty("requiredSeconds", reward.getRequiredSeconds());
+            obj.addProperty("requiredCost", reward.getRequiredCost());
+            obj.addProperty("rank", reward.getRank());
+            obj.addProperty("autoClaim", reward.isAutoClaim());
+            obj.add("commands", toArray(reward.getCommands()));
+            obj.addProperty("broadcastMessage", reward.getBroadcastMessage());
+            arr.add(obj);
+        }
+        return arr;
+    }
+
+    @Nonnull
+    private List<PlaytimeRewardModel> readPlaytimeRewards(@Nonnull JsonObject rewardSection,
+                                                          @Nonnull List<PlaytimeRewardModel> def) {
+        JsonElement entriesElement = rewardSection.get("entries");
+        if (entriesElement == null || !entriesElement.isJsonArray()) {
+            entriesElement = rewardSection.get("list");
+        }
+        if (entriesElement == null || !entriesElement.isJsonArray()) {
+            return sanitizePlaytimeRewards(def);
+        }
+        List<PlaytimeRewardModel> out = new ArrayList<>();
+        for (JsonElement element : entriesElement.getAsJsonArray()) {
+            if (!element.isJsonObject()) continue;
+            PlaytimeRewardModel reward = readPlaytimeRewardEntry(element.getAsJsonObject());
+            if (reward != null) {
+                out.add(reward);
+            }
+        }
+        if (out.isEmpty()) {
+            return sanitizePlaytimeRewards(def);
+        }
+        return sanitizePlaytimeRewards(out);
+    }
+
+    @Nullable
+    private PlaytimeRewardModel readPlaytimeRewardEntry(@Nonnull JsonObject obj) {
+        String id = str(obj, "id", "").trim();
+        if (id.isBlank()) {
+            id = str(obj, "name", "").trim();
+        }
+        if (id.isBlank()) {
+            return null;
+        }
+
+        long requiredSeconds = parseRewardSeconds(obj);
+        if (requiredSeconds < 0L) {
+            return null;
+        }
+
+        List<String> commands = new ArrayList<>();
+        for (String cmd : list(obj, "commands", List.of())) {
+            if (cmd == null) continue;
+            String cleaned = cmd.trim();
+            if (!cleaned.isBlank()) {
+                commands.add(cleaned);
+            }
+        }
+        if (commands.isEmpty() && obj.has("command") && obj.get("command").isJsonPrimitive()) {
+            String single = obj.get("command").getAsString().trim();
+            if (!single.isBlank()) {
+                commands.add(single);
+            }
+        }
+
+        String broadcast = str(obj, "broadcastMessage", "").trim();
+        if (broadcast.isBlank()) {
+            broadcast = str(obj, "broadcast", "").trim();
+        }
+
+        long requiredCost = Math.max(
+                0L,
+                longVal(obj, "requiredCost",
+                        longVal(obj, "cost", longVal(obj, "price", 0L)))
+        );
+        String rank = str(obj, "rank", "").trim();
+        if (rank.isBlank()) {
+            rank = str(obj, "targetRank", "").trim();
+        }
+        if (rank.isBlank()) {
+            rank = str(obj, "group", "").trim();
+        }
+        boolean autoClaim = bool(obj, "autoClaim", rank.isBlank());
+
+        return new PlaytimeRewardModel(id, requiredSeconds, requiredCost, rank, autoClaim, commands, broadcast);
+    }
+
+    private long parseRewardSeconds(@Nonnull JsonObject obj) {
+        if (obj.has("requiredSeconds") && obj.get("requiredSeconds").isJsonPrimitive()) {
+            return Math.max(0L, obj.get("requiredSeconds").getAsLong());
+        }
+        if (obj.has("timeRequirementSeconds") && obj.get("timeRequirementSeconds").isJsonPrimitive()) {
+            return Math.max(0L, obj.get("timeRequirementSeconds").getAsLong());
+        }
+        if (obj.has("playtimeSeconds") && obj.get("playtimeSeconds").isJsonPrimitive()) {
+            return Math.max(0L, obj.get("playtimeSeconds").getAsLong());
+        }
+        if (obj.has("requiredMinutes") && obj.get("requiredMinutes").isJsonPrimitive()) {
+            return Math.max(0L, obj.get("requiredMinutes").getAsLong() * 60L);
+        }
+        if (obj.has("requiredHours") && obj.get("requiredHours").isJsonPrimitive()) {
+            return Math.max(0L, Math.round(obj.get("requiredHours").getAsDouble() * 3600.0));
+        }
+        if (obj.has("requiredTime") && obj.get("requiredTime").isJsonPrimitive()) {
+            return TimeUtil.parseDurationSeconds(obj.get("requiredTime").getAsString());
+        }
+        if (obj.has("time") && obj.get("time").isJsonPrimitive()) {
+            return TimeUtil.parseDurationSeconds(obj.get("time").getAsString());
+        }
+        if (obj.has("timeRequirement") && obj.get("timeRequirement").isJsonPrimitive()) {
+            try {
+                long raw = obj.get("timeRequirement").getAsLong();
+                if (raw < 0L) return -1L;
+                // Compatibility: some plugins store milliseconds.
+                if (raw > 315360000L) {
+                    return Math.max(0L, raw / 1000L);
+                }
+                return raw;
+            } catch (Exception ignored) {
+                long parsed = TimeUtil.parseDurationSeconds(obj.get("timeRequirement").getAsString());
+                return parsed;
+            }
+        }
+        return -1L;
+    }
+
+    @Nonnull
+    private List<PlaytimeRewardModel> sanitizePlaytimeRewards(@Nonnull List<PlaytimeRewardModel> input) {
+        List<PlaytimeRewardModel> out = new ArrayList<>();
+        for (PlaytimeRewardModel reward : input) {
+            if (reward == null) continue;
+            String id = reward.getId().trim();
+            if (id.isBlank()) continue;
+
+            boolean duplicate = false;
+            for (PlaytimeRewardModel existing : out) {
+                if (existing.getId().equalsIgnoreCase(id)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (duplicate) continue;
+
+            long required = Math.max(0L, reward.getRequiredSeconds());
+            long requiredCost = Math.max(0L, reward.getRequiredCost());
+            String rank = reward.getRank().trim();
+            boolean autoClaim = reward.isAutoClaim();
+            List<String> commands = new ArrayList<>();
+            for (String command : reward.getCommands()) {
+                if (command == null) continue;
+                String cleaned = command.trim();
+                if (!cleaned.isBlank()) {
+                    commands.add(cleaned);
+                }
+            }
+            String broadcast = reward.getBroadcastMessage().trim();
+            out.add(new PlaytimeRewardModel(id, required, requiredCost, rank, autoClaim, commands, broadcast));
+        }
+        return out;
+    }
+
+    @Nonnull
+    private List<PlaytimeRewardModel> toPlaytimeRewards(@Nonnull List<RankupTier> tiers) {
+        List<PlaytimeRewardModel> out = new ArrayList<>();
+        for (RankupTier tier : tiers) {
+            if (tier == null) {
+                continue;
+            }
+            String rank = tier.getRank().trim();
+            if (rank.isBlank()) {
+                continue;
+            }
+            String id = "rankup_" + rank.toLowerCase(Locale.ROOT);
+            out.add(new PlaytimeRewardModel(
+                    id,
+                    tier.getPlaytimeSeconds(),
+                    tier.getCost(),
+                    rank,
+                    false,
+                    tier.getCommands(),
+                    ""
+            ));
+        }
+        return sanitizePlaytimeRewards(out);
+    }
+
+    @Nonnull
+    private List<PlaytimeRewardModel> mergePlaytimeRewards(@Nonnull List<PlaytimeRewardModel> existing,
+                                                           @Nonnull List<PlaytimeRewardModel> additions) {
+        List<PlaytimeRewardModel> merged = new ArrayList<>(sanitizePlaytimeRewards(existing));
+        for (PlaytimeRewardModel candidate : sanitizePlaytimeRewards(additions)) {
+            boolean present = false;
+            for (PlaytimeRewardModel current : merged) {
+                if (current.getId().equalsIgnoreCase(candidate.getId())) {
+                    present = true;
+                    break;
+                }
+            }
+            if (!present) {
+                merged.add(candidate);
+            }
+        }
+        return sanitizePlaytimeRewards(merged);
+    }
+
+    @Nonnull
+    private List<RankupTier> toRankupTiers(@Nonnull List<PlaytimeRewardModel> rewards) {
+        List<RankupTier> tiers = new ArrayList<>();
+        for (PlaytimeRewardModel reward : sanitizePlaytimeRewards(rewards)) {
+            String rank = reward.getRank().trim();
+            if (rank.isBlank()) {
+                continue;
+            }
+            tiers.add(new RankupTier(
+                    rank,
+                    reward.getRequiredSeconds(),
+                    reward.getRequiredCost(),
+                    reward.getCommands().isEmpty() ? defaultRankupCommands() : reward.getCommands()
+            ));
+        }
+        tiers.sort(Comparator.comparingLong(RankupTier::getPlaytimeSeconds)
+                .thenComparingLong(RankupTier::getCost)
+                .thenComparing(t -> t.getRank().toLowerCase(Locale.ROOT)));
+        return tiers;
+    }
+
+    @Nonnull
     private List<RankupTier> readRankupTiers(@Nonnull JsonObject rankup) {
         boolean hasRanks = rankup.has("ranks") && rankup.get("ranks").isJsonArray();
         if (!hasRanks) {
-            return defaultRankupTiers();
+            return List.of();
         }
         JsonArray arr = rankup.getAsJsonArray("ranks");
         List<RankupTier> tiers = new ArrayList<>();
@@ -2978,6 +3663,11 @@ public final class ConfigManager {
         rewards.put("wraith_lantern", 12L);
         rewards.put("bear_grizzly", 8L);
         return rewards;
+    }
+
+    @Nonnull
+    private static List<PlaytimeRewardModel> defaultPlaytimeRewards() {
+        return List.of();
     }
 
     @Nonnull

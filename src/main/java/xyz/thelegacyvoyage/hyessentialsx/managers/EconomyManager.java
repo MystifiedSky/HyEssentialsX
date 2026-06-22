@@ -5,6 +5,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 
 import javax.annotation.Nonnull;
+import java.util.Locale;
 import java.util.UUID;
 
 public final class EconomyManager {
@@ -27,6 +28,15 @@ public final class EconomyManager {
         return symbol == null ? "" : symbol;
     }
 
+    @Nonnull
+    public String getCurrencyName() {
+        String name = config.getEconomyHudLabel();
+        if (name == null || name.isBlank()) {
+            return "HyCoins";
+        }
+        return name;
+    }
+
     public long getStartingBalance() {
         return Math.max(0L, config.getEconomyStartingBalance());
     }
@@ -35,6 +45,12 @@ public final class EconomyManager {
     public String formatAmount(long amount) {
         String symbol = getCurrencySymbol();
         return symbol + amount;
+    }
+
+    @Nonnull
+    public String formatAmountCompact(long amount) {
+        String symbol = getCurrencySymbol();
+        return symbol + formatCompact(amount);
     }
 
     public long getBalance(@Nonnull UUID uuid) {
@@ -102,6 +118,24 @@ public final class EconomyManager {
             data.setBalance(starting);
             storage.savePlayerDataAsync(uuid, data);
         }
+    }
+
+    @Nonnull
+    private String formatCompact(long amount) {
+        double value = amount;
+        String[] suffixes = {"k", "m", "b", "t"};
+        int idx = 0;
+        while (Math.abs(value) >= 1000.0 && idx < suffixes.length) {
+            value /= 1000.0;
+            idx++;
+        }
+        if (idx == 0) {
+            return String.valueOf(amount);
+        }
+        String formatted = Math.abs(value) >= 10.0
+                ? String.format(Locale.US, "%.0f", value)
+                : String.format(Locale.US, "%.1f", value);
+        return formatted + suffixes[idx - 1];
     }
 }
 

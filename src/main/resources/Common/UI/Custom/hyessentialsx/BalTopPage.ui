@@ -1,41 +1,146 @@
-$C = "../Common.ui";
+$E = "EcoCommon.ui";
 
-$C.@PageOverlay {
-  $C.@Container {
-    @CloseButton = true;
-    Anchor: (Width: 520, Height: 420);
+Group #BalTopRoot {
+  Anchor: (Left: 0, Top: 0, Right: 0, Bottom: 0);
+  LayoutMode: Center;
 
-    #Title {
-      $C.@Title {
-        @Text = "Balance Top";
+  Group #BalTopWindow {
+    Anchor: (Width: 640, Height: 500);
+    LayoutMode: Top;
+    Background: (Color: #0f1726ee);
+    Padding: (Top: 10, Bottom: 12, Left: 12, Right: 12);
+    OutlineColor: #2f4a72;
+    OutlineSize: 1;
+
+    Group #Header {
+      LayoutMode: Left;
+      Anchor: (Height: 58, Bottom: 10);
+      Background: (Color: #15263d);
+      Padding: (Left: 12, Right: 10, Top: 6, Bottom: 6);
+      OutlineColor: #355986;
+      OutlineSize: 1;
+
+      Group {
+        LayoutMode: Top;
+        FlexWeight: 1;
+
+        Label #Title {
+          Text: "Balance Top";
+          Style: (FontSize: 19, TextColor: #f2f7ff, RenderBold: true);
+          Anchor: (Bottom: 2);
+        }
+
+        Label #Subtitle {
+          Text: "Top balance holders";
+          Style: (FontSize: 10, TextColor: #8ea9cc, Wrap: true);
+          Anchor: (Left: 0, Right: 0);
+        }
+      }
+
+      TextButton #CloseButton {
+        Text: "X";
+        Style: $E.@EcoButtonRedStyle;
+        Anchor: (Width: 30, Height: 28, Vertical: 0);
       }
     }
 
-    #Content {
-      LayoutMode: Top;
-      Padding: (Left: 15, Right: 15);
+    Group #StatsRow {
+      LayoutMode: Left;
+      Anchor: (Height: 72, Bottom: 10);
 
-      Group #HeaderRow {
-        Anchor: (Height: 24, Bottom: 10);
-        LayoutMode: Left;
+      Group {
+        LayoutMode: Top;
+        Background: (Color: #111f34);
+        FlexWeight: 1;
+        Anchor: (Right: 8);
+        Padding: (Top: 10, Bottom: 10, Left: 12, Right: 12);
+        OutlineColor: #2f4a72;
+        OutlineSize: 1;
 
+        Label {
+          Text: "Tracked Players";
+          Style: (FontSize: 10, TextColor: #8ba6ca);
+        }
         Label #EntryCount {
-          Text: "0 Players";
-          Style: (FontSize: 12, TextColor: #888888);
+          Text: "0";
+          Style: (FontSize: 21, TextColor: #8fd3ff, RenderBold: true);
         }
       }
 
-      Group #EntryListContainer {
-        LayoutMode: TopScrolling;
-        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+      Group {
+        LayoutMode: Top;
+        Background: (Color: #111f34);
         FlexWeight: 1;
+        Padding: (Top: 10, Bottom: 10, Left: 12, Right: 12);
+        OutlineColor: #2f4a72;
+        OutlineSize: 1;
 
-        Group #EntryList {
-          LayoutMode: Top;
+        Label {
+          Text: "Top 10 Total";
+          Style: (FontSize: 10, TextColor: #8ba6ca);
         }
+        Label #TotalBalance {
+          Text: "$0";
+          Style: (FontSize: 21, TextColor: #54e39e, RenderBold: true);
+        }
+      }
+    }
+
+    Group #ListHeader {
+      LayoutMode: Left;
+      Anchor: (Height: 28, Bottom: 4);
+      Background: (Color: #0b1524);
+      Padding: (Left: 10, Right: 10);
+      OutlineColor: #2f4a72;
+      OutlineSize: 1;
+
+      Label {
+        Text: "Rank";
+        Style: (FontSize: 11, TextColor: #89a6cb, RenderBold: true);
+        Anchor: (Width: 72, Vertical: 0);
+      }
+      Label {
+        Text: "Player";
+        Style: (FontSize: 11, TextColor: #89a6cb, RenderBold: true);
+        FlexWeight: 1;
+        Anchor: (Vertical: 0);
+      }
+      Label {
+        Text: "Balance";
+        Style: (FontSize: 11, TextColor: #89a6cb, RenderBold: true, HorizontalAlignment: End);
+        Anchor: (Width: 180, Vertical: 0);
+      }
+    }
+
+    Group #EntryListContainer {
+      LayoutMode: TopScrolling;
+      Background: (Color: #111f34);
+      FlexWeight: 1;
+      Padding: (Top: 8, Bottom: 8, Left: 8, Right: 8);
+      OutlineColor: #2f4a72;
+      OutlineSize: 1;
+
+      Group #EntryList {
+        LayoutMode: Top;
+      }
+    }
+
+    Group #Footer {
+      LayoutMode: Left;
+      Anchor: (Height: 24, Top: 8);
+
+      Label #ShowingInfo {
+        Text: "Showing 0 of 0 players";
+        Style: (FontSize: 11, TextColor: #8da8cc);
+        FlexWeight: 1;
+        Anchor: (Vertical: 0);
+      }
+
+      Label {
+        Text: "Reopen to refresh";
+        Style: (FontSize: 10, TextColor: #6f88ac);
+        Anchor: (Vertical: 0);
       }
     }
   }
 }
-
-$C.@BackButton {}

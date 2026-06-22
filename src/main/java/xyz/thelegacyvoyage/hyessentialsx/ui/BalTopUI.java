@@ -54,10 +54,16 @@ public final class BalTopUI extends CustomUIPage {
     ) {
         cmd.append(LAYOUT);
 
-        List<BalanceEntry> entries = loadEntries();
-        cmd.set("#EntryCount.Text", entries.size() + " Players");
+        List<BalanceEntry> allEntries = loadEntries();
+        List<BalanceEntry> displayEntries = limitEntries(allEntries);
+        long totalTopBalance = sumBalances(displayEntries);
 
-        buildEntries(cmd, evt, entries);
+        cmd.set("#EntryCount.Text", String.valueOf(allEntries.size()));
+        cmd.set("#TotalBalance.Text", economy.formatAmount(totalTopBalance));
+        cmd.set("#Subtitle.Text", "Top " + displayEntries.size() + " " + resolveCurrencyName() + " Holders");
+        cmd.set("#ShowingInfo.Text", "Showing " + displayEntries.size() + " of " + allEntries.size() + " players");
+
+        buildEntries(cmd, displayEntries);
 
         evt.addEventBinding(
                 CustomUIEventBindingType.Activating,
@@ -120,20 +126,49 @@ public final class BalTopUI extends CustomUIPage {
         }
         entries.sort(Comparator.comparingLong((BalanceEntry entry) -> entry.balance).reversed()
                 .thenComparing(entry -> entry.name.toLowerCase(Locale.ROOT)));
-        if (entries.size() > DEFAULT_LIMIT) {
-            return entries.subList(0, DEFAULT_LIMIT);
-        }
         return entries;
     }
 
-    private void buildEntries(@Nonnull UICommandBuilder cmd, @Nonnull UIEventBuilder evt, @Nonnull List<BalanceEntry> entries) {
+    @Nonnull
+    private List<BalanceEntry> limitEntries(@Nonnull List<BalanceEntry> entries) {
+        if (entries.size() <= DEFAULT_LIMIT) {
+            return entries;
+        }
+        return entries.subList(0, DEFAULT_LIMIT);
+    }
+
+    private long sumBalances(@Nonnull List<BalanceEntry> entries) {
+        long total = 0L;
+        for (BalanceEntry entry : entries) {
+            if (Long.MAX_VALUE - total < entry.balance) {
+                return Long.MAX_VALUE;
+            }
+            total += entry.balance;
+        }
+        return total;
+    }
+
+    @Nonnull
+    private String resolveCurrencyName() {
+        String name = economy.getCurrencyName();
+        if (name == null) {
+            return "Currency";
+        }
+        String trimmed = name.trim();
+        if (trimmed.isBlank()) {
+            return "Currency";
+        }
+        return trimmed;
+    }
+
+    private void buildEntries(@Nonnull UICommandBuilder cmd, @Nonnull List<BalanceEntry> entries) {
         cmd.clear("#EntryList");
 
         if (entries.isEmpty()) {
             cmd.appendInline("#EntryList",
-                    "Label { Text: \"No balances yet.\"; " +
-                            "Style: (FontSize: 13, TextColor: #666666, HorizontalAlignment: Center); " +
-                            "Anchor: (Top: 30); }");
+                    "Group { LayoutMode: Center; Anchor: (Height: 96); " +
+                            "Label { Text: \"No balances yet.\"; " +
+                            "Style: (FontSize: 13, TextColor: #8ca7cc, HorizontalAlignment: Center); } }");
             return;
         }
 
@@ -141,8 +176,17 @@ public final class BalTopUI extends CustomUIPage {
             BalanceEntry entry = entries.get(i);
             cmd.append("#EntryList", ROW_LAYOUT);
             String selector = "#EntryList[" + i + "]";
-            String line = String.format(Locale.ROOT, "#%d  %s  %s", (i + 1), entry.name, economy.formatAmount(entry.balance));
-            cmd.set(selector + ".Text", line);
+            cmd.set(selector + " #Rank.Text", "#" + (i + 1));
+            cmd.set(selector + " #PlayerName.Text", entry.name);
+            cmd.set(selector + " #Balance.Text", economy.formatAmount(entry.balance));
+
+            String rankColor = switch (i) {
+                case 0 -> "#f2be5c";
+                case 1 -> "#8fd3ff";
+                case 2 -> "#cfa9ff";
+                default -> "#8ed8ff";
+            };
+            cmd.set(selector + " #Rank.Style.TextColor", rankColor);
         }
     }
 

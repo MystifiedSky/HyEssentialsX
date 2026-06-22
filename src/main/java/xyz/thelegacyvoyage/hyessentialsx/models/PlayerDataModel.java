@@ -35,6 +35,7 @@ public final class PlayerDataModel {
     private int scoreboardOffsetY;
     private boolean scoreboardOffsetCustomized;
     private Boolean scoreboardHidden;
+    private Boolean economyHudHidden;
     private List<MailMessageModel> mailInbox = new ArrayList<>();
     private List<MailMessageModel> mailSent = new ArrayList<>();
     private int mailNextId = 1;
@@ -42,6 +43,7 @@ public final class PlayerDataModel {
     private String lastKnownIp;
     private List<IpHistoryModel> ipHistory = new ArrayList<>();
     private List<String> ignoredPlayerIds = new ArrayList<>();
+    private List<String> claimedPlaytimeRewards = new ArrayList<>();
 
     @SuppressWarnings("unused")
     public PlayerDataModel() {}
@@ -272,6 +274,19 @@ public final class PlayerDataModel {
         this.scoreboardHidden = scoreboardHidden;
     }
 
+    public boolean isEconomyHudHidden() {
+        return economyHudHidden != null && economyHudHidden;
+    }
+
+    @Nullable
+    public Boolean getEconomyHudHidden() {
+        return economyHudHidden;
+    }
+
+    public void setEconomyHudHidden(@Nullable Boolean economyHudHidden) {
+        this.economyHudHidden = economyHudHidden;
+    }
+
     @Nonnull
     public List<MailMessageModel> getMailInbox() {
         if (mailInbox == null) {
@@ -367,6 +382,47 @@ public final class PlayerDataModel {
         return getIgnoredPlayerIds().removeIf(v -> id.equalsIgnoreCase(v));
     }
 
+    @Nonnull
+    public List<String> getClaimedPlaytimeRewards() {
+        if (claimedPlaytimeRewards == null) {
+            claimedPlaytimeRewards = new ArrayList<>();
+        }
+        return claimedPlaytimeRewards;
+    }
+
+    public void setClaimedPlaytimeRewards(@Nonnull List<String> claimedPlaytimeRewards) {
+        this.claimedPlaytimeRewards = claimedPlaytimeRewards;
+    }
+
+    public boolean hasClaimedPlaytimeReward(@Nonnull String rewardId) {
+        String key = rewardId.trim();
+        if (key.isBlank()) {
+            return false;
+        }
+        for (String claimed : getClaimedPlaytimeRewards()) {
+            if (claimed != null && claimed.equalsIgnoreCase(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean addClaimedPlaytimeReward(@Nonnull String rewardId) {
+        String key = rewardId.trim();
+        if (key.isBlank() || hasClaimedPlaytimeReward(key)) {
+            return false;
+        }
+        return getClaimedPlaytimeRewards().add(key);
+    }
+
+    public boolean removeClaimedPlaytimeReward(@Nonnull String rewardId) {
+        String key = rewardId.trim();
+        if (key.isBlank()) {
+            return false;
+        }
+        return getClaimedPlaytimeRewards().removeIf(v -> key.equalsIgnoreCase(v));
+    }
+
     public void sanitizeForStorage() {
         if (homes == null) {
             homes = new HashMap<>();
@@ -386,6 +442,28 @@ public final class PlayerDataModel {
 
         if (!Float.isFinite(flySpeedMultiplier) || flySpeedMultiplier <= 0.0F) {
             flySpeedMultiplier = 1.0F;
+        }
+
+        if (claimedPlaytimeRewards == null) {
+            claimedPlaytimeRewards = new ArrayList<>();
+        } else {
+            List<String> sanitizedRewards = new ArrayList<>();
+            for (String rewardId : claimedPlaytimeRewards) {
+                if (rewardId == null) continue;
+                String cleaned = rewardId.trim();
+                if (cleaned.isBlank()) continue;
+                boolean exists = false;
+                for (String existing : sanitizedRewards) {
+                    if (existing.equalsIgnoreCase(cleaned)) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    sanitizedRewards.add(cleaned);
+                }
+            }
+            claimedPlaytimeRewards = sanitizedRewards;
         }
     }
 

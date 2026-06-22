@@ -1,0 +1,209 @@
+$E = "EcoCommon.ui";
+
+Group #PayRoot {
+  Anchor: (Left: 0, Top: 0, Right: 0, Bottom: 0);
+  LayoutMode: Center;
+
+  Group #PayWindow {
+    Anchor: (Width: 520, Height: 430);
+    Background: (Color: #0f1726ee);
+    LayoutMode: Top;
+    Padding: (Top: 10, Bottom: 12, Left: 12, Right: 12);
+    OutlineColor: #2f4a72;
+    OutlineSize: 1;
+
+    Group #Header {
+      LayoutMode: Left;
+      Anchor: (Height: 58, Bottom: 8);
+      Background: (Color: #15263d);
+      Padding: (Left: 12, Right: 10, Top: 6, Bottom: 6);
+      OutlineColor: #355986;
+      OutlineSize: 1;
+
+      Group {
+        LayoutMode: Top;
+        FlexWeight: 1;
+
+        Label #Title {
+          Text: "Send Payment";
+          Style: (FontSize: 19, TextColor: #f2f7ff, RenderBold: true);
+          Anchor: (Bottom: 1);
+        }
+
+        Label #Subtitle {
+          Text: "Pay currency to another player";
+          Style: (FontSize: 10, TextColor: #8ea9cc, Wrap: true);
+          Anchor: (Left: 0, Right: 0);
+        }
+      }
+
+      TextButton #CloseButton {
+        Text: "X";
+        Style: $E.@EcoButtonRedStyle;
+        Anchor: (Width: 30, Height: 28, Vertical: 0);
+      }
+    }
+
+    Group #Body {
+      LayoutMode: Left;
+      FlexWeight: 1;
+
+      Group #LeftPane {
+        LayoutMode: Top;
+        Background: (Color: #111f34);
+        Anchor: (Width: 246, Right: 10);
+        Padding: (Top: 10, Bottom: 10, Left: 10, Right: 10);
+        OutlineColor: #2f4a72;
+        OutlineSize: 1;
+
+        Label #SearchLabel {
+          Text: "Find Player";
+          Style: (FontSize: 11, TextColor: #9db6d8, RenderBold: true);
+          Anchor: (Bottom: 4);
+        }
+
+        Group #SearchInputBox {
+          Background: (Color: #0b1524);
+          Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4);
+          Anchor: (Height: 30, Bottom: 8);
+          OutlineColor: #355986;
+          OutlineSize: 1;
+
+          TextField #SearchInput {
+            Style: (FontSize: 13, TextColor: #f0f5ff);
+            FlexWeight: 1;
+          }
+        }
+
+        Label {
+          Text: "Online Players";
+          Style: (FontSize: 10, TextColor: #7893b9);
+          Anchor: (Bottom: 4);
+        }
+
+        Group #PlayerListContainer {
+          LayoutMode: TopScrolling;
+          Background: (Color: #0b1524);
+          FlexWeight: 1;
+          Padding: (Top: 6, Bottom: 6, Left: 8, Right: 8);
+          OutlineColor: #355986;
+          OutlineSize: 1;
+
+          Group #PlayerList {
+            LayoutMode: Top;
+          }
+        }
+      }
+
+      Group #RightPane {
+        LayoutMode: Top;
+        FlexWeight: 1;
+
+        Group #BalanceCard {
+          LayoutMode: Top;
+          Background: (Color: #111f34);
+          Padding: (Top: 10, Bottom: 10, Left: 12, Right: 12);
+          Anchor: (Height: 72, Bottom: 10);
+          OutlineColor: #2f4a72;
+          OutlineSize: 1;
+
+          Label #BalanceLabel {
+            Text: "Available Balance";
+            Style: (FontSize: 11, TextColor: #9db6d8);
+            Anchor: (Bottom: 4);
+          }
+
+          Label #BalanceValue {
+            Text: "$0";
+            Style: (FontSize: 24, TextColor: #48d18c, RenderBold: true);
+          }
+        }
+
+        Group #AmountCard {
+          LayoutMode: Top;
+          Background: (Color: #111f34);
+          Padding: (Top: 10, Bottom: 10, Left: 12, Right: 12);
+          Anchor: (Height: 86, Bottom: 10);
+          OutlineColor: #2f4a72;
+          OutlineSize: 1;
+
+          Label #AmountLabel {
+            Text: "Payment Amount";
+            Style: (FontSize: 11, TextColor: #9db6d8);
+            Anchor: (Bottom: 4);
+          }
+
+          Group #AmountInputBox {
+            Background: (Color: #0b1524);
+            Padding: (Left: 8, Right: 8, Top: 5, Bottom: 5);
+            Anchor: (Height: 34);
+            OutlineColor: #355986;
+            OutlineSize: 1;
+
+            TextField #AmountInput {
+              Style: (FontSize: 14, TextColor: #f0f5ff);
+              FlexWeight: 1;
+            }
+          }
+        }
+
+        Group #PreviewCard {
+          LayoutMode: Top;
+          Background: (Color: #111f34);
+          FlexWeight: 1;
+          Padding: (Top: 12, Bottom: 12, Left: 12, Right: 12);
+          OutlineColor: #2f4a72;
+          OutlineSize: 1;
+
+          Label {
+            Text: "Transfer Preview";
+            Style: (FontSize: 12, TextColor: #e2ecff, RenderBold: true);
+            Anchor: (Bottom: 8);
+          }
+
+          Group #FeeSection {
+            LayoutMode: Left;
+            Anchor: (Height: 18, Bottom: 6);
+
+            Label #FeeLabel {
+              Text: "Transfer Fee";
+              Style: (FontSize: 11, TextColor: #84a0c6);
+              FlexWeight: 1;
+              Anchor: (Vertical: 0);
+            }
+
+            Label #FeeValue {
+              Text: "$0";
+              Style: (FontSize: 11, TextColor: #f2aa4b, RenderBold: true);
+              Anchor: (Vertical: 0);
+            }
+          }
+
+          Group #BalanceAfterSection {
+            LayoutMode: Left;
+            Anchor: (Height: 18, Bottom: 12);
+
+            Label #BalAfterLabel {
+              Text: "Balance After";
+              Style: (FontSize: 11, TextColor: #84a0c6);
+              FlexWeight: 1;
+              Anchor: (Vertical: 0);
+            }
+
+            Label #BalanceAfterValue {
+              Text: "$0";
+              Style: (FontSize: 11, TextColor: #3fd1ff, RenderBold: true);
+              Anchor: (Vertical: 0);
+            }
+          }
+
+          TextButton #ConfirmButton {
+            Text: "SEND PAYMENT";
+            Style: $E.@EcoButtonAccentStyle;
+            Anchor: (Height: 36);
+          }
+        }
+      }
+    }
+  }
+}

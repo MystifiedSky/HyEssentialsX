@@ -1,0 +1,25 @@
+Button #PlayerEntry {
+  LayoutMode: Left;
+  Background: (Color: #152741);
+  Padding: (Top: 7, Bottom: 7, Left: 10, Right: 10);
+  Anchor: (Left: 0, Right: 0, Height: 34, Bottom: 4);
+
+  Group {
+    Background: (Color: #2dd4bf);
+    Anchor: (Width: 6, Height: 6, Vertical: 0, Right: 8);
+  }
+
+  Label #PlayerName {
+    Text: "Player";
+    Style: (FontSize: 13, TextColor: #f2f7ff, RenderBold: true);
+    FlexWeight: 1;
+    Anchor: (Vertical: 0);
+  }
+
+  Label #SelectedIcon {
+    Text: "SELECTED";
+    Style: (FontSize: 10, TextColor: #63e6be, RenderBold: true);
+    Anchor: (Vertical: 0);
+    Visible: false;
+  }
+}

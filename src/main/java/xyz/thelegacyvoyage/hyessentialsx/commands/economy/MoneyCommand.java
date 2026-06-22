@@ -6,6 +6,7 @@ import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyAuditManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
@@ -29,11 +30,20 @@ public final class MoneyCommand extends CommandBase {
 
     private final EconomyManager economy;
     private final StorageManager storage;
+    @Nullable
+    private final EconomyAuditManager audit;
 
     public MoneyCommand(@Nonnull EconomyManager economy, @Nonnull StorageManager storage) {
+        this(economy, storage, null);
+    }
+
+    public MoneyCommand(@Nonnull EconomyManager economy,
+                        @Nonnull StorageManager storage,
+                        @Nullable EconomyAuditManager audit) {
         super("money", "Shows your balance or manages money");
         this.economy = economy;
         this.storage = storage;
+        this.audit = audit;
         this.setPermissionGroup(null);
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
@@ -130,6 +140,16 @@ public final class MoneyCommand extends CommandBase {
                     "player", displayName,
                     "amount", formatted
             ));
+            if (audit != null) {
+                audit.log(
+                        "ADMIN_SET",
+                        resolveActorName(context),
+                        displayName,
+                        updated,
+                        updated,
+                        "command /money set"
+                );
+            }
             if (online != null) {
                 Messages.sendPrefixedKey(online, "economy.money.set_target", Map.of(
                         "player", resolveActorName(context),
@@ -139,11 +159,21 @@ public final class MoneyCommand extends CommandBase {
             return;
         }
 
-        economy.deposit(uuid, amount);
+        long updated = economy.deposit(uuid, amount);
         Messages.okKey(context, "economy.money.give", Map.of(
                 "player", displayName,
                 "amount", formatted
         ));
+        if (audit != null) {
+            audit.log(
+                    "ADMIN_GIVE",
+                    resolveActorName(context),
+                    displayName,
+                    amount,
+                    updated,
+                    "command /money give"
+            );
+        }
         if (online != null) {
             Messages.sendPrefixedKey(online, "economy.money.give_target", Map.of(
                     "player", resolveActorName(context),

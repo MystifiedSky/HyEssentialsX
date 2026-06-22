@@ -1,0 +1,44 @@
+@EcoButtonLabelStyle = LabelStyle(
+  FontSize: 11,
+  TextColor: #e9f1ff,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@EcoButtonLabelUpperStyle = LabelStyle(
+  FontSize: 11,
+  TextColor: #e9f1ff,
+  RenderBold: true,
+  RenderUppercase: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@EcoButtonStyle = TextButtonStyle(
+  Default: (Background: (Color: #22344f), LabelStyle: @EcoButtonLabelUpperStyle),
+  Hovered: (Background: (Color: #2e486d), LabelStyle: @EcoButtonLabelUpperStyle),
+  Pressed: (Background: (Color: #1a2a42), LabelStyle: @EcoButtonLabelUpperStyle),
+  Disabled: (Background: (Color: #2a2f3a), LabelStyle: @EcoButtonLabelUpperStyle)
+);
+
+@EcoButtonGreenStyle = TextButtonStyle(
+  Default: (Background: (Color: #1f6f4a), LabelStyle: @EcoButtonLabelUpperStyle),
+  Hovered: (Background: (Color: #2a8f60), LabelStyle: @EcoButtonLabelUpperStyle),
+  Pressed: (Background: (Color: #17573a), LabelStyle: @EcoButtonLabelUpperStyle),
+  Disabled: (Background: (Color: #2a2f3a), LabelStyle: @EcoButtonLabelUpperStyle)
+);
+
+@EcoButtonRedStyle = TextButtonStyle(
+  Default: (Background: (Color: #7c3742), LabelStyle: @EcoButtonLabelUpperStyle),
+  Hovered: (Background: (Color: #954653), LabelStyle: @EcoButtonLabelUpperStyle),
+  Pressed: (Background: (Color: #612a33), LabelStyle: @EcoButtonLabelUpperStyle),
+  Disabled: (Background: (Color: #2a2f3a), LabelStyle: @EcoButtonLabelUpperStyle)
+);
+
+@EcoButtonAccentStyle = TextButtonStyle(
+  Default: (Background: (Color: #0f7b92), LabelStyle: @EcoButtonLabelUpperStyle),
+  Hovered: (Background: (Color: #1497b2), LabelStyle: @EcoButtonLabelUpperStyle),
+  Pressed: (Background: (Color: #0d6073), LabelStyle: @EcoButtonLabelUpperStyle),
+  Disabled: (Background: (Color: #2a2f3a), LabelStyle: @EcoButtonLabelUpperStyle)
+);

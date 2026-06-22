@@ -115,6 +115,7 @@ public final class MigrationManager {
             case HOME_MANAGER -> new HomeManagerMigration(sourceDir);
             case KUKSO_HY_WARPS -> new KuksoHyWarpsMigration(sourceDir);
             case EASY_HOME -> new EasyHomeMigration(sourceDir);
+            case PLAYTIME -> new PlaytimeMigration(sourceDir);
         };
     }
 
@@ -284,7 +285,8 @@ public final class MigrationManager {
         HOMES_PLUS("HomesPlus", "HomesPlus_HomesPlus"),
         HOME_MANAGER("HomeManager", "homemanager-data"),
         KUKSO_HY_WARPS("KuksoHyWarps", "KuksoHyWarps"),
-        EASY_HOME("EasyHome", "cryptobench_EasyHome");
+        EASY_HOME("EasyHome", "cryptobench_EasyHome"),
+        PLAYTIME("Playtime", "Playtime");
 
         private final String displayName;
         private final String folderName;

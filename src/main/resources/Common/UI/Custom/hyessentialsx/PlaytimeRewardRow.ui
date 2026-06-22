@@ -1,0 +1,27 @@
+Group #PlaytimeRewardRow {
+  LayoutMode: Left;
+  Background: (Color: #16283f);
+  Padding: (Top: 7, Bottom: 7, Left: 10, Right: 10);
+  Anchor: (Left: 0, Right: 0, Height: 38, Bottom: 4);
+  OutlineColor: #2f4f78;
+  OutlineSize: 1;
+
+  Label #RewardId {
+    Text: "reward_id";
+    Style: (FontSize: 12, TextColor: #f4f8ff, RenderBold: true);
+    FlexWeight: 1;
+    Anchor: (Vertical: 0);
+  }
+
+  Label #RewardRequirement {
+    Text: "1h";
+    Style: (FontSize: 12, TextColor: #8fd3ff);
+    Anchor: (Width: 100, Vertical: 0);
+  }
+
+  Label #RewardStatus {
+    Text: "Locked";
+    Style: (FontSize: 12, TextColor: #f2be5c, RenderBold: true, HorizontalAlignment: End);
+    Anchor: (Width: 100, Vertical: 0);
+  }
+}

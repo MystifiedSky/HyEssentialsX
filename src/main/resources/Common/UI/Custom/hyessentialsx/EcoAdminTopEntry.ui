@@ -1,14 +1,14 @@
-Group #BalTopRow {
+Group #TopEntry {
   LayoutMode: Left;
   Background: (Color: #16283f);
-  Padding: (Top: 7, Bottom: 7, Left: 10, Right: 10);
-  Anchor: (Left: 0, Right: 0, Height: 38, Bottom: 4);
+  Padding: (Top: 8, Bottom: 8, Left: 10, Right: 10);
+  Anchor: (Left: 0, Right: 0, Height: 36, Bottom: 4);
   OutlineColor: #2f4f78;
   OutlineSize: 1;
 
-  Group #RankBadge {
+  Group {
     Background: (Color: #1f4b73);
-    Anchor: (Width: 52, Height: 22, Vertical: 0, Right: 8);
+    Anchor: (Width: 34, Height: 20, Vertical: 0, Right: 8);
 
     Label #Rank {
       Text: "#1";
@@ -24,9 +24,9 @@ Group #BalTopRow {
     Anchor: (Vertical: 0);
   }
 
-  Label #Balance {
+  Label #PlayerBalance {
     Text: "$0";
     Style: (FontSize: 13, TextColor: #64f0b7, RenderBold: true, HorizontalAlignment: End);
-    Anchor: (Width: 180, Vertical: 0);
+    Anchor: (Width: 140, Vertical: 0);
   }
 }

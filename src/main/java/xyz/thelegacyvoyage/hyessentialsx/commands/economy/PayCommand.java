@@ -9,11 +9,15 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyAuditManager;
+import xyz.thelegacyvoyage.hyessentialsx.ui.PayUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
@@ -22,9 +26,18 @@ public final class PayCommand extends AbstractPlayerCommand {
     private static final String PERMISSION_NODE = "hyessentialsx.pay";
 
     private final EconomyManager economy;
+    @Nullable
+    private final EconomyAuditManager audit;
+
     public PayCommand(@Nonnull EconomyManager economy) {
+        this(economy, null);
+    }
+
+    public PayCommand(@Nonnull EconomyManager economy,
+                      @Nullable EconomyAuditManager audit) {
         super("pay", "Pays another player");
         this.economy = economy;
+        this.audit = audit;
         this.setPermissionGroup(null);
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
@@ -53,6 +66,16 @@ public final class PayCommand extends AbstractPlayerCommand {
         }
 
         List<String> args = CommandInputUtil.getArgs(context);
+        if (args.isEmpty()) {
+            Player player = store.getComponent(ref, Player.getComponentType());
+            if (player == null || audit == null) {
+                Messages.errKey(context, "economy.pay.usage", Map.of());
+                return;
+            }
+            PayUI ui = new PayUI(playerRef, economy, audit);
+            ui.open(player, ref, store);
+            return;
+        }
         if (args.size() < 2) {
             Messages.errKey(context, "economy.pay.usage", Map.of());
             return;
@@ -98,6 +121,16 @@ public final class PayCommand extends AbstractPlayerCommand {
                 "player", playerRef.getUsername(),
                 "amount", formatted
         ));
+        if (audit != null) {
+            audit.log(
+                    "PAY",
+                    playerRef.getUsername(),
+                    target.getUsername(),
+                    amount,
+                    economy.getBalance(playerRef.getUuid()),
+                    "command"
+            );
+        }
     }
 
     private static long parseAmount(@Nonnull String raw) {

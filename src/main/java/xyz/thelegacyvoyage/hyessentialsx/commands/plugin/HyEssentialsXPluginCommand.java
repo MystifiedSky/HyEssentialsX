@@ -2,8 +2,8 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.plugin;
 
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractCommandCollection;
 import xyz.thelegacyvoyage.hyessentialsx.commands.importer.ImportHomesCommand;
-import xyz.thelegacyvoyage.hyessentialsx.util.LanguageManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.LanguageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 
 import javax.annotation.Nonnull;
 import java.nio.file.Path;

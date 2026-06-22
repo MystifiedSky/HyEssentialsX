@@ -7,7 +7,9 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.SystemGroup;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.tick.EntityTickingSystem;
+import com.hypixel.hytale.protocol.MovementSettings;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.entities.player.movement.MovementManager;
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageEventSystem;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageModule;
@@ -54,6 +56,25 @@ public final class FlyNoFallListener {
             PlayerRef playerRef = chunk.getComponent(index, PlayerRef.getComponentType());
             if (playerRef == null) return;
             if (!flyManager.isEnabled(playerRef.getUuid())) return;
+
+            // Portals/world changes can reset movement settings; re-apply fly ability.
+            MovementManager movementManager = chunk.getComponent(index, MovementManager.getComponentType());
+            if (movementManager != null) {
+                boolean changed = false;
+                MovementSettings settings = movementManager.getSettings();
+                if (settings != null && !settings.canFly) {
+                    settings.canFly = true;
+                    changed = true;
+                }
+                MovementSettings defaults = movementManager.getDefaultSettings();
+                if (defaults != null && !defaults.canFly) {
+                    defaults.canFly = true;
+                    changed = true;
+                }
+                if (changed) {
+                    movementManager.update(playerRef.getPacketHandler());
+                }
+            }
 
             Player player = chunk.getComponent(index, Player.getComponentType());
             if (player == null) return;

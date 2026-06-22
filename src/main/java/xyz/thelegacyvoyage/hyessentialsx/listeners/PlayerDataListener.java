@@ -7,12 +7,13 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FreecamManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.GodManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.InfiniteStaminaManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MessageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.BanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
-import xyz.thelegacyvoyage.hyessentialsx.util.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
 import javax.annotation.Nonnull;
@@ -27,7 +28,9 @@ public final class PlayerDataListener {
     private final FreecamManager freecam;
     private final GodManager god;
     private final InfiniteStaminaManager stamina;
+    private final FlyManager fly;
     private final xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager economy;
+    private final xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager playtime;
 
     public PlayerDataListener(@Nonnull StorageManager storage,
                               @Nonnull BanManager bans,
@@ -36,7 +39,9 @@ public final class PlayerDataListener {
                               @Nonnull FreecamManager freecam,
                               @Nonnull GodManager god,
                               @Nonnull InfiniteStaminaManager stamina,
-                              @Nonnull xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager economy) {
+                              @Nonnull FlyManager fly,
+                              @Nonnull xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager economy,
+                              @Nonnull xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager playtime) {
         this.storage = storage;
         this.bans = bans;
         this.messages = messages;
@@ -44,7 +49,9 @@ public final class PlayerDataListener {
         this.freecam = freecam;
         this.god = god;
         this.stamina = stamina;
+        this.fly = fly;
         this.economy = economy;
+        this.playtime = playtime;
     }
 
     public void register(@Nonnull EventRegistry events) {
@@ -54,8 +61,15 @@ public final class PlayerDataListener {
 
             economy.ensureStartingBalance(player.getUuid());
             storage.updatePlayerName(player.getUuid(), player.getUsername());
+            playtime.onJoin(player.getUuid());
             god.clear(player.getUuid());
             stamina.clear(player.getUuid());
+
+            PlayerDataModel data = storage.getPlayerData(player.getUuid());
+            if (data.isFlyEnabled()) {
+                fly.setEnabled(player.getUuid(), true);
+                fly.applyState(player, true);
+            }
 
             BanModel ban = bans.getBan(player.getUuid());
             if (ban != null) {
@@ -76,6 +90,7 @@ public final class PlayerDataListener {
             data.setLastKnownName(player.getUsername());
             storage.savePlayerDataAsync(uuid, data);
 
+            playtime.onQuit(uuid);
             messages.clear(uuid);
             adminChat.clear(uuid);
             freecam.clear(uuid);

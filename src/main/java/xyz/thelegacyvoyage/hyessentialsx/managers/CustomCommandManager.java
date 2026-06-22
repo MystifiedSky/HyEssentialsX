@@ -1,7 +1,8 @@
-package xyz.thelegacyvoyage.hyessentialsx.util;
+package xyz.thelegacyvoyage.hyessentialsx.managers;
 
 import org.yaml.snakeyaml.Yaml;
 import xyz.thelegacyvoyage.hyessentialsx.models.CustomCommandDefinition;
+import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

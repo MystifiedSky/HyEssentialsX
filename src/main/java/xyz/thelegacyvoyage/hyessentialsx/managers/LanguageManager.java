@@ -1,4 +1,4 @@
-package xyz.thelegacyvoyage.hyessentialsx.util;
+package xyz.thelegacyvoyage.hyessentialsx.managers;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -6,6 +6,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

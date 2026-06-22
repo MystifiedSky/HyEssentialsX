@@ -13,7 +13,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;

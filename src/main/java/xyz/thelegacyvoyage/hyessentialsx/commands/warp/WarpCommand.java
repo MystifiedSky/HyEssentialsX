@@ -13,7 +13,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.WarpsUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;

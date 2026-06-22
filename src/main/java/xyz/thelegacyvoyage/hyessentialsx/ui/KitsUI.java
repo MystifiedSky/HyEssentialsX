@@ -16,6 +16,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
@@ -34,12 +35,16 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
 
     private final PlayerRef playerRef;
     private final KitManager kitManager;
+    private final ConfigManager config;
     private final Gson gson = new Gson();
 
-    public KitsUI(@Nonnull PlayerRef playerRef, @Nonnull KitManager kitManager) {
+    public KitsUI(@Nonnull PlayerRef playerRef,
+                  @Nonnull KitManager kitManager,
+                  @Nonnull ConfigManager config) {
         super(playerRef, CustomPageLifetime.CanDismiss);
         this.playerRef = playerRef;
         this.kitManager = kitManager;
+        this.config = config;
     }
 
     @Override
@@ -52,8 +57,19 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
         cmd.append(LAYOUT);
 
         List<String> kits = kitManager.listKits();
-        cmd.set("#KitCount.Text", kits.size() + " Kits");
-        buildKitsList(cmd, evt, kits);
+        List<String> visible = kits;
+        if (config.isKitsRequirePermission()) {
+            visible = new java.util.ArrayList<>();
+            for (String kit : kits) {
+                if (kit == null || kit.isBlank()) continue;
+                String kitPerm = "hyessentialsx.kit." + kit.toLowerCase();
+                if (PermissionsModule.get().hasPermission(playerRef.getUuid(), kitPerm)) {
+                    visible.add(kit);
+                }
+            }
+        }
+        cmd.set("#KitCount.Text", visible.size() + " Kits");
+        buildKitsList(cmd, evt, visible);
 
         evt.addEventBinding(
                 CustomUIEventBindingType.Activating,
@@ -141,6 +157,14 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
         if (kit == null) {
             Messages.sendPrefixed(playerRef, "&cKit not found.");
             return;
+        }
+
+        if (config.isKitsRequirePermission()) {
+            String kitPermission = "hyessentialsx.kit." + kit.getName().toLowerCase();
+            if (!PermissionsModule.get().hasPermission(playerRef.getUuid(), kitPermission)) {
+                Messages.sendPrefixed(playerRef, "&cYou don't have permission to use /kit " + kit.getName() + ".");
+                return;
+            }
         }
 
         if (!PermissionsModule.get().hasPermission(playerRef.getUuid(), PERMISSION_NODE)) {

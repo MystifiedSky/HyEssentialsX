@@ -59,7 +59,7 @@ public final class KitsCommand extends AbstractPlayerCommand {
                 Messages.errKey(context, "kit.ui_failed", java.util.Map.of());
                 return;
             }
-            KitsUI page = new KitsUI(playerRef, kitManager);
+                KitsUI page = new KitsUI(playerRef, kitManager, config);
             page.open(player, ref, store);
             return;
         }

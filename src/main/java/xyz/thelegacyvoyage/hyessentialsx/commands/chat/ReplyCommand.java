@@ -1,8 +1,6 @@
 package xyz.thelegacyvoyage.hyessentialsx.commands.chat;
 
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
-import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
@@ -25,16 +23,15 @@ public final class ReplyCommand extends AbstractPlayerCommand {
 
     private final MessageManager messages;
     private final ConfigManager config;
-    private final RequiredArg<List<String>> msgArg;
 
     public ReplyCommand(@Nonnull MessageManager messages, @Nonnull ConfigManager config) {
         super("r", "Replies to last message");
         this.messages = messages;
         this.config = config;
         this.setPermissionGroup(null);
+        this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"reply"});
-        this.msgArg = withListRequiredArg("message", "Message", ArgTypes.STRING);
     }
 
     @Override
@@ -71,7 +68,7 @@ public final class ReplyCommand extends AbstractPlayerCommand {
             return;
         }
 
-        List<String> parts = context.get(msgArg);
+        List<String> parts = xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil.getArgs(context);
         String message = String.join(" ", parts);
         if (message.isBlank()) {
             Messages.errKey(context, "msg.message_required", Map.of());

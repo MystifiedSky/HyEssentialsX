@@ -16,6 +16,12 @@ public final class PlayerDataModel {
     private BanModel ban;
     private String language;
     private long balance;
+    private BackPointModel back;
+    private long playtimeSeconds;
+    private long lastJoinAt;
+    private String rankupTier;
+    private boolean flyEnabled;
+    private long lastPaycheckAt;
 
     @SuppressWarnings("unused")
     public PlayerDataModel() {}
@@ -97,5 +103,55 @@ public final class PlayerDataModel {
 
     public void setBalance(long balance) {
         this.balance = balance;
+    }
+
+    @Nullable
+    public BackPointModel getBack() {
+        return back;
+    }
+
+    public void setBack(@Nullable BackPointModel back) {
+        this.back = back;
+    }
+
+    public long getPlaytimeSeconds() {
+        return playtimeSeconds;
+    }
+
+    public void setPlaytimeSeconds(long playtimeSeconds) {
+        this.playtimeSeconds = Math.max(0L, playtimeSeconds);
+    }
+
+    public long getLastJoinAt() {
+        return lastJoinAt;
+    }
+
+    public void setLastJoinAt(long lastJoinAt) {
+        this.lastJoinAt = Math.max(0L, lastJoinAt);
+    }
+
+    @Nullable
+    public String getRankupTier() {
+        return rankupTier;
+    }
+
+    public void setRankupTier(@Nullable String rankupTier) {
+        this.rankupTier = rankupTier;
+    }
+
+    public boolean isFlyEnabled() {
+        return flyEnabled;
+    }
+
+    public void setFlyEnabled(boolean flyEnabled) {
+        this.flyEnabled = flyEnabled;
+    }
+
+    public long getLastPaycheckAt() {
+        return lastPaycheckAt;
+    }
+
+    public void setLastPaycheckAt(long lastPaycheckAt) {
+        this.lastPaycheckAt = Math.max(0L, lastPaycheckAt);
     }
 }

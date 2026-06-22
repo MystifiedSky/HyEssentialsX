@@ -15,7 +15,7 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
-import xyz.thelegacyvoyage.hyessentialsx.util.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;

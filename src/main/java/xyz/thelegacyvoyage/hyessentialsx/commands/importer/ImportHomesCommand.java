@@ -9,7 +9,7 @@ import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import xyz.thelegacyvoyage.hyessentialsx.models.HomeModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
-import xyz.thelegacyvoyage.hyessentialsx.util.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

@@ -5,7 +5,7 @@ import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
-import xyz.thelegacyvoyage.hyessentialsx.util.LanguageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.LanguageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;

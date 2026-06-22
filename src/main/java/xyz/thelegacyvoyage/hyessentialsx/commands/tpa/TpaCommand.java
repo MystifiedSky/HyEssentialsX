@@ -12,7 +12,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.ui.TpaUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;

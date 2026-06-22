@@ -9,7 +9,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
-import xyz.thelegacyvoyage.hyessentialsx.util.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 
 import javax.annotation.Nonnull;
 import java.util.UUID;

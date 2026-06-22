@@ -1,7 +1,7 @@
 package xyz.thelegacyvoyage.hyessentialsx.managers;
 
 import xyz.thelegacyvoyage.hyessentialsx.models.MuteModel;
-import xyz.thelegacyvoyage.hyessentialsx.util.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

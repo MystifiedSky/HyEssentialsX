@@ -2,21 +2,15 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.cheat;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.protocol.MovementStates;
-import com.hypixel.hytale.protocol.MovementSettings;
-import com.hypixel.hytale.protocol.SavedMovementStates;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
-import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
-import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.entity.entities.player.movement.MovementManager;
-import com.hypixel.hytale.server.core.modules.physics.component.Velocity;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -27,11 +21,13 @@ public final class FlyCommand extends AbstractPlayerCommand {
     private static final String OTHERS_PERMISSION = "hyessentialsx.fly.others";
 
     private final FlyManager flyManager;
+    private final StorageManager storage;
     private final OptionalArg<PlayerRef> targetArg;
 
-    public FlyCommand(@Nonnull FlyManager flyManager) {
+    public FlyCommand(@Nonnull FlyManager flyManager, @Nonnull StorageManager storage) {
         super("fly", "Toggle flight");
         this.flyManager = flyManager;
+        this.storage = storage;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
@@ -70,56 +66,15 @@ public final class FlyCommand extends AbstractPlayerCommand {
             return;
         }
 
-        Ref<EntityStore> targetRef = target.getReference();
-        Store<EntityStore> targetStore = targetRef.getStore();
-
-        MovementManager movementManager = targetStore.getComponent(targetRef, MovementManager.getComponentType());
-        if (movementManager == null) {
+        boolean enabled = flyManager.toggle(target.getUuid());
+        if (!flyManager.applyState(target, enabled)) {
+            flyManager.setEnabled(target.getUuid(), !enabled);
             Messages.err(context, "Could not toggle flight.");
             return;
         }
-
-        boolean enabled = flyManager.toggle(target.getUuid());
-
-        movementManager.applyDefaultSettings();
-        MovementSettings settings = movementManager.getSettings();
-        if (settings != null) settings.canFly = enabled;
-
-        MovementSettings defaults = movementManager.getDefaultSettings();
-        if (defaults != null) defaults.canFly = enabled;
-
-        MovementStatesComponent statesComponent = targetStore.getComponent(targetRef, MovementStatesComponent.getComponentType());
-        if (statesComponent != null) {
-            MovementStates current = statesComponent.getMovementStates();
-            MovementStates updated = (current != null) ? new MovementStates(current) : new MovementStates();
-            if (!enabled) {
-                updated.flying = false;
-                updated.jumping = false;
-                updated.gliding = false;
-            } else {
-                updated.flying = false; // allow client to double-jump to begin flying
-            }
-            statesComponent.setMovementStates(updated);
-            statesComponent.setSentMovementStates(updated);
-        }
-
-        if (!enabled) {
-            Player player = targetStore.getComponent(targetRef, Player.getComponentType());
-            if (player != null) {
-                MovementStates current = (statesComponent != null) ? statesComponent.getMovementStates() : null;
-                MovementStates updated = (current != null) ? new MovementStates(current) : new MovementStates();
-                updated.flying = false;
-                player.applyMovementStates(targetRef, new SavedMovementStates(false), updated, targetStore);
-            }
-
-            Velocity velocity = targetStore.getComponent(targetRef, Velocity.getComponentType());
-            if (velocity != null) {
-                velocity.setY(0d);
-                velocity.setClient(0d, 0d, 0d);
-            }
-        }
-
-        movementManager.update(target.getPacketHandler());
+        var data = storage.getPlayerData(target.getUuid());
+        data.setFlyEnabled(enabled);
+        storage.savePlayerDataAsync(target.getUuid(), data);
 
         boolean isSelf = playerRef.getUuid().equals(target.getUuid());
         if (isSelf) {

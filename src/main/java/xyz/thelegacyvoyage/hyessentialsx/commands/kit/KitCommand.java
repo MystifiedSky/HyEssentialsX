@@ -75,7 +75,7 @@ public final class KitCommand extends AbstractPlayerCommand {
                     Messages.errKey(context, "kit.ui_failed", java.util.Map.of());
                     return;
                 }
-                KitsUI page = new KitsUI(playerRef, kitManager);
+                KitsUI page = new KitsUI(playerRef, kitManager, config);
                 page.open(player, ref, store);
                 return;
             }
@@ -93,6 +93,14 @@ public final class KitCommand extends AbstractPlayerCommand {
         if (kit == null) {
             Messages.err(context, "Kit not found.");
             return;
+        }
+
+        if (config.isKitsRequirePermission()) {
+            String kitPermission = "hyessentialsx.kit." + kit.getName().toLowerCase();
+            if (!context.sender().hasPermission(kitPermission)) {
+                Messages.noPerm(context, "/kit " + kit.getName());
+                return;
+            }
         }
 
         String kitBypass = "hyessentialsx.kit." + kit.getName().toLowerCase() + ".bypass";

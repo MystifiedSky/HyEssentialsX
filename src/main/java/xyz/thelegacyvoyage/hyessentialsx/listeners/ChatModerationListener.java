@@ -1,11 +1,16 @@
 package xyz.thelegacyvoyage.hyessentialsx.listeners;
 
 import com.hypixel.hytale.event.EventRegistry;
+import com.hypixel.hytale.event.EventPriority;
 import com.hypixel.hytale.server.core.event.events.player.PlayerChatEvent;
 import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.MuteModel;
@@ -36,7 +41,7 @@ public final class ChatModerationListener {
     }
 
     public void register(@Nonnull EventRegistry events) {
-        events.registerGlobal(PlayerChatEvent.class, event -> {
+        events.registerGlobal(EventPriority.FIRST, PlayerChatEvent.class, event -> {
             PlayerRef sender = event.getSender();
             if (sender == null) return;
 
@@ -59,10 +64,11 @@ public final class ChatModerationListener {
                 event.setCancelled(true);
                 String msg = event.getContent();
                 if (msg == null) msg = "";
+                clearChatContent(event);
 
                 List<PlayerRef> targets = new ArrayList<>();
                 for (PlayerRef ref : Universe.get().getPlayers()) {
-                    if (PermissionsModule.get().hasPermission(ref.getUuid(), ADMINCHAT_PERMISSION)) {
+                    if (hasAdminChatPermission(ref)) {
                         targets.add(ref);
                     }
                 }
@@ -127,6 +133,13 @@ public final class ChatModerationListener {
         });
     }
 
+    private void clearChatContent(@Nonnull PlayerChatEvent event) {
+        try {
+            event.setContent("");
+        } catch (Exception ignored) {
+        }
+    }
+
     private boolean hasColorCodes(@Nonnull String text) {
         return text.contains("&") || text.contains("{#") || text.contains("<#");
     }
@@ -142,5 +155,28 @@ public final class ChatModerationListener {
             }
         }
         return false;
+    }
+
+    private boolean hasAdminChatPermission(@Nonnull PlayerRef ref) {
+        Boolean componentHas = null;
+        try {
+            Ref<EntityStore> reference = ref.getReference();
+            Store<EntityStore> store = reference.getStore();
+            if (store != null) {
+                Player playerComponent = store.getComponent(reference, Player.getComponentType());
+                if (playerComponent != null) {
+                    componentHas = playerComponent.hasPermission(ADMINCHAT_PERMISSION);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        boolean moduleHas = PermissionsModule.get().hasPermission(ref.getUuid(), ADMINCHAT_PERMISSION, false);
+        if (PermissionsModule.get().getFirstPermissionProvider() == null) {
+            return componentHas != null && componentHas;
+        }
+        if (componentHas == null) {
+            return moduleHas;
+        }
+        return moduleHas && componentHas;
     }
 }

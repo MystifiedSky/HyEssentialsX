@@ -3,7 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.custom;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
-import xyz.thelegacyvoyage.hyessentialsx.util.CustomCommandManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CustomCommandManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;

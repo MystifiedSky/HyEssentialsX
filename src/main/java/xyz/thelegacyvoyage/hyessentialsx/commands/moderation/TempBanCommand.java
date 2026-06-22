@@ -11,7 +11,7 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.BanModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
-import xyz.thelegacyvoyage.hyessentialsx.util.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
 import javax.annotation.Nonnull;

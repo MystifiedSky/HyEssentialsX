@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.RankupTier;
 import xyz.thelegacyvoyage.hyessentialsx.util.PluginInfoUtil;
 
 import javax.annotation.Nonnull;
@@ -51,6 +52,7 @@ public final class ConfigManager {
     private boolean warpsGuiEnabled = true;
     private boolean kitsEnabled = true;
     private boolean kitsGuiEnabled = true;
+    private boolean kitsRequirePermission = true;
     private boolean msgEnabled = true;
     private boolean nearEnabled = true;
     private boolean motdEnabled = true;
@@ -59,6 +61,8 @@ public final class ConfigManager {
     private boolean rtpEnabled = true;
     private boolean broadcastEnabled = true;
     private boolean spawnEnabled = true;
+    private int sleepPercentage = 50;
+    private boolean sleepChatEnabled = true;
     private boolean tpaEnabled = true;
     private boolean tpaGuiEnabled = true;
     private boolean adminChatEnabled = true;
@@ -74,6 +78,9 @@ public final class ConfigManager {
     private boolean economyEnabled = true;
     private String economyCurrencySymbol = "$";
     private long economyStartingBalance = 0L;
+    private boolean paycheckEnabled = true;
+    private long paycheckAmount = 100L;
+    private double paycheckIntervalHours = 1.0;
     private boolean economyRewardsEnabled = true;
     private boolean economyBlockRewardsEnabled = true;
     private boolean economyMobRewardsEnabled = true;
@@ -85,6 +92,14 @@ public final class ConfigManager {
     private Map<String, Long> economyBlockRewards = defaultBlockRewards();
     private Map<String, Long> economyBlockGroupRewards = defaultBlockGroupRewards();
     private Map<String, Long> economyMobRewards = defaultMobRewards();
+    private boolean rankupEnabled = true;
+    private int rankupConfirmTimeoutSeconds = 30;
+    private boolean rankupPlaytimeEnabled = true;
+    private boolean rankupCurrencyEnabled = true;
+    private boolean rankupAutoEnabled = true;
+    private int rankupAutoCheckSeconds = 60;
+    private boolean rankupAutoUseCurrency = false;
+    private List<RankupTier> rankupTiers = defaultRankupTiers();
     private String defaultKit = "";
 
     private double nearRadius = 50.0;
@@ -114,6 +129,10 @@ public final class ConfigManager {
     );
     private List<String> quitMessages = List.of(
             "<#FCA5A5><bold>- </bold></#FCA5A5><#93C5FD><bold>{player} left the server.</bold></#93C5FD>"
+    );
+    private boolean deathMessagesEnabled = true;
+    private List<String> deathMessages = List.of(
+            "<#FCA5A5><bold>{player}</bold> died {cause}</#FCA5A5>"
     );
     private Map<String, String> chatGroupFormats = defaultChatGroups();
     private Map<String, Integer> chatGroupPriorities = defaultGroupPriorities();
@@ -192,6 +211,11 @@ public final class ConfigManager {
         joinQuit.add("quitMessages", toArray(quitMessages));
         root.add("joinAndQuit", joinQuit);
 
+        JsonObject death = new JsonObject();
+        death.addProperty("enabled", true);
+        death.add("messages", toArray(deathMessages));
+        root.add("deathMessages", death);
+
         JsonObject chat = new JsonObject();
         chat.addProperty("enabled", false);
         chat.addProperty("overrideLuckPermsChatFormat", false);
@@ -212,6 +236,11 @@ public final class ConfigManager {
         economy.addProperty("currencySymbol", "$");
         economy.addProperty("startingBalance", 0);
         economy.addProperty("baltopGui", true);
+        JsonObject paycheck = new JsonObject();
+        paycheck.addProperty("enabled", true);
+        paycheck.addProperty("amount", 100);
+        paycheck.addProperty("intervalHours", 1.0);
+        economy.add("paycheck", paycheck);
         JsonObject rewards = new JsonObject();
         rewards.addProperty("enabled", true);
         rewards.addProperty("debug", false);
@@ -231,6 +260,21 @@ public final class ConfigManager {
         rewards.add("mobs", mobRewards);
         economy.add("rewards", rewards);
         root.add("economy", economy);
+
+        JsonObject rankup = new JsonObject();
+        rankup.addProperty("enabled", true);
+        rankup.addProperty("confirmTimeoutSeconds", 30);
+        JsonObject requirements = new JsonObject();
+        requirements.addProperty("playtimeEnabled", true);
+        requirements.addProperty("currencyEnabled", true);
+        rankup.add("requirements", requirements);
+        JsonObject auto = new JsonObject();
+        auto.addProperty("enabled", true);
+        auto.addProperty("checkSeconds", 60);
+        auto.addProperty("useCurrency", false);
+        rankup.add("auto", auto);
+        rankup.add("ranks", toRankupArray(rankupTiers));
+        root.add("rankup", rankup);
 
         JsonObject groupPriorities = new JsonObject();
         for (Map.Entry<String, Integer> entry : chatGroupPriorities.entrySet()) {
@@ -253,10 +297,11 @@ public final class ConfigManager {
         features.addProperty("adminChat", true);
         root.add("features", features);
 
-        JsonObject kits = new JsonObject();
-        kits.addProperty("defaultKit", "");
-        kits.addProperty("gui", true);
-        root.add("kits", kits);
+            JsonObject kits = new JsonObject();
+            kits.addProperty("defaultKit", "");
+            kits.addProperty("gui", true);
+            kits.addProperty("requirePermission", true);
+            root.add("kits", kits);
 
         JsonObject motd = new JsonObject();
         motd.addProperty("enabled", true);
@@ -269,6 +314,11 @@ public final class ConfigManager {
         rulesObj.addProperty("gui", true);
         rulesObj.add("messages", toArray(rules));
         root.add("rules", rulesObj);
+
+        JsonObject sleep = new JsonObject();
+        sleep.addProperty("percentage", sleepPercentage);
+        sleep.addProperty("chatMessages", sleepChatEnabled);
+        root.add("sleep", sleep);
 
         JsonObject afk = new JsonObject();
         afk.addProperty("enabled", true);
@@ -472,6 +522,10 @@ public final class ConfigManager {
             joinMessages = readStringList(joinQuit, "joinMessages", "joinMessage", joinMessages);
             quitMessages = readStringList(joinQuit, "quitMessages", "quitMessage", quitMessages);
 
+            JsonObject death = obj(root, "deathMessages");
+            deathMessagesEnabled = bool(death, "enabled", deathMessagesEnabled);
+            deathMessages = list(death, "messages", deathMessages);
+
             JsonObject chat = obj(root, "chat");
             chatEnabled = bool(chat, "enabled", chatEnabled);
             if (chat.has("overrideLuckPermsChatFormat")) {
@@ -503,6 +557,10 @@ public final class ConfigManager {
             economyCurrencySymbol = str(economy, "currencySymbol", economyCurrencySymbol);
             economyStartingBalance = Math.max(0L, longVal(economy, "startingBalance", economyStartingBalance));
             economyBaltopGuiEnabled = bool(economy, "baltopGui", economyBaltopGuiEnabled);
+            JsonObject paycheck = obj(economy, "paycheck");
+            paycheckEnabled = bool(paycheck, "enabled", paycheckEnabled);
+            paycheckAmount = Math.max(0L, longVal(paycheck, "amount", paycheckAmount));
+            paycheckIntervalHours = dbl(paycheck, "intervalHours", paycheckIntervalHours);
             JsonObject rewards = obj(economy, "rewards");
             economyRewardsEnabled = bool(rewards, "enabled", economyRewardsEnabled);
             economyRewardsDebug = bool(rewards, "debug", economyRewardsDebug);
@@ -518,8 +576,21 @@ public final class ConfigManager {
             economyMobDefaultReward = Math.max(0L, longVal(mobRewards, "defaultReward", economyMobDefaultReward));
             economyMobRewards = normalizeKeyedMap(readLongMap(mobRewards, "rewards", economyMobRewards));
 
+            JsonObject rankup = obj(root, "rankup");
+            rankupEnabled = bool(rankup, "enabled", rankupEnabled);
+            rankupConfirmTimeoutSeconds = intVal(rankup, "confirmTimeoutSeconds", rankupConfirmTimeoutSeconds);
+            JsonObject requirements = obj(rankup, "requirements");
+            rankupPlaytimeEnabled = bool(requirements, "playtimeEnabled", rankupPlaytimeEnabled);
+            rankupCurrencyEnabled = bool(requirements, "currencyEnabled", rankupCurrencyEnabled);
+            JsonObject auto = obj(rankup, "auto");
+            rankupAutoEnabled = bool(auto, "enabled", rankupAutoEnabled);
+            rankupAutoCheckSeconds = intVal(auto, "checkSeconds", rankupAutoCheckSeconds);
+            rankupAutoUseCurrency = bool(auto, "useCurrency", rankupAutoUseCurrency);
+            rankupTiers = readRankupTiers(rankup);
+
             JsonObject kits = obj(root, "kits");
             defaultKit = str(kits, "defaultKit", defaultKit).trim();
+            kitsRequirePermission = bool(kits, "requirePermission", kitsRequirePermission);
 
             JsonObject motd = obj(root, "motd");
             motdEnabled = bool(motd, "enabled", motdEnabled);
@@ -530,8 +601,15 @@ public final class ConfigManager {
             rulesEnabled = bool(rulesObj, "enabled", rulesEnabled);
             rulesGuiEnabled = bool(rulesObj, "gui", rulesGuiEnabled);
             rules = list(rulesObj, "messages", rules);
+
+            JsonObject sleep = obj(root, "sleep");
+            sleepPercentage = intVal(sleep, "percentage", sleepPercentage);
+            if (sleepPercentage < 0) sleepPercentage = 0;
+            if (sleepPercentage > 100) sleepPercentage = 100;
+            sleepChatEnabled = bool(sleep, "chatMessages", sleepChatEnabled);
             JsonObject kitsSection = obj(root, "kits");
             kitsGuiEnabled = bool(kitsSection, "gui", kitsGuiEnabled);
+            kitsRequirePermission = bool(kitsSection, "requirePermission", kitsRequirePermission);
 
             JsonObject afk = obj(root, "afk");
             afkEnabled = bool(afk, "enabled", afkEnabled);
@@ -669,6 +747,10 @@ public final class ConfigManager {
         return kitsGuiEnabled;
     }
 
+    public boolean isKitsRequirePermission() {
+        return kitsRequirePermission;
+    }
+
     public boolean isMsgEnabled() {
         return msgEnabled;
     }
@@ -687,6 +769,14 @@ public final class ConfigManager {
 
     public boolean isRulesGuiEnabled() {
         return rulesGuiEnabled;
+    }
+
+    public int getSleepPercentage() {
+        return sleepPercentage;
+    }
+
+    public boolean isSleepChatEnabled() {
+        return sleepChatEnabled;
     }
 
     public boolean isRtpEnabled() {
@@ -759,6 +849,10 @@ public final class ConfigManager {
         return joinQuitEnabled;
     }
 
+    public boolean isDeathMessagesEnabled() {
+        return deathMessagesEnabled;
+    }
+
     public boolean isChatEnabled() {
         return chatEnabled;
     }
@@ -808,6 +902,18 @@ public final class ConfigManager {
         return economyStartingBalance;
     }
 
+    public boolean isPaycheckEnabled() {
+        return paycheckEnabled;
+    }
+
+    public long getPaycheckAmount() {
+        return Math.max(0L, paycheckAmount);
+    }
+
+    public double getPaycheckIntervalHours() {
+        return Math.max(0.001, paycheckIntervalHours);
+    }
+
     public boolean isEconomyRewardsEnabled() {
         return economyRewardsEnabled;
     }
@@ -854,6 +960,39 @@ public final class ConfigManager {
     @Nonnull
     public Map<String, Long> getEconomyMobRewards() {
         return Collections.unmodifiableMap(economyMobRewards);
+    }
+
+    public boolean isRankupEnabled() {
+        return rankupEnabled;
+    }
+
+    public int getRankupConfirmTimeoutSeconds() {
+        return rankupConfirmTimeoutSeconds;
+    }
+
+    public boolean isRankupPlaytimeEnabled() {
+        return rankupPlaytimeEnabled;
+    }
+
+    public boolean isRankupCurrencyEnabled() {
+        return rankupCurrencyEnabled;
+    }
+
+    public boolean isRankupAutoEnabled() {
+        return rankupAutoEnabled;
+    }
+
+    public int getRankupAutoCheckSeconds() {
+        return rankupAutoCheckSeconds;
+    }
+
+    public boolean isRankupAutoUseCurrency() {
+        return rankupAutoUseCurrency;
+    }
+
+    @Nonnull
+    public List<RankupTier> getRankupTiers() {
+        return List.copyOf(rankupTiers);
     }
 
     @Nonnull
@@ -947,6 +1086,11 @@ public final class ConfigManager {
     }
 
     @Nonnull
+    public List<String> getDeathMessages() {
+        return Collections.unmodifiableList(deathMessages);
+    }
+
+    @Nonnull
     public List<String> getMotdMessages() {
         return Collections.unmodifiableList(motdMessages);
     }
@@ -958,6 +1102,13 @@ public final class ConfigManager {
     @Nonnull
     public List<String> getRules() {
         return Collections.unmodifiableList(rules);
+    }
+
+    public void setSleepPercentage(int percentage) {
+        if (percentage < 0) percentage = 0;
+        if (percentage > 100) percentage = 100;
+        this.sleepPercentage = percentage;
+        save();
     }
 
     public boolean hasSpawn() {
@@ -1100,6 +1251,10 @@ public final class ConfigManager {
         joinQuit.add("joinMessages", toArray(joinMessages));
         joinQuit.add("quitMessages", toArray(quitMessages));
 
+        JsonObject death = obj(root, "deathMessages");
+        death.addProperty("enabled", deathMessagesEnabled);
+        death.add("messages", toArray(deathMessages));
+
         JsonObject chat = obj(root, "chat");
         chat.addProperty("enabled", chatEnabled);
         chat.addProperty("overrideLuckPermsChatFormat", chatOverrideLuckPerms);
@@ -1119,6 +1274,10 @@ public final class ConfigManager {
         economy.addProperty("currencySymbol", economyCurrencySymbol);
         economy.addProperty("startingBalance", Math.max(0L, economyStartingBalance));
         economy.addProperty("baltopGui", economyBaltopGuiEnabled);
+        JsonObject paycheck = obj(economy, "paycheck");
+        paycheck.addProperty("enabled", paycheckEnabled);
+        paycheck.addProperty("amount", Math.max(0L, paycheckAmount));
+        paycheck.addProperty("intervalHours", paycheckIntervalHours);
         JsonObject rewards = obj(economy, "rewards");
         rewards.addProperty("enabled", economyRewardsEnabled);
         rewards.addProperty("debug", economyRewardsDebug);
@@ -1134,6 +1293,18 @@ public final class ConfigManager {
         mobRewards.addProperty("defaultReward", Math.max(0L, economyMobDefaultReward));
         mobRewards.add("rewards", toLongMapObject(economyMobRewards));
 
+        JsonObject rankup = obj(root, "rankup");
+        rankup.addProperty("enabled", rankupEnabled);
+        rankup.addProperty("confirmTimeoutSeconds", rankupConfirmTimeoutSeconds);
+        JsonObject requirements = obj(rankup, "requirements");
+        requirements.addProperty("playtimeEnabled", rankupPlaytimeEnabled);
+        requirements.addProperty("currencyEnabled", rankupCurrencyEnabled);
+        JsonObject auto = obj(rankup, "auto");
+        auto.addProperty("enabled", rankupAutoEnabled);
+        auto.addProperty("checkSeconds", rankupAutoCheckSeconds);
+        auto.addProperty("useCurrency", rankupAutoUseCurrency);
+        rankup.add("ranks", toRankupArray(rankupTiers));
+
         JsonObject groupPriorities = new JsonObject();
         for (Map.Entry<String, Integer> entry : chatGroupPriorities.entrySet()) {
             groupPriorities.addProperty(entry.getKey(), entry.getValue());
@@ -1148,11 +1319,16 @@ public final class ConfigManager {
         JsonObject kits = obj(root, "kits");
         kits.addProperty("defaultKit", defaultKit);
         kits.addProperty("gui", kitsGuiEnabled);
+        kits.addProperty("requirePermission", kitsRequirePermission);
 
         JsonObject rulesObj = obj(root, "rules");
         rulesObj.addProperty("enabled", rulesEnabled);
         rulesObj.addProperty("gui", rulesGuiEnabled);
         rulesObj.add("messages", toArray(rules));
+
+        JsonObject sleep = obj(root, "sleep");
+        sleep.addProperty("percentage", sleepPercentage);
+        sleep.addProperty("chatMessages", sleepChatEnabled);
 
         JsonObject afk = obj(root, "afk");
         afk.addProperty("enabled", afkEnabled);
@@ -1427,6 +1603,52 @@ public final class ConfigManager {
         return obj;
     }
 
+    @Nonnull
+    private JsonArray toRankupArray(@Nonnull List<RankupTier> tiers) {
+        JsonArray arr = new JsonArray();
+        for (RankupTier tier : tiers) {
+            JsonObject obj = new JsonObject();
+            obj.addProperty("rank", tier.getRank());
+            obj.addProperty("playtimeHours", tier.getPlaytimeHours());
+            obj.addProperty("cost", tier.getCost());
+            obj.add("commands", toArray(tier.getCommands()));
+            arr.add(obj);
+        }
+        return arr;
+    }
+
+    @Nonnull
+    private List<RankupTier> readRankupTiers(@Nonnull JsonObject rankup) {
+        boolean hasRanks = rankup.has("ranks") && rankup.get("ranks").isJsonArray();
+        if (!hasRanks) {
+            return defaultRankupTiers();
+        }
+        JsonArray arr = rankup.getAsJsonArray("ranks");
+        List<RankupTier> tiers = new ArrayList<>();
+        for (JsonElement element : arr) {
+            if (!element.isJsonObject()) continue;
+            JsonObject obj = element.getAsJsonObject();
+            String rank = str(obj, "rank", "").trim();
+            if (rank.isBlank()) {
+                rank = str(obj, "id", "").trim();
+            }
+            if (rank.isBlank()) continue;
+            double playtimeHours = 0.0;
+            if (obj.has("playtimeHours")) {
+                try {
+                    playtimeHours = obj.get("playtimeHours").getAsDouble();
+                } catch (Exception ignored) {
+                }
+            }
+            long playtimeSeconds = Math.max(0L, Math.round(playtimeHours * 3600.0));
+            long cost = Math.max(0L, longVal(obj, "cost", 0L));
+            List<String> commands = list(obj, "commands", defaultRankupCommands());
+            tiers.add(new RankupTier(rank, playtimeSeconds, cost, commands));
+        }
+        if (tiers.isEmpty()) return List.of();
+        return tiers;
+    }
+
     private boolean mergeDefaults(@Nonnull JsonObject target, @Nonnull JsonObject defaults) {
         boolean changed = false;
         for (String key : defaults.keySet()) {
@@ -1507,5 +1729,25 @@ public final class ConfigManager {
         rewards.put("wraith_lantern", 12L);
         rewards.put("bear_grizzly", 8L);
         return rewards;
+    }
+
+    @Nonnull
+    private static List<String> defaultRankupCommands() {
+        return List.of(
+                "/lp user {player} parent set {rank}",
+                "/broadcast &#F59E0B[Rankup] &f{player} &7ranked up to {rank}"
+        );
+    }
+
+    @Nonnull
+    private static List<RankupTier> defaultRankupTiers() {
+        List<RankupTier> tiers = new ArrayList<>();
+        tiers.add(new RankupTier(
+                "member",
+                Math.round(1.0 * 3600.0),
+                1000L,
+                defaultRankupCommands()
+        ));
+        return tiers;
     }
 }

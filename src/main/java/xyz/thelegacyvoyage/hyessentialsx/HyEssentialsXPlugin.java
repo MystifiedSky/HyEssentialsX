@@ -29,9 +29,13 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitsCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.ListCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.MotdCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.NearCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.misc.RankupCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.RulesCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.SeenCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.misc.SleepPercentCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.WhoisCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.misc.DayCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.misc.NightCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.AfkCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.MuteCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.TempBanCommand;
@@ -65,11 +69,13 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.economy.PayCommand;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.ChatModerationListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.CleanupListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.DeathBackListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.DeathMessageListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.DeathSpawnListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.EconomyRewardListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.FlyNoFallListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.GodHealthListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.InfiniteStaminaListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.SleepPercentListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.AfkListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerDataListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerListener;
@@ -89,20 +95,26 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.InfiniteStaminaManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MessageManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.PaycheckManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.RankupManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.SleepPercentManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.AutoBroadcastManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.CustomCommandManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.LanguageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.AutoBroadcastManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CustomCommandManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.LanguageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
-import xyz.thelegacyvoyage.hyessentialsx.util.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 
 import javax.annotation.Nonnull;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class HyEssentialsXPlugin extends JavaPlugin {
 
@@ -127,11 +139,16 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private BanManager banManager;
     private FreecamManager freecamManager;
     private VanishManager vanishManager;
+    private SleepPercentManager sleepPercentManager;
     private EconomyManager economyManager;
+    private PaycheckManager paycheckManager;
+    private PlaytimeManager playtimeManager;
+    private RankupManager rankupManager;
     private CustomCommandManager customCommandManager;
     private AutoBroadcastManager autoBroadcastManager;
     private CommandCooldownManager cooldownManager;
     private LanguageManager languageManager;
+    private Path dataDirectory;
 
 
     public HyEssentialsXPlugin(@Nonnull JavaPluginInit init) {
@@ -169,6 +186,16 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         autoBroadcastManager = new AutoBroadcastManager(configManager);
         autoBroadcastManager.start();
+        if (rankupManager != null) {
+            rankupManager.shutdown();
+        }
+        rankupManager = new RankupManager(configManager, economyManager, storage, playtimeManager);
+        rankupManager.start();
+        if (paycheckManager != null) {
+            paycheckManager.shutdown();
+        }
+        paycheckManager = new PaycheckManager(configManager, economyManager, storage);
+        paycheckManager.start();
         if (afkManager != null) {
             afkManager.shutdown();
         }
@@ -181,17 +208,18 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     protected void setup() {
         Log.init(LOGGER);
         Log.info("[HyEssentialsX] Setting up...");
-        configManager = new ConfigManager(getDataDirectory());
-        Log.info("[HyEssentialsX] Config path: " + getDataDirectory().resolve("config.json"));
+        dataDirectory = resolveDataDirectory();
+        configManager = new ConfigManager(dataDirectory);
+        Log.info("[HyEssentialsX] Config path: " + dataDirectory.resolve("config.json"));
         Log.info("[HyEssentialsX] AutoBroadcast present: " + configManager.hasAutoBroadcastSection());
 
-        storage = new StorageManager(getDataDirectory(), configManager);
-        languageManager = new LanguageManager(getDataDirectory(), configManager, storage);
+        storage = new StorageManager(dataDirectory, configManager);
+        languageManager = new LanguageManager(dataDirectory, configManager, storage);
         Messages.setLanguageManager(languageManager);
         cooldownManager = new CommandCooldownManager(configManager, storage);
         spawnManager = new SpawnManager(configManager);
         tpManager = new TPManager(configManager.getTpaRequestTimeoutSeconds() * 1000L);
-        backManager = new BackManager();
+        backManager = new BackManager(storage);
         flyManager = new FlyManager();
         godManager = new GodManager();
         staminaManager = new InfiniteStaminaManager();
@@ -205,8 +233,12 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         banManager = new BanManager(storage);
         freecamManager = new FreecamManager();
         vanishManager = new VanishManager();
+        sleepPercentManager = new SleepPercentManager(configManager);
         economyManager = new EconomyManager(storage, configManager);
-        customCommandManager = new CustomCommandManager(getDataDirectory());
+        paycheckManager = new PaycheckManager(configManager, economyManager, storage);
+        playtimeManager = new PlaytimeManager(storage);
+        rankupManager = new RankupManager(configManager, economyManager, storage, playtimeManager);
+        customCommandManager = new CustomCommandManager(dataDirectory);
         autoBroadcastManager = new AutoBroadcastManager(configManager);
 
         Log.info("[HyEssentialsX] Setup complete!");
@@ -223,6 +255,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         staminaManager.clearAll();
         autoBroadcastManager.start();
         afkManager.start();
+        sleepPercentManager.start();
+        rankupManager.start();
+        paycheckManager.start();
 
         Log.info("[HyEssentialsX] Started! Use /hyessentialsx help");
     }
@@ -232,12 +267,15 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         Log.info("[HyEssentialsX] Shutting down...");
         if (autoBroadcastManager != null) autoBroadcastManager.shutdown();
         if (afkManager != null) afkManager.shutdown();
+        if (sleepPercentManager != null) sleepPercentManager.shutdown();
+        if (rankupManager != null) rankupManager.shutdown();
+        if (paycheckManager != null) paycheckManager.shutdown();
         if (storage != null) storage.shutdown();
         instance = null;
     }
 
     private void registerCommands() {
-        getCommandRegistry().registerCommand(new HyEssentialsXPluginCommand(storage, getDataDirectory(), languageManager));
+        getCommandRegistry().registerCommand(new HyEssentialsXPluginCommand(storage, dataDirectory, languageManager));
         getCommandRegistry().registerCommand(new SpawnCommand(spawnManager, backManager, tpManager, configManager, cooldownManager));
         getCommandRegistry().registerCommand(new SetSpawnCommand(spawnManager, configManager));
         getCommandRegistry().registerCommand(new DelSpawnCommand(spawnManager, configManager));
@@ -261,7 +299,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         getCommandRegistry().registerCommand(new PayCommand(economyManager));
         getCommandRegistry().registerCommand(new MoneyCommand(economyManager, storage));
         getCommandRegistry().registerCommand(new BalanceTopCommand(economyManager, storage, configManager));
-        getCommandRegistry().registerCommand(new ImportHomesCommand(storage, getDataDirectory()));
+        getCommandRegistry().registerCommand(new ImportHomesCommand(storage, dataDirectory));
         getCommandRegistry().registerCommand(new TpaCommand(tpManager, configManager, cooldownManager));
         getCommandRegistry().registerCommand(new TpaAcceptCommand(tpManager, backManager, configManager));
         getCommandRegistry().registerCommand(new TpaDenyCommand(tpManager, configManager));
@@ -271,7 +309,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         getCommandRegistry().registerCommand(new TpahereAllCommand(tpManager, configManager, cooldownManager));
         getCommandRegistry().registerCommand(new TphereCommand());
         getCommandRegistry().registerCommand(new BackCommand(backManager, tpManager, configManager, cooldownManager));
-        getCommandRegistry().registerCommand(new FlyCommand(flyManager));
+        getCommandRegistry().registerCommand(new FlyCommand(flyManager, storage));
         getCommandRegistry().registerCommand(new GodCommand(godManager));
         getCommandRegistry().registerCommand(new HealCommand(cooldownManager));
         getCommandRegistry().registerCommand(new InfiniteStaminaCommand(staminaManager));
@@ -280,6 +318,10 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         getCommandRegistry().registerCommand(new MotdCommand(configManager));
         getCommandRegistry().registerCommand(new NearCommand(configManager, cooldownManager));
         getCommandRegistry().registerCommand(new AfkCommand(afkManager, configManager, cooldownManager));
+        getCommandRegistry().registerCommand(new SleepPercentCommand(configManager));
+        getCommandRegistry().registerCommand(new DayCommand());
+        getCommandRegistry().registerCommand(new NightCommand());
+        getCommandRegistry().registerCommand(new RankupCommand(rankupManager, economyManager));
         getCommandRegistry().registerCommand(new WhoisCommand(storage));
         getCommandRegistry().registerCommand(new SeenCommand(storage));
         getCommandRegistry().registerCommand(new TopCommand());
@@ -304,14 +346,16 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private void registerListeners() {
         EventRegistry bus = getEventRegistry();
         new PlayerListener(configManager, storage, vanishManager).register(bus);
-        new PlayerDataListener(storage, banManager, messageManager, adminChatManager, freecamManager, godManager, staminaManager, economyManager).register(bus);
+        new PlayerDataListener(storage, banManager, messageManager, adminChatManager, freecamManager, godManager, staminaManager, flyManager, economyManager, playtimeManager).register(bus);
         new ChatModerationListener(muteManager, adminChatManager, configManager).register(bus);
         new CleanupListener(tpManager, backManager, flyManager, godManager, staminaManager, vanishManager).register(bus);
         new AfkListener(afkManager).register(bus);
         new SpawnProtectionListener(spawnManager, configManager).register(bus);
+        new SleepPercentListener(configManager).register(bus);
         Log.info("[HyEssentialsX] Listeners registered");
 
         new DeathBackListener(backManager).register(getEntityStoreRegistry());
+        new DeathMessageListener(configManager).register(getEntityStoreRegistry());
         new DeathSpawnListener(spawnManager, configManager).register(getEntityStoreRegistry());
         new FlyNoFallListener(flyManager).register(getEntityStoreRegistry());
         new GodHealthListener(godManager).register(getEntityStoreRegistry());
@@ -327,6 +371,44 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             // Only sync if a spawn exists; initialization will happen in /spawn as needed
             spawnManager.syncWorldSpawnProvider();
         });
+    }
+
+    @Nonnull
+    private Path resolveDataDirectory() {
+        Path original = getDataDirectory();
+        Path parent = original.getParent();
+        if (parent == null) {
+            return original;
+        }
+        Path desired = parent.resolve("HyEssentialsX");
+        if (original.getFileName() != null
+                && original.getFileName().toString().equalsIgnoreCase("HyEssentialsX")) {
+            return original;
+        }
+        try {
+            if (Files.exists(desired)) {
+                if (Files.exists(original)) {
+                    Log.warn("[HyEssentialsX] Both old and new data folders exist. Using " + desired);
+                }
+                return desired;
+            }
+            if (Files.exists(original)) {
+                try {
+                    Files.move(original, desired);
+                    Log.info("[HyEssentialsX] Migrated data folder to " + desired);
+                } catch (Exception moveError) {
+                    Log.warn("[HyEssentialsX] Failed to move data folder. Using original: " + moveError.getMessage());
+                    return original;
+                }
+            }
+            if (!Files.exists(desired)) {
+                Files.createDirectories(desired);
+            }
+            return desired;
+        } catch (Exception e) {
+            Log.warn("[HyEssentialsX] Failed to prepare data folder. Using original: " + e.getMessage());
+            return original;
+        }
     }
 
 }

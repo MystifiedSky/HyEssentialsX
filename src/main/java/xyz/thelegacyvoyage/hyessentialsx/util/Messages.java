@@ -3,6 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.util;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import xyz.thelegacyvoyage.hyessentialsx.managers.LanguageManager;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -18,12 +19,17 @@ import java.util.Map;
  * - We build a Message with colored segments using Message.color("#RRGGBB").
  *
  * INPUT supported:
- *  - &0..&f (legacy)
- *  - &#RRGGBB (hex)
+ *  - &0..&f / §0..§f (legacy)
+ *  - &#RRGGBB / §#RRGGBB (hex)
  *  - {#RRGGBB} (legacy from old system; backwards compatible)
- *  - &r reset (resets to white)
+ *  - &r / §r reset (resets to white + clears formatting)
  *
- * Formatting codes (&l,&o,&n,&m,&k) are ignored for now.
+ * Formatting codes:
+ *  - &l/§l bold
+ *  - &o/§o italic
+ *  - &n/§n underline (ignored - not supported by Message)
+ *  - &m/§m strikethrough (ignored - not supported by Message)
+ *  - &k/§k obfuscated (ignored - not supported by Message)
  */
 public final class Messages {
 
@@ -52,6 +58,9 @@ public final class Messages {
         // Use mutable holders so we can "change" while still reusing flush logic
         final String[] currentColor = new String[]{ WHITE_COLOR };
         final String[] currentLink = new String[]{ null };
+        final boolean[] currentBold = new boolean[]{ false };
+        final boolean[] currentItalic = new boolean[]{ false };
+        final boolean[] currentMono = new boolean[]{ false };
 
         StringBuilder buf = new StringBuilder();
 
@@ -66,13 +75,13 @@ public final class Messages {
                     String tag = text.substring(i + 1, close).trim();
                     if (tag.length() >= 4 && tag.regionMatches(true, 0, "url:", 0, 4)) {
                         String url = tag.substring(4).trim();
-                        flush(parts, buf, currentColor[0], currentLink[0]);
+                        flush(parts, buf, currentColor[0], currentLink[0], currentBold[0], currentItalic[0], currentMono[0]);
                         currentLink[0] = url.isEmpty() ? null : url;
                         i = close;
                         continue;
                     }
                     if (tag.equalsIgnoreCase("/url")) {
-                        flush(parts, buf, currentColor[0], currentLink[0]);
+                        flush(parts, buf, currentColor[0], currentLink[0], currentBold[0], currentItalic[0], currentMono[0]);
                         currentLink[0] = null;
                         i = close;
                         continue;
@@ -84,45 +93,61 @@ public final class Messages {
             if (c == '{' && i + 8 < len && text.charAt(i + 1) == '#' && text.charAt(i + 8) == '}') {
                 String hex = text.substring(i + 2, i + 8);
                 if (isHex6(hex)) {
-                    flush(parts, buf, currentColor[0], currentLink[0]);
+                    flush(parts, buf, currentColor[0], currentLink[0], currentBold[0], currentItalic[0], currentMono[0]);
                     currentColor[0] = "#" + hex.toUpperCase();
                     i += 8; // skip "{#RRGGBB}"
                     continue;
                 }
             }
 
-            // Hex: &#RRGGBB
-            if (c == '&' && i + 7 < len && text.charAt(i + 1) == '#') {
+            // Hex: &#RRGGBB or §#RRGGBB
+            if ((c == '&' || c == '§') && i + 7 < len && text.charAt(i + 1) == '#') {
                 String hex = text.substring(i + 2, i + 8);
                 if (isHex6(hex)) {
-                    flush(parts, buf, currentColor[0], currentLink[0]);
+                    flush(parts, buf, currentColor[0], currentLink[0], currentBold[0], currentItalic[0], currentMono[0]);
                     currentColor[0] = "#" + hex.toUpperCase();
                     i += 7; // skip "&#RRGGBB"
                     continue;
                 }
             }
 
-            // Legacy: &a etc + reset &r
-            if (c == '&' && i + 1 < len) {
+            // Legacy: &a/§a etc + reset &r/§r + formatting
+            if ((c == '&' || c == '§') && i + 1 < len) {
                 char code = Character.toLowerCase(text.charAt(i + 1));
 
                 if (code == 'r') {
-                    flush(parts, buf, currentColor[0], currentLink[0]);
+                    flush(parts, buf, currentColor[0], currentLink[0], currentBold[0], currentItalic[0], currentMono[0]);
                     currentColor[0] = WHITE_COLOR;
+                    currentBold[0] = false;
+                    currentItalic[0] = false;
+                    currentMono[0] = false;
                     i += 1; // skip "&r"
                     continue;
                 }
 
                 int idx = Character.digit(code, 16);
                 if (idx >= 0 && idx <= 15) {
-                    flush(parts, buf, currentColor[0], currentLink[0]);
+                    flush(parts, buf, currentColor[0], currentLink[0], currentBold[0], currentItalic[0], currentMono[0]);
                     currentColor[0] = legacyToHex(idx);
                     i += 1; // skip "&<code>"
                     continue;
                 }
 
-                // formatting codes (ignored): k,l,m,n,o
-                if (code == 'k' || code == 'l' || code == 'm' || code == 'n' || code == 'o') {
+                // formatting codes
+                if (code == 'l') {
+                    flush(parts, buf, currentColor[0], currentLink[0], currentBold[0], currentItalic[0], currentMono[0]);
+                    currentBold[0] = true;
+                    i += 1;
+                    continue;
+                }
+                if (code == 'o') {
+                    flush(parts, buf, currentColor[0], currentLink[0], currentBold[0], currentItalic[0], currentMono[0]);
+                    currentItalic[0] = true;
+                    i += 1;
+                    continue;
+                }
+                // &k, &m, &n are ignored (no support)
+                if (code == 'k' || code == 'm' || code == 'n') {
                     i += 1;
                     continue;
                 }
@@ -131,16 +156,25 @@ public final class Messages {
             buf.append(c);
         }
 
-        flush(parts, buf, currentColor[0], currentLink[0]);
+        flush(parts, buf, currentColor[0], currentLink[0], currentBold[0], currentItalic[0], currentMono[0]);
 
         if (parts.isEmpty()) return Message.raw("");
         if (parts.size() == 1) return parts.get(0);
         return Message.join(parts.toArray(new Message[0]));
     }
 
-    private static void flush(@Nonnull List<Message> parts, @Nonnull StringBuilder buf, @Nonnull String color, @Nullable String link) {
+    private static void flush(@Nonnull List<Message> parts,
+                              @Nonnull StringBuilder buf,
+                              @Nonnull String color,
+                              @Nullable String link,
+                              boolean bold,
+                              boolean italic,
+                              boolean mono) {
         if (buf.length() == 0) return;
         Message msg = Message.raw(buf.toString()).color(color);
+        if (bold) msg = msg.bold(true);
+        if (italic) msg = msg.italic(true);
+        if (mono) msg = msg.monospace(true);
         if (link != null && !link.isBlank()) {
             msg = msg.link(link);
         }

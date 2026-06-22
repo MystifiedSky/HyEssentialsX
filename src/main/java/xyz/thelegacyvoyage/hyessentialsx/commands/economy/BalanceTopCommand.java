@@ -15,7 +15,7 @@ import xyz.thelegacyvoyage.hyessentialsx.ui.BalTopUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
-import xyz.thelegacyvoyage.hyessentialsx.util.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;

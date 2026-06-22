@@ -1,4 +1,4 @@
-package xyz.thelegacyvoyage.hyessentialsx.util;
+package xyz.thelegacyvoyage.hyessentialsx.managers;
 
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
@@ -7,6 +7,8 @@ import xyz.thelegacyvoyage.hyessentialsx.storage.JsonStorageBackend;
 import xyz.thelegacyvoyage.hyessentialsx.storage.MysqlStorageBackend;
 import xyz.thelegacyvoyage.hyessentialsx.storage.SqliteStorageBackend;
 import xyz.thelegacyvoyage.hyessentialsx.storage.StorageBackend;
+import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

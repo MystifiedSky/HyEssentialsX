@@ -23,6 +23,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.home.HomeCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.home.HomesCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.home.SetHomeCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.inventory.ClearInventoryCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.inventory.InvSeeCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.inventory.MoreCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.inventory.RepairCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.inventory.TrashCommand;
@@ -132,6 +133,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.hologram.HologramService;
+import xyz.thelegacyvoyage.hyessentialsx.placeholders.HyEssentialsXPlaceholderExpansion;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AutoBroadcastManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
@@ -194,6 +196,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private ShopNpcFixTask shopNpcFixTask;
     private xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache shopAdminDraftCache;
     private HologramService hologramService;
+    private HyEssentialsXPlaceholderExpansion placeholderExpansion;
     private Path dataDirectory;
 
 
@@ -269,6 +272,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (shopNpcFixTask != null) {
             shopNpcFixTask.start();
         }
+        registerPlaceholderExpansion();
         VaultUnlockedIntegration.refresh();
         Log.info("[HyEssentialsX] Reload complete.");
     }
@@ -355,6 +359,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             scoreboardManager.start();
             scoreboardManager.refreshAll();
         }
+        registerPlaceholderExpansion();
         VaultUnlockedIntegration.refresh();
 
         Log.info("[HyEssentialsX] Started! Use /hyessentialsx help");
@@ -377,6 +382,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (paycheckManager != null) paycheckManager.shutdown();
         if (scoreboardManager != null) scoreboardManager.shutdown();
         if (shopNpcFixTask != null) shopNpcFixTask.stop();
+        unregisterPlaceholderExpansion();
         if (hologramService != null) {
             hologramService.shutdown();
         }
@@ -384,6 +390,52 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (storage != null) storage.shutdown();
         HyEssentialsXApiProvider.clear();
         instance = null;
+    }
+
+    private void registerPlaceholderExpansion() {
+        if (placeholderExpansion != null) {
+            return;
+        }
+        if (!isPlaceholderApiAvailable()) {
+            return;
+        }
+        try {
+            HyEssentialsXPlaceholderExpansion expansion = new HyEssentialsXPlaceholderExpansion(
+                    this,
+                    economyManager,
+                    playtimeManager,
+                    storage,
+                    homeManager,
+                    mailManager
+            );
+            if (expansion.register()) {
+                placeholderExpansion = expansion;
+                Log.info("[HyEssentialsX] PlaceholderAPI expansion registered.");
+            }
+        } catch (Throwable t) {
+            Log.warn("[HyEssentialsX] Failed to register PlaceholderAPI expansion: " + t.getMessage());
+        }
+    }
+
+    private void unregisterPlaceholderExpansion() {
+        if (placeholderExpansion == null) {
+            return;
+        }
+        try {
+            placeholderExpansion.unregister();
+        } catch (Throwable ignored) {
+        } finally {
+            placeholderExpansion = null;
+        }
+    }
+
+    private boolean isPlaceholderApiAvailable() {
+        try {
+            Class.forName("at.helpch.placeholderapi.expansion.PlaceholderExpansion");
+            return true;
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     private void registerCommands() {
@@ -495,6 +547,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             reg.accept(new PlayerShopCommand(shopManager, economyManager, shopAdminDraftCache, configManager, storage));
         }
         reg.accept(new ClearInventoryCommand());
+        reg.accept(new InvSeeCommand());
         reg.accept(new MoreCommand());
         reg.accept(new RepairCommand(cooldownManager));
         reg.accept(new TrashCommand());

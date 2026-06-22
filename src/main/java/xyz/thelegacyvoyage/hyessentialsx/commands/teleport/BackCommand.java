@@ -1,4 +1,4 @@
-package xyz.thelegacyvoyage.hyessentialsx.commands.back;
+package xyz.thelegacyvoyage.hyessentialsx.commands.teleport;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;

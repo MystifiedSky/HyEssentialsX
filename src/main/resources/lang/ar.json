@@ -1,4 +1,4 @@
-﻿{
+{
   "error.no_permission": "&cليس لديك إذن لاستخدام {command}.",
   "error.player_only": "&cهذا الأمر للاعبين فقط.",
   "cooldown.wait": "&eيرجى الانتظار {time} قبل استخدام {command} مرة أخرى.",
@@ -42,5 +42,9 @@
   "rtp.no_safe_location": "&cتعذر العثور على موقع آمن. حاول مرة أخرى.",
   "language.current": "&eاللغة الحالية: &f{language}&e. المتاحة: &f{available}",
   "language.not_found": "&cاللغة '{language}' غير موجودة. المتاحة: &f{available}",
-  "language.changed": "&aتم ضبط اللغة إلى &f{language}&a."
+  "language.changed": "&aتم ضبط اللغة إلى &f{language}&a.",
+  "player.not_found": "&cPlayer not found.",
+  "tphere.self": "&cYou can't teleport yourself.",
+  "tphere.success": "&aTeleported {player} to you.",
+  "tphere.target": "&aYou were teleported to {player}."
 }

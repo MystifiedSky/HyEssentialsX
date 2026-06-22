@@ -1,4 +1,4 @@
-package xyz.thelegacyvoyage.hyessentialsx.commands.heal;
+package xyz.thelegacyvoyage.hyessentialsx.commands.cheat;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;

@@ -42,5 +42,9 @@
   "rtp.no_safe_location": "&cCould not find a safe location. Try again.",
   "language.current": "&eCurrent language: &f{language}&e. Available: &f{available}",
   "language.not_found": "&cLanguage '{language}' not found. Available: &f{available}",
-  "language.changed": "&aLanguage set to &f{language}&a."
+  "language.changed": "&aLanguage set to &f{language}&a.",
+  "player.not_found": "&cPlayer not found.",
+  "tphere.self": "&cYou can't teleport yourself.",
+  "tphere.success": "&aTeleported {player} to you.",
+  "tphere.target": "&aYou were teleported to {player}."
 }

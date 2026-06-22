@@ -1,4 +1,4 @@
-﻿{
+{
   "error.no_permission": "&c你没有权限使用 {command}。",
   "error.player_only": "&c该命令只能由玩家使用。",
   "cooldown.wait": "&e请等待 {time} 后再使用 {command}。",
@@ -42,5 +42,9 @@
   "rtp.no_safe_location": "&c未找到安全位置。请再试一次。",
   "language.current": "&e当前语言：&f{language}&e。可用：&f{available}",
   "language.not_found": "&c未找到语言 '{language}'。可用：&f{available}",
-  "language.changed": "&a语言已设置为 &f{language}&a。"
+  "language.changed": "&a语言已设置为 &f{language}&a。",
+  "player.not_found": "&cPlayer not found.",
+  "tphere.self": "&cYou can't teleport yourself.",
+  "tphere.success": "&aTeleported {player} to you.",
+  "tphere.target": "&aYou were teleported to {player}."
 }

@@ -1,4 +1,4 @@
-﻿{
+{
   "error.no_permission": "&c{command} を使用する権限がありません。",
   "error.player_only": "&cこのコマンドはプレイヤーのみ使用できます。",
   "cooldown.wait": "&e{command} を再使用する前に {time} 待ってください。",
@@ -42,5 +42,9 @@
   "rtp.no_safe_location": "&c安全な場所が見つかりませんでした。もう一度試してください。",
   "language.current": "&e現在の言語: &f{language}&e。利用可能: &f{available}",
   "language.not_found": "&c言語 '{language}' が見つかりません。利用可能: &f{available}",
-  "language.changed": "&a言語を &f{language}&a に設定しました。"
+  "language.changed": "&a言語を &f{language}&a に設定しました。",
+  "player.not_found": "&cPlayer not found.",
+  "tphere.self": "&cYou can't teleport yourself.",
+  "tphere.success": "&aTeleported {player} to you.",
+  "tphere.target": "&aYou were teleported to {player}."
 }

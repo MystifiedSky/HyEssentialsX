@@ -1,4 +1,4 @@
-﻿{
+{
   "error.no_permission": "&cआपके पास {command} उपयोग करने की अनुमति नहीं है।",
   "error.player_only": "&cयह कमांड केवल खिलाड़ी उपयोग कर सकते हैं।",
   "cooldown.wait": "&eकृपया {command} फिर से उपयोग करने से पहले {time} प्रतीक्षा करें।",
@@ -42,5 +42,9 @@
   "rtp.no_safe_location": "&cकोई सुरक्षित स्थान नहीं मिला। फिर से प्रयास करें।",
   "language.current": "&eवर्तमान भाषा: &f{language}&e. उपलब्ध: &f{available}",
   "language.not_found": "&cभाषा '{language}' नहीं मिली। उपलब्ध: &f{available}",
-  "language.changed": "&aभाषा &f{language}&a पर सेट की गई।"
+  "language.changed": "&aभाषा &f{language}&a पर सेट की गई।",
+  "player.not_found": "&cPlayer not found.",
+  "tphere.self": "&cYou can't teleport yourself.",
+  "tphere.success": "&aTeleported {player} to you.",
+  "tphere.target": "&aYou were teleported to {player}."
 }

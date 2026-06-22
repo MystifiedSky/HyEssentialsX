@@ -49,8 +49,9 @@ public final class Messages {
         text = normalizeMiniTags(text);
         List<Message> parts = new ArrayList<>();
 
-        // Use a mutable holder so we can "change" the color while still reusing flush logic
+        // Use mutable holders so we can "change" while still reusing flush logic
         final String[] currentColor = new String[]{ WHITE_COLOR };
+        final String[] currentLink = new String[]{ null };
 
         StringBuilder buf = new StringBuilder();
 
@@ -58,11 +59,32 @@ public final class Messages {
         for (int i = 0; i < len; i++) {
             char c = text.charAt(i);
 
+            // URL: <url:https://example.com>
+            if (c == '<') {
+                int close = text.indexOf('>', i + 1);
+                if (close > i) {
+                    String tag = text.substring(i + 1, close).trim();
+                    if (tag.length() >= 4 && tag.regionMatches(true, 0, "url:", 0, 4)) {
+                        String url = tag.substring(4).trim();
+                        flush(parts, buf, currentColor[0], currentLink[0]);
+                        currentLink[0] = url.isEmpty() ? null : url;
+                        i = close;
+                        continue;
+                    }
+                    if (tag.equalsIgnoreCase("/url")) {
+                        flush(parts, buf, currentColor[0], currentLink[0]);
+                        currentLink[0] = null;
+                        i = close;
+                        continue;
+                    }
+                }
+            }
+
             // Backwards compat: {#RRGGBB}
             if (c == '{' && i + 8 < len && text.charAt(i + 1) == '#' && text.charAt(i + 8) == '}') {
                 String hex = text.substring(i + 2, i + 8);
                 if (isHex6(hex)) {
-                    flush(parts, buf, currentColor[0]);
+                    flush(parts, buf, currentColor[0], currentLink[0]);
                     currentColor[0] = "#" + hex.toUpperCase();
                     i += 8; // skip "{#RRGGBB}"
                     continue;
@@ -73,7 +95,7 @@ public final class Messages {
             if (c == '&' && i + 7 < len && text.charAt(i + 1) == '#') {
                 String hex = text.substring(i + 2, i + 8);
                 if (isHex6(hex)) {
-                    flush(parts, buf, currentColor[0]);
+                    flush(parts, buf, currentColor[0], currentLink[0]);
                     currentColor[0] = "#" + hex.toUpperCase();
                     i += 7; // skip "&#RRGGBB"
                     continue;
@@ -85,7 +107,7 @@ public final class Messages {
                 char code = Character.toLowerCase(text.charAt(i + 1));
 
                 if (code == 'r') {
-                    flush(parts, buf, currentColor[0]);
+                    flush(parts, buf, currentColor[0], currentLink[0]);
                     currentColor[0] = WHITE_COLOR;
                     i += 1; // skip "&r"
                     continue;
@@ -93,7 +115,7 @@ public final class Messages {
 
                 int idx = Character.digit(code, 16);
                 if (idx >= 0 && idx <= 15) {
-                    flush(parts, buf, currentColor[0]);
+                    flush(parts, buf, currentColor[0], currentLink[0]);
                     currentColor[0] = legacyToHex(idx);
                     i += 1; // skip "&<code>"
                     continue;
@@ -109,16 +131,20 @@ public final class Messages {
             buf.append(c);
         }
 
-        flush(parts, buf, currentColor[0]);
+        flush(parts, buf, currentColor[0], currentLink[0]);
 
         if (parts.isEmpty()) return Message.raw("");
         if (parts.size() == 1) return parts.get(0);
         return Message.join(parts.toArray(new Message[0]));
     }
 
-    private static void flush(@Nonnull List<Message> parts, @Nonnull StringBuilder buf, @Nonnull String color) {
+    private static void flush(@Nonnull List<Message> parts, @Nonnull StringBuilder buf, @Nonnull String color, @Nullable String link) {
         if (buf.length() == 0) return;
-        parts.add(Message.raw(buf.toString()).color(color));
+        Message msg = Message.raw(buf.toString()).color(color);
+        if (link != null && !link.isBlank()) {
+            msg = msg.link(link);
+        }
+        parts.add(msg);
         buf.setLength(0);
     }
 
@@ -128,8 +154,6 @@ public final class Messages {
         out = out.replaceAll("<#([0-9a-fA-F]{6})>", "&#$1");
         out = out.replaceAll("</#([0-9a-fA-F]{6})>", "&#$1");
         out = out.replaceAll("(?i)</?(bold|italic|underlined|strikethrough|obfuscated)>", "");
-        out = out.replaceAll("(?i)<url:[^>]+>", "");
-        out = out.replaceAll("(?i)</url>", "");
         return out;
     }
 

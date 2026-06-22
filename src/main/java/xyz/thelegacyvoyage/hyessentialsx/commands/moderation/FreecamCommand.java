@@ -1,25 +1,28 @@
-package xyz.thelegacyvoyage.hyessentialsx.commands.stamina;
+package xyz.thelegacyvoyage.hyessentialsx.commands.moderation;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.protocol.Packet;
+import com.hypixel.hytale.protocol.packets.camera.SetFlyCameraMode;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import xyz.thelegacyvoyage.hyessentialsx.managers.InfiniteStaminaManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.FreecamManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
 
-public final class InfiniteStaminaCommand extends AbstractPlayerCommand {
+public final class FreecamCommand extends AbstractPlayerCommand {
 
-    private static final String PERMISSION_NODE = "hyessentialsx.infinitestamina";
-    private final InfiniteStaminaManager staminaManager;
+    private static final String PERMISSION_NODE = "hyessentialsx.freecam";
 
-    public InfiniteStaminaCommand(@Nonnull InfiniteStaminaManager staminaManager) {
-        super("infinitestamina", "Toggle infinite stamina");
-        this.staminaManager = staminaManager;
+    private final FreecamManager freecamManager;
+
+    public FreecamCommand(@Nonnull FreecamManager freecamManager) {
+        super("freecam", "Toggles free camera");
+        this.freecamManager = freecamManager;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
@@ -38,16 +41,14 @@ public final class InfiniteStaminaCommand extends AbstractPlayerCommand {
             @Nonnull World world
     ) {
         if (!context.sender().hasPermission(PERMISSION_NODE)) {
-            Messages.noPerm(context, "/infinitestamina");
+            Messages.noPerm(context, "/freecam");
             return;
         }
 
-        boolean enabled = staminaManager.toggle(playerRef.getUuid());
-        if (enabled) {
-            Messages.ok(context, "Infinite stamina enabled.");
-        } else {
-            Messages.ok(context, "Infinite stamina disabled.");
-        }
+        boolean activate = freecamManager.toggle(playerRef.getUuid());
+        SetFlyCameraMode packet = new SetFlyCameraMode(activate);
+        playerRef.getPacketHandler().write((Packet) packet);
+        Messages.ok(context, activate ? "Freecam enabled." : "Freecam disabled.");
     }
 }
 

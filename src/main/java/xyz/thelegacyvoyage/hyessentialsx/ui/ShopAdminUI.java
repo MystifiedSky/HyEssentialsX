@@ -783,8 +783,15 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             Messages.sendPrefixedKey(playerRef, "shop.admin.name_invalid", java.util.Map.of());
             return;
         }
-        shop.setDisplayName(name);
-        shopManager.saveShop(shop);
+        String oldName = shop.getName();
+        if (!shopManager.renameShop(oldName, name)) {
+            Messages.sendPrefixedKey(playerRef, "shop.admin.name_invalid", java.util.Map.of());
+            return;
+        }
+        ShopModel renamed = shopManager.getShop(name);
+        if (renamed != null) {
+            shop = renamed;
+        }
         updateNpcNameplates();
         Messages.sendPrefixedKey(playerRef, "shop.admin.name_updated", java.util.Map.of());
     }

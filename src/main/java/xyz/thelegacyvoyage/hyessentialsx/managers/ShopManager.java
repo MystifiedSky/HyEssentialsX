@@ -126,6 +126,30 @@ public final class ShopManager {
         storage.setShop(key, shop);
     }
 
+    public boolean renameShop(@Nonnull String oldName, @Nonnull String newName) {
+        String oldKey = oldName.trim().toLowerCase();
+        String newKey = newName.trim().toLowerCase();
+        if (oldKey.isBlank() || newKey.isBlank()) {
+            return false;
+        }
+        ShopModel shop = storage.getShop(oldKey);
+        if (shop == null) {
+            return false;
+        }
+        if (!oldKey.equals(newKey) && storage.getShop(newKey) != null) {
+            return false;
+        }
+        shop.setName(newKey);
+        shop.setDisplayName(newName.trim());
+        for (var npc : shop.getNpcs()) {
+            if (npc != null) {
+                npc.setShopName(newKey);
+            }
+        }
+        normalize(shop);
+        return storage.renameShop(oldKey, newKey, shop);
+    }
+
     private void normalize(@Nonnull ShopModel shop) {
         if (shop.getDisplayName().isBlank()) {
             shop.setDisplayName(shop.getName());

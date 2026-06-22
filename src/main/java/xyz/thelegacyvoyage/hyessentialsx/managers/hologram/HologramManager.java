@@ -222,7 +222,9 @@ public class HologramManager {
 
    public void moveHologram(@Nonnull Hologram hologram, @Nonnull Vec3d newPosition) {
       hologram.setPosition(newPosition);
-      this.moveHologramLive(hologram);
+      this.despawnHologramSync(hologram);
+      this.spawnHologram(hologram);
+      this.saveHolograms();
    }
 
    public void moveHologramLive(@Nonnull Hologram hologram) {
@@ -234,7 +236,7 @@ public class HologramManager {
          if (world != null) {
             Vec3d basePosition = hologram.getPosition();
             double lineSpacing = hologram.getLineSpacing();
-            world.execute(() -> {
+            Runnable moveLogic = () -> {
                Store<EntityStore> store = world.getEntityStore().getStore();
 
                for(int i = 0; i < entityIds.size(); ++i) {
@@ -250,7 +252,12 @@ public class HologramManager {
                   }
                }
 
-            });
+            };
+            if (world.isInThread()) {
+               moveLogic.run();
+            } else {
+               world.execute(moveLogic);
+            }
          }
       }
    }
@@ -266,7 +273,7 @@ public class HologramManager {
                var10000.log("Cannot spawn hologram '" + var10001 + "' - world not found: " + String.valueOf(hologram.getWorldId()));
                this.spawningHolograms.remove(holoId);
             } else {
-               world.execute(() -> {
+               Runnable spawnLogic = () -> {
                   try {
                      Api var10000;
                      String var10001;
@@ -349,7 +356,12 @@ public class HologramManager {
                      this.spawningHolograms.remove(hologram.getId());
                   }
 
-               });
+               };
+               if (world.isInThread()) {
+                  spawnLogic.run();
+               } else {
+                  world.execute(spawnLogic);
+               }
             }
          }
       }
@@ -642,7 +654,7 @@ public class HologramManager {
          } else {
             UUID entityUuid = UUID.randomUUID();
             float facingYaw = facing.getYaw();
-            world.execute(() -> {
+            Runnable spawnLogic = () -> {
                try {
                   Store<EntityStore> store = world.getEntityStore().getStore();
                   Holder<EntityStore> holder = EntityStore.REGISTRY.newHolder();
@@ -687,7 +699,12 @@ public class HologramManager {
                   var19.printStackTrace();
                }
 
-            });
+            };
+            if (world.isInThread()) {
+               spawnLogic.run();
+            } else {
+               world.execute(spawnLogic);
+            }
             return entityUuid;
          }
       } catch (Exception var14) {
@@ -836,7 +853,7 @@ public class HologramManager {
             Api var10000 = this.plugin.getLogger().at(Level.FINE);
             int var10001 = entityIds.size();
             var10000.log("Despawning " + var10001 + " entities for hologram '" + hologram.getName() + "'");
-            if (!Thread.currentThread().getName().contains("World") && !Thread.currentThread().getName().contains("world")) {
+            if (!world.isInThread()) {
                try {
                   CountDownLatch latch = new CountDownLatch(1);
                   world.execute(() -> {

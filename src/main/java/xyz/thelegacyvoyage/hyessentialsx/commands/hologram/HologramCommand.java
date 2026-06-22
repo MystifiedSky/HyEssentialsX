@@ -7,8 +7,6 @@ import xyz.thelegacyvoyage.hyessentialsx.models.hologram.Hologram;
 import xyz.thelegacyvoyage.hyessentialsx.models.hologram.Vec3d;
 import xyz.thelegacyvoyage.hyessentialsx.util.HologramPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
-import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Rotation3f;
@@ -124,7 +122,7 @@ public class HologramCommand extends AbstractCommand {
               || HologramPermissionUtil.hasPermission(context.sender(), HologramPermissionUtil.PERMISSION_CLEANUP);
    }
 
-   private static class CreateCommand extends AbstractCommand {
+   private static class CreateCommand extends AbstractPlayerCommand {
       private final HologramService plugin;
       private final RequiredArg<String> nameArg;
 
@@ -138,74 +136,49 @@ public class HologramCommand extends AbstractCommand {
          return false;
       }
 
-      @Nullable
-      public CompletableFuture<Void> execute(@Nonnull CommandContext context) {
+      protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
          if (!HologramPermissionUtil.hasPermission(context.sender(), HologramPermissionUtil.PERMISSION_CREATE)) {
             Messages.noPerm(context, "/holo create");
-            return CompletableFuture.completedFuture(null);
          } else {
             String name = (String)context.get(this.nameArg);
-            if (!context.isPlayer()) {
-               Messages.errKey(context, "error.player_only", Map.of());
-               return CompletableFuture.completedFuture(null);
-            } else {
-               Player player = CommandSenderUtil.resolvePlayerEntity(context);
-               if (player == null) {
-                  Messages.errKey(context, "error.player_unavailable", Map.of());
-                  return CompletableFuture.completedFuture(null);
+            Player player = (Player)store.getComponent(ref, Player.getComponentType());
+            if (player == null) {
+               Messages.errKey(context, "error.player_unavailable", Map.of());
+               return;
+            }
+            int maxName = this.plugin.getConfigManager().getHologramMaxNameLength();
+            if (name.length() > maxName) {
+               Messages.errKey(context, "hologram.name_too_long", Map.of("max", String.valueOf(maxName)));
+               return;
+            }
+            if (this.plugin.getHologramManager().hologramExists(name)) {
+               Messages.errKey(context, "hologram.exists", Map.of("name", name));
+               return;
+            }
+            try {
+               TransformComponent transform = (TransformComponent)store.getComponent(ref, TransformComponent.getComponentType());
+               if (transform == null || transform.getPosition() == null) {
+                   Messages.errKey(context, "error.position_unavailable", java.util.Map.of());
+                  return;
                }
-               int maxName = this.plugin.getConfigManager().getHologramMaxNameLength();
-               if (name.length() > maxName) {
-                  Messages.errKey(context, "hologram.name_too_long", Map.of("max", String.valueOf(maxName)));
-                  return CompletableFuture.completedFuture(null);
-               }
-               if (this.plugin.getHologramManager().hologramExists(name)) {
-                  Messages.errKey(context, "hologram.exists", Map.of("name", name));
-                  return CompletableFuture.completedFuture(null);
-               } else {
-                  World world = player.getWorld();
-                  if (world == null) {
-                        Messages.errKey(context, "error.world_not_available", java.util.Map.of());
-                     return CompletableFuture.completedFuture(null);
-                  }
-                  CompletableFuture<Void> future = new CompletableFuture<>();
-                  world.execute(() -> {
-                     try {
-                        TransformComponent transform = ServerCompatUtil.getTransform(player);
-                        if (transform == null || transform.getPosition() == null) {
-                            Messages.errKey(context, "error.position_unavailable", java.util.Map.of());
-                           future.complete(null);
-                           return;
-                        }
-                        Vector3d playerPos = transform.getPosition();
-                        Rotation3f rotation = transform.getRotation();
-                        double yawRadians = Math.toRadians((double)rotation.yaw());
-                        double distance = 3.0D;
-                        double offsetX = -Math.sin(yawRadians) * distance;
-                        double offsetZ = Math.cos(yawRadians) * distance;
-                        Vec3d position = new Vec3d(playerPos.x() + offsetX, playerPos.y() + 1.5D, playerPos.z() + offsetZ);
-                        java.util.UUID ownerId = ServerCompatUtil.getPlayerUuid(player);
-                        if (ownerId == null) {
-                           Messages.errKey(context, "error.player_unavailable", java.util.Map.of());
-                           future.complete(null);
-                           return;
-                        }
-                        this.plugin.getHologramManager().createHologram(name, position, world.getWorldConfig().getUuid(), ownerId);
-                        Messages.sendKey(context, "hologram.created", Map.of("name", name));
-                        Messages.sendKey(context, "hologram.created.position", Map.of(
-                                "x", String.format("%.1f", position.x()),
-                                "y", String.format("%.1f", position.y()),
-                                "z", String.format("%.1f", position.z())
-                        ));
-                        Messages.sendKey(context, "hologram.created.tip", Map.of("name", name));
-                     } catch (Exception var16) {
-                        Messages.errKey(context, "hologram.create_failed", Map.of("error", var16.getMessage()));
-                     } finally {
-                        future.complete(null);
-                     }
-                  });
-                  return future;
-               }
+               Vector3d playerPos = transform.getPosition();
+               Rotation3f rotation = transform.getRotation();
+               double yawRadians = Math.toRadians((double)rotation.yaw());
+               double distance = 3.0D;
+               double offsetX = -Math.sin(yawRadians) * distance;
+               double offsetZ = Math.cos(yawRadians) * distance;
+               Vec3d position = new Vec3d(playerPos.x() + offsetX, playerPos.y() + 1.5D, playerPos.z() + offsetZ);
+               java.util.UUID ownerId = playerRef.getUuid();
+               this.plugin.getHologramManager().createHologram(name, position, world.getWorldConfig().getUuid(), ownerId);
+               Messages.sendKey(context, "hologram.created", Map.of("name", name));
+               Messages.sendKey(context, "hologram.created.position", Map.of(
+                       "x", String.format("%.1f", position.x()),
+                       "y", String.format("%.1f", position.y()),
+                       "z", String.format("%.1f", position.z())
+               ));
+               Messages.sendKey(context, "hologram.created.tip", Map.of("name", name));
+            } catch (Exception var16) {
+               Messages.errKey(context, "hologram.create_failed", Map.of("error", var16.getMessage()));
             }
          }
       }
@@ -364,7 +337,7 @@ public class HologramCommand extends AbstractCommand {
       }
    }
 
-   private static class MoveHereCommand extends AbstractCommand {
+   private static class MoveHereCommand extends AbstractPlayerCommand {
       private final HologramService plugin;
       private final RequiredArg<String> nameArg;
 
@@ -379,49 +352,25 @@ public class HologramCommand extends AbstractCommand {
          return false;
       }
 
-      @Nullable
-      public CompletableFuture<Void> execute(@Nonnull CommandContext context) {
+      protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
          if (!HologramPermissionUtil.hasPermission(context.sender(), HologramPermissionUtil.PERMISSION_MOVE)) {
             Messages.noPerm(context, "/holo movehere");
-            return CompletableFuture.completedFuture(null);
          } else {
             String name = (String)context.get(this.nameArg);
-            if (!context.isPlayer()) {
-               Messages.errKey(context, "error.player_only", Map.of());
-               return CompletableFuture.completedFuture(null);
-            } else {
-               Hologram hologram = this.plugin.getHologramManager().getHologram(name);
-               if (hologram == null) {
-                  Messages.errKey(context, "hologram.not_found", Map.of("name", name));
-                  return CompletableFuture.completedFuture(null);
-               } else {
-                  Player player = CommandSenderUtil.resolvePlayerEntity(context);
-                  if (player == null) {
-                     Messages.errKey(context, "error.player_unavailable", Map.of());
-                     return CompletableFuture.completedFuture(null);
-                  }
-                  World world = player.getWorld();
-                  if (world == null) {
-                        Messages.errKey(context, "error.world_not_available", java.util.Map.of());
-                     return CompletableFuture.completedFuture(null);
-                  }
-                  CompletableFuture<Void> future = new CompletableFuture<>();
-                  world.execute(() -> {
-                     TransformComponent transform = ServerCompatUtil.getTransform(player);
-                     if (transform == null || transform.getPosition() == null) {
-                        Messages.errKey(context, "error.position_unavailable", java.util.Map.of());
-                        future.complete(null);
-                        return;
-                     }
-                     Vector3d playerPos = transform.getPosition();
-                     Vec3d position = new Vec3d(playerPos.x(), playerPos.y() + 2.5D, playerPos.z());
-                     this.plugin.getHologramManager().moveHologram(hologram, position);
-                     Messages.sendKey(context, "hologram.moved", Map.of("name", name));
-                     future.complete(null);
-                  });
-                  return future;
-               }
+            Hologram hologram = this.plugin.getHologramManager().getHologram(name);
+            if (hologram == null) {
+               Messages.errKey(context, "hologram.not_found", Map.of("name", name));
+               return;
             }
+            TransformComponent transform = (TransformComponent)store.getComponent(ref, TransformComponent.getComponentType());
+            if (transform == null || transform.getPosition() == null) {
+               Messages.errKey(context, "error.position_unavailable", java.util.Map.of());
+               return;
+            }
+            Vector3d playerPos = transform.getPosition();
+            Vec3d position = new Vec3d(playerPos.x(), playerPos.y() + 2.5D, playerPos.z());
+            this.plugin.getHologramManager().moveHologram(hologram, position);
+            Messages.sendKey(context, "hologram.moved", Map.of("name", name));
          }
       }
    }

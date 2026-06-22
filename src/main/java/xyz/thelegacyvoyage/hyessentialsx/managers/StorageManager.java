@@ -269,6 +269,18 @@ public final class StorageManager {
         saveShopsAsync();
     }
 
+    public boolean renameShop(@Nonnull String oldName, @Nonnull String newName, @Nonnull ShopModel shop) {
+        String oldKey = oldName.toLowerCase(Locale.ROOT);
+        String newKey = newName.toLowerCase(Locale.ROOT);
+        if (!oldKey.equals(newKey) && shops.containsKey(newKey)) {
+            return false;
+        }
+        shops.remove(oldKey);
+        shops.put(newKey, shop);
+        saveShopsAsync();
+        return true;
+    }
+
     public boolean deleteShop(@Nonnull String name) {
         ShopModel removed = shops.remove(name.toLowerCase(Locale.ROOT));
         if (removed != null) {

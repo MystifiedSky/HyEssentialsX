@@ -106,7 +106,7 @@ public final class StorageManager {
         nameIndex.clear();
         Set<UUID> ids = backend.listPlayerIds();
         for (UUID id : ids) {
-            PlayerDataModel data = backend.loadPlayerData(id);
+            PlayerDataModel data = sanitizePlayerData(backend.loadPlayerData(id));
             if (data != null && data.getLastKnownName() != null) {
                 nameIndex.put(data.getLastKnownName().toLowerCase(), id);
             }
@@ -115,7 +115,7 @@ public final class StorageManager {
 
     @Nonnull
     public PlayerDataModel getPlayerData(@Nonnull UUID uuid) {
-        return playerCache.computeIfAbsent(uuid, backend::loadPlayerData);
+        return playerCache.computeIfAbsent(uuid, id -> sanitizePlayerData(backend.loadPlayerData(id)));
     }
 
     public void savePlayerData(@Nonnull UUID uuid) {
@@ -125,7 +125,11 @@ public final class StorageManager {
     }
 
     public void savePlayerDataAsync(@Nonnull UUID uuid, @Nonnull PlayerDataModel data) {
-        CompletableFuture.runAsync(() -> backend.savePlayerData(uuid, data), ioPool);
+        data.sanitizeForStorage();
+        CompletableFuture.runAsync(() -> {
+            data.sanitizeForStorage();
+            backend.savePlayerData(uuid, data);
+        }, ioPool);
     }
 
     public void unloadPlayer(@Nonnull UUID uuid) {
@@ -315,6 +319,7 @@ public final class StorageManager {
             backend.saveShops(Map.copyOf(shops));
             backend.saveIpBans(Map.copyOf(ipBans));
             for (Map.Entry<UUID, PlayerDataModel> entry : playerCache.entrySet()) {
+                entry.getValue().sanitizeForStorage();
                 backend.savePlayerData(entry.getKey(), entry.getValue());
             }
         } catch (Exception e) {
@@ -323,6 +328,13 @@ public final class StorageManager {
             ioPool.shutdownNow();
             backend.shutdown();
         }
+    }
+
+    @Nonnull
+    private PlayerDataModel sanitizePlayerData(@Nullable PlayerDataModel data) {
+        PlayerDataModel safe = data != null ? data : new PlayerDataModel();
+        safe.sanitizeForStorage();
+        return safe;
     }
 }
 

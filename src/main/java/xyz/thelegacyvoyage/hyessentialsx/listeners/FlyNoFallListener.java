@@ -5,6 +5,7 @@ import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSomnolence;
 import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep.MorningWakeUp;
 import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep.NoddingOff;
 import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep.Slumber;
+import com.hypixel.hytale.builtin.mounts.MountedComponent;
 import com.hypixel.hytale.component.ArchetypeChunk;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.ComponentRegistryProxy;
@@ -97,6 +98,7 @@ public final class FlyNoFallListener {
 
         private final FlyManager flyManager;
         private final Map<UUID, Boolean> sleepingState = new ConcurrentHashMap<>();
+        private final Map<UUID, Boolean> mountedState = new ConcurrentHashMap<>();
 
         private FlyNoFallTickSystem(@Nonnull FlyManager flyManager) {
             this.flyManager = flyManager;
@@ -117,8 +119,12 @@ public final class FlyNoFallListener {
             PlayerRef playerRef = chunk.getComponent(index, PlayerRef.getComponentType());
             if (playerRef == null) return;
             UUID playerId = playerRef.getUuid();
+            if (flyManager.isApplyPending(playerId)) {
+                flyManager.tryApplyIfPending(playerRef);
+            }
             if (!flyManager.isEnabled(playerId)) {
                 sleepingState.remove(playerId);
+                mountedState.remove(playerId);
                 return;
             }
 
@@ -130,8 +136,14 @@ public final class FlyNoFallListener {
                 flyManager.applyState(playerRef, true);
             }
 
-            if (flyManager.isApplyPending(playerRef.getUuid())) {
-                flyManager.tryApplyIfPending(playerRef);
+            boolean isMounted = isMounted(chunk, index);
+            boolean wasMounted = mountedState.getOrDefault(playerId, Boolean.FALSE);
+            mountedState.put(playerId, isMounted);
+            if (wasMounted && !isMounted) {
+                // Chairs and other mounts can clear movement settings on dismount.
+                if (!flyManager.applyState(playerRef, true)) {
+                    flyManager.queueApply(playerId, true);
+                }
             }
 
             // Portals/world changes can reset movement settings; re-apply fly ability.
@@ -166,6 +178,10 @@ public final class FlyNoFallListener {
             if (somnolence == null) return false;
             PlayerSleep state = somnolence.getSleepState();
             return state instanceof Slumber || state instanceof NoddingOff || state instanceof MorningWakeUp;
+        }
+
+        private boolean isMounted(@Nonnull ArchetypeChunk<EntityStore> chunk, int index) {
+            return chunk.getComponent(index, MountedComponent.getComponentType()) != null;
         }
     }
 

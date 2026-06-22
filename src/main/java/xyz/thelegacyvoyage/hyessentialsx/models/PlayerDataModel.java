@@ -199,14 +199,16 @@ public final class PlayerDataModel {
     }
 
     public float getFlySpeedMultiplier() {
-        if (flySpeedMultiplier <= 0.0F) {
+        if (!Float.isFinite(flySpeedMultiplier) || flySpeedMultiplier <= 0.0F) {
             flySpeedMultiplier = 1.0F;
         }
         return flySpeedMultiplier;
     }
 
     public void setFlySpeedMultiplier(float flySpeedMultiplier) {
-        this.flySpeedMultiplier = flySpeedMultiplier > 0.0F ? flySpeedMultiplier : 1.0F;
+        this.flySpeedMultiplier = Float.isFinite(flySpeedMultiplier) && flySpeedMultiplier > 0.0F
+                ? flySpeedMultiplier
+                : 1.0F;
     }
 
     public long getLastPaycheckAt() {
@@ -363,6 +365,28 @@ public final class PlayerDataModel {
     public boolean removeIgnoredPlayer(@Nonnull UUID playerId) {
         String id = playerId.toString();
         return getIgnoredPlayerIds().removeIf(v -> id.equalsIgnoreCase(v));
+    }
+
+    public void sanitizeForStorage() {
+        if (homes == null) {
+            homes = new HashMap<>();
+        } else {
+            homes.entrySet().removeIf(entry -> entry == null
+                    || entry.getKey() == null
+                    || entry.getKey().isBlank()
+                    || entry.getValue() == null);
+            for (HomeModel home : homes.values()) {
+                home.sanitize();
+            }
+        }
+
+        if (back != null) {
+            back.sanitize();
+        }
+
+        if (!Float.isFinite(flySpeedMultiplier) || flySpeedMultiplier <= 0.0F) {
+            flySpeedMultiplier = 1.0F;
+        }
     }
 
     public void addOrUpdateIp(@Nonnull String ip) {

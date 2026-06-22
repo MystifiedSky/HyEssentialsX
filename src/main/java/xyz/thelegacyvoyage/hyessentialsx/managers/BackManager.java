@@ -26,6 +26,9 @@ public final class BackManager {
                                @Nonnull String worldName,
                                double x, double y, double z,
                                float yaw, float pitch) {
+        if (!isFiniteLocation(x, y, z, yaw, pitch)) {
+            return;
+        }
         BackPoint point = new BackPoint(worldName, x, y, z, yaw, pitch, System.currentTimeMillis());
         backPoints.put(playerId, point);
         persist(playerId, point);
@@ -102,6 +105,14 @@ public final class BackManager {
             data.setBack(null);
             storage.savePlayerDataAsync(playerId, data);
         }
+    }
+
+    private static boolean isFiniteLocation(double x, double y, double z, float yaw, float pitch) {
+        return Double.isFinite(x)
+                && Double.isFinite(y)
+                && Double.isFinite(z)
+                && Float.isFinite(yaw)
+                && Float.isFinite(pitch);
     }
 
     public static final class BackPoint {

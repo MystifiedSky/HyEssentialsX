@@ -3,15 +3,12 @@ package xyz.thelegacyvoyage.hyessentialsx.managers.hologram.placeholder;
 import xyz.thelegacyvoyage.hyessentialsx.managers.hologram.HologramService;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
-import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -57,7 +54,8 @@ public class PlaceholderIntegration {
 
     @Nonnull
     public String processPlaceholders(@Nonnull String text) {
-        return applyBasicPlaceholders(text, null, null, null, 0, 0, 0);
+        String processed = applyBasicPlaceholders(text, null, null, null, 0, 0, 0);
+        return applyPlaceholderApi(processed, null);
     }
 
     public boolean containsPlaceholders(@Nonnull String text) {
@@ -93,13 +91,9 @@ public class PlaceholderIntegration {
         if (!isAvailable()) {
             return text;
         }
-        PlayerRef playerRef = findPlayerRef(playerUuid);
-        if (playerRef == null) {
-            return text;
-        }
         try {
-            Message msg = PlaceholderApiUtil.apply(playerRef, text);
-            return extractMessageText(msg, text);
+            PlayerRef playerRef = findPlayerRef(playerUuid);
+            return PlaceholderApiUtil.applyString(playerRef, text);
         } catch (Throwable ignored) {
             return text;
         }
@@ -119,34 +113,5 @@ public class PlaceholderIntegration {
         return null;
     }
 
-    @Nonnull
-    private String extractMessageText(@Nonnull Message message, @Nonnull String fallback) {
-        try {
-            Method getText = message.getClass().getMethod("getText");
-            Object value = getText.invoke(message);
-            if (value instanceof String s) {
-                return s;
-            }
-        } catch (Throwable ignored) {
-        }
-        try {
-            Method getRaw = message.getClass().getMethod("getRaw");
-            Object value = getRaw.invoke(message);
-            if (value instanceof String s) {
-                return s;
-            }
-        } catch (Throwable ignored) {
-        }
-        try {
-            Field text = message.getClass().getDeclaredField("text");
-            text.setAccessible(true);
-            Object value = text.get(message);
-            if (value instanceof String s) {
-                return s;
-            }
-        } catch (Throwable ignored) {
-        }
-        return fallback;
-    }
 }
 

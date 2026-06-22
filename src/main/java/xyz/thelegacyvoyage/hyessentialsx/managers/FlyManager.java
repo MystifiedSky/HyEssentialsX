@@ -49,7 +49,11 @@ public final class FlyManager {
     }
 
     public void queueApply(@Nonnull UUID playerId) {
-        pendingApply.put(playerId, Boolean.TRUE);
+        queueApply(playerId, true);
+    }
+
+    public void queueApply(@Nonnull UUID playerId, boolean enabled) {
+        pendingApply.put(playerId, enabled);
     }
 
     public boolean isApplyPending(@Nonnull UUID playerId) {
@@ -62,8 +66,9 @@ public final class FlyManager {
 
     public boolean tryApplyIfPending(@Nonnull PlayerRef target) {
         UUID playerId = target.getUuid();
-        if (!isApplyPending(playerId)) return false;
-        if (!applyState(target, true)) return false;
+        Boolean enabled = pendingApply.get(playerId);
+        if (enabled == null) return false;
+        if (!applyState(target, enabled)) return false;
         clearPending(playerId);
         return true;
     }
@@ -122,7 +127,7 @@ public final class FlyManager {
     }
 
     public void setFlySpeedMultiplier(@Nonnull UUID playerId, float multiplier) {
-        if (multiplier <= 0.0F) {
+        if (!Float.isFinite(multiplier) || multiplier <= 0.0F) {
             flySpeedMultiplier.remove(playerId);
             return;
         }
@@ -131,7 +136,7 @@ public final class FlyManager {
 
     public float getFlySpeedMultiplier(@Nonnull UUID playerId) {
         Float value = flySpeedMultiplier.get(playerId);
-        return value != null && value > 0.0F ? value : 1.0F;
+        return value != null && Float.isFinite(value) && value > 0.0F ? value : 1.0F;
     }
 
     public boolean applySpeedOnly(@Nonnull PlayerRef target) {
@@ -153,17 +158,35 @@ public final class FlyManager {
                                          MovementSettings defaults) {
         if (settings == null || defaults == null) return;
 
-        baseHorizontalFlySpeed.putIfAbsent(playerId, defaults.horizontalFlySpeed);
-        baseVerticalFlySpeed.putIfAbsent(playerId, defaults.verticalFlySpeed);
-
         float multiplier = getFlySpeedMultiplier(playerId);
-        float baseHorizontal = baseHorizontalFlySpeed.getOrDefault(playerId, defaults.horizontalFlySpeed);
-        float baseVertical = baseVerticalFlySpeed.getOrDefault(playerId, defaults.verticalFlySpeed);
+        float defaultHorizontal = sanitizePositive(defaults.horizontalFlySpeed, 0.05F);
+        float defaultVertical = sanitizePositive(defaults.verticalFlySpeed, 0.05F);
 
-        settings.horizontalFlySpeed = baseHorizontal * multiplier;
-        settings.verticalFlySpeed = baseVertical * multiplier;
-        defaults.horizontalFlySpeed = baseHorizontal * multiplier;
-        defaults.verticalFlySpeed = baseVertical * multiplier;
+        float baseHorizontal = sanitizePositive(
+                baseHorizontalFlySpeed.getOrDefault(playerId, defaultHorizontal),
+                defaultHorizontal
+        );
+        float baseVertical = sanitizePositive(
+                baseVerticalFlySpeed.getOrDefault(playerId, defaultVertical),
+                defaultVertical
+        );
+        baseHorizontalFlySpeed.put(playerId, baseHorizontal);
+        baseVerticalFlySpeed.put(playerId, baseVertical);
+
+        float horizontal = sanitizePositive(baseHorizontal * multiplier, baseHorizontal);
+        float vertical = sanitizePositive(baseVertical * multiplier, baseVertical);
+
+        settings.horizontalFlySpeed = horizontal;
+        settings.verticalFlySpeed = vertical;
+        defaults.horizontalFlySpeed = horizontal;
+        defaults.verticalFlySpeed = vertical;
+    }
+
+    private static float sanitizePositive(float value, float fallback) {
+        if (Float.isFinite(value) && value > 0.0F) {
+            return value;
+        }
+        return Float.isFinite(fallback) && fallback > 0.0F ? fallback : 1.0F;
     }
 }
 

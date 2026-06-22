@@ -6,6 +6,7 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.math.vector.Vector3i;
+import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.protocol.MovementStates;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.CommandSender;
@@ -17,6 +18,7 @@ import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.modules.entity.component.Interactable;
 import com.hypixel.hytale.server.core.modules.entity.component.Invulnerable;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
+import com.hypixel.hytale.server.core.modules.interaction.Interactions;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
@@ -347,6 +349,14 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
                 double dy = Math.abs(pos.getY() - position.getY());
                 double dz = Math.abs(pos.getZ() - (position.getZ() + 0.5D));
                 if (dx < 1.5D && dy < 2.0D && dz < 1.5D) {
+                    Interactions interactions = store.getComponent(ref, Interactions.getComponentType());
+                    String interactionId = interactions != null
+                            ? interactions.getInteractionId(InteractionType.Use)
+                            : null;
+                    if (interactionId == null
+                            || !interactionId.equalsIgnoreCase(ShopNpcInteractionRegistry.ADMIN_SHOP_ROOT_INTERACTION_ID)) {
+                        return;
+                    }
                     npc.setToDespawn();
                     npc.setDespawning(true);
                     npc.setDespawnTime(0f);
@@ -401,6 +411,14 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
                 Ref<EntityStore> ref = chunk.getReferenceTo(index);
                 NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
                 if (npc == null) return;
+                Interactions interactions = store.getComponent(ref, Interactions.getComponentType());
+                String interactionId = interactions != null
+                        ? interactions.getInteractionId(InteractionType.Use)
+                        : null;
+                if (interactionId == null
+                        || !interactionId.equalsIgnoreCase(ShopNpcInteractionRegistry.ADMIN_SHOP_ROOT_INTERACTION_ID)) {
+                    return;
+                }
                 try {
                     if (knownIds.contains(npc.getUuid())) {
                         found.set(true);

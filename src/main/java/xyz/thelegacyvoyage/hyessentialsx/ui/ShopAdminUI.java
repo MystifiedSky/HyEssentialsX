@@ -1049,7 +1049,9 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
 
             existing.setDespawning(true);
             existing.setDespawnTime(0f);
-            store.removeEntity(ref, com.hypixel.hytale.component.RemoveReason.REMOVE);
+            existing.setDespawnRemainingSeconds(0f);
+            existing.setDespawnCheckRemainingSeconds(0f);
+            queueNpcRemoval(store, ref, existing);
 
             var pair = NPCPlugin.get().spawnEntity(store, roleIndex, pos, rotation, null, null);
             if (pair == null) continue;
@@ -1060,6 +1062,25 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             applyNpcDefaults(store, newRef, newNpc, npcModel.getPosition(), rotation, shop.getDisplayName());
             npcModel.setNpcId(newNpc.getUuid().toString());
         }
+    }
+
+    private void queueNpcRemoval(@Nonnull Store<EntityStore> store,
+                                 @Nonnull Ref<EntityStore> npcRef,
+                                 @Nonnull NPCEntity existing) {
+        UUID targetUuid = existing.getUuid();
+        store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
+            try {
+                Ref<EntityStore> ref = chunk.getReferenceTo(index);
+                NPCEntity npc = store.getComponent(ref, NPCEntity.getComponentType());
+                if (npc == null) {
+                    return;
+                }
+                if (npcRef.equals(ref) || npc.getUuid().equals(targetUuid)) {
+                    commandBuffer.tryRemoveEntity(ref, com.hypixel.hytale.component.RemoveReason.REMOVE);
+                }
+            } catch (Exception ignored) {
+            }
+        });
     }
 
     private void applyNpcDefaults(@Nonnull Store<EntityStore> store,

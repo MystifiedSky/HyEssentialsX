@@ -103,6 +103,16 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
             }
         }
 
+        if (pos == null
+                || !Double.isFinite(pos.getX())
+                || !Double.isFinite(pos.getY())
+                || !Double.isFinite(pos.getZ())
+                || !Float.isFinite(yaw)
+                || !Float.isFinite(pitch)) {
+            Messages.errKey(context, "home.position_failed", java.util.Map.of());
+            return;
+        }
+
         String worldId = playerRef.getWorldUuid() != null ? playerRef.getWorldUuid().toString() : null;
         homeManager.setHome(playerRef.getUuid(), new HomeModel(
                 name,

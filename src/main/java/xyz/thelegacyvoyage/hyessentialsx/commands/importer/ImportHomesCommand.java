@@ -110,6 +110,11 @@ public final class ImportHomesCommand extends CommandBase {
                 pitch = (float) entry.rotation.x;
                 yaw = (float) entry.rotation.y;
             }
+            if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)
+                    || !Float.isFinite(yaw) || !Float.isFinite(pitch)) {
+                result.invalid++;
+                continue;
+            }
 
             String worldRaw = firstNonBlank(entry.world, entry.worldId, entry.worldName, entry.worldUuid, entry.worldUUID);
             String worldId = null;

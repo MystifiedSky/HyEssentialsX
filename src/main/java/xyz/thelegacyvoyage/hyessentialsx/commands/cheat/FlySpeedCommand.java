@@ -70,6 +70,10 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "flyspeed.invalid", Map.of());
             return;
         }
+        if (!Float.isFinite(requested)) {
+            Messages.errKey(context, "flyspeed.invalid", Map.of());
+            return;
+        }
 
         float min = (float) config.getFlySpeedMin();
         float max = (float) config.getFlySpeedMax();

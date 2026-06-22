@@ -6,12 +6,12 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.protocol.InteractionType;
-import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.nameplate.Nameplate;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.interaction.Interactions;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopNpcInteractionRegistry;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 
@@ -39,13 +39,9 @@ public final class ShopNpcRemovalUtil {
         }
         Vector3d playerPos = transform.getPosition();
         List<Candidate> candidates = Collections.synchronizedList(new ArrayList<>());
-        List<Candidate> rawCandidates = Collections.synchronizedList(new ArrayList<>());
-        store.forEachEntityParallel(Query.any(), (index, chunk, commandBuffer) -> {
+        store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
             try {
                 Ref<EntityStore> ref = chunk.getReferenceTo(index);
-                if (store.getComponent(ref, Player.getComponentType()) != null) {
-                    return;
-                }
                 TransformComponent npcTransform = store.getComponent(ref, TransformComponent.getComponentType());
                 if (npcTransform == null || npcTransform.getPosition() == null) return;
                 Vector3d pos = npcTransform.getPosition();
@@ -54,7 +50,6 @@ public final class ShopNpcRemovalUtil {
                 double dz = pos.getZ() - playerPos.getZ();
                 double distSq = (dx * dx) + (dy * dy) + (dz * dz);
                 if (distSq > NEARBY_RADIUS_SQ) return;
-                rawCandidates.add(new Candidate(ref, distSq, false));
                 boolean nameMatch = matchesShopName(store, ref, shop);
                 Interactions interactions = store.getComponent(ref, Interactions.getComponentType());
                 String interactionId = interactions != null
@@ -62,7 +57,7 @@ public final class ShopNpcRemovalUtil {
                         : null;
                 boolean interactionMatch = interactionId != null
                         && interactionId.equalsIgnoreCase(ShopNpcInteractionRegistry.ADMIN_SHOP_ROOT_INTERACTION_ID);
-                if (!interactionMatch && !nameMatch) {
+                if (!interactionMatch || !nameMatch) {
                     if (DEBUG_LOGS) {
                         debug("Skip entity " + ref + " distSq=" + distSq
                                 + " interaction=" + interactionId
@@ -73,29 +68,19 @@ public final class ShopNpcRemovalUtil {
                 if (DEBUG_LOGS) {
                     debug("Candidate entity " + ref + " distSq=" + distSq
                             + " interaction=" + interactionId
-                            + " nameplate=" + getNameplate(store, ref)
-                            + " nameMatch=" + nameMatch);
+                            + " nameplate=" + getNameplate(store, ref));
                 }
-                candidates.add(new Candidate(ref, distSq, nameMatch));
+                candidates.add(new Candidate(ref, distSq));
             } catch (Exception ignored) {
             }
         });
         if (candidates.isEmpty()) {
             if (DEBUG_LOGS) {
-                debug("No shop NPC candidates found within radius. rawCount=" + rawCandidates.size());
-            }
-            if (!rawCandidates.isEmpty()) {
-                Candidate fallback = selectClosest(rawCandidates);
-                if (fallback != null) {
-                    if (DEBUG_LOGS) {
-                        debug("Falling back to closest NPC within radius.");
-                    }
-                    removeCandidate(world, store, fallback);
-                }
+                debug("No matching shop NPC candidates found within radius.");
             }
             return;
         }
-        Candidate best = selectBest(candidates);
+        Candidate best = selectClosest(candidates);
         if (best != null) {
             removeCandidate(world, store, best);
         }
@@ -122,15 +107,6 @@ public final class ShopNpcRemovalUtil {
     }
 
     @Nullable
-    private static Candidate selectBest(@Nonnull List<Candidate> candidates) {
-        return candidates.stream()
-                .sorted(Comparator.comparing((Candidate c) -> !c.nameMatch)
-                        .thenComparingDouble(c -> c.distSq))
-                .findFirst()
-                .orElse(null);
-    }
-
-    @Nullable
     private static Candidate selectClosest(@Nonnull List<Candidate> candidates) {
         return candidates.stream()
                 .min(Comparator.comparingDouble(c -> c.distSq))
@@ -145,7 +121,20 @@ public final class ShopNpcRemovalUtil {
                 if (DEBUG_LOGS) {
                     debug("Removing entity " + candidate.ref);
                 }
-                store.removeEntity(candidate.ref, RemoveReason.REMOVE);
+                final boolean[] removed = {false};
+                store.forEachEntityParallel(Query.any(), (index, chunk, commandBuffer) -> {
+                    try {
+                        Ref<EntityStore> ref = chunk.getReferenceTo(index);
+                        if (ref != null && ref.equals(candidate.ref)) {
+                            commandBuffer.tryRemoveEntity(ref, RemoveReason.REMOVE);
+                            removed[0] = true;
+                        }
+                    } catch (Exception ignored) {
+                    }
+                });
+                if (!removed[0] && DEBUG_LOGS) {
+                    debug("Could not queue entity removal for " + candidate.ref);
+                }
             } catch (Exception ignored) {
             }
         });
@@ -154,12 +143,10 @@ public final class ShopNpcRemovalUtil {
     private static final class Candidate {
         private final Ref<EntityStore> ref;
         private final double distSq;
-        private final boolean nameMatch;
 
-        private Candidate(@Nonnull Ref<EntityStore> ref, double distSq, boolean nameMatch) {
+        private Candidate(@Nonnull Ref<EntityStore> ref, double distSq) {
             this.ref = ref;
             this.distSq = distSq;
-            this.nameMatch = nameMatch;
         }
     }
 

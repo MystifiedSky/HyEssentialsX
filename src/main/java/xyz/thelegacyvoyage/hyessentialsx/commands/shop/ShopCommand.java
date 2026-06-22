@@ -147,6 +147,16 @@ public final class ShopCommand extends AbstractPlayerCommand {
             return;
         }
 
+        if ("move".equals(sub)) {
+            if (args.size() < 2) {
+                Messages.send(context, "&cUsage: /adminshop move <name>");
+                return;
+            }
+            String name = args.get(1);
+            moveShopNpc(context, store, ref, playerRef, world, name);
+            return;
+        }
+
         if (args.size() >= 2 && "move".equalsIgnoreCase(args.get(1))) {
             String name = args.get(0);
             moveShopNpc(context, store, ref, playerRef, world, name);
@@ -384,19 +394,6 @@ public final class ShopCommand extends AbstractPlayerCommand {
                                @Nonnull String npcId) {
         try {
             java.util.UUID npcUuid = java.util.UUID.fromString(npcId);
-            try {
-                Ref<EntityStore> directRef = world.getEntityRef(npcUuid);
-                if (directRef != null) {
-                    store.removeEntity(directRef, RemoveReason.REMOVE);
-                    return true;
-                }
-                Entity entity = world.getEntity(npcUuid);
-                if (entity != null) {
-                    entity.remove();
-                    return true;
-                }
-            } catch (Exception ignored) {
-            }
             final boolean[] removed = {false};
             store.forEachEntityParallel(NPCEntity.getComponentType(), (index, chunk, commandBuffer) -> {
                 try {
@@ -436,6 +433,14 @@ public final class ShopCommand extends AbstractPlayerCommand {
                 double dy = Math.abs(pos.getY() - position.getY());
                 double dz = Math.abs(pos.getZ() - (position.getZ() + 0.5D));
                 if (dx < 1.5D && dy < 2.0D && dz < 1.5D) {
+                    Interactions interactions = store.getComponent(ref, Interactions.getComponentType());
+                    String interactionId = interactions != null
+                            ? interactions.getInteractionId(InteractionType.Use)
+                            : null;
+                    if (interactionId == null
+                            || !interactionId.equalsIgnoreCase(ShopNpcInteractionRegistry.ADMIN_SHOP_ROOT_INTERACTION_ID)) {
+                        return;
+                    }
                     npc.setToDespawn();
                     npc.setDespawning(true);
                     npc.setDespawnTime(0f);

@@ -32,11 +32,11 @@ public final class HomeModel {
         this.name = Objects.requireNonNull(name, "name");
         this.worldId = worldId;
         this.worldName = Objects.requireNonNull(worldName, "worldName");
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.yaw = yaw;
-        this.pitch = pitch;
+        this.x = sanitizeDouble(x);
+        this.y = sanitizeDouble(y);
+        this.z = sanitizeDouble(z);
+        this.yaw = sanitizeFloat(yaw);
+        this.pitch = sanitizeFloat(pitch);
     }
 
     @Nonnull
@@ -71,6 +71,22 @@ public final class HomeModel {
 
     public float getPitch() {
         return pitch;
+    }
+
+    public void sanitize() {
+        this.x = sanitizeDouble(this.x);
+        this.y = sanitizeDouble(this.y);
+        this.z = sanitizeDouble(this.z);
+        this.yaw = sanitizeFloat(this.yaw);
+        this.pitch = sanitizeFloat(this.pitch);
+    }
+
+    private static double sanitizeDouble(double value) {
+        return Double.isFinite(value) ? value : 0D;
+    }
+
+    private static float sanitizeFloat(float value) {
+        return Float.isFinite(value) ? value : 0F;
     }
 }
 

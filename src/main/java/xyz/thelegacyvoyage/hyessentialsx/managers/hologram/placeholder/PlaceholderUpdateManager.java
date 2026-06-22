@@ -43,7 +43,7 @@ public class PlaceholderUpdateManager {
    @Nonnull
    private final HologramManager hologramManager;
    private ScheduledExecutorService scheduler;
-   private static final Pattern PLAYER_PLACEHOLDER_PATTERN = Pattern.compile("\\{player_[^}]+}");
+   private static final Pattern PLAYER_PLACEHOLDER_PATTERN = Pattern.compile("(\\{player[^}]*}|%player[^%]*%)", Pattern.CASE_INSENSITIVE);
    private final Map<UUID, List<Integer>> hologramsWithPlaceholders = new HashMap();
    private final Map<UUID, List<String>> originalLines = new HashMap();
    private final Map<UUID, Set<Integer>> linesWithPlayerPlaceholders = new HashMap();

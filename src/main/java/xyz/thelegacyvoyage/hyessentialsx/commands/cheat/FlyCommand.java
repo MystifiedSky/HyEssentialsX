@@ -68,9 +68,7 @@ public final class FlyCommand extends AbstractPlayerCommand {
 
         boolean enabled = flyManager.toggle(target.getUuid());
         if (!flyManager.applyState(target, enabled)) {
-            flyManager.setEnabled(target.getUuid(), !enabled);
-            Messages.errKey(context, "fly.toggle_failed", java.util.Map.of());
-            return;
+            flyManager.queueApply(target.getUuid(), enabled);
         }
         var data = storage.getPlayerData(target.getUuid());
         data.setFlyEnabled(enabled);

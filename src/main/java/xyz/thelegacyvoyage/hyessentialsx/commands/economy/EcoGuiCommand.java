@@ -34,7 +34,7 @@ public final class EcoGuiCommand extends AbstractPlayerCommand {
         this.economy = economy;
         this.hudManager = hudManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }

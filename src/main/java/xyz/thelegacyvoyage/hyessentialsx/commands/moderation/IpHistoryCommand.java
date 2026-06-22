@@ -34,7 +34,7 @@ public final class IpHistoryCommand extends CommandBase {
     public IpHistoryCommand(@Nonnull StorageManager storage) {
         super("iphistory", "Show a player's IP history");
         this.storage = storage;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }

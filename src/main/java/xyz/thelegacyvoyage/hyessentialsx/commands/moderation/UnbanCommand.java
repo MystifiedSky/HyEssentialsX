@@ -30,7 +30,7 @@ public final class UnbanCommand extends AbstractAsyncCommand {
         super("unban", "Unbans a player");
         this.banManager = banManager;
         this.storage = storage;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"pardon"});
         this.profileArg = withRequiredArg("player", "Player name", ArgTypes.GAME_PROFILE_LOOKUP);

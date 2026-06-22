@@ -4,8 +4,8 @@ import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.InteractionType;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3i;
+import org.joml.Vector3d;
+import org.joml.Vector3i;
 import com.hypixel.hytale.protocol.MovementStates;
 import com.hypixel.hytale.server.core.HytaleServer;
 import com.hypixel.hytale.server.core.entity.Frozen;
@@ -171,11 +171,11 @@ public final class ShopNpcFixTask {
             npc.setDespawnTime(Float.MAX_VALUE);
             npc.setDespawning(false);
             Vector3i blockPos = loc.getPosition();
-            Vector3d leashPos = new Vector3d(blockPos.getX() + 0.5D, blockPos.getY(), blockPos.getZ() + 0.5D);
+            Vector3d leashPos = new Vector3d(blockPos.x() + 0.5D, blockPos.y(), blockPos.z() + 0.5D);
             npc.setLeashPoint(leashPos);
             TransformComponent transform = store.getComponent(npcRef, TransformComponent.getComponentType());
             if (transform != null && transform.getRotation() != null) {
-                npc.setLeashHeading(transform.getRotation().getYaw());
+                npc.setLeashHeading(transform.getRotation().yaw());
             }
             ShopNpcInteractionRegistry.applyNpcInteractions(store, npcRef);
         } catch (Exception ignored) {

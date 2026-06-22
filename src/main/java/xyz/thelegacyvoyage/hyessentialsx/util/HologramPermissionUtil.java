@@ -2,6 +2,7 @@ package xyz.thelegacyvoyage.hyessentialsx.util;
 
 import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -32,7 +33,12 @@ public final class HologramPermissionUtil {
     }
 
     public static boolean hasPermission(@Nullable Player player) {
-        return player != null && hasPermission((CommandSender) player);
+        return hasPermission(player, PERMISSION_ADMIN);
+    }
+
+    public static boolean hasPermission(@Nullable Player player, @Nonnull String permission) {
+        PlayerRef playerRef = ServerCompatUtil.getPlayerRef(player);
+        return playerRef != null && hasPermission(playerRef, permission);
     }
 }
 

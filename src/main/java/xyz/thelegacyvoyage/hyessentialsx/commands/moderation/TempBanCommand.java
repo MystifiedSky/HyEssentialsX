@@ -33,7 +33,7 @@ public final class TempBanCommand extends CommandBase {
         super("tempban", "Temporarily bans a player");
         this.banManager = banManager;
         this.storage = storage;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
         this.timeArg = withRequiredArg("time", "Duration (e.g. 30d)", ArgTypes.STRING);

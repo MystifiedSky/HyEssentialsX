@@ -41,7 +41,7 @@ public final class HomesCommand extends AbstractPlayerCommand {
         this.config = config;
         this.cooldowns = cooldowns;
         this.backManager = backManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 

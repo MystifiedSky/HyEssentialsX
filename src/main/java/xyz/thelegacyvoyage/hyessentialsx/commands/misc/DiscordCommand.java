@@ -20,7 +20,7 @@ public final class DiscordCommand extends CommandBase {
     public DiscordCommand(@Nonnull ConfigManager config) {
         super("discord", "Shows server Discord information");
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 

@@ -26,7 +26,7 @@ public final class DelHomeCommand extends AbstractPlayerCommand {
         super("delhome", "Deletes a home");
         this.homeManager = homeManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"remhome", "rmhome"});
         this.nameArg = withRequiredArg("name", "Home name", ArgTypes.STRING);

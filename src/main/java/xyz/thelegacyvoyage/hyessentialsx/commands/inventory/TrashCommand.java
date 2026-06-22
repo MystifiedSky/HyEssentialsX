@@ -23,7 +23,7 @@ public final class TrashCommand extends AbstractPlayerCommand {
 
     public TrashCommand() {
         super("trash", "Open a disposable container");
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"disposal"});
     }

@@ -26,7 +26,7 @@ public final class UnmuteCommand extends CommandBase {
         super("unmute", "Unmutes a player");
         this.muteManager = muteManager;
         this.storage = storage;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
     }

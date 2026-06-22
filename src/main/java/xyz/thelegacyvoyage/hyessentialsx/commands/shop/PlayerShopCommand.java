@@ -3,9 +3,9 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.shop;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
-import com.hypixel.hytale.math.vector.Vector3i;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.Entity;
@@ -66,7 +66,7 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         this.draftCache = draftCache;
         this.config = config;
         this.storage = storage;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
@@ -360,12 +360,12 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             return;
         }
         Vector3i basePos = new Vector3i(
-                (int) Math.floor(pos.getX()),
-                (int) Math.floor(pos.getY()),
-                (int) Math.floor(pos.getZ())
+                (int) Math.floor(pos.x()),
+                (int) Math.floor(pos.y()),
+                (int) Math.floor(pos.z())
         );
-        Vector3d centerPos = new Vector3d(basePos.getX() + 0.5D, basePos.getY(), basePos.getZ() + 0.5D);
-        Vector3f rot = transform.getRotation() != null ? transform.getRotation() : new Vector3f(0f, 0f, 0f);
+        Vector3d centerPos = new Vector3d(basePos.x() + 0.5D, basePos.y(), basePos.z() + 0.5D);
+        com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation() != null ? transform.getRotation() : new com.hypixel.hytale.math.vector.Rotation3f(0f, 0f, 0f);
 
         ShopNpcModel targetNpc = null;
         for (ShopNpcModel npcModel : shop.getNpcs()) {
@@ -399,7 +399,7 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
                                   @Nonnull Store<EntityStore> store,
                                   @Nonnull ShopNpcModel npcModel,
                                   @Nonnull Vector3d position,
-                                  @Nonnull Vector3f rotation,
+                                  @Nonnull com.hypixel.hytale.math.vector.Rotation3f rotation,
                                   @Nonnull Vector3i basePos) {
         try {
             java.util.UUID npcUuid = java.util.UUID.fromString(npcModel.getNpcId());
@@ -431,9 +431,9 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             }
             Vector3i pos = chest.getPosition();
             if (pos == null) return true;
-            double dx = Math.abs(pos.getX() - basePos.getX());
-            double dy = Math.abs(pos.getY() - basePos.getY());
-            double dz = Math.abs(pos.getZ() - basePos.getZ());
+            double dx = Math.abs(pos.x() - basePos.x());
+            double dy = Math.abs(pos.y() - basePos.y());
+            double dz = Math.abs(pos.z() - basePos.z());
             return dx > radius || dy > radius || dz > radius;
         });
     }
@@ -601,9 +601,9 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
                 TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
                 if (transform == null || transform.getPosition() == null) return;
                 Vector3d pos = transform.getPosition();
-                double dx = Math.abs(pos.getX() - (position.getX() + 0.5D));
-                double dy = Math.abs(pos.getY() - position.getY());
-                double dz = Math.abs(pos.getZ() - (position.getZ() + 0.5D));
+                double dx = Math.abs(pos.x() - (position.x() + 0.5D));
+                double dy = Math.abs(pos.y() - position.y());
+                double dz = Math.abs(pos.z() - (position.z() + 0.5D));
                 if (dx < 1.5D && dy < 2.0D && dz < 1.5D) {
                     Interactions interactions = store.getComponent(ref, Interactions.getComponentType());
                     String interactionId = interactions != null

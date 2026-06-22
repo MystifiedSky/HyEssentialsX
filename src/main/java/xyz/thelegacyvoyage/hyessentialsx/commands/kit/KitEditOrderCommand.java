@@ -29,7 +29,7 @@ public final class KitEditOrderCommand extends AbstractPlayerCommand {
         super("kiteditorder", "Changes the display order of a kit");
         this.kitManager = kitManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.addAliases("kitorder");
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);

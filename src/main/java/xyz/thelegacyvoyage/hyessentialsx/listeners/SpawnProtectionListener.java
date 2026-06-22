@@ -10,7 +10,7 @@ import com.hypixel.hytale.component.dependency.RootDependency;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.EntityEventSystem;
 import com.hypixel.hytale.component.system.RefChangeSystem;
-import com.hypixel.hytale.math.vector.Vector3i;
+import org.joml.Vector3i;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.DamageBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.PlaceBlockEvent;
@@ -87,12 +87,12 @@ public final class SpawnProtectionListener {
         if (spawn == null) return false;
         if (!world.getName().equalsIgnoreCase(spawn.getWorldName())) return false;
 
-        double dx = Math.abs(pos.getX() - spawn.getX());
-        double dz = Math.abs(pos.getZ() - spawn.getZ());
+        double dx = Math.abs(pos.x() - spawn.x());
+        double dz = Math.abs(pos.z() - spawn.z());
         return dx <= radius && dz <= radius;
     }
 
-    private static boolean isProtected(@Nonnull com.hypixel.hytale.math.vector.Vector3d pos,
+    private static boolean isProtected(@Nonnull org.joml.Vector3d pos,
                                        @Nonnull PlayerRef player,
                                        @Nonnull Player playerEntity,
                                        @Nonnull SpawnManager spawnManager,
@@ -115,8 +115,8 @@ public final class SpawnProtectionListener {
         if (spawn == null) return false;
         if (!world.getName().equalsIgnoreCase(spawn.getWorldName())) return false;
 
-        double dx = Math.abs(pos.getX() - spawn.getX());
-        double dz = Math.abs(pos.getZ() - spawn.getZ());
+        double dx = Math.abs(pos.x() - spawn.x());
+        double dz = Math.abs(pos.z() - spawn.z());
         return dx <= radius && dz <= radius;
     }
 
@@ -324,7 +324,7 @@ public final class SpawnProtectionListener {
             if (player == null || canBypass(player)) return;
             Player playerEntity = store.getComponent(ref, Player.getComponentType());
             if (playerEntity == null) return;
-            com.hypixel.hytale.math.vector.Vector3d pos = null;
+            org.joml.Vector3d pos = null;
             TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
             if (transform != null && transform.getPosition() != null) {
                 pos = transform.getPosition();

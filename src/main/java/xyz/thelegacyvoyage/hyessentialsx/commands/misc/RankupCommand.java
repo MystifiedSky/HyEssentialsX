@@ -49,7 +49,7 @@ public final class RankupCommand extends AbstractPlayerCommand {
         this.rewards = rewards;
         this.storage = storage;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }

@@ -112,8 +112,8 @@ public final class Messages {
                 }
             }
 
-            // Hex: &#RRGGBB or §#RRGGBB
-            if ((c == '&' || c == '§') && i + 7 < len && text.charAt(i + 1) == '#') {
+            // Hex: &#RRGGBB or section #RRGGBB
+            if ((c == '&' || c == '\u00A7') && i + 7 < len && text.charAt(i + 1) == '#') {
                 String hex = text.substring(i + 2, i + 8);
                 if (isHex6(hex)) {
                     flush(parts, buf, currentColor[0], currentLink[0], currentBold[0], currentItalic[0], currentMono[0]);
@@ -123,8 +123,8 @@ public final class Messages {
                 }
             }
 
-            // Legacy: &a/§a etc + reset &r/§r + formatting
-            if ((c == '&' || c == '§') && i + 1 < len) {
+            // Legacy: &a/section a etc + reset &r/section r + formatting
+            if ((c == '&' || c == '\u00A7') && i + 1 < len) {
                 char code = Character.toLowerCase(text.charAt(i + 1));
 
                 if (code == 'r') {

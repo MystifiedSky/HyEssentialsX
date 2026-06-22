@@ -26,7 +26,7 @@ public final class MotdCommand extends CommandBase {
         super("motd", "Shows Message of the Day");
         this.config = config;
         this.storage = storage;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 

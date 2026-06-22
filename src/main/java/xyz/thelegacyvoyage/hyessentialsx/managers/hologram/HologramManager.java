@@ -16,8 +16,9 @@ import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger.Api;
 import com.hypixel.hytale.math.util.ChunkUtil;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import com.hypixel.hytale.math.vector.Rotation3f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.asset.type.item.config.Item;
 import com.hypixel.hytale.server.core.asset.type.model.config.Model;
@@ -243,7 +244,7 @@ public class HologramManager {
                      TransformComponent transform = (TransformComponent)store.getComponent(entityRef, TransformComponent.getComponentType());
                      if (transform != null) {
                         double yOffset = (double)(-i) * lineSpacing;
-                        transform.getPosition().assign(basePosition.x(), basePosition.y() + yOffset, basePosition.z());
+                        transform.getPosition().set(basePosition.x(), basePosition.y() + yOffset, basePosition.z());
                         transform.markChunkDirty(store);
                      }
                   }
@@ -377,7 +378,7 @@ public class HologramManager {
                   Store<EntityStore> store = world.getEntityStore().getStore();
                   Holder<EntityStore> holder = EntityStore.REGISTRY.newHolder();
                   Vector3d pos = new Vector3d(position.x(), position.y(), position.z());
-                  Vector3f rotation = new Vector3f();
+                  Rotation3f rotation = new Rotation3f();
                   holder.putComponent(TransformComponent.getComponentType(), new TransformComponent(pos, rotation));
                   ProjectileComponent projectileComponent = new ProjectileComponent("Projectile");
                   holder.putComponent(ProjectileComponent.getComponentType(), projectileComponent);
@@ -442,7 +443,7 @@ public class HologramManager {
                   Store<EntityStore> store = world.getEntityStore().getStore();
                   Holder<EntityStore> holder = EntityStore.REGISTRY.newHolder();
                   Vector3d pos = new Vector3d(position.x(), position.y(), position.z());
-                  Vector3f rotation = new Vector3f((float)Math.toRadians((double)itemData.pitch), (float)Math.toRadians((double)itemData.yaw), (float)Math.toRadians((double)itemData.roll));
+                  Rotation3f rotation = new Rotation3f((float)Math.toRadians((double)itemData.pitch), (float)Math.toRadians((double)itemData.yaw), (float)Math.toRadians((double)itemData.roll));
                   holder.addComponent(TransformComponent.getComponentType(), new TransformComponent(pos, rotation));
                   Item item = (Item)Item.getAssetMap().getAsset(itemData.itemId);
                   if (item == null) {
@@ -646,7 +647,7 @@ public class HologramManager {
                   Store<EntityStore> store = world.getEntityStore().getStore();
                   Holder<EntityStore> holder = EntityStore.REGISTRY.newHolder();
                   Vector3d pos = new Vector3d(position.x(), position.y(), position.z());
-                  Vector3f rotation = new Vector3f(0.0F, facingYaw, 0.0F);
+                  Rotation3f rotation = new Rotation3f(0.0F, facingYaw, 0.0F);
                   holder.addComponent(TransformComponent.getComponentType(), new TransformComponent(pos, rotation));
                   holder.addComponent(UUIDComponent.getComponentType(), new UUIDComponent(entityUuid));
                   holder.addComponent(ModelComponent.getComponentType(), new ModelComponent(model));

@@ -28,7 +28,7 @@ public final class UnipBanCommand extends CommandBase {
         super("unipban", "Unban an IP address");
         this.ipBans = ipBans;
         this.storage = storage;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }

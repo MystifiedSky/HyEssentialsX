@@ -33,7 +33,7 @@ public final class RepairCommand extends AbstractPlayerCommand {
     public RepairCommand(@Nonnull CommandCooldownManager cooldowns) {
         super("repair", "Repairs items");
         this.cooldowns = cooldowns;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"fix"});
         this.setAllowsExtraArguments(true);

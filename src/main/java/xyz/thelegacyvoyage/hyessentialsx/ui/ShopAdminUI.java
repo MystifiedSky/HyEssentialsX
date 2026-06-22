@@ -6,8 +6,8 @@ import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
@@ -32,7 +32,7 @@ import com.hypixel.hytale.server.core.modules.entity.component.TransformComponen
 import com.hypixel.hytale.server.core.modules.interaction.Interactions;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
-import com.hypixel.hytale.math.vector.Vector3i;
+import org.joml.Vector3i;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
@@ -1160,9 +1160,9 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             }
             if (pos == null) continue;
 
-            Vector3f rotation = transform != null && transform.getRotation() != null
+            com.hypixel.hytale.math.vector.Rotation3f rotation = transform != null && transform.getRotation() != null
                     ? transform.getRotation()
-                    : new Vector3f(0f, 0f, 0f);
+                    : new com.hypixel.hytale.math.vector.Rotation3f(0f, 0f, 0f);
 
             existing.setDespawning(true);
             existing.setDespawnTime(0f);
@@ -1263,9 +1263,9 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             return false;
         }
         Vector3d pos = transform.getPosition();
-        double dx = Math.abs(pos.getX() - (expected.getX() + 0.5D));
-        double dy = Math.abs(pos.getY() - expected.getY());
-        double dz = Math.abs(pos.getZ() - (expected.getZ() + 0.5D));
+        double dx = Math.abs(pos.x() - (expected.x() + 0.5D));
+        double dy = Math.abs(pos.y() - expected.y());
+        double dz = Math.abs(pos.z() - (expected.z() + 0.5D));
         return dx < 1.5D && dy < 2.0D && dz < 1.5D;
     }
 
@@ -1273,7 +1273,7 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
                                   @Nonnull Ref<EntityStore> npcRef,
                                   @Nonnull NPCEntity npc,
                                   @Nonnull Vector3i blockPos,
-                                  @Nonnull Vector3f rotation,
+                                  @Nonnull com.hypixel.hytale.math.vector.Rotation3f rotation,
                                   @Nonnull String displayName) {
         if (store.getComponent(npcRef, Interactable.getComponentType()) == null) {
             store.addComponent(npcRef, Interactable.getComponentType(), Interactable.INSTANCE);
@@ -1297,8 +1297,8 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
         }
         npc.setDespawnTime(Float.MAX_VALUE);
         npc.setDespawning(false);
-        npc.setLeashPoint(new Vector3d(blockPos.getX() + 0.5D, blockPos.getY(), blockPos.getZ() + 0.5D));
-        npc.setLeashHeading(rotation.getY());
+        npc.setLeashPoint(new Vector3d(blockPos.x() + 0.5D, blockPos.y(), blockPos.z() + 0.5D));
+        npc.setLeashHeading(rotation.y());
     }
 
     private void restoreDraft() {

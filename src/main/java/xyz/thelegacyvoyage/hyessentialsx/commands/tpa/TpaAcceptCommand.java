@@ -9,8 +9,8 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandBypassUtil;
@@ -40,7 +40,7 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
         this.tpManager = tpManager;
         this.backManager = backManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.addAliases(new String[]{"tpaccept"});
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
@@ -114,7 +114,7 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
 
             tpManager.queue(
                     teleportedId,
-                    t.getPosition().clone(),
+                    new org.joml.Vector3d(t.getPosition()),
                     warmupSeconds,
                     buffer -> {
                         String err = isHere
@@ -128,7 +128,7 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
                             backManager.recordLocation(
                                     teleportedId,
                                     backSnapshot.worldName,
-                                    backSnapshot.pos.getX(), backSnapshot.pos.getY(), backSnapshot.pos.getZ(),
+                                    backSnapshot.pos.x(), backSnapshot.pos.y(), backSnapshot.pos.z(),
                                     backSnapshot.yaw, backSnapshot.pitch
                             );
                         }
@@ -161,7 +161,7 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
             backManager.recordLocation(
                     teleportedId,
                     backSnapshot.worldName,
-                    backSnapshot.pos.getX(), backSnapshot.pos.getY(), backSnapshot.pos.getZ(),
+                    backSnapshot.pos.x(), backSnapshot.pos.y(), backSnapshot.pos.z(),
                     backSnapshot.yaw, backSnapshot.pitch
             );
         }
@@ -188,7 +188,7 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
                                              @Nonnull Store<EntityStore> store) {
         com.hypixel.hytale.math.vector.Transform transform = playerRef.getTransform();
         Vector3d pos = (transform != null) ? transform.getPosition() : null;
-        Vector3f rot = (transform != null) ? transform.getRotation() : null;
+        com.hypixel.hytale.math.vector.Rotation3f rot = (transform != null) ? transform.getRotation() : null;
         if (pos == null) {
             TransformComponent component = store.getComponent(ref, TransformComponent.getComponentType());
             if (component != null) {
@@ -199,8 +199,8 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
         if (pos == null) {
             return null;
         }
-        float yaw = (rot != null) ? rot.getY() : 0f;
-        float pitch = (rot != null) ? rot.getX() : 0f;
+        float yaw = (rot != null) ? rot.y() : 0f;
+        float pitch = (rot != null) ? rot.x() : 0f;
         World world = store.getExternalData().getWorld();
         if (world == null) {
             UUID worldId = playerRef.getWorldUuid();

@@ -28,7 +28,7 @@ public final class FlyCommand extends AbstractPlayerCommand {
         super("fly", "Toggle flight");
         this.flyManager = flyManager;
         this.storage = storage;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
     }

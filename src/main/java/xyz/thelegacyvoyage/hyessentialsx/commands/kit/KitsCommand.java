@@ -27,7 +27,7 @@ public final class KitsCommand extends AbstractPlayerCommand {
         super("kits", "Lists all kits");
         this.kitManager = kitManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 

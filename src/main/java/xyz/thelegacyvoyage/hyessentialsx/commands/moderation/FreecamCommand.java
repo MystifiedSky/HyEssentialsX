@@ -28,7 +28,7 @@ public final class FreecamCommand extends AbstractPlayerCommand {
     public FreecamCommand(@Nonnull FreecamManager freecamManager) {
         super("freecam", "Toggles free camera");
         this.freecamManager = freecamManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
     }

@@ -34,7 +34,7 @@ public final class TpaCommand extends AbstractPlayerCommand {
         this.tpManager = tpManager;
         this.config = config;
         this.cooldowns = cooldowns;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }

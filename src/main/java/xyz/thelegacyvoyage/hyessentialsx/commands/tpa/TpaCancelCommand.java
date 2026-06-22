@@ -27,7 +27,7 @@ public final class TpaCancelCommand extends AbstractPlayerCommand {
         super("tpacancel", "Cancel a teleport request you sent");
         this.tpManager = tpManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.targetArg = withRequiredArg("player", "Player to cancel for", ArgTypes.PLAYER_REF);
     }

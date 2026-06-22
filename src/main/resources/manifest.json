@@ -10,8 +10,7 @@
   "IncludesAssetPack": true,
   "Dependencies": {},
   "OptionalDependencies": {
-    "Buuz135:MultipleHUD": ">= 1.0.4",
-    "HelpChat:PlaceholderAPI": ">= 1.0.2",
-    "TheNewEconomy:VaultUnlocked": ">= 2.19.0"
+    "HelpChat:PlaceholderAPI": ">=1.0.2",
+    "TheNewEconomy:VaultUnlocked": ">=2.19.0"
   }
 }

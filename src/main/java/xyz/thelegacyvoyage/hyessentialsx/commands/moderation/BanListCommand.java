@@ -31,7 +31,7 @@ public final class BanListCommand extends AbstractPlayerCommand {
         this.banManager = banManager;
         this.ipBanManager = ipBanManager;
         this.storage = storage;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"bans", "ipbans"});
     }

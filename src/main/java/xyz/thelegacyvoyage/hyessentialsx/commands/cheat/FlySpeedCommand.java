@@ -35,7 +35,7 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
         this.flyManager = flyManager;
         this.storage = storage;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }

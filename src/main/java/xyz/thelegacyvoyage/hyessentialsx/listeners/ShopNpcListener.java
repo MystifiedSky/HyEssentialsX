@@ -36,7 +36,7 @@ public final class ShopNpcListener {
     private final EconomyManager economy;
     private final ShopAdminDraftCache draftCache;
     private static final double INTERACTION_DISTANCE_SQ = 9.0D;
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     public ShopNpcListener(@Nonnull ShopManager shopManager,
                            @Nonnull EconomyManager economy,
@@ -56,9 +56,9 @@ public final class ShopNpcListener {
     private void acceptMouse(@Nonnull PlayerMouseButtonEvent event) {
         if (DEBUG) {
             String targetInfo = "none";
-            Entity targetEntity = event.getTargetEntity();
-            if (targetEntity != null) {
-                targetInfo = targetEntity.getClass().getSimpleName();
+            Ref<EntityStore> targetEntity = event.getTargetEntityRef();
+            if (targetEntity != null && targetEntity.isValid()) {
+                targetInfo = "ref";
             }
             String playerName = "";
             try {
@@ -82,9 +82,9 @@ public final class ShopNpcListener {
         }
         if (DEBUG) {
             String targetInfo = "none";
-            Entity targetEntity = event.getTargetEntity();
-            if (targetEntity != null) {
-                targetInfo = targetEntity.getClass().getSimpleName();
+            Ref<EntityStore> targetEntity = event.getTargetEntityRef();
+            if (targetEntity != null && targetEntity.isValid()) {
+                targetInfo = "ref";
             }
             String playerName = "";
             try {
@@ -99,7 +99,8 @@ public final class ShopNpcListener {
         if (playerRefComponent == null) {
             return;
         }
-        ShopModel shop = resolveShopFromTarget(event.getTargetEntity(), playerRefComponent, player);
+        NPCEntity targetNpc = resolveTargetNpc(event.getTargetEntityRef());
+        ShopModel shop = resolveShopFromTarget(targetNpc, playerRefComponent, player);
         if (shop == null) {
             if (DEBUG) {
                 Log.info("[ShopNPC] MouseRight no shop resolved.");
@@ -136,14 +137,26 @@ public final class ShopNpcListener {
     }
 
     @Nullable
-    private ShopModel resolveShopFromTarget(@Nullable Entity targetEntity,
+    private ShopModel resolveShopFromTarget(@Nullable NPCEntity targetEntity,
                                             @Nonnull PlayerRef playerRefComponent,
                                             @Nonnull Player player) {
-        if (targetEntity instanceof NPCEntity npc) {
-            ShopModel direct = resolveShopByNpcEntity(npc);
+        if (targetEntity != null) {
+            ShopModel direct = resolveShopByNpcEntity(targetEntity);
             if (direct != null) return direct;
         }
         return resolveNearbyShop(playerRefComponent, player);
+    }
+
+    @Nullable
+    private NPCEntity resolveTargetNpc(@Nullable Ref<EntityStore> targetRef) {
+        if (targetRef == null || !targetRef.isValid()) {
+            return null;
+        }
+        try {
+            return targetRef.getStore().getComponent(targetRef, NPCEntity.getComponentType());
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     @Nullable
@@ -181,9 +194,9 @@ public final class ShopNpcListener {
                 continue;
             }
             var p = npc.getPosition();
-            double dx = pos.getX() - (p.getX() + 0.5D);
-            double dy = pos.getY() - p.getY();
-            double dz = pos.getZ() - (p.getZ() + 0.5D);
+            double dx = pos.x() - (p.x() + 0.5D);
+            double dy = pos.y() - p.y();
+            double dz = pos.z() - (p.z() + 0.5D);
             double distSq = (dx * dx) + (dy * dy) + (dz * dz);
             if (distSq < bestDistSq) {
                 bestDistSq = distSq;
@@ -197,7 +210,7 @@ public final class ShopNpcListener {
     }
 
     private ShopNpcModel resolveNpcByPosition(@Nonnull NPCEntity npcEntity) {
-        com.hypixel.hytale.math.vector.Vector3d pos = getNpcPosition(npcEntity);
+        org.joml.Vector3d pos = getNpcPosition(npcEntity);
         if (pos == null) {
             return null;
         }
@@ -208,10 +221,10 @@ public final class ShopNpcListener {
             if (!worldName.isBlank() && !npc.getWorldId().equalsIgnoreCase(worldName)) {
                 continue;
             }
-            com.hypixel.hytale.math.vector.Vector3i p = npc.getPosition();
-            double dx = pos.getX() - (p.getX() + 0.5D);
-            double dy = pos.getY() - p.getY();
-            double dz = pos.getZ() - (p.getZ() + 0.5D);
+            org.joml.Vector3i p = npc.getPosition();
+            double dx = pos.x() - (p.x() + 0.5D);
+            double dy = pos.y() - p.y();
+            double dz = pos.z() - (p.z() + 0.5D);
             double distSq = (dx * dx) + (dy * dy) + (dz * dz);
             if (distSq < bestDistSq) {
                 bestDistSq = distSq;
@@ -221,9 +234,9 @@ public final class ShopNpcListener {
         return bestDistSq <= 2.25D ? best : null;
     }
 
-    private com.hypixel.hytale.math.vector.Vector3d getNpcPosition(@Nonnull NPCEntity npcEntity) {
+    private org.joml.Vector3d getNpcPosition(@Nonnull NPCEntity npcEntity) {
         try {
-            com.hypixel.hytale.math.vector.Vector3d leash = npcEntity.getLeashPoint();
+            org.joml.Vector3d leash = npcEntity.getLeashPoint();
             if (leash != null) return leash;
         } catch (Exception ignored) {
         }
@@ -240,19 +253,8 @@ public final class ShopNpcListener {
     private boolean hasPermission(@Nonnull Player player,
                                   @Nonnull PlayerRef playerRef,
                                   @Nonnull String permission) {
-        Boolean componentHas = null;
-        try {
-            componentHas = player.hasPermission(permission);
-        } catch (Exception ignored) {
-        }
         boolean moduleHas = PermissionsModule.get().hasPermission(playerRef.getUuid(), permission, false);
-        if (PermissionsModule.get().getFirstPermissionProvider() == null) {
-            return componentHas != null && componentHas;
-        }
-        if (componentHas == null) {
-            return moduleHas;
-        }
-        return moduleHas && componentHas;
+        return moduleHas;
     }
 }
 

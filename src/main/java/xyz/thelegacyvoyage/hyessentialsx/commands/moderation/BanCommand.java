@@ -33,7 +33,7 @@ public final class BanCommand extends CommandBase {
         super("ban", "Permanently bans a player");
         this.banManager = banManager;
         this.storage = storage;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("player", "Player name", ArgTypes.STRING);

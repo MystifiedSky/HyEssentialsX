@@ -27,7 +27,7 @@ public final class ClearInventoryCommand extends AbstractPlayerCommand {
 
     public ClearInventoryCommand() {
         super("clearinventory", "Clears inventory");
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"ci"});
         this.setAllowsExtraArguments(true);

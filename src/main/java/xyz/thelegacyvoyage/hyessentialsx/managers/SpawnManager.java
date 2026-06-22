@@ -1,7 +1,8 @@
 package xyz.thelegacyvoyage.hyessentialsx.managers;
 
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
+import com.hypixel.hytale.math.vector.Rotation3f;
 import com.hypixel.hytale.math.vector.Transform;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
@@ -145,19 +146,19 @@ public final class SpawnManager {
 
 
         Vector3d pos = resolveWorldSpawnPosition(world);
-        Vector3f rot = resolveWorldSpawnRotation(world);
+        Rotation3f rot = resolveWorldSpawnRotation(world);
 
         if (pos == null) {
             Log.warn("Could not resolve default spawn position from World API. Spawn not initialized.");
             return;
         }
 
-        float yaw = (rot != null) ? rot.getY() : 0f;
-        float pitch = (rot != null) ? rot.getX() : 0f;
+        float yaw = (rot != null) ? rot.y() : 0f;
+        float pitch = (rot != null) ? rot.x() : 0f;
 
         setSpawn(new SpawnModel(
                 world.getName(),
-                pos.getX(), pos.getY(), pos.getZ(),
+                pos.x(), pos.y(), pos.z(),
                 yaw, pitch
         ));
 
@@ -181,15 +182,15 @@ public final class SpawnManager {
         if (transform == null) return null;
 
         Vector3d pos = transform.getPosition();
-        Vector3f rot = transform.getRotation();
+        com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
         if (pos == null) return null;
 
-        float yaw = (rot != null) ? rot.getY() : 0f;
-        float pitch = (rot != null) ? rot.getX() : 0f;
+        float yaw = (rot != null) ? rot.y() : 0f;
+        float pitch = (rot != null) ? rot.x() : 0f;
 
         return new SpawnModel(
                 world.getName(),
-                pos.getX(), pos.getY(), pos.getZ(),
+                pos.x(), pos.y(), pos.z(),
                 yaw, pitch
         );
     }
@@ -273,7 +274,7 @@ public final class SpawnManager {
     }
 
     @Nullable
-    private Vector3f resolveWorldSpawnRotation(@Nonnull World world) {
+    private Rotation3f resolveWorldSpawnRotation(@Nonnull World world) {
         String[] candidates = {
                 "getSpawnRotation",
                 "getDefaultSpawnRotation",
@@ -283,7 +284,8 @@ public final class SpawnManager {
 
         for (String name : candidates) {
             Object out = tryInvokeNoArgs(world, name);
-            if (out instanceof Vector3f v) return v;
+            if (out instanceof Rotation3f v) return v;
+            if (out instanceof Vector3f v) return new Rotation3f(v.x(), v.y(), v.z());
         }
         return null;
     }
@@ -300,8 +302,8 @@ public final class SpawnManager {
 
     private void applySpawnToWorld(@Nonnull World world, @Nonnull SpawnModel spawn) {
         try {
-            Vector3d pos = new Vector3d(spawn.getX(), spawn.getY(), spawn.getZ());
-            Vector3f rot = new Vector3f(spawn.getPitch(), spawn.getYaw(), 0f);
+            Vector3d pos = new Vector3d(spawn.x(), spawn.y(), spawn.z());
+            Rotation3f rot = new Rotation3f(spawn.pitch(), spawn.yaw(), 0f);
             Transform transform = new Transform(pos, rot);
             WorldConfig config = world.getWorldConfig();
             config.setSpawnProvider(new GlobalSpawnProvider(transform));

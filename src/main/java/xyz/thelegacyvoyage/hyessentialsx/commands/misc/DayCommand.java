@@ -18,7 +18,7 @@ public final class DayCommand extends CommandBase {
 
     public DayCommand() {
         super("day", "Sets time to day");
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 

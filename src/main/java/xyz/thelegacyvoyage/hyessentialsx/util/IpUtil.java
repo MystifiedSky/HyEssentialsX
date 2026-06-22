@@ -2,6 +2,7 @@ package xyz.thelegacyvoyage.hyessentialsx.util;
 
 import com.hypixel.hytale.server.core.io.PacketHandler;
 import com.hypixel.hytale.server.core.io.netty.NettyUtil;
+import com.hypixel.hytale.protocol.io.ChannelConnection;
 import io.netty.channel.Channel;
 
 import javax.annotation.Nullable;
@@ -21,8 +22,16 @@ public final class IpUtil {
     public static String extractIp(@Nullable PacketHandler handler) {
         if (handler == null) return null;
         try {
-            Channel channel = handler.getChannel();
-            if (channel == null) return null;
+            ChannelConnection connection = handler.getChannel();
+            if (connection == null) return null;
+            SocketAddress connectionAddress = connection.remoteAddress();
+            String fromConnection = extractFromSocketAddress(connectionAddress);
+            if (fromConnection != null) return fromConnection;
+            String formatted = normalizeIp(connection.formatRemoteAddress());
+            if (formatted != null) return formatted;
+            if (!(connection instanceof Channel channel)) {
+                return extractFromString(connection.formatRemoteAddress());
+            }
             try {
                 SocketAddress socketAddress = NettyUtil.getRemoteSocketAddress(channel);
                 String resolved = extractFromSocketAddress(socketAddress);

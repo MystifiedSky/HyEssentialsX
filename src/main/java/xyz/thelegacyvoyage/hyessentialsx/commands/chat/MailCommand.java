@@ -38,7 +38,7 @@ public final class MailCommand extends CommandBase {
         this.mail = mail;
         this.storage = storage;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }

@@ -16,7 +16,7 @@ public final class ListCommand extends CommandBase {
 
     public ListCommand() {
         super("list", "Shows all online players");
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"online", "playerlist", "plist", "who"});
     }

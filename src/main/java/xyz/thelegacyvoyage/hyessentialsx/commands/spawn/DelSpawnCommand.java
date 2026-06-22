@@ -24,7 +24,7 @@ public final class DelSpawnCommand extends AbstractPlayerCommand {
         super("delspawn", "Delete the custom spawn (or a named spawn) and revert to world default");
         this.spawnManager = spawnManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }

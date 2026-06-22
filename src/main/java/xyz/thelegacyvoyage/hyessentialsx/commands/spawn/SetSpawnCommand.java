@@ -2,8 +2,8 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.spawn;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
@@ -28,7 +28,7 @@ public final class SetSpawnCommand extends AbstractPlayerCommand {
         super("setspawn", "Set the server spawn (or a named spawn) to your current location");
         this.spawnManager = spawnManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
@@ -62,12 +62,12 @@ public final class SetSpawnCommand extends AbstractPlayerCommand {
         }
 
         Vector3d pos = transform.getPosition();
-        Vector3f rot = transform.getRotation(); // axis order depends on SDK
-        float yaw = (rot != null) ? rot.getY() : 0f;
-        float pitch = (rot != null) ? rot.getX() : 0f;
+        com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation(); // axis order depends on SDK
+        float yaw = (rot != null) ? rot.y() : 0f;
+        float pitch = (rot != null) ? rot.x() : 0f;
         SpawnModel spawn = new SpawnModel(
                 world.getName(),
-                pos.getX(), pos.getY(), pos.getZ(),
+                pos.x(), pos.y(), pos.z(),
                 yaw, pitch
         );
 

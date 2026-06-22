@@ -1,7 +1,7 @@
 package xyz.thelegacyvoyage.hyessentialsx.managers.hologram.animation;
 
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -66,8 +66,8 @@ public class HologramAnimationManager {
          this.hologramName = hologramName;
          this.lineIndex = lineIndex;
          this.animation = animation;
-         this.basePosition = basePosition.clone();
-         this.baseRotation = baseRotation.clone();
+         this.basePosition = new Vector3d(basePosition);
+         this.baseRotation = new Vector3f(baseRotation);
          this.baseScale = baseScale;
          this.currentTime = 0.0F;
          this.playing = false;
@@ -86,11 +86,11 @@ public class HologramAnimationManager {
       }
 
       public Vector3d getBasePosition() {
-         return this.basePosition.clone();
+         return new Vector3d(this.basePosition);
       }
 
       public Vector3f getBaseRotation() {
-         return this.baseRotation.clone();
+         return new Vector3f(this.baseRotation);
       }
 
       public float getBaseScale() {
@@ -140,7 +140,7 @@ public class HologramAnimationManager {
       public Vector3d getCurrentPosition() {
          Keyframe sampled = this.animation.sample(this.currentTime);
          if (sampled == null) {
-            return this.basePosition.clone();
+            return new Vector3d(this.basePosition);
          } else {
             Vector3d offset = sampled.getPosition();
             return new Vector3d(this.basePosition.x + offset.x, this.basePosition.y + offset.y, this.basePosition.z + offset.z);
@@ -151,7 +151,7 @@ public class HologramAnimationManager {
       public Vector3f getCurrentRotation() {
          Keyframe sampled = this.animation.sample(this.currentTime);
          if (sampled == null) {
-            return this.baseRotation.clone();
+            return new Vector3f(this.baseRotation);
          } else {
             Vector3f animRot = sampled.getRotation();
             return new Vector3f(this.baseRotation.x + (float)Math.toRadians((double)animRot.x), this.baseRotation.y + (float)Math.toRadians((double)animRot.y), this.baseRotation.z + (float)Math.toRadians((double)animRot.z));

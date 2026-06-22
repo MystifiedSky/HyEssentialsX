@@ -6,7 +6,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.hologram.Vec3d;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger.Api;
-import com.hypixel.hytale.math.vector.Vector3d;
+import org.joml.Vector3d;
 import com.hypixel.hytale.protocol.TransformUpdate;
 import com.hypixel.hytale.protocol.Direction;
 import com.hypixel.hytale.protocol.ModelTransform;
@@ -184,21 +184,21 @@ public class BillboardManager {
                            TransformComponent playerTransform = (TransformComponent)store.getComponent(playerRef, TransformComponent.getComponentType());
                            if (playerTransform != null) {
                               Vector3d playerPos = playerTransform.getPosition();
-                              double distSq = billboardPos.distanceSquaredTo(playerPos);
+                              double distSq = billboardPos.distanceSquared(playerPos);
                               double maxDist = this.config.getMaxTrackingDistance();
                               double minDist = billboard.hasCustomDistance() ? (double)billboard.customTrackingDistance : this.config.getMinTrackingDistance();
                               if (!(distSq > maxDist * maxDist)) {
                                  float yaw;
                                  if (distSq <= minDist * minDist) {
-                                    double dx = playerPos.getX() - billboardPos.getX();
-                                    double dz = playerPos.getZ() - billboardPos.getZ();
+                                    double dx = playerPos.x() - billboardPos.x();
+                                    double dz = playerPos.z() - billboardPos.z();
                                     yaw = (float)Math.atan2(-dx, -dz);
                                  } else {
                                     yaw = billboard.defaultYaw;
                                  }
 
                                  ModelTransform transform = new ModelTransform();
-                                 transform.position = new Position(billboardPos.getX(), billboardPos.getY(), billboardPos.getZ());
+                                 transform.position = new Position(billboardPos.x(), billboardPos.y(), billboardPos.z());
                                  transform.bodyOrientation = new Direction(yaw, 0.0F, 0.0F);
                                  transform.lookOrientation = new Direction(yaw, 0.0F, 0.0F);
                                  TransformUpdate update = new TransformUpdate();
@@ -209,7 +209,7 @@ public class BillboardManager {
                         }
                      }
 
-                     billboard.position = new Vec3d(billboardPos.getX(), billboardPos.getY(), billboardPos.getZ());
+                     billboard.position = new Vec3d(billboardPos.x(), billboardPos.y(), billboardPos.z());
                   }
                }
             }

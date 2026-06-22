@@ -4,7 +4,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Transform;
-import com.hypixel.hytale.math.vector.Vector3d;
+import org.joml.Vector3d;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
@@ -32,7 +32,7 @@ public final class TopCommand extends AbstractPlayerCommand {
     public TopCommand(@Nonnull BackManager backManager) {
         super("top", "Teleports to highest block");
         this.backManager = backManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
     }
@@ -80,8 +80,8 @@ public final class TopCommand extends AbstractPlayerCommand {
         }
 
         Vector3d pos = transform.getPosition();
-        int blockX = (int) Math.floor(pos.getX());
-        int blockZ = (int) Math.floor(pos.getZ());
+        int blockX = (int) Math.floor(pos.x());
+        int blockZ = (int) Math.floor(pos.z());
         long chunkIndex = ChunkUtil.indexChunkFromBlock(blockX, blockZ);
         WorldChunk chunk = targetWorld.getChunkIfLoaded(chunkIndex);
         if (chunk == null) {
@@ -90,15 +90,15 @@ public final class TopCommand extends AbstractPlayerCommand {
         }
 
         if (transform.getPosition() != null) {
-            com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
-            float startYaw = (rot != null) ? rot.getY() : 0f;
-            float startPitch = (rot != null) ? rot.getX() : 0f;
+            com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
+            float startYaw = (rot != null) ? rot.y() : 0f;
+            float startPitch = (rot != null) ? rot.x() : 0f;
             backManager.recordLocation(
                     target.getUuid(),
                     targetWorld.getName(),
-                    transform.getPosition().getX(),
-                    transform.getPosition().getY(),
-                    transform.getPosition().getZ(),
+                    transform.getPosition().x(),
+                    transform.getPosition().y(),
+                    transform.getPosition().z(),
                     startYaw, startPitch
             );
         }
@@ -119,7 +119,7 @@ public final class TopCommand extends AbstractPlayerCommand {
                 targetStore,
                 targetRef,
                 targetWorld.getName(),
-                pos.getX(), targetY, pos.getZ(),
+                pos.x(), targetY, pos.z(),
                 0f, 0f
         );
         if (err != null) {

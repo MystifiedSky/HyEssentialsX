@@ -79,7 +79,7 @@ public final class ServerCompatUtil {
                 }
             }
         }
-        return getLegacyTransform(entity);
+        return null;
     }
 
     @Nullable
@@ -108,13 +108,4 @@ public final class ServerCompatUtil {
         }
     }
 
-    @Nullable
-    @SuppressWarnings("removal")
-    private static TransformComponent getLegacyTransform(@Nonnull Entity entity) {
-        try {
-            return entity.getTransformComponent();
-        } catch (Exception ignored) {
-            return null;
-        }
-    }
 }

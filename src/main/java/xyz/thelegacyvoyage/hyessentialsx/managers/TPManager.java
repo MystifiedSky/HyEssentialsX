@@ -1,7 +1,7 @@
 package xyz.thelegacyvoyage.hyessentialsx.managers;
 
 import com.hypixel.hytale.component.CommandBuffer;
-import com.hypixel.hytale.math.vector.Vector3d;
+import org.joml.Vector3d;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
 import javax.annotation.Nonnull;
@@ -63,7 +63,7 @@ public final class TPManager {
                       @Nonnull Vector3d startPos,
                       float delaySeconds,
                       @Nonnull TeleportAction executeTeleport) {
-        pending.put(playerId, new PendingTeleport(startPos.clone(), delaySeconds, executeTeleport));
+        pending.put(playerId, new PendingTeleport(new org.joml.Vector3d(startPos), delaySeconds, executeTeleport));
     }
 
     public static final class TickResult {
@@ -121,7 +121,7 @@ public final class TPManager {
         if (p == null) return TickResult.none();
 
         double maxSq = CANCEL_DISTANCE * CANCEL_DISTANCE;
-        if (p.startPos.distanceSquaredTo(currentPos) > maxSq) {
+        if (p.startPos.distanceSquared(currentPos) > maxSq) {
             pending.remove(playerId);
             return TickResult.cancelled();
         }

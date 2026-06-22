@@ -6,8 +6,8 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.RefChangeSystem;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.entity.damage.DeathComponent;
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
@@ -65,14 +65,14 @@ public final class DeathBackListener {
             if (world == null) return;
 
             Vector3d pos = t.getPosition();
-            Vector3f rot = t.getRotation();
+            com.hypixel.hytale.math.vector.Rotation3f rot = t.getRotation();
 
             back.recordDeath(
                     player.getUuid(),
                     world.getName(),
-                    pos.getX(), pos.getY(), pos.getZ(),
-                    rot.getY(),   // yaw (matches your other usage)
-                    rot.getX()    // pitch
+                    pos.x(), pos.y(), pos.z(),
+                    rot.y(),   // yaw (matches your other usage)
+                    rot.x()    // pitch
             );
         }
 

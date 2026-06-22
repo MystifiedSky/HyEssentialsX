@@ -10,7 +10,7 @@ import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.EntityEventSystem;
 import com.hypixel.hytale.component.system.tick.EntityTickingSystem;
 import com.hypixel.hytale.event.EventRegistry;
-import com.hypixel.hytale.math.vector.Vector3d;
+import org.joml.Vector3d;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.DamageBlockEvent;
@@ -139,9 +139,9 @@ public final class FreezeListener {
         }
 
         private boolean movedTooFar(@Nonnull Vector3d pos, @Nonnull FreezeManager.FrozenState state) {
-            double dx = pos.getX() - state.x();
-            double dy = pos.getY() - state.y();
-            double dz = pos.getZ() - state.z();
+            double dx = pos.x() - state.x();
+            double dy = pos.y() - state.y();
+            double dz = pos.z() - state.z();
             return (dx * dx + dy * dy + dz * dz) > 0.01;
         }
     }

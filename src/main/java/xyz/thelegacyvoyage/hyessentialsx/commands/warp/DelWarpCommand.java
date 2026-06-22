@@ -27,7 +27,7 @@ public final class DelWarpCommand extends AbstractPlayerCommand {
         super("delwarp", "Deletes a warp");
         this.warpManager = warpManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"remwarp", "rmwarp"});
         this.nameArg = withRequiredArg("name", "Warp name", ArgTypes.STRING);

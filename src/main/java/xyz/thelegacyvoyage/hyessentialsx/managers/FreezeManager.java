@@ -101,13 +101,13 @@ public final class FreezeManager {
         try {
             if (player.getTransform() != null && player.getTransform().getPosition() != null) {
                 var pos = player.getTransform().getPosition();
-                x = pos.getX();
-                y = pos.getY();
-                z = pos.getZ();
+                x = pos.x();
+                y = pos.y();
+                z = pos.z();
                 var rot = player.getTransform().getRotation();
                 if (rot != null) {
-                    pitch = rot.getX();
-                    yaw = rot.getY();
+                    pitch = rot.x();
+                    yaw = rot.y();
                 }
             } else {
                 return null;

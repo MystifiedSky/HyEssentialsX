@@ -2,7 +2,7 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.misc;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.vector.Vector3d;
+import org.joml.Vector3d;
 import com.hypixel.hytale.math.vector.Transform;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
@@ -31,7 +31,7 @@ public final class NearCommand extends AbstractPlayerCommand {
         super("near", "Shows nearby players");
         this.config = config;
         this.cooldowns = cooldowns;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"nearby"});
     }
@@ -78,9 +78,9 @@ public final class NearCommand extends AbstractPlayerCommand {
             if (t == null) continue;
             Vector3d pos = t.getPosition();
             if (pos == null) continue;
-            if (pos.distanceSquaredTo(selfPos) > radiusSq) continue;
+            if (pos.distanceSquared(selfPos) > radiusSq) continue;
             if (config.isNearShowDistance()) {
-                double dist = Math.sqrt(pos.distanceSquaredTo(selfPos));
+                double dist = Math.sqrt(pos.distanceSquared(selfPos));
                 nearby.add(Messages.tr(playerRef, "near.entry.distance", java.util.Map.of(
                         "player", other.getUsername(),
                         "distance", String.valueOf((int) dist)

@@ -186,10 +186,10 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
                 Messages.sendPrefixedKey(playerRef, "teleport.position_unavailable", Map.of());
                 return;
             }
-            com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
-            float startYaw = (rot != null) ? rot.getY() : 0f;
-            float startPitch = (rot != null) ? rot.getX() : 0f;
-            com.hypixel.hytale.math.vector.Vector3d startPos = transform.getPosition().clone();
+            com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
+            float startYaw = (rot != null) ? rot.y() : 0f;
+            float startPitch = (rot != null) ? rot.x() : 0f;
+            org.joml.Vector3d startPos = new org.joml.Vector3d(transform.getPosition());
             String startWorldName = resolveWorldName(store);
             tpManager.queue(
                     playerRef.getUuid(),
@@ -200,8 +200,8 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
                                 buffer,
                                 ref,
                                 warp.getWorldName(),
-                                warp.getX(), warp.getY(), warp.getZ(),
-                                warp.getYaw(), warp.getPitch()
+                                warp.x(), warp.y(), warp.z(),
+                                warp.yaw(), warp.pitch()
                         );
                         if (err != null) {
                             Messages.sendPrefixed(playerRef, err);
@@ -211,7 +211,7 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
                             backManager.recordLocation(
                                     playerRef.getUuid(),
                                     startWorldName,
-                                    startPos.getX(), startPos.getY(), startPos.getZ(),
+                                    startPos.x(), startPos.y(), startPos.z(),
                                     startYaw, startPitch
                             );
                         }
@@ -227,15 +227,15 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
         if (transform != null && transform.getPosition() != null) {
             String worldName = resolveWorldName(store);
             if (worldName != null) {
-                com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
-                float startYaw = (rot != null) ? rot.getY() : 0f;
-                float startPitch = (rot != null) ? rot.getX() : 0f;
+                com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
+                float startYaw = (rot != null) ? rot.y() : 0f;
+                float startPitch = (rot != null) ? rot.x() : 0f;
                 backManager.recordLocation(
                         playerRef.getUuid(),
                         worldName,
-                        transform.getPosition().getX(),
-                        transform.getPosition().getY(),
-                        transform.getPosition().getZ(),
+                        transform.getPosition().x(),
+                        transform.getPosition().y(),
+                        transform.getPosition().z(),
                         startYaw, startPitch
                 );
             }
@@ -245,8 +245,8 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
                 store,
                 ref,
                 warp.getWorldName(),
-                warp.getX(), warp.getY(), warp.getZ(),
-                warp.getYaw(), warp.getPitch()
+                warp.x(), warp.y(), warp.z(),
+                warp.yaw(), warp.pitch()
         );
         if (err != null) {
             Messages.sendPrefixed(playerRef, err);

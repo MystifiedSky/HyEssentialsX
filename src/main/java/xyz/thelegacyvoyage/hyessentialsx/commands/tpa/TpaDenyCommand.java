@@ -27,7 +27,7 @@ public final class TpaDenyCommand extends AbstractPlayerCommand {
         super("tpadeny", "Deny a teleport request");
         this.tpManager = tpManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.addAliases(new String[]{"tpdeny"});
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.requesterArg = withRequiredArg("player", "Player to deny", ArgTypes.PLAYER_REF);

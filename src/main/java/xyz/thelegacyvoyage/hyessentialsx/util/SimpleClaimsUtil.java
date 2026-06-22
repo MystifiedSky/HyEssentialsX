@@ -1,6 +1,6 @@
 package xyz.thelegacyvoyage.hyessentialsx.util;
 
-import com.hypixel.hytale.math.vector.Vector3d;
+import org.joml.Vector3d;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 
@@ -40,8 +40,8 @@ public final class SimpleClaimsUtil {
         if (playerRef == null || world == null || position == null) {
             return true;
         }
-        int blockX = (int) Math.floor(position.getX());
-        int blockZ = (int) Math.floor(position.getZ());
+        int blockX = (int) Math.floor(position.x());
+        int blockZ = (int) Math.floor(position.z());
         return canPlaceShop(playerRef.getUuid(), world.getName(), blockX, blockZ);
     }
 

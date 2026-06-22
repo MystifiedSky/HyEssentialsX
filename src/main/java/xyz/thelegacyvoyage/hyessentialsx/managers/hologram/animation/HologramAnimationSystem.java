@@ -5,8 +5,9 @@ import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.tick.EntityTickingSystem;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import com.hypixel.hytale.math.vector.Rotation3f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
 import com.hypixel.hytale.server.core.entity.UUIDComponent;
 import com.hypixel.hytale.server.core.modules.entity.component.EntityScaleComponent;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
@@ -45,7 +46,7 @@ public class HologramAnimationSystem extends EntityTickingSystem<EntityStore> {
                      transform.setPosition(finalPos);
                      Vector3f animRot = sampled.getRotation();
                      Vector3f baseRot = state.getBaseRotation();
-                     Vector3f finalRot = new Vector3f(baseRot.x + (float)Math.toRadians((double)animRot.x), baseRot.y + (float)Math.toRadians((double)animRot.y), baseRot.z + (float)Math.toRadians((double)animRot.z));
+                     Rotation3f finalRot = new Rotation3f(baseRot.x + (float)Math.toRadians((double)animRot.x), baseRot.y + (float)Math.toRadians((double)animRot.y), baseRot.z + (float)Math.toRadians((double)animRot.z));
                      transform.setRotation(finalRot);
                      EntityScaleComponent scaleComp = (EntityScaleComponent)archetypeChunk.getComponent(index, EntityScaleComponent.getComponentType());
                      if (scaleComp != null) {

@@ -20,7 +20,7 @@ public final class SocialSpyCommand extends AbstractPlayerCommand {
     public SocialSpyCommand(@Nonnull SocialSpyManager socialSpyManager) {
         super("socialspy", "Toggle SocialSpy monitoring");
         this.socialSpyManager = socialSpyManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, SocialSpyManager.PERMISSION_NODE);
         this.addAliases(new String[]{"sspy", "esocialspy"});
     }

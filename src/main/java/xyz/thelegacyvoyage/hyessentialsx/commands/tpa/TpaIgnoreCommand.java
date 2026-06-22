@@ -24,7 +24,7 @@ public final class TpaIgnoreCommand extends AbstractPlayerCommand {
         super("tpaignore", "Toggle ignoring teleport requests");
         this.tpManager = tpManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 

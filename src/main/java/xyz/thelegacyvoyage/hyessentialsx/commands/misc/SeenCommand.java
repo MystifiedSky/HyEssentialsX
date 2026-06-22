@@ -25,7 +25,7 @@ public final class SeenCommand extends CommandBase {
     public SeenCommand(@Nonnull StorageManager storage) {
         super("seen", "Shows last seen time");
         this.storage = storage;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
     }

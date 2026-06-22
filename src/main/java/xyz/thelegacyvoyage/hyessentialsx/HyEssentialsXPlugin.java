@@ -114,6 +114,7 @@ import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerVisibilityListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.RespawnTeleportListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.ScoreboardListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.ShopNpcListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.SpawnProtectionListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.TeleportWarmupListener;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
@@ -666,6 +667,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         if (economyHudManager != null && configManager.isEconomyEnabled()) {
             new EconomyHudListener(economyHudManager).register(bus);
+        }
+        if (shopManager != null && economyManager != null && shopAdminDraftCache != null) {
+            new ShopNpcListener(shopManager, economyManager, shopAdminDraftCache).register(bus);
         }
         new ChatModerationListener(muteManager, adminChatManager, configManager).register(bus);
         new IpBanListener(ipBanManager, storage).register(bus);

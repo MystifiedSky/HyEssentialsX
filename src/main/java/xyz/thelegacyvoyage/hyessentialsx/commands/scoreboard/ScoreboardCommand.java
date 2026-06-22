@@ -66,7 +66,7 @@ public final class ScoreboardCommand extends AbstractCommand {
             super("move", "Adjust your scoreboard position");
             this.scoreboardManager = scoreboardManager;
             this.config = config;
-            this.setPermissionGroup(null);
+            this.setPermissionGroups();
             CommandPermissionUtil.apply(this, PERMISSION_NODE);
         }
 
@@ -110,7 +110,7 @@ public final class ScoreboardCommand extends AbstractCommand {
             super("edit", "Edit scoreboard lines");
             this.scoreboardManager = scoreboardManager;
             this.config = config;
-            this.setPermissionGroup(null);
+            this.setPermissionGroups();
             CommandPermissionUtil.apply(this, PERMISSION_NODE);
         }
 
@@ -154,7 +154,7 @@ public final class ScoreboardCommand extends AbstractCommand {
             super("reset", "Reset your scoreboard position");
             this.scoreboardManager = scoreboardManager;
             this.config = config;
-            this.setPermissionGroup(null);
+            this.setPermissionGroups();
             CommandPermissionUtil.apply(this, PERMISSION_NODE);
         }
 
@@ -194,7 +194,7 @@ public final class ScoreboardCommand extends AbstractCommand {
             super("adminmove", "Adjust the default scoreboard position");
             this.scoreboardManager = scoreboardManager;
             this.config = config;
-            this.setPermissionGroup(null);
+            this.setPermissionGroups();
             CommandPermissionUtil.apply(this, PERMISSION_NODE);
         }
 
@@ -238,7 +238,7 @@ public final class ScoreboardCommand extends AbstractCommand {
             super("show", "Show the scoreboard");
             this.scoreboardManager = scoreboardManager;
             this.config = config;
-            this.setPermissionGroup(null);
+            this.setPermissionGroups();
             CommandPermissionUtil.apply(this, PERMISSION_NODE);
         }
 
@@ -278,7 +278,7 @@ public final class ScoreboardCommand extends AbstractCommand {
             super("hide", "Hide the scoreboard");
             this.scoreboardManager = scoreboardManager;
             this.config = config;
-            this.setPermissionGroup(null);
+            this.setPermissionGroups();
             CommandPermissionUtil.apply(this, PERMISSION_NODE);
         }
 
@@ -318,7 +318,7 @@ public final class ScoreboardCommand extends AbstractCommand {
             super("reload", "Reload scoreboard configuration");
             this.scoreboardManager = scoreboardManager;
             this.config = config;
-            this.setPermissionGroup(null);
+            this.setPermissionGroups();
             CommandPermissionUtil.apply(this, PERMISSION_NODE);
         }
 

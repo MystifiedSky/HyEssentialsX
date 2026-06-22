@@ -33,7 +33,7 @@ public final class InvSeeCommand extends AbstractPlayerCommand {
 
     public InvSeeCommand() {
         super("invsee", "View a player's inventory");
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
         this.setAllowsExtraArguments(true);
     }

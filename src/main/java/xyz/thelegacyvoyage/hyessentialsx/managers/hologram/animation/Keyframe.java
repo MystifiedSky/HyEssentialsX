@@ -1,7 +1,7 @@
 package xyz.thelegacyvoyage.hyessentialsx.managers.hologram.animation;
 
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
 import javax.annotation.Nonnull;
 
 public class Keyframe {
@@ -13,8 +13,8 @@ public class Keyframe {
 
    public Keyframe(float time, Vector3d position, Vector3f rotation, float scale, EasingType easing) {
       this.time = time;
-      this.position = position != null ? position.clone() : new Vector3d(0.0D, 0.0D, 0.0D);
-      this.rotation = rotation != null ? rotation.clone() : new Vector3f(0.0F, 0.0F, 0.0F);
+      this.position = position != null ? new Vector3d(position) : new Vector3d(0.0D, 0.0D, 0.0D);
+      this.rotation = rotation != null ? new Vector3f(rotation) : new Vector3f(0.0F, 0.0F, 0.0F);
       this.scale = scale;
       this.easing = easing != null ? easing : EasingType.LINEAR;
    }
@@ -41,12 +41,12 @@ public class Keyframe {
 
    @Nonnull
    public Vector3d getPosition() {
-      return this.position.clone();
+      return new Vector3d(this.position);
    }
 
    @Nonnull
    public Vector3f getRotation() {
-      return this.rotation.clone();
+      return new Vector3f(this.rotation);
    }
 
    public float getScale() {

@@ -6,7 +6,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.hologram.HologramManager;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger.Api;
-import com.hypixel.hytale.math.vector.Vector3d;
+import org.joml.Vector3d;
 import com.hypixel.hytale.protocol.NameplateUpdate;
 import com.hypixel.hytale.server.core.entity.UUIDComponent;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -21,6 +21,7 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -266,13 +267,13 @@ public class PlaceholderUpdateManager {
          TransformComponent transform = (TransformComponent)store.getComponent(playerRef, TransformComponent.getComponentType());
          if (transform != null) {
             Vector3d pos = transform.getPosition();
-            x = (int)pos.getX();
-            y = (int)pos.getY();
-            z = (int)pos.getZ();
+            x = (int)pos.x();
+            y = (int)pos.y();
+            z = (int)pos.z();
          }
 
          worldName = world.getName();
-         List<PlayerRef> players = Universe.get().getPlayers();
+         Collection<PlayerRef> players = Universe.get().getPlayers();
          Iterator var13 = players.iterator();
 
          while(var13.hasNext()) {
@@ -324,7 +325,7 @@ public class PlaceholderUpdateManager {
          return "";
       } else {
          try {
-            List<PlayerRef> players = Universe.get().getPlayers();
+            Collection<PlayerRef> players = Universe.get().getPlayers();
             Iterator var3 = players.iterator();
 
             while(var3.hasNext()) {
@@ -343,7 +344,7 @@ public class PlaceholderUpdateManager {
    @Nonnull
    private String getPlayerNameFromRef(@Nonnull Ref<EntityStore> playerRef) {
       try {
-         List<PlayerRef> players = Universe.get().getPlayers();
+         Collection<PlayerRef> players = Universe.get().getPlayers();
          Iterator var3 = players.iterator();
 
          while(var3.hasNext()) {

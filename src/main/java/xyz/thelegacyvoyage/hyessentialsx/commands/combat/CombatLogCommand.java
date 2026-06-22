@@ -23,7 +23,7 @@ public final class CombatLogCommand extends CommandBase {
         super("combatlog", "Combat log settings");
         this.combatManager = combatManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
     }
 
     @Override

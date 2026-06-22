@@ -44,7 +44,7 @@ public final class MoneyCommand extends CommandBase {
         this.economy = economy;
         this.storage = storage;
         this.audit = audit;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"balance", "bal", "eco", "cash", "wallet"});

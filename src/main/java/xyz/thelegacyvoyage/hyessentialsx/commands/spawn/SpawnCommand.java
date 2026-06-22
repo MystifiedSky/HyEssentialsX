@@ -9,8 +9,8 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
@@ -50,7 +50,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
         this.tpManager = tpManager;
         this.configManager = configManager;
         this.cooldowns = cooldowns;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
@@ -153,9 +153,9 @@ public final class SpawnCommand extends AbstractPlayerCommand {
         float startPitch = 0f;
         if (transform != null) {
             startPos = transform.getPosition();
-            Vector3f rot = transform.getRotation();
-            startYaw = (rot != null) ? rot.getY() : 0f;
-            startPitch = (rot != null) ? rot.getX() : 0f;
+            com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
+            startYaw = (rot != null) ? rot.y() : 0f;
+            startPitch = (rot != null) ? rot.x() : 0f;
         }
 
         final SpawnModel finalSpawn = spawn;
@@ -172,7 +172,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
                 Messages.errKey(context, "teleport.position_unavailable", Map.of());
                 return;
             }
-            Vector3d finalStartPos = startPos.clone();
+            Vector3d finalStartPos = new org.joml.Vector3d(startPos);
             float finalStartYaw = startYaw;
             float finalStartPitch = startPitch;
             tpManager.queue(
@@ -188,7 +188,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
                         backManager.recordLocation(
                                 playerRef.getUuid(),
                                 world.getName(),
-                                finalStartPos.getX(), finalStartPos.getY(), finalStartPos.getZ(),
+                                finalStartPos.x(), finalStartPos.y(), finalStartPos.z(),
                                 finalStartYaw, finalStartPitch
                         );
                         cooldowns.apply(playerRef, CooldownKeys.SPAWN);
@@ -203,7 +203,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             backManager.recordLocation(
                     playerRef.getUuid(),
                     world.getName(),
-                    startPos.getX(), startPos.getY(), startPos.getZ(),
+                    startPos.x(), startPos.y(), startPos.z(),
                     startYaw, startPitch
             );
         }
@@ -252,9 +252,9 @@ public final class SpawnCommand extends AbstractPlayerCommand {
         float startPitch = 0f;
         if (transform != null) {
             startPos = transform.getPosition();
-            Vector3f rot = transform.getRotation();
-            startYaw = (rot != null) ? rot.getY() : 0f;
-            startPitch = (rot != null) ? rot.getX() : 0f;
+            com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
+            startYaw = (rot != null) ? rot.y() : 0f;
+            startPitch = (rot != null) ? rot.x() : 0f;
         }
 
         Ref<EntityStore> targetRef = target.getReference();
@@ -284,7 +284,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
                 }
                 return SpawnResult.FAILED;
             }
-            Vector3d finalStartPos = startPos.clone();
+            Vector3d finalStartPos = new org.joml.Vector3d(startPos);
             float finalStartYaw = startYaw;
             float finalStartPitch = startPitch;
             tpManager.queue(
@@ -300,7 +300,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
                         backManager.recordLocation(
                                 target.getUuid(),
                                 targetWorld.getName(),
-                                finalStartPos.getX(), finalStartPos.getY(), finalStartPos.getZ(),
+                                finalStartPos.x(), finalStartPos.y(), finalStartPos.z(),
                                 finalStartYaw, finalStartPitch
                         );
                         cooldowns.apply(target, CooldownKeys.SPAWN);
@@ -315,7 +315,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             backManager.recordLocation(
                     target.getUuid(),
                     targetWorld.getName(),
-                    startPos.getX(), startPos.getY(), startPos.getZ(),
+                    startPos.x(), startPos.y(), startPos.z(),
                     startYaw, startPitch
             );
         }

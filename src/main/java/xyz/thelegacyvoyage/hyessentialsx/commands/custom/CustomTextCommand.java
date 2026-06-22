@@ -29,7 +29,7 @@ public final class CustomTextCommand extends CommandBase {
         this.config = config;
         this.commandName = name.toLowerCase();
         this.permission = permission;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         CommandPermissionUtil.apply(this, permission);
         if (!aliases.isEmpty()) {
             this.addAliases(aliases.toArray(new String[0]));

@@ -40,7 +40,7 @@ public final class MigrateSubCommand extends AbstractAsyncCommand {
         super("migrate", "Migrate data from other mods");
         this.migrationManager = new MigrationManager(storage, spawnManager, dataFolder);
         this.dataFolder = dataFolder;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.modArg = withRequiredArg("mod", "Mod to migrate from", ArgTypes.STRING);
         this.mergeArg = withOptionalArg("merge", "Merge with existing data (default: true)", ArgTypes.BOOLEAN);

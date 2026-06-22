@@ -2,8 +2,8 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.warp;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
@@ -31,7 +31,7 @@ public final class SetWarpCommand extends AbstractPlayerCommand {
         super("setwarp", "Creates a warp point");
         this.warpManager = warpManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("name", "Warp name", ArgTypes.STRING);
     }
@@ -71,14 +71,14 @@ public final class SetWarpCommand extends AbstractPlayerCommand {
         }
 
         Vector3d pos = transform.getPosition();
-        Vector3f rot = transform.getRotation();
-        float yaw = (rot != null) ? rot.getY() : 0f;
-        float pitch = (rot != null) ? rot.getX() : 0f;
+        com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
+        float yaw = (rot != null) ? rot.y() : 0f;
+        float pitch = (rot != null) ? rot.x() : 0f;
 
         warpManager.setWarp(new WarpModel(
                 name,
                 world.getName(),
-                pos.getX(), pos.getY(), pos.getZ(),
+                pos.x(), pos.y(), pos.z(),
                 yaw, pitch
         ));
 

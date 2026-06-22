@@ -29,7 +29,7 @@ public final class MoreCommand extends AbstractPlayerCommand {
 
     public MoreCommand() {
         super("more", "Set held item to max stack size");
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.setAllowsExtraArguments(true);
     }

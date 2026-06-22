@@ -25,7 +25,7 @@ public final class RulesCommand extends AbstractPlayerCommand {
     public RulesCommand(@Nonnull ConfigManager config) {
         super("rules", "Displays server rules");
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 

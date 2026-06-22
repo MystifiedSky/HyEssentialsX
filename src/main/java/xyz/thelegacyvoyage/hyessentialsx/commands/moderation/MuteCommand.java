@@ -28,7 +28,7 @@ public final class MuteCommand extends CommandBase {
     public MuteCommand(@Nonnull MuteManager muteManager) {
         super("mute", "Mutes a player");
         this.muteManager = muteManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"silence"});
         this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);

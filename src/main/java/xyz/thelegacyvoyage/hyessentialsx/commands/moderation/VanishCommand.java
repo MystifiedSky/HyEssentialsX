@@ -24,7 +24,7 @@ public final class VanishCommand extends CommandBase {
     public VanishCommand(@Nonnull VanishManager vanishManager) {
         super("vanish", "Toggle vanish");
         this.vanishManager = vanishManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"v"});
         this.setAllowsExtraArguments(true);

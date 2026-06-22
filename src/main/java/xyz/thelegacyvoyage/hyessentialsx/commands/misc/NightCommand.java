@@ -18,7 +18,7 @@ public final class NightCommand extends CommandBase {
 
     public NightCommand() {
         super("night", "Sets time to night");
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 

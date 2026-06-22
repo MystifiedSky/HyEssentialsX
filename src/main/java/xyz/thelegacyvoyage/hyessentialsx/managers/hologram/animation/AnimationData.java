@@ -1,7 +1,7 @@
 package xyz.thelegacyvoyage.hyessentialsx.managers.hologram.animation;
 
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;

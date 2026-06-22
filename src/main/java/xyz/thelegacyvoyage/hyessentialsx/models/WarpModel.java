@@ -43,20 +43,40 @@ public final class WarpModel {
         return x;
     }
 
+    public double x() {
+        return getX();
+    }
+
     public double getY() {
         return y;
+    }
+
+    public double y() {
+        return getY();
     }
 
     public double getZ() {
         return z;
     }
 
+    public double z() {
+        return getZ();
+    }
+
     public float getYaw() {
         return yaw;
     }
 
+    public float yaw() {
+        return getYaw();
+    }
+
     public float getPitch() {
         return pitch;
+    }
+
+    public float pitch() {
+        return getPitch();
     }
 }
 

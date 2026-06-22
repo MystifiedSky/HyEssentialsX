@@ -25,7 +25,7 @@ public final class UnignoreCommand extends AbstractPlayerCommand {
     public UnignoreCommand(@Nonnull IgnoreManager ignoreManager) {
         super("unignore", "Stop ignoring private messages from a player");
         this.ignoreManager = ignoreManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
     }

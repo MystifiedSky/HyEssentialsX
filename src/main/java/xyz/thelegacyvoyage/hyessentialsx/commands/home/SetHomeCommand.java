@@ -2,8 +2,8 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.home;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
@@ -33,7 +33,7 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
         super("sethome", "Sets a home location");
         this.homeManager = homeManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"ecreatehome"});
         this.nameArg = withRequiredArg("name", "Home name", ArgTypes.STRING);
@@ -90,23 +90,23 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
         float pitch = 0f;
         HeadRotation headRotation = store.getComponent(ref, HeadRotation.getComponentType());
         if (headRotation != null) {
-            Vector3f rot = headRotation.getRotation();
+            com.hypixel.hytale.math.vector.Rotation3f rot = headRotation.getRotation();
             if (rot != null) {
-                pitch = rot.getX();
-                yaw = rot.getY();
+                pitch = rot.x();
+                yaw = rot.y();
             }
         } else {
-            Vector3f rot = transform.getRotation();
+            com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
             if (rot != null) {
-                yaw = rot.getY();
-                pitch = rot.getX();
+                yaw = rot.y();
+                pitch = rot.x();
             }
         }
 
         if (pos == null
-                || !Double.isFinite(pos.getX())
-                || !Double.isFinite(pos.getY())
-                || !Double.isFinite(pos.getZ())
+                || !Double.isFinite(pos.x())
+                || !Double.isFinite(pos.y())
+                || !Double.isFinite(pos.z())
                 || !Float.isFinite(yaw)
                 || !Float.isFinite(pitch)) {
             Messages.errKey(context, "home.position_failed", java.util.Map.of());
@@ -118,7 +118,7 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
                 name,
                 worldId,
                 world.getName(),
-                pos.getX(), pos.getY(), pos.getZ(),
+                pos.x(), pos.y(), pos.z(),
                 yaw, pitch
         ));
 

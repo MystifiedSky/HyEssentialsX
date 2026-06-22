@@ -35,7 +35,7 @@ public final class ImportHomesCommand extends CommandBase {
         super("import", "Import homes from another plugin");
         this.storage = storage;
         this.dataFolder = dataFolder;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"heximport", "homeimport"});
         this.fileArg = withRequiredArg("file", "Import filename", ArgTypes.STRING);

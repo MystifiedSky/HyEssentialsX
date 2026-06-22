@@ -27,7 +27,7 @@ public final class KitDeleteCommand extends AbstractPlayerCommand {
         super("kitdelete", "Deletes a kit");
         this.kitManager = kitManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
     }

@@ -12,7 +12,6 @@ import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.economy.EconomyHud;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
-import xyz.thelegacyvoyage.hyessentialsx.util.MultipleHudBridge;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -141,7 +140,7 @@ public final class EconomyHudManager {
             }
             EconomyHud hud = huds.get(playerRef.getUuid());
             if (hud != null) {
-                hud.hide(player, playerRef, MultipleHudBridge.isAvailable());
+                hud.hide(player, playerRef);
             }
         });
     }
@@ -151,19 +150,11 @@ public final class EconomyHudManager {
         if (player == null) {
             return;
         }
-        boolean useMultipleHud = MultipleHudBridge.isAvailable();
         EconomyHud existingHud = huds.get(playerRef.getUuid());
-        if (useMultipleHud) {
-            if (!MultipleHudBridge.canAttachToPlayer(player)) {
-                logSuppressed(playerRef, player);
-                return;
-            }
-        } else {
-            CustomUIHud currentHud = player.getHudManager().getCustomHud();
-            if (currentHud != null && currentHud != existingHud) {
-                logSuppressed(playerRef, player);
-                return;
-            }
+        CustomUIHud currentHud = player.getHudManager().getCustomHud(EconomyHud.HUD_ID);
+        if (currentHud != null && currentHud != existingHud) {
+            logSuppressed(playerRef, player);
+            return;
         }
         suppressedPlayers.remove(playerRef.getUuid());
         long balance = economy.getBalance(playerRef.getUuid());
@@ -182,7 +173,7 @@ public final class EconomyHudManager {
                 config.getEconomyHudAmountColor()
         );
         EconomyHud hud = huds.computeIfAbsent(playerRef.getUuid(), id -> new EconomyHud(playerRef));
-        hud.update(player, playerRef, state, useMultipleHud);
+        hud.update(player, playerRef, state);
     }
 
     private void logSuppressed(@Nonnull PlayerRef playerRef, @Nonnull Player player) {
@@ -190,7 +181,7 @@ public final class EconomyHudManager {
             return;
         }
         String hudName = "unknown";
-        CustomUIHud currentHud = player.getHudManager().getCustomHud();
+        CustomUIHud currentHud = player.getHudManager().getCustomHud(EconomyHud.HUD_ID);
         if (currentHud != null) {
             hudName = currentHud.getClass().getName();
         }

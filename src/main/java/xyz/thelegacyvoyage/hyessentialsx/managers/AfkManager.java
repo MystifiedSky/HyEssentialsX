@@ -1,7 +1,7 @@
 package xyz.thelegacyvoyage.hyessentialsx.managers;
 
 import com.hypixel.hytale.math.vector.Transform;
-import com.hypixel.hytale.math.vector.Vector3d;
+import org.joml.Vector3d;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
@@ -172,7 +172,7 @@ public final class AfkManager {
             if (transform == null) return null;
             Vector3d pos = transform.getPosition();
             if (pos == null) return null;
-            return new Vector3d(pos.getX(), pos.getY(), pos.getZ());
+            return new Vector3d(pos.x(), pos.y(), pos.z());
         } catch (Throwable t) {
             Log.warn("AFK position check failed: " + t.getMessage());
             return null;
@@ -180,9 +180,9 @@ public final class AfkManager {
     }
 
     private boolean moved(@Nonnull Vector3d last, @Nonnull Vector3d current) {
-        double dx = current.getX() - last.getX();
-        double dy = current.getY() - last.getY();
-        double dz = current.getZ() - last.getZ();
+        double dx = current.x() - last.x();
+        double dy = current.y() - last.y();
+        double dz = current.z() - last.z();
         return (dx * dx + dy * dy + dz * dz) > MOVE_EPSILON_SQ;
     }
 

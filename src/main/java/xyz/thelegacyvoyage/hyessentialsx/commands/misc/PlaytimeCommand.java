@@ -57,7 +57,7 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
         this.rankups = rankups;
         this.storage = storage;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"pt"});
         this.setAllowsExtraArguments(true);

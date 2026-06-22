@@ -192,25 +192,7 @@ public final class ShopNpcInteractionRegistry {
                                          @Nonnull Ref<EntityStore> playerEntityRef,
                                          @Nonnull PlayerRef playerRef,
                                          @Nonnull String permission) {
-        Boolean componentHas = null;
-        try {
-            Player player = store.getComponent(playerEntityRef, Player.getComponentType());
-            if (player != null) {
-                componentHas = player.hasPermission(permission);
-            }
-        } catch (Exception ignored) {
-        }
-        boolean moduleHas = PermissionsModule.get().hasPermission(playerRef.getUuid(), permission, false);
-        if (PermissionsModule.get().getFirstPermissionProvider() == null) {
-            if (componentHas != null) {
-                return componentHas;
-            }
-            return moduleHas;
-        }
-        if (componentHas == null) {
-            return moduleHas;
-        }
-        return moduleHas || componentHas;
+        return PermissionsModule.get().hasPermission(playerRef.getUuid(), permission, false);
     }
 
     private static void setInteractionId(@Nonnull Interaction interaction, @Nonnull String id) {

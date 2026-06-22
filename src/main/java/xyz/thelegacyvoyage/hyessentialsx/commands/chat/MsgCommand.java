@@ -38,7 +38,7 @@ public final class MsgCommand extends AbstractPlayerCommand {
         this.ignoreManager = ignoreManager;
         this.socialSpyManager = socialSpyManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"w", "m", "t", "pm", "tell", "whisper", "sendmessage"});

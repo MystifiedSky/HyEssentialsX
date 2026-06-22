@@ -14,7 +14,7 @@ public final class ClearChatCommand extends CommandBase {
 
     public ClearChatCommand() {
         super("clearchat", "Clears the chat");
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"cc"});
     }

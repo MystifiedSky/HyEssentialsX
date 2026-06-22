@@ -109,7 +109,7 @@ public class EntityToolSupport {
                newName = baseName + counter;
             }
 
-            Vec3d newPosition = new Vec3d(transform.getPosition().getX(), transform.getPosition().getY(), transform.getPosition().getZ());
+            Vec3d newPosition = new Vec3d(transform.getPosition().x(), transform.getPosition().y(), transform.getPosition().z());
 
             try {
                Hologram newHologram = this.plugin.getHologramManager().createHologram(newName, newPosition, originalHologram.getWorldId(), originalHologram.getCreatorId());

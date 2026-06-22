@@ -32,7 +32,7 @@ public final class AdminChatCommand extends AbstractPlayerCommand {
         super("adminchat", "Sends admin message");
         this.adminChatManager = adminChatManager;
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"a"});
         this.msgArg = withListOptionalArg("message", "Message", ArgTypes.STRING);

@@ -8,7 +8,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.HologramPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.vector.Vector3d;
+import org.joml.Vector3d;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.protocol.packets.interface_.Page;
@@ -218,7 +218,7 @@ public class HologramEditorPage extends InteractiveCustomUIPage<HologramEditorEv
                switch(var8) {
                case 0:
                   if (!HologramPermissionUtil.hasPermission(player, "HologramService.edit")) {
-                     player.sendMessage(Message.raw("You don't have permission to edit holograms!").color("#FF5555"));
+                     this.playerRef.sendMessage(Message.raw("You don't have permission to edit holograms!").color("#FF5555"));
                      this.refreshUI(ref, store);
                      return;
                   }
@@ -235,7 +235,7 @@ public class HologramEditorPage extends InteractiveCustomUIPage<HologramEditorEv
                   break;
                case 1:
                   if (!HologramPermissionUtil.hasPermission(player, "HologramService.delete")) {
-                     player.sendMessage(Message.raw("You don't have permission to delete hologram lines!").color("#FF5555"));
+                     this.playerRef.sendMessage(Message.raw("You don't have permission to delete hologram lines!").color("#FF5555"));
                      this.refreshUI(ref, store);
                      return;
                   }
@@ -252,7 +252,7 @@ public class HologramEditorPage extends InteractiveCustomUIPage<HologramEditorEv
                   break;
                case 2:
                   if (!HologramPermissionUtil.hasPermission(player, "HologramService.move")) {
-                     player.sendMessage(Message.raw("You don't have permission to move holograms!").color("#FF5555"));
+                     this.playerRef.sendMessage(Message.raw("You don't have permission to move holograms!").color("#FF5555"));
                      this.refreshUI(ref, store);
                      return;
                   }
@@ -264,7 +264,7 @@ public class HologramEditorPage extends InteractiveCustomUIPage<HologramEditorEv
                         return;
                      }
                      Vector3d transformPos = transform.getPosition();
-                     playerPos = new Vec3d(transformPos.getX(), transformPos.getY(), transformPos.getZ());
+                     playerPos = new Vec3d(transformPos.x(), transformPos.y(), transformPos.z());
                      this.plugin.getHologramManager().moveHologram(hologram, playerPos);
                      this.plugin.getHologramManager().saveHolograms();
                      this.refreshUI(ref, store);
@@ -274,7 +274,7 @@ public class HologramEditorPage extends InteractiveCustomUIPage<HologramEditorEv
                   break;
                case 3:
                   if (!HologramPermissionUtil.hasPermission(player, "HologramService.delete")) {
-                     player.sendMessage(Message.raw("You don't have permission to delete holograms!").color("#FF5555"));
+                     this.playerRef.sendMessage(Message.raw("You don't have permission to delete holograms!").color("#FF5555"));
                      this.refreshUI(ref, store);
                      return;
                   }
@@ -295,7 +295,7 @@ public class HologramEditorPage extends InteractiveCustomUIPage<HologramEditorEv
                   break;
                case 6:
                   if (!HologramPermissionUtil.hasPermission(player, "HologramService.edit")) {
-                     player.sendMessage(Message.raw("You don't have permission to edit holograms!").color("#FF5555"));
+                     this.playerRef.sendMessage(Message.raw("You don't have permission to edit holograms!").color("#FF5555"));
                      this.refreshUI(ref, store);
                      return;
                   }
@@ -396,7 +396,7 @@ public class HologramEditorPage extends InteractiveCustomUIPage<HologramEditorEv
                   break;
                case 15:
                   if (!HologramPermissionUtil.hasPermission(player, "HologramService.edit")) {
-                     player.sendMessage(Message.raw("You don't have permission to edit holograms!").color("#FF5555"));
+                     this.playerRef.sendMessage(Message.raw("You don't have permission to edit holograms!").color("#FF5555"));
                      this.refreshUI(ref, store);
                      return;
                   }
@@ -453,7 +453,7 @@ public class HologramEditorPage extends InteractiveCustomUIPage<HologramEditorEv
 
    private boolean checkMovePermission(@Nonnull Player player, @Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
       if (!HologramPermissionUtil.hasPermission(player, "HologramService.move")) {
-         player.sendMessage(Message.raw("You don't have permission to move holograms!").color("#FF5555"));
+         this.playerRef.sendMessage(Message.raw("You don't have permission to move holograms!").color("#FF5555"));
          this.refreshUI(ref, store);
          return false;
       } else {

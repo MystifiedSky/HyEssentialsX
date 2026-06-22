@@ -122,9 +122,9 @@ public class EntityPositionSyncManager {
                      return;
                   }
 
-                  double entityX = transform.getPosition().getX();
-                  double entityY = transform.getPosition().getY();
-                  double entityZ = transform.getPosition().getZ();
+                  double entityX = transform.getPosition().x();
+                  double entityY = transform.getPosition().y();
+                  double entityZ = transform.getPosition().z();
                   Vec3d currentPos = new Vec3d(entityX, entityY, entityZ);
                   Vec3d lastPos = (Vec3d)this.lastKnownPosition.get(firstEntityId);
                   if (lastPos == null) {
@@ -182,7 +182,7 @@ public class EntityPositionSyncManager {
             TransformComponent transform = (TransformComponent)store.getComponent(entityRef, TransformComponent.getComponentType());
             if (transform != null) {
                double yOffset = (double)(-i) * lineSpacing;
-               transform.getPosition().assign(basePosition.x(), basePosition.y() + yOffset, basePosition.z());
+               transform.getPosition().set(basePosition.x(), basePosition.y() + yOffset, basePosition.z());
                transform.markChunkDirty(store);
             }
          }

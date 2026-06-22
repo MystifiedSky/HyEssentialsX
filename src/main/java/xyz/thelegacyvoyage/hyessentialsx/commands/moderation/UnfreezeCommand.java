@@ -25,7 +25,7 @@ public final class UnfreezeCommand extends AbstractPlayerCommand {
     public UnfreezeCommand(@Nonnull FreezeManager freezeManager) {
         super("unfreeze", "Unfreeze a player");
         this.freezeManager = freezeManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.targetArg = withRequiredArg("player", "Player to unfreeze", ArgTypes.PLAYER_REF);
     }

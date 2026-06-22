@@ -4,7 +4,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Transform;
-import com.hypixel.hytale.math.vector.Vector3d;
+import org.joml.Vector3d;
 import com.hypixel.hytale.protocol.BlockMaterial;
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
@@ -59,7 +59,7 @@ public final class RtpCommand extends CommandBase {
         this.cooldowns = cooldowns;
         this.tpManager = tpManager;
         this.backManager = backManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"randomtp", "wild"});
@@ -170,7 +170,7 @@ public final class RtpCommand extends CommandBase {
         if (minDist > maxDist) {
             minDist = maxDist;
         }
-        Vector3d searchOrigin = pos.clone();
+        Vector3d searchOrigin = new org.joml.Vector3d(pos);
         int warmupSeconds = config.getRtpWarmupSeconds();
         if (cooldowns.hasWarmupBypass(context, target, CooldownKeys.RTP, BYPASS_PERMISSION)) {
             warmupSeconds = 0;
@@ -220,13 +220,13 @@ public final class RtpCommand extends CommandBase {
                 Messages.errKey(context, "player.not_found", Map.of());
                 return;
             }
-            com.hypixel.hytale.math.vector.Vector3f rot = transformNow.getRotation();
-            float startYaw = (rot != null) ? rot.getY() : 0f;
-            float startPitch = (rot != null) ? rot.getX() : 0f;
-            Vector3d startPos = transformNow.getPosition().clone();
-            double targetX = destination.getX();
-            double targetY = destination.getY();
-            double targetZ = destination.getZ();
+            com.hypixel.hytale.math.vector.Rotation3f rot = transformNow.getRotation();
+            float startYaw = (rot != null) ? rot.y() : 0f;
+            float startPitch = (rot != null) ? rot.x() : 0f;
+            Vector3d startPos = new org.joml.Vector3d(transformNow.getPosition());
+            double targetX = destination.x();
+            double targetY = destination.y();
+            double targetZ = destination.z();
             tpManager.queue(
                     target.getUuid(),
                     startPos,
@@ -246,7 +246,7 @@ public final class RtpCommand extends CommandBase {
                         backManager.recordLocation(
                                 target.getUuid(),
                                 targetWorld.getName(),
-                                startPos.getX(), startPos.getY(), startPos.getZ(),
+                                startPos.x(), startPos.y(), startPos.z(),
                                 startYaw, startPitch
                         );
                         cooldowns.apply(target, CooldownKeys.RTP);
@@ -271,21 +271,21 @@ public final class RtpCommand extends CommandBase {
             return;
         }
 
-        double targetX = destination.getX();
-        double targetY = destination.getY();
-        double targetZ = destination.getZ();
+        double targetX = destination.x();
+        double targetY = destination.y();
+        double targetZ = destination.z();
         targetStore.getExternalData().getWorld().execute(() -> {
             Transform transformNow = target.getTransform();
             if (transformNow != null && transformNow.getPosition() != null) {
-                com.hypixel.hytale.math.vector.Vector3f rot = transformNow.getRotation();
-                float startYaw = (rot != null) ? rot.getY() : 0f;
-                float startPitch = (rot != null) ? rot.getX() : 0f;
+                com.hypixel.hytale.math.vector.Rotation3f rot = transformNow.getRotation();
+                float startYaw = (rot != null) ? rot.y() : 0f;
+                float startPitch = (rot != null) ? rot.x() : 0f;
                 backManager.recordLocation(
                         target.getUuid(),
                         targetWorld.getName(),
-                        transformNow.getPosition().getX(),
-                        transformNow.getPosition().getY(),
-                        transformNow.getPosition().getZ(),
+                        transformNow.getPosition().x(),
+                        transformNow.getPosition().y(),
+                        transformNow.getPosition().z(),
                         startYaw, startPitch
                 );
             }
@@ -342,8 +342,8 @@ public final class RtpCommand extends CommandBase {
         }
         double angle = random.nextDouble() * Math.PI * 2.0;
         double distance = minRadius + random.nextDouble() * (maxRadius - minRadius);
-        int randomX = (int) (center.getX() + distance * Math.cos(angle));
-        int randomZ = (int) (center.getZ() + distance * Math.sin(angle));
+        int randomX = (int) (center.x() + distance * Math.cos(angle));
+        int randomZ = (int) (center.z() + distance * Math.sin(angle));
         long chunkIndex = ChunkUtil.indexChunkFromBlock(randomX, randomZ);
         WorldChunk existingChunk = world.getChunkIfLoaded(chunkIndex);
         if (existingChunk == null) {

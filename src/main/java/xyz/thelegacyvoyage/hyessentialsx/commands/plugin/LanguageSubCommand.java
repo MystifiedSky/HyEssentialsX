@@ -25,7 +25,7 @@ public class LanguageSubCommand extends CommandBase {
     public LanguageSubCommand(@Nonnull LanguageManager languageManager) {
         super("language", "Set your HyEssentialsX language");
         this.languageManager = languageManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.codeArg = withOptionalArg("code", "Language code (e.g. en-us)", ArgTypes.STRING);
     }
 

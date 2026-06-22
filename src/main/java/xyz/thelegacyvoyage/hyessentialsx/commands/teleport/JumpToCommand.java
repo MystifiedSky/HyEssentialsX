@@ -3,7 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.teleport;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.util.ChunkUtil;
-import com.hypixel.hytale.math.vector.Vector3d;
+import org.joml.Vector3d;
 import com.hypixel.hytale.protocol.BlockMaterial;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
@@ -40,7 +40,7 @@ public final class JumpToCommand extends AbstractPlayerCommand {
         super("jumpto", "Teleports to target block");
         this.cooldowns = cooldowns;
         this.backManager = backManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"junp", "j", "jump"});
     }
@@ -77,9 +77,9 @@ public final class JumpToCommand extends AbstractPlayerCommand {
             return;
         }
 
-        Vector3d eyePosition = transform.getPosition().clone().add(0.0, 1.59375, 0.0);
-        float pitch = headRotation.getRotation().getX();
-        float yaw = headRotation.getRotation().getY();
+        Vector3d eyePosition = new org.joml.Vector3d(transform.getPosition()).add(0.0, 1.59375, 0.0);
+        float pitch = headRotation.getRotation().x();
+        float yaw = headRotation.getRotation().y();
 
         Vector3d direction = getDirectionFromRotation(pitch, yaw);
         Vector3d target = findTargetBlock(world, eyePosition, direction);
@@ -89,15 +89,15 @@ public final class JumpToCommand extends AbstractPlayerCommand {
         }
 
         if (transform.getPosition() != null) {
-            com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
-            float startYaw = (rot != null) ? rot.getY() : 0f;
-            float startPitch = (rot != null) ? rot.getX() : 0f;
+            com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
+            float startYaw = (rot != null) ? rot.y() : 0f;
+            float startPitch = (rot != null) ? rot.x() : 0f;
             backManager.recordLocation(
                     playerRef.getUuid(),
                     world.getName(),
-                    transform.getPosition().getX(),
-                    transform.getPosition().getY(),
-                    transform.getPosition().getZ(),
+                    transform.getPosition().x(),
+                    transform.getPosition().y(),
+                    transform.getPosition().z(),
                     startYaw,
                     startPitch
             );
@@ -107,7 +107,7 @@ public final class JumpToCommand extends AbstractPlayerCommand {
                 store,
                 ref,
                 world.getName(),
-                target.getX(), target.getY(), target.getZ(),
+                target.x(), target.y(), target.z(),
                 yaw, pitch
         );
         if (err != null) {
@@ -132,14 +132,14 @@ public final class JumpToCommand extends AbstractPlayerCommand {
         Set<Long> checked = new HashSet<>();
         for (double distance = 0.0; distance <= MAX_DISTANCE; distance += STEP_SIZE) {
             Vector3d current = start.add(
-                    direction.getX() * distance,
-                    direction.getY() * distance,
-                    direction.getZ() * distance
+                    direction.x() * distance,
+                    direction.y() * distance,
+                    direction.z() * distance
             );
 
-            int blockX = (int) Math.floor(current.getX());
-            int blockY = (int) Math.floor(current.getY());
-            int blockZ = (int) Math.floor(current.getZ());
+            int blockX = (int) Math.floor(current.x());
+            int blockY = (int) Math.floor(current.y());
+            int blockZ = (int) Math.floor(current.z());
 
             long key = ((long) blockX << 40) | ((long) (blockY & 0xFFFFF) << 20) | (long) (blockZ & 0xFFFFF);
             if (!checked.add(key)) continue;

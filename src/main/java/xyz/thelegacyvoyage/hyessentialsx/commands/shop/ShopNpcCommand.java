@@ -3,9 +3,9 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.shop;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
-import com.hypixel.hytale.math.vector.Vector3i;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.protocol.MovementStates;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
@@ -161,12 +161,12 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
 
         Vector3d playerPos = transform.getPosition();
         Vector3i basePos = new Vector3i(
-                (int) Math.floor(playerPos.getX()),
-                (int) Math.floor(playerPos.getY()),
-                (int) Math.floor(playerPos.getZ())
+                (int) Math.floor(playerPos.x()),
+                (int) Math.floor(playerPos.y()),
+                (int) Math.floor(playerPos.z())
         );
-        Vector3d spawnPos = new Vector3d(basePos.getX() + 0.5D, basePos.getY(), basePos.getZ() + 0.5D);
-        Vector3f rotation = transform.getRotation() != null ? transform.getRotation() : new Vector3f(0f, 0f, 0f);
+        Vector3d spawnPos = new Vector3d(basePos.x() + 0.5D, basePos.y(), basePos.z() + 0.5D);
+        com.hypixel.hytale.math.vector.Rotation3f rotation = transform.getRotation() != null ? transform.getRotation() : new com.hypixel.hytale.math.vector.Rotation3f(0f, 0f, 0f);
 
         NPCPlugin npcPlugin = NPCPlugin.get();
         List<String> availableRoles = npcPlugin.getRoleTemplateNames(true);
@@ -351,9 +351,9 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
                 TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
                 if (transform == null || transform.getPosition() == null) return;
                 Vector3d pos = transform.getPosition();
-                double dx = Math.abs(pos.getX() - (position.getX() + 0.5D));
-                double dy = Math.abs(pos.getY() - position.getY());
-                double dz = Math.abs(pos.getZ() - (position.getZ() + 0.5D));
+                double dx = Math.abs(pos.x() - (position.x() + 0.5D));
+                double dy = Math.abs(pos.y() - position.y());
+                double dz = Math.abs(pos.z() - (position.z() + 0.5D));
                 if (dx < 1.5D && dy < 2.0D && dz < 1.5D) {
                     Interactions interactions = store.getComponent(ref, Interactions.getComponentType());
                     String interactionId = interactions != null
@@ -378,9 +378,9 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
     }
 
     private double distance(@Nonnull Vector3d playerPos, @Nonnull Vector3i blockPos) {
-        double dx = playerPos.getX() - (blockPos.getX() + 0.5D);
-        double dy = playerPos.getY() - blockPos.getY();
-        double dz = playerPos.getZ() - (blockPos.getZ() + 0.5D);
+        double dx = playerPos.x() - (blockPos.x() + 0.5D);
+        double dy = playerPos.y() - blockPos.y();
+        double dz = playerPos.z() - (blockPos.z() + 0.5D);
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
@@ -437,9 +437,9 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
                 if (transform == null || transform.getPosition() == null) return;
                 Vector3d pos = transform.getPosition();
                 for (Vector3i stored : positions) {
-                    double dx = Math.abs(pos.getX() - (stored.getX() + 0.5D));
-                    double dy = Math.abs(pos.getY() - stored.getY());
-                    double dz = Math.abs(pos.getZ() - (stored.getZ() + 0.5D));
+                    double dx = Math.abs(pos.x() - (stored.x() + 0.5D));
+                    double dy = Math.abs(pos.y() - stored.y());
+                    double dz = Math.abs(pos.z() - (stored.z() + 0.5D));
                     if (dx < 1.5D && dy < 2.0D && dz < 1.5D) {
                         found.set(true);
                         return;
@@ -476,7 +476,7 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
                                   @Nonnull Ref<EntityStore> npcRef,
                                   @Nonnull NPCEntity npc,
                                   @Nonnull Vector3i blockPos,
-                                  @Nonnull Vector3f rotation,
+                                  @Nonnull com.hypixel.hytale.math.vector.Rotation3f rotation,
                                   @Nonnull String displayName) {
         if (store.getComponent(npcRef, Interactable.getComponentType()) == null) {
             store.addComponent(npcRef, Interactable.getComponentType(), Interactable.INSTANCE);
@@ -496,8 +496,8 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
         }
         npc.setDespawnTime(Float.MAX_VALUE);
         npc.setDespawning(false);
-        npc.setLeashPoint(new Vector3d(blockPos.getX() + 0.5D, blockPos.getY(), blockPos.getZ() + 0.5D));
-        npc.setLeashHeading(rotation.getY());
+        npc.setLeashPoint(new Vector3d(blockPos.x() + 0.5D, blockPos.y(), blockPos.z() + 0.5D));
+        npc.setLeashHeading(rotation.y());
         ShopNpcInteractionRegistry.applyNpcInteractions(store, npcRef);
     }
 

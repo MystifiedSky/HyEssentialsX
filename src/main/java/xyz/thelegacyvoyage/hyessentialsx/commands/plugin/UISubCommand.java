@@ -25,7 +25,7 @@ public class UISubCommand extends AbstractPlayerCommand {
     public UISubCommand() {
         super("ui", "Open the plugin dashboard");
         this.addAliases(new String[]{"dashboard", "gui"});
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
     }
 
     @Override

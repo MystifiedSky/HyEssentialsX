@@ -46,7 +46,7 @@ public final class WarpsCommand extends AbstractPlayerCommand {
         this.tpManager = tpManager;
         this.cooldowns = cooldowns;
         this.backManager = backManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 

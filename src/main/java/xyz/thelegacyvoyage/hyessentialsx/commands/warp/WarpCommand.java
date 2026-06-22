@@ -53,7 +53,7 @@ public final class WarpCommand extends CommandBase {
         this.config = config;
         this.cooldowns = cooldowns;
         this.backManager = backManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
     }
 
@@ -171,10 +171,10 @@ public final class WarpCommand extends CommandBase {
                 }
                 return;
             }
-            com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
-            float startYaw = (rot != null) ? rot.getY() : 0f;
-            float startPitch = (rot != null) ? rot.getX() : 0f;
-            com.hypixel.hytale.math.vector.Vector3d startPos = transform.getPosition().clone();
+            com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
+            float startYaw = (rot != null) ? rot.y() : 0f;
+            float startPitch = (rot != null) ? rot.x() : 0f;
+            org.joml.Vector3d startPos = new org.joml.Vector3d(transform.getPosition());
             final PlayerRef finalTarget = target;
             final java.util.UUID finalTargetId = target.getUuid();
             final Ref<EntityStore> finalTargetRef = targetRef;
@@ -188,8 +188,8 @@ public final class WarpCommand extends CommandBase {
                                 buffer,
                                 finalTargetRef,
                                 warp.getWorldName(),
-                                warp.getX(), warp.getY(), warp.getZ(),
-                                warp.getYaw(), warp.getPitch()
+                                warp.x(), warp.y(), warp.z(),
+                                warp.yaw(), warp.pitch()
                         );
                         if (err != null) {
                             Messages.sendPrefixed(finalTarget, err);
@@ -198,7 +198,7 @@ public final class WarpCommand extends CommandBase {
                         backManager.recordLocation(
                                 finalTargetId,
                                 startWorldName,
-                                startPos.getX(), startPos.getY(), startPos.getZ(),
+                                startPos.x(), startPos.y(), startPos.z(),
                                 startYaw, startPitch
                         );
                         cooldowns.apply(finalTarget, CooldownKeys.WARP);
@@ -214,13 +214,13 @@ public final class WarpCommand extends CommandBase {
 
         com.hypixel.hytale.math.vector.Transform transform = target.getTransform();
         if (transform != null && transform.getPosition() != null) {
-            com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
-            float startYaw = (rot != null) ? rot.getY() : 0f;
-            float startPitch = (rot != null) ? rot.getX() : 0f;
+            com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
+            float startYaw = (rot != null) ? rot.y() : 0f;
+            float startPitch = (rot != null) ? rot.x() : 0f;
             backManager.recordLocation(
                     target.getUuid(),
                     targetWorld.getName(),
-                    transform.getPosition().getX(), transform.getPosition().getY(), transform.getPosition().getZ(),
+                    transform.getPosition().x(), transform.getPosition().y(), transform.getPosition().z(),
                     startYaw, startPitch
             );
         }
@@ -229,8 +229,8 @@ public final class WarpCommand extends CommandBase {
                 targetStore,
                 targetRef,
                 warp.getWorldName(),
-                warp.getX(), warp.getY(), warp.getZ(),
-                warp.getYaw(), warp.getPitch()
+                warp.x(), warp.y(), warp.z(),
+                warp.yaw(), warp.pitch()
         );
         if (err != null) {
             Messages.err(context, err);

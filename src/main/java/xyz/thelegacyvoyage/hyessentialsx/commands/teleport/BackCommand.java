@@ -42,7 +42,7 @@ public final class BackCommand extends CommandBase {
         this.tpManager = tpManager;
         this.config = config;
         this.cooldowns = cooldowns;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.setAllowsExtraArguments(true);
     }
@@ -122,7 +122,7 @@ public final class BackCommand extends CommandBase {
             final UUID finalTargetId = target.getUuid();
             tpManager.queue(
                     finalTargetId,
-                    transform.getPosition().clone(),
+                    new org.joml.Vector3d(transform.getPosition()),
                     warmupSeconds,
                     buffer -> {
                         String err = TeleportationUtil.teleportToLocation(

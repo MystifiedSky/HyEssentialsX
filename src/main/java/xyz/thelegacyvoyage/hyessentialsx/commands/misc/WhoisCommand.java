@@ -3,7 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.misc;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Transform;
-import com.hypixel.hytale.math.vector.Vector3d;
+import org.joml.Vector3d;
 import com.hypixel.hytale.protocol.GameMode;
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
@@ -41,7 +41,7 @@ public final class WhoisCommand extends CommandBase {
     public WhoisCommand(@Nonnull StorageManager storage) {
         super("whois", "Shows player information");
         this.storage = storage;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.addAliases(new String[]{"joindate"});
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
@@ -127,9 +127,9 @@ public final class WhoisCommand extends CommandBase {
                             : Messages.tr(viewer, "info.unknown", java.util.Map.of());
                     context.sendMessage(Messages.m(Messages.tr(viewer, "whois.location", java.util.Map.of(
                             "world", worldName,
-                            "x", String.valueOf((int) pos.getX()),
-                            "y", String.valueOf((int) pos.getY()),
-                            "z", String.valueOf((int) pos.getZ())
+                            "x", String.valueOf((int) pos.x()),
+                            "y", String.valueOf((int) pos.y()),
+                            "z", String.valueOf((int) pos.z())
                     ))));
                 }
             }

@@ -55,7 +55,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
         this.cooldowns = cooldowns;
         this.backManager = backManager;
         this.storage = storage;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
@@ -130,10 +130,10 @@ public final class HomeCommand extends AbstractPlayerCommand {
                 Messages.errKey(context, "teleport.position_unavailable", Map.of());
                 return;
             }
-            com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
-            float startYaw = (rot != null) ? rot.getY() : 0f;
-            float startPitch = (rot != null) ? rot.getX() : 0f;
-            com.hypixel.hytale.math.vector.Vector3d startPos = transform.getPosition().clone();
+            com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
+            float startYaw = (rot != null) ? rot.y() : 0f;
+            float startPitch = (rot != null) ? rot.x() : 0f;
+            org.joml.Vector3d startPos = new org.joml.Vector3d(transform.getPosition());
             tpManager.queue(
                     playerRef.getUuid(),
                     startPos,
@@ -144,8 +144,8 @@ public final class HomeCommand extends AbstractPlayerCommand {
                                 ref,
                                 home.getWorldId(),
                                 home.getWorldName(),
-                                home.getX(), home.getY(), home.getZ(),
-                                home.getYaw(), home.getPitch()
+                                home.x(), home.y(), home.z(),
+                                home.yaw(), home.pitch()
                         );
                         if (err != null) {
                             Messages.sendPrefixed(playerRef, err);
@@ -154,7 +154,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
                         backManager.recordLocation(
                                 playerRef.getUuid(),
                                 world.getName(),
-                                startPos.getX(), startPos.getY(), startPos.getZ(),
+                                startPos.x(), startPos.y(), startPos.z(),
                                 startYaw, startPitch
                         );
                         cooldowns.apply(playerRef, CooldownKeys.HOME);
@@ -167,13 +167,13 @@ public final class HomeCommand extends AbstractPlayerCommand {
 
         com.hypixel.hytale.math.vector.Transform transform = playerRef.getTransform();
         if (transform != null && transform.getPosition() != null) {
-            com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
-            float startYaw = (rot != null) ? rot.getY() : 0f;
-            float startPitch = (rot != null) ? rot.getX() : 0f;
+            com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
+            float startYaw = (rot != null) ? rot.y() : 0f;
+            float startPitch = (rot != null) ? rot.x() : 0f;
             backManager.recordLocation(
                     playerRef.getUuid(),
                     world.getName(),
-                    transform.getPosition().getX(), transform.getPosition().getY(), transform.getPosition().getZ(),
+                    transform.getPosition().x(), transform.getPosition().y(), transform.getPosition().z(),
                     startYaw, startPitch
             );
         }
@@ -184,8 +184,8 @@ public final class HomeCommand extends AbstractPlayerCommand {
                 ref,
                 home.getWorldId(),
                 home.getWorldName(),
-                home.getX(), home.getY(), home.getZ(),
-                home.getYaw(), home.getPitch()
+                home.x(), home.y(), home.z(),
+                home.yaw(), home.pitch()
         );
         if (err != null) {
             Messages.err(context, err);
@@ -278,10 +278,10 @@ public final class HomeCommand extends AbstractPlayerCommand {
                 Messages.errKey(context, "teleport.position_unavailable", Map.of());
                 return;
             }
-            com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
-            float startYaw = (rot != null) ? rot.getY() : 0f;
-            float startPitch = (rot != null) ? rot.getX() : 0f;
-            com.hypixel.hytale.math.vector.Vector3d startPos = transform.getPosition().clone();
+            com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
+            float startYaw = (rot != null) ? rot.y() : 0f;
+            float startPitch = (rot != null) ? rot.x() : 0f;
+            org.joml.Vector3d startPos = new org.joml.Vector3d(transform.getPosition());
             tpManager.queue(
                     playerRef.getUuid(),
                     startPos,
@@ -292,8 +292,8 @@ public final class HomeCommand extends AbstractPlayerCommand {
                                 ref,
                                 home.getWorldId(),
                                 home.getWorldName(),
-                                home.getX(), home.getY(), home.getZ(),
-                                home.getYaw(), home.getPitch()
+                                home.x(), home.y(), home.z(),
+                                home.yaw(), home.pitch()
                         );
                         if (err != null) {
                             Messages.sendPrefixed(playerRef, err);
@@ -302,7 +302,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
                         backManager.recordLocation(
                                 playerRef.getUuid(),
                                 world.getName(),
-                                startPos.getX(), startPos.getY(), startPos.getZ(),
+                                startPos.x(), startPos.y(), startPos.z(),
                                 startYaw, startPitch
                         );
                         cooldowns.apply(playerRef, CooldownKeys.HOME);
@@ -315,13 +315,13 @@ public final class HomeCommand extends AbstractPlayerCommand {
 
         com.hypixel.hytale.math.vector.Transform transform = playerRef.getTransform();
         if (transform != null && transform.getPosition() != null) {
-            com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
-            float startYaw = (rot != null) ? rot.getY() : 0f;
-            float startPitch = (rot != null) ? rot.getX() : 0f;
+            com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
+            float startYaw = (rot != null) ? rot.y() : 0f;
+            float startPitch = (rot != null) ? rot.x() : 0f;
             backManager.recordLocation(
                     playerRef.getUuid(),
                     world.getName(),
-                    transform.getPosition().getX(), transform.getPosition().getY(), transform.getPosition().getZ(),
+                    transform.getPosition().x(), transform.getPosition().y(), transform.getPosition().z(),
                     startYaw, startPitch
             );
         }
@@ -331,8 +331,8 @@ public final class HomeCommand extends AbstractPlayerCommand {
                 ref,
                 home.getWorldId(),
                 home.getWorldName(),
-                home.getX(), home.getY(), home.getZ(),
-                home.getYaw(), home.getPitch()
+                home.x(), home.y(), home.z(),
+                home.yaw(), home.pitch()
         );
         if (err != null) {
             Messages.err(context, err);

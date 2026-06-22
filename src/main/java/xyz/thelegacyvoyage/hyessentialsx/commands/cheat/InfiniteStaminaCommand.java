@@ -20,7 +20,7 @@ public final class InfiniteStaminaCommand extends AbstractPlayerCommand {
     public InfiniteStaminaCommand(@Nonnull InfiniteStaminaManager staminaManager) {
         super("infinitestamina", "Toggle infinite stamina");
         this.staminaManager = staminaManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 

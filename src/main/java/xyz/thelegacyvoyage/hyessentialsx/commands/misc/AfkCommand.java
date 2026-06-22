@@ -30,7 +30,7 @@ public final class AfkCommand extends AbstractPlayerCommand {
         this.afk = afk;
         this.config = config;
         this.cooldowns = cooldowns;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 

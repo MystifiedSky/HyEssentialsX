@@ -1,6 +1,6 @@
 package xyz.thelegacyvoyage.hyessentialsx.models;
 
-import com.hypixel.hytale.math.vector.Vector3i;
+import org.joml.Vector3i;
 
 import javax.annotation.Nonnull;
 
@@ -28,9 +28,9 @@ public final class ShopNpcModel {
                         @Nonnull String spawnerName,
                         @Nonnull String roleName) {
         this.npcId = npcId;
-        this.posX = position.getX();
-        this.posY = position.getY();
-        this.posZ = position.getZ();
+        this.posX = position.x();
+        this.posY = position.y();
+        this.posZ = position.z();
         this.worldId = worldId;
         this.shopName = shopName;
         this.spawnerUuid = spawnerUuid;
@@ -53,9 +53,9 @@ public final class ShopNpcModel {
     }
 
     public void setPosition(@Nonnull Vector3i position) {
-        this.posX = position.getX();
-        this.posY = position.getY();
-        this.posZ = position.getZ();
+        this.posX = position.x();
+        this.posY = position.y();
+        this.posZ = position.z();
     }
 
     public int getPosX() {

@@ -1,6 +1,6 @@
 package xyz.thelegacyvoyage.hyessentialsx.models;
 
-import com.hypixel.hytale.math.vector.Vector3i;
+import org.joml.Vector3i;
 
 import javax.annotation.Nonnull;
 
@@ -15,9 +15,9 @@ public final class ShopChestModel {
     }
 
     public ShopChestModel(@Nonnull Vector3i position, @Nonnull String worldId) {
-        this.posX = position.getX();
-        this.posY = position.getY();
-        this.posZ = position.getZ();
+        this.posX = position.x();
+        this.posY = position.y();
+        this.posZ = position.z();
         this.worldId = worldId;
     }
 
@@ -27,9 +27,9 @@ public final class ShopChestModel {
     }
 
     public void setPosition(@Nonnull Vector3i position) {
-        this.posX = position.getX();
-        this.posY = position.getY();
-        this.posZ = position.getZ();
+        this.posX = position.x();
+        this.posY = position.y();
+        this.posZ = position.z();
     }
 
     public String getWorldId() {

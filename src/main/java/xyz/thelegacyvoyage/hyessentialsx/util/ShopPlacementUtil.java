@@ -2,8 +2,8 @@ package xyz.thelegacyvoyage.hyessentialsx.util;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3i;
+import org.joml.Vector3d;
+import org.joml.Vector3i;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.RotationTuple;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.event.events.ecs.PlaceBlockEvent;
@@ -63,9 +63,9 @@ public final class ShopPlacementUtil {
             return true;
         }
         Vector3i target = new Vector3i(
-                (int) Math.floor(position.getX()),
-                (int) Math.floor(position.getY()),
-                (int) Math.floor(position.getZ())
+                (int) Math.floor(position.x()),
+                (int) Math.floor(position.y()),
+                (int) Math.floor(position.z())
         );
         ItemStack inHand = ItemStack.EMPTY;
         Player player = store.getComponent(ref, Player.getComponentType());
@@ -93,7 +93,7 @@ public final class ShopPlacementUtil {
             String playerLabel = name == null ? playerRef.getUuid().toString() : name;
             debug("Shop placement check: player=" + playerLabel
                     + " world=" + world.getName()
-                    + " pos=" + target.getX() + "," + target.getY() + "," + target.getZ()
+                    + " pos=" + target.x() + "," + target.y() + "," + target.z()
                     + " eventCancelled=" + cancelled);
         }
         if (cancelled) {

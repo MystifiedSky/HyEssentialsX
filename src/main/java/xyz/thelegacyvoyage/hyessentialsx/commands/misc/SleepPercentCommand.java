@@ -19,7 +19,7 @@ public final class SleepPercentCommand extends CommandBase {
     public SleepPercentCommand(@Nonnull ConfigManager config) {
         super("sleeppercent", "Sets or views the sleep percentage");
         this.config = config;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"sp"});

@@ -29,7 +29,7 @@ public final class HealCommand extends AbstractPlayerCommand {
     public HealCommand(@Nonnull CommandCooldownManager cooldowns) {
         super("heal", "Restore health and stamina");
         this.cooldowns = cooldowns;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.setAllowsExtraArguments(true);
     }

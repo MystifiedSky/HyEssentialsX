@@ -4,8 +4,8 @@ import com.hypixel.hytale.component.Holder;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.util.ChunkUtil;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3i;
+import org.joml.Vector3d;
+import org.joml.Vector3i;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.inventory.container.CombinedItemContainer;
 import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
@@ -63,10 +63,10 @@ public final class ShopContainerUtil {
 
     @Nullable
     public static ItemContainer getContainerAt(@Nonnull World world, @Nonnull Vector3i pos) {
-        long chunkIndex = ChunkUtil.indexChunkFromBlock(pos.getX(), pos.getZ());
+        long chunkIndex = ChunkUtil.indexChunkFromBlock(pos.x(), pos.z());
         WorldChunk chunk = world.getChunkIfLoaded(chunkIndex);
         if (chunk == null) return null;
-        Holder<ChunkStore> holder = chunk.getBlockComponentHolder(pos.getX(), pos.getY(), pos.getZ());
+        Holder<ChunkStore> holder = chunk.getBlockComponentHolder(pos.x(), pos.y(), pos.z());
         if (holder == null) return null;
         ItemContainerBlock containerBlock = holder.getComponent(ItemContainerBlock.getComponentType());
         return containerBlock != null ? containerBlock.getItemContainer() : null;
@@ -193,21 +193,21 @@ public final class ShopContainerUtil {
         if (transform == null || headRotation == null || transform.getPosition() == null) {
             return null;
         }
-        Vector3d eye = transform.getPosition().clone().add(0.0, 1.59375, 0.0);
+        Vector3d eye = new org.joml.Vector3d(transform.getPosition()).add(0.0, 1.59375, 0.0);
         Vector3d direction = getDirectionFromRotation(
-                headRotation.getRotation().getX(),
-                headRotation.getRotation().getY()
+                headRotation.getRotation().x(),
+                headRotation.getRotation().y()
         );
         Set<Long> checked = new HashSet<>();
         for (double distance = 0.0; distance <= maxDistance; distance += TARGET_STEP) {
             Vector3d current = eye.add(
-                    direction.getX() * distance,
-                    direction.getY() * distance,
-                    direction.getZ() * distance
+                    direction.x() * distance,
+                    direction.y() * distance,
+                    direction.z() * distance
             );
-            int blockX = (int) Math.floor(current.getX());
-            int blockY = (int) Math.floor(current.getY());
-            int blockZ = (int) Math.floor(current.getZ());
+            int blockX = (int) Math.floor(current.x());
+            int blockY = (int) Math.floor(current.y());
+            int blockZ = (int) Math.floor(current.z());
             long key = ((long) blockX << 40) | ((long) (blockY & 0xFFFFF) << 20) | (long) (blockZ & 0xFFFFF);
             if (!checked.add(key)) continue;
             ItemContainer container = getContainerAt(world, new Vector3i(blockX, blockY, blockZ));
@@ -292,9 +292,9 @@ public final class ShopContainerUtil {
         for (ShopNpcModel npc : npcs) {
             if (npc == null) continue;
             Vector3i npcPos = npc.getPosition();
-            double dx = pos.getX() - npcPos.getX();
-            double dy = pos.getY() - npcPos.getY();
-            double dz = pos.getZ() - npcPos.getZ();
+            double dx = pos.x() - npcPos.x();
+            double dy = pos.y() - npcPos.y();
+            double dz = pos.z() - npcPos.z();
             double distSq = (dx * dx) + (dy * dy) + (dz * dz);
             if (distSq <= radiusSq) {
                 return true;

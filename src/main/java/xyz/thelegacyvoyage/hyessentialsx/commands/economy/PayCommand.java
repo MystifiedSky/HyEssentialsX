@@ -38,7 +38,7 @@ public final class PayCommand extends AbstractPlayerCommand {
         super("pay", "Pays another player");
         this.economy = economy;
         this.audit = audit;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }

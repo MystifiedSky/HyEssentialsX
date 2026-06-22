@@ -34,7 +34,7 @@ public final class TpahereCommand extends AbstractPlayerCommand {
         this.tpManager = tpManager;
         this.config = config;
         this.cooldowns = cooldowns;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.targetArg = withRequiredArg("player", "Player to request", ArgTypes.PLAYER_REF);
     }

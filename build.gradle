@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'xyz.thelegacyvoyage.hyessentialsx'
-version = '1.4.4'
+version = '1.4.5'
 
 repositories {
     mavenCentral()
@@ -50,6 +50,7 @@ def resolveServerVersionFromJar = { File jarFile ->
 }
 
 def selectedServerVersion = resolveServerVersionFromJar(selectedServerJar)
+def pluginServerVersionRange = '^0.5.0'
 
 dependencies {
     // Use the newest available HytaleServer.jar (project/server/libs), fallback to libs for clarity
@@ -130,11 +131,11 @@ tasks.named('compileJava') {
 tasks.named('processResources') {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     inputs.property('version', project.version)
-    inputs.property('serverVersion', selectedServerVersion ?: '')
+    inputs.property('serverVersion', pluginServerVersionRange)
     filesMatching('manifest.json') {
         expand(
                 version: project.version,
-                serverVersion: selectedServerVersion ?: ''
+                serverVersion: pluginServerVersionRange
         )
     }
 }

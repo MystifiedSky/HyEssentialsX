@@ -25,7 +25,7 @@ public final class GodCommand extends AbstractPlayerCommand {
     public GodCommand(@Nonnull GodManager godManager) {
         super("god", "Toggle invulnerability");
         this.godManager = godManager;
-        this.setPermissionGroup(null);
+        this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
     }

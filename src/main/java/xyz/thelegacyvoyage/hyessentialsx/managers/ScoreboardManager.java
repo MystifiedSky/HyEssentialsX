@@ -6,7 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.vector.Vector3d;
+import org.joml.Vector3d;
 import com.hypixel.hytale.server.core.HytaleServer;
 import com.hypixel.hytale.server.core.asset.common.CommonAsset;
 import com.hypixel.hytale.server.core.asset.common.CommonAssetModule;
@@ -20,7 +20,6 @@ import xyz.thelegacyvoyage.hyessentialsx.ui.scoreboard.ScoreboardHud;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.LuckPermsUtil;
-import xyz.thelegacyvoyage.hyessentialsx.util.MultipleHudBridge;
 import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.PluginInfoUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
@@ -92,7 +91,6 @@ public final class ScoreboardManager {
     private final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
     private final Map<UUID, ScoreboardHud> huds = new ConcurrentHashMap<>();
     private final Set<UUID> loggedPlayers = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> suppressedPlayers = ConcurrentHashMap.newKeySet();
     private final Set<UUID> defaultOffsetPreview = ConcurrentHashMap.newKeySet();
     private final Map<UUID, PageRotationState> pageRotationStates = new ConcurrentHashMap<>();
     private final Object logoLock = new Object();
@@ -346,7 +344,7 @@ public final class ScoreboardManager {
             }
             ScoreboardHud hud = huds.get(playerRef.getUuid());
             if (hud != null) {
-                hud.hide(player, playerRef, MultipleHudBridge.isAvailable());
+                hud.hide(player, playerRef);
             }
         });
     }
@@ -356,19 +354,6 @@ public final class ScoreboardManager {
         if (player == null) {
             return;
         }
-        boolean useMultipleHud = MultipleHudBridge.isAvailable();
-        if (useMultipleHud && !MultipleHudBridge.canAttachToPlayer(player)) {
-            if (suppressedPlayers.add(playerRef.getUuid())) {
-                String hudName = "unknown";
-                if (player.getHudManager().getCustomHud() != null) {
-                    hudName = player.getHudManager().getCustomHud().getClass().getName();
-                }
-                Log.warn("[HyEssentialsX] Scoreboard suppressed for " + playerRef.getUsername()
-                        + " (active custom HUD: " + hudName + ").");
-            }
-            return;
-        }
-        suppressedPlayers.remove(playerRef.getUuid());
         World world = player.getWorld();
         if (world == null) {
             return;
@@ -378,7 +363,7 @@ public final class ScoreboardManager {
         if (loggedPlayers.add(playerRef.getUuid())) {
             Log.info("[HyEssentialsX] Scoreboard HUD initialized for " + playerRef.getUsername() + ".");
         }
-        hud.update(player, playerRef, state, useMultipleHud);
+        hud.update(player, playerRef, state);
     }
 
     @Nonnull
@@ -1553,9 +1538,9 @@ public final class ScoreboardManager {
         com.hypixel.hytale.math.vector.Transform transform = playerRef.getTransform();
         if (transform != null && transform.getPosition() != null) {
             Vector3d pos = transform.getPosition();
-            String x = formatCoord(pos.getX());
-            String y = formatCoord(pos.getY());
-            String z = formatCoord(pos.getZ());
+            String x = formatCoord(pos.x());
+            String y = formatCoord(pos.y());
+            String z = formatCoord(pos.z());
             placeholders.put("x", x);
             placeholders.put("y", y);
             placeholders.put("z", z);

@@ -3,8 +3,9 @@ package xyz.thelegacyvoyage.hyessentialsx.util;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
+import com.hypixel.hytale.math.vector.Rotation3f;
 import com.hypixel.hytale.math.vector.Transform;
 import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
 import com.hypixel.hytale.server.core.universe.Universe;
@@ -58,8 +59,8 @@ public final class TeleportationUtil {
             return "World '" + spawn.getWorldName() + "' is not loaded.";
         }
 
-        Vector3d pos = new Vector3d(spawn.getX(), spawn.getY(), spawn.getZ());
-        Vector3f rot = new Vector3f(0, roundYawCardinal(spawn.getYaw()), 0);
+        Vector3d pos = new Vector3d(spawn.x(), spawn.y(), spawn.z());
+        Rotation3f rot = new Rotation3f(0, roundYawCardinal(spawn.yaw()), 0);
 
         Teleport tp = createTeleport(targetWorld, pos, rot);
         if (tp == null) {
@@ -83,8 +84,8 @@ public final class TeleportationUtil {
             return "World '" + spawn.getWorldName() + "' is not loaded.";
         }
 
-        Vector3d pos = new Vector3d(spawn.getX(), spawn.getY(), spawn.getZ());
-        Vector3f rot = new Vector3f(0, roundYawCardinal(spawn.getYaw()), 0);
+        Vector3d pos = new Vector3d(spawn.x(), spawn.y(), spawn.z());
+        Rotation3f rot = new Rotation3f(0, roundYawCardinal(spawn.yaw()), 0);
 
         Teleport tp = createTeleport(targetWorld, pos, rot);
         if (tp == null) {
@@ -113,7 +114,7 @@ public final class TeleportationUtil {
         }
 
         Vector3d pos = targetTransform.getPosition();
-        Vector3f rot = targetTransform.getRotation();
+        com.hypixel.hytale.math.vector.Rotation3f rot = targetTransform.getRotation();
         if (pos == null || rot == null) {
             return "Could not read target position.";
         }
@@ -143,7 +144,7 @@ public final class TeleportationUtil {
         }
 
         Vector3d pos = targetTransform.getPosition();
-        Vector3f rot = targetTransform.getRotation();
+        com.hypixel.hytale.math.vector.Rotation3f rot = targetTransform.getRotation();
         if (pos == null || rot == null) {
             return "Could not read target position.";
         }
@@ -195,7 +196,7 @@ public final class TeleportationUtil {
         }
 
         Vector3d pos = new Vector3d(x, y, z);
-        Vector3f rot = new Vector3f(pitch, yaw, 0f);
+        Rotation3f rot = new Rotation3f(pitch, yaw, 0f);
         Teleport tp = createTeleport(targetWorld, pos, rot);
         if (tp == null) {
             return "Teleport API mismatch. Please update the plugin for this server build.";
@@ -218,7 +219,7 @@ public final class TeleportationUtil {
         }
 
         Vector3d pos = new Vector3d(x, y, z);
-        Vector3f rot = new Vector3f(pitch, yaw, 0f);
+        Rotation3f rot = new Rotation3f(pitch, yaw, 0f);
         Teleport tp = createTeleport(targetWorld, pos, rot);
         if (tp == null) {
             return "Teleport API mismatch. Please update the plugin for this server build.";
@@ -232,7 +233,7 @@ public final class TeleportationUtil {
     @Nullable
     private static Teleport createTeleport(@Nonnull World targetWorld,
                                            @Nonnull Vector3d pos,
-                                           @Nonnull Vector3f rot) {
+                                           @Nonnull Rotation3f rot) {
         Teleport tp = tryInvokeTeleportFactory("createForPlayer", targetWorld, pos, rot);
         if (tp != null) return tp;
 
@@ -290,9 +291,9 @@ public final class TeleportationUtil {
     }
 
     @Nullable
-    private static Object buildTransform(@Nonnull Vector3d pos, @Nonnull Vector3f rot) {
+    private static Object buildTransform(@Nonnull Vector3d pos, @Nonnull Rotation3f rot) {
         try {
-            return Transform.class.getConstructor(Vector3d.class, Vector3f.class).newInstance(pos, rot);
+            return Transform.class.getConstructor(Vector3d.class, Rotation3f.class).newInstance(pos, rot);
         } catch (Throwable ignored) {
             // Try alternate constructors if the API changed.
         }

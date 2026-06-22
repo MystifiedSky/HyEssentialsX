@@ -7,54 +7,40 @@ import com.hypixel.hytale.server.core.ui.Anchor;
 import com.hypixel.hytale.server.core.ui.Value;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
-import xyz.thelegacyvoyage.hyessentialsx.util.MultipleHudBridge;
-import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class ScoreboardHud extends CustomUIHud {
 
     public static final String LAYOUT = "hyessentialsx/ScoreboardHud.ui";
     public static final String HUD_ID = "HyEssentialsX_Scoreboard";
     private static final String DEFAULT_TEXT_COLOR = "#f6f8ff";
-    private static final AtomicBoolean LOGGED_MULTIPLEHUD_MISSING = new AtomicBoolean(false);
 
     @Nullable
     private volatile State state;
 
     public ScoreboardHud(@Nonnull PlayerRef playerRef) {
-        super(playerRef);
+        super(playerRef, HUD_ID);
     }
 
     public void update(@Nonnull Player player,
                        @Nonnull PlayerRef playerRef,
-                       @Nonnull State state,
-                       boolean useMultipleHud) {
+                       @Nonnull State state) {
         this.state = state;
-        if (useMultipleHud) {
-            if (MultipleHudBridge.isAvailable()) {
-                MultipleHudBridge.setCustomHud(player, playerRef, HUD_ID, this);
-            } else if (LOGGED_MULTIPLEHUD_MISSING.compareAndSet(false, true)) {
-                Log.warn("[HyEssentialsX] MultipleHUD not available; scoreboard HUD disabled to avoid overriding other HUDs.");
-            }
-            return;
-        }
-        player.getHudManager().setCustomHud(playerRef, this);
+        player.getHudManager().addCustomHud(playerRef, this);
     }
 
-    public void hide(@Nonnull Player player, @Nonnull PlayerRef playerRef, boolean useMultipleHud) {
-        if (useMultipleHud) {
-            if (MultipleHudBridge.isAvailable()) {
-                MultipleHudBridge.hideCustomHud(player, playerRef, HUD_ID);
-            }
-            return;
-        }
-        player.getHudManager().setCustomHud(playerRef, null);
+    public void hide(@Nonnull Player player, @Nonnull PlayerRef playerRef) {
+        player.getHudManager().removeCustomHud(playerRef, HUD_ID);
+    }
+
+    @Override
+    protected void onRemove() {
+        this.state = null;
     }
 
     @Override

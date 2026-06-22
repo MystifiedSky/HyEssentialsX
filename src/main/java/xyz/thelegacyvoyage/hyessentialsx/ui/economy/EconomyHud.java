@@ -6,7 +6,6 @@ import com.hypixel.hytale.server.core.ui.Anchor;
 import com.hypixel.hytale.server.core.ui.Value;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
-import xyz.thelegacyvoyage.hyessentialsx.util.MultipleHudBridge;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -20,29 +19,24 @@ public final class EconomyHud extends CustomUIHud {
     private volatile State state;
 
     public EconomyHud(@Nonnull PlayerRef playerRef) {
-        super(playerRef);
+        super(playerRef, HUD_ID);
     }
 
     public void update(@Nonnull Player player,
                        @Nonnull PlayerRef playerRef,
-                       @Nonnull State state,
-                       boolean useMultipleHud) {
+                       @Nonnull State state) {
         this.state = state;
-        if (useMultipleHud && MultipleHudBridge.isAvailable()) {
-            MultipleHudBridge.setCustomHud(player, playerRef, HUD_ID, this);
-            return;
-        }
-        player.getHudManager().setCustomHud(playerRef, this);
+        player.getHudManager().addCustomHud(playerRef, this);
     }
 
     public void hide(@Nonnull Player player,
-                     @Nonnull PlayerRef playerRef,
-                     boolean useMultipleHud) {
-        if (useMultipleHud && MultipleHudBridge.isAvailable()) {
-            MultipleHudBridge.hideCustomHud(player, playerRef, HUD_ID);
-            return;
-        }
-        player.getHudManager().setCustomHud(playerRef, null);
+                     @Nonnull PlayerRef playerRef) {
+        player.getHudManager().removeCustomHud(playerRef, HUD_ID);
+    }
+
+    @Override
+    protected void onRemove() {
+        this.state = null;
     }
 
     @Override

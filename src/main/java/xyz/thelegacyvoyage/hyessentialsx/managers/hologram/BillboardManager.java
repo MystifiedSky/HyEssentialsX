@@ -7,8 +7,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger.Api;
 import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.protocol.ComponentUpdate;
-import com.hypixel.hytale.protocol.ComponentUpdateType;
+import com.hypixel.hytale.protocol.TransformUpdate;
 import com.hypixel.hytale.protocol.Direction;
 import com.hypixel.hytale.protocol.ModelTransform;
 import com.hypixel.hytale.protocol.Position;
@@ -202,8 +201,7 @@ public class BillboardManager {
                                  transform.position = new Position(billboardPos.getX(), billboardPos.getY(), billboardPos.getZ());
                                  transform.bodyOrientation = new Direction(yaw, 0.0F, 0.0F);
                                  transform.lookOrientation = new Direction(yaw, 0.0F, 0.0F);
-                                 ComponentUpdate update = new ComponentUpdate();
-                                 update.type = ComponentUpdateType.Transform;
+                                 TransformUpdate update = new TransformUpdate();
                                  update.transform = transform;
                                  viewer.queueUpdate(billboardRef, update);
                               }

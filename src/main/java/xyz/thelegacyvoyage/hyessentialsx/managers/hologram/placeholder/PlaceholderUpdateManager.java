@@ -7,8 +7,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger.Api;
 import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.protocol.ComponentUpdate;
-import com.hypixel.hytale.protocol.ComponentUpdateType;
+import com.hypixel.hytale.protocol.NameplateUpdate;
 import com.hypixel.hytale.server.core.entity.UUIDComponent;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.nameplate.Nameplate;
@@ -237,10 +236,8 @@ public class PlaceholderUpdateManager {
                   if (playerRef.isValid()) {
                      PlaceholderUpdateManager.PlayerContext playerContext = this.getPlayerContext(store, playerRef, world);
                      String personalizedText = this.hologramManager.formatTextWithFullContext(originalText, playerContext.player, playerContext.uuid, playerContext.name, playerContext.worldName, playerContext.x, playerContext.y, playerContext.z);
-                     ComponentUpdate update = new ComponentUpdate();
-                     update.type = ComponentUpdateType.Nameplate;
-                     update.nameplate = new com.hypixel.hytale.protocol.Nameplate();
-                    update.nameplate.text = personalizedText;
+                     NameplateUpdate update = new NameplateUpdate();
+                     update.text = personalizedText;
                      viewer.queueUpdate(ref, update);
                   }
                }

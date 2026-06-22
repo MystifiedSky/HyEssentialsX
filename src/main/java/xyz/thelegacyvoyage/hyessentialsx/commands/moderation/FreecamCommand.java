@@ -2,7 +2,6 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.moderation;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.protocol.Packet;
 import com.hypixel.hytale.protocol.packets.camera.SetFlyCameraMode;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
@@ -65,7 +64,7 @@ public final class FreecamCommand extends AbstractPlayerCommand {
 
         boolean activate = freecamManager.toggle(target.getUuid());
         SetFlyCameraMode packet = new SetFlyCameraMode(activate);
-        target.getPacketHandler().write((Packet) packet);
+        target.getPacketHandler().write(packet);
         if (isSelf) {
             Messages.okKey(context, activate ? "freecam.enabled" : "freecam.disabled", Map.of());
         } else {

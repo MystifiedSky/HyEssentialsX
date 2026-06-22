@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'xyz.thelegacyvoyage.hyessentialsx'
-version = '1.3.0'
+version = '1.3.1'
 
 repositories {
     mavenCentral()
@@ -24,19 +24,15 @@ sourceSets {
 def serverJarPath = file('libs/HytaleServer.jar')
 def projectServerJar = file('server/HytaleServer.jar')
 def siblingServerJar = file('../server/HytaleServer.jar')
+def serverJarCandidates = [projectServerJar, serverJarPath, siblingServerJar]
+def existingServerJars = serverJarCandidates.findAll { it.exists() }
+def selectedServerJar = existingServerJars
+        ? existingServerJars.max { it.lastModified() }
+        : serverJarPath
 
 dependencies {
-    // Use HytaleServer.jar from libs folder, or fallback to server folders
-    if (serverJarPath.exists()) {
-        compileOnly files(serverJarPath)
-    } else if (projectServerJar.exists()) {
-        compileOnly files(projectServerJar)
-    } else if (siblingServerJar.exists()) {
-        compileOnly files(siblingServerJar)
-    } else {
-        // If none exists, still reference libs for error message clarity
-        compileOnly files('libs/HytaleServer.jar')
-    }
+    // Use the newest available HytaleServer.jar (project/server/libs), fallback to libs for clarity
+    compileOnly files(selectedServerJar)
     // JSR305 annotations (@Nonnull, @Nullable)
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     compileOnly 'at.helpch:placeholderapi-hytale:1.0.4'
@@ -88,16 +84,15 @@ tasks.named('build') {
 tasks.register('copyServerJar') {
     doLast {
         def destJar = file('libs/HytaleServer.jar')
-        if (!destJar.exists()) {
-            def sources = [file('server/HytaleServer.jar'), file('../server/HytaleServer.jar')]
-            for (src in sources) {
-                if (src.exists()) {
-                    copy {
-                        from src
-                        into 'libs'
-                    }
-                    break
-                }
+        def sources = [file('server/HytaleServer.jar'), file('../server/HytaleServer.jar')]
+        def latestSource = sources.findAll { it.exists() }.max { it.lastModified() }
+        if (latestSource == null) {
+            return
+        }
+        if (!destJar.exists() || latestSource.lastModified() > destJar.lastModified()) {
+            copy {
+                from latestSource
+                into 'libs'
             }
         }
     }

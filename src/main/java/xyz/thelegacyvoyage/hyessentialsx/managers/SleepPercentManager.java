@@ -10,7 +10,7 @@ import com.hypixel.hytale.builtin.beds.sleep.resources.WorldSlumber;
 import com.hypixel.hytale.builtin.beds.sleep.resources.WorldSomnolence;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.server.core.asset.type.gameplay.SleepConfig;
+import com.hypixel.hytale.server.core.asset.type.gameplay.sleep.SleepConfig;
 import com.hypixel.hytale.server.core.modules.time.WorldTimeResource;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;

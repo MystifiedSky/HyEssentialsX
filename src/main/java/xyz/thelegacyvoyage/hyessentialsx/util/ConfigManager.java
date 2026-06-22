@@ -144,6 +144,15 @@ public final class ConfigManager {
     private int worldBorderCenterX = 0;
     private int worldBorderCenterZ = 0;
     private int worldBorderTeleportPadding = 2;
+    private boolean worldBorderExpansionEnabled = false;
+    private int worldBorderExpansionAmount = 100;
+    private long worldBorderExpansionIntervalSeconds = 86400L;
+    private int worldBorderExpansionMaxRadius = 0;
+    private long worldBorderExpansionLastRunAtMs = 0L;
+    private boolean respawnInvulnerabilityEnabled = true;
+    private int respawnInvulnerabilityBedSeconds = 5;
+    private int respawnInvulnerabilityWorldSeconds = 5;
+    private boolean respawnInvulnerabilityCancelOnAttack = true;
     private List<String> spawnRespawnPriority = DEFAULT_SPAWN_RESPAWN_PRIORITY;
     private boolean combatLogEnabled = false;
     private boolean combatLogOnlyPlayerDamage = true;
@@ -424,7 +433,21 @@ public final class ConfigManager {
         worldBorder.addProperty("centerX", 0);
         worldBorder.addProperty("centerZ", 0);
         worldBorder.addProperty("teleportPadding", 2);
+        JsonObject worldBorderExpansion = new JsonObject();
+        worldBorderExpansion.addProperty("enabled", false);
+        worldBorderExpansion.addProperty("amount", 100);
+        worldBorderExpansion.addProperty("intervalSeconds", 86400);
+        worldBorderExpansion.addProperty("maxRadius", 0);
+        worldBorderExpansion.addProperty("lastRunAtMs", 0);
+        worldBorder.add("expansion", worldBorderExpansion);
         root.add("worldBorder", worldBorder);
+
+        JsonObject respawnInvulnerability = new JsonObject();
+        respawnInvulnerability.addProperty("enabled", true);
+        respawnInvulnerability.addProperty("bedSeconds", 5);
+        respawnInvulnerability.addProperty("worldSeconds", 5);
+        respawnInvulnerability.addProperty("cancelOnAttack", true);
+        root.add("respawnInvulnerability", respawnInvulnerability);
 
         JsonObject stats = new JsonObject();
         stats.addProperty("enabled", true);
@@ -1007,6 +1030,18 @@ public final class ConfigManager {
             worldBorderCenterX = intVal(worldBorder, "centerX", worldBorderCenterX);
             worldBorderCenterZ = intVal(worldBorder, "centerZ", worldBorderCenterZ);
             worldBorderTeleportPadding = Math.max(0, intVal(worldBorder, "teleportPadding", worldBorderTeleportPadding));
+            JsonObject worldBorderExpansion = obj(worldBorder, "expansion");
+            worldBorderExpansionEnabled = bool(worldBorderExpansion, "enabled", worldBorderExpansionEnabled);
+            worldBorderExpansionAmount = Math.max(1, intVal(worldBorderExpansion, "amount", worldBorderExpansionAmount));
+            worldBorderExpansionIntervalSeconds = Math.max(1L, longVal(worldBorderExpansion, "intervalSeconds", worldBorderExpansionIntervalSeconds));
+            worldBorderExpansionMaxRadius = Math.max(0, intVal(worldBorderExpansion, "maxRadius", worldBorderExpansionMaxRadius));
+            worldBorderExpansionLastRunAtMs = Math.max(0L, longVal(worldBorderExpansion, "lastRunAtMs", worldBorderExpansionLastRunAtMs));
+
+            JsonObject respawnInvulnerability = obj(root, "respawnInvulnerability");
+            respawnInvulnerabilityEnabled = bool(respawnInvulnerability, "enabled", respawnInvulnerabilityEnabled);
+            respawnInvulnerabilityBedSeconds = Math.max(0, intVal(respawnInvulnerability, "bedSeconds", respawnInvulnerabilityBedSeconds));
+            respawnInvulnerabilityWorldSeconds = Math.max(0, intVal(respawnInvulnerability, "worldSeconds", respawnInvulnerabilityWorldSeconds));
+            respawnInvulnerabilityCancelOnAttack = bool(respawnInvulnerability, "cancelOnAttack", respawnInvulnerabilityCancelOnAttack);
 
             JsonObject stats = obj(root, "stats");
             statsEnabled = bool(stats, "enabled", statsEnabled);
@@ -1813,6 +1848,26 @@ public final class ConfigManager {
         return Math.max(0, worldBorderTeleportPadding);
     }
 
+    public boolean isWorldBorderExpansionEnabled() {
+        return worldBorderExpansionEnabled;
+    }
+
+    public int getWorldBorderExpansionAmount() {
+        return Math.max(1, worldBorderExpansionAmount);
+    }
+
+    public long getWorldBorderExpansionIntervalSeconds() {
+        return Math.max(1L, worldBorderExpansionIntervalSeconds);
+    }
+
+    public int getWorldBorderExpansionMaxRadius() {
+        return Math.max(0, worldBorderExpansionMaxRadius);
+    }
+
+    public long getWorldBorderExpansionLastRunAtMs() {
+        return Math.max(0L, worldBorderExpansionLastRunAtMs);
+    }
+
     public void setWorldBorderEnabled(boolean enabled) {
         worldBorderEnabled = enabled;
         save();
@@ -1827,6 +1882,28 @@ public final class ConfigManager {
         worldBorderCenterX = x;
         worldBorderCenterZ = z;
         save();
+    }
+
+    public void setWorldBorderExpansionState(int radius, long lastRunAtMs) {
+        worldBorderRadius = Math.max(1, radius);
+        worldBorderExpansionLastRunAtMs = Math.max(0L, lastRunAtMs);
+        save();
+    }
+
+    public boolean isRespawnInvulnerabilityEnabled() {
+        return respawnInvulnerabilityEnabled;
+    }
+
+    public int getRespawnInvulnerabilityBedSeconds() {
+        return Math.max(0, respawnInvulnerabilityBedSeconds);
+    }
+
+    public int getRespawnInvulnerabilityWorldSeconds() {
+        return Math.max(0, respawnInvulnerabilityWorldSeconds);
+    }
+
+    public boolean isRespawnInvulnerabilityCancelOnAttack() {
+        return respawnInvulnerabilityCancelOnAttack;
     }
 
     public boolean isStatsEnabled() {
@@ -2610,6 +2687,18 @@ public final class ConfigManager {
         worldBorder.addProperty("centerX", worldBorderCenterX);
         worldBorder.addProperty("centerZ", worldBorderCenterZ);
         worldBorder.addProperty("teleportPadding", Math.max(0, worldBorderTeleportPadding));
+        JsonObject worldBorderExpansion = obj(worldBorder, "expansion");
+        worldBorderExpansion.addProperty("enabled", worldBorderExpansionEnabled);
+        worldBorderExpansion.addProperty("amount", Math.max(1, worldBorderExpansionAmount));
+        worldBorderExpansion.addProperty("intervalSeconds", Math.max(1L, worldBorderExpansionIntervalSeconds));
+        worldBorderExpansion.addProperty("maxRadius", Math.max(0, worldBorderExpansionMaxRadius));
+        worldBorderExpansion.addProperty("lastRunAtMs", Math.max(0L, worldBorderExpansionLastRunAtMs));
+
+        JsonObject respawnInvulnerability = obj(root, "respawnInvulnerability");
+        respawnInvulnerability.addProperty("enabled", respawnInvulnerabilityEnabled);
+        respawnInvulnerability.addProperty("bedSeconds", Math.max(0, respawnInvulnerabilityBedSeconds));
+        respawnInvulnerability.addProperty("worldSeconds", Math.max(0, respawnInvulnerabilityWorldSeconds));
+        respawnInvulnerability.addProperty("cancelOnAttack", respawnInvulnerabilityCancelOnAttack);
 
         JsonObject stats = obj(root, "stats");
         stats.addProperty("enabled", statsEnabled);

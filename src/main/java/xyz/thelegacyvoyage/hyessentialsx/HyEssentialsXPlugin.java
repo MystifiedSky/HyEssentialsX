@@ -44,6 +44,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.misc.MotdCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.NearCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.PlaytimeCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.RankupCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.misc.LeaderboardCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.RulesCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.SeenCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.SleepPercentCommand;
@@ -114,6 +115,7 @@ import xyz.thelegacyvoyage.hyessentialsx.listeners.AfkListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerDataListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerVisibilityListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.RespawnInvulnerabilityListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.RespawnTeleportListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.ScoreboardListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.ShopNpcListener;
@@ -143,6 +145,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.MailManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PaycheckManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.RespawnInvulnerabilityManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeRewardManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.RankupManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SleepPercentManager;
@@ -198,6 +201,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private WarpManager warpManager;
     private KitManager kitManager;
     private WorldBorderManager worldBorderManager;
+    private RespawnInvulnerabilityManager respawnInvulnerabilityManager;
     private MessageManager messageManager;
     private SocialSpyManager socialSpyManager;
     private IgnoreManager ignoreManager;
@@ -354,6 +358,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         warpManager = new WarpManager(storage);
         kitManager = new KitManager(storage);
         worldBorderManager = new WorldBorderManager(configManager);
+        respawnInvulnerabilityManager = new RespawnInvulnerabilityManager(configManager);
         messageManager = new MessageManager();
         socialSpyManager = new SocialSpyManager();
         ignoreManager = new IgnoreManager(storage);
@@ -620,6 +625,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new PlaytimeCommand(playtimeManager, playtimeRewardManager, rankupManager, storage, configManager));
         if (configManager.isStatsEnabled()) {
             reg.accept(new StatsCommand(statsManager, playtimeManager, storage));
+            reg.accept(new LeaderboardCommand(statsManager));
         }
         if (scoreboardManager != null && configManager.isScoreboardEnabled()) {
             reg.accept(new ScoreboardCommand(scoreboardManager, configManager));
@@ -708,6 +714,8 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         new SpawnProtectionListener(spawnManager, configManager).register(bus);
         RespawnTeleportListener respawnTeleportListener = new RespawnTeleportListener(spawnManager);
         respawnTeleportListener.register(bus);
+        RespawnInvulnerabilityListener respawnInvulnerabilityListener = new RespawnInvulnerabilityListener(respawnInvulnerabilityManager);
+        respawnInvulnerabilityListener.register(bus);
         new SleepPercentListener(configManager).register(bus);
         Log.info("[HyEssentialsX] Listeners registered");
 
@@ -715,6 +723,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         new DeathMessageListener(configManager).register(getEntityStoreRegistry());
         new DeathSpawnListener(spawnManager, configManager).register(getEntityStoreRegistry());
         respawnTeleportListener.register(getEntityStoreRegistry());
+        respawnInvulnerabilityListener.register(getEntityStoreRegistry());
         new FlyNoFallListener(flyManager).register(getEntityStoreRegistry());
         new GodHealthListener(godManager).register(getEntityStoreRegistry());
         new InfiniteStaminaListener(staminaManager).register(getEntityStoreRegistry());

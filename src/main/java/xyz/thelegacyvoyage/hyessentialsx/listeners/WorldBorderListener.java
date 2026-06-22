@@ -50,6 +50,7 @@ public final class WorldBorderListener {
                          @Nonnull ArchetypeChunk<EntityStore> chunk,
                          @Nonnull Store<EntityStore> store,
                          @Nonnull CommandBuffer<EntityStore> buffer) {
+            worldBorderManager.tickExpansion();
             if (!worldBorderManager.isEnabled()) {
                 return;
             }

@@ -351,6 +351,10 @@ public final class StatsListener {
                         : record != null ? record.cause()
                         : "unknown";
                 stats.increment(decedent.getUuid(), StatsManager.CATEGORY_KILLED_BY, killer);
+                if (record != null && record.attackerId() != null && !record.attackerId().equals(decedent.getUuid())) {
+                    stats.increment(record.attackerId(), StatsManager.CATEGORY_CUSTOM, "player_kills");
+                    stats.increment(record.attackerId(), StatsManager.CATEGORY_KILLED, "Player");
+                }
             } else if (record != null && record.attackerId() != null) {
                 String killed = resolveEntityName(ref, store);
                 stats.increment(record.attackerId(), StatsManager.CATEGORY_CUSTOM,

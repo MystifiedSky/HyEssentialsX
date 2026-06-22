@@ -15,6 +15,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.BalTopUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.ExplicitPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 
@@ -79,6 +80,9 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
 
         List<BalanceEntry> entries = new ArrayList<>();
         for (UUID uuid : storage.listPlayerIds()) {
+            if (isExempt(uuid)) {
+                continue;
+            }
             PlayerRef online = Universe.get().getPlayer(uuid);
             String name = online != null ? online.getUsername() : null;
             PlayerDataModel data = storage.getPlayerData(uuid);
@@ -121,6 +125,10 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
             }
         }
         return Math.min(DEFAULT_LIMIT, max);
+    }
+
+    private boolean isExempt(@Nonnull UUID uuid) {
+        return ExplicitPermissionUtil.hasExplicitPermission(uuid, BalTopUI.EXEMPT_PERMISSION);
     }
 
     private static final class BalanceEntry {

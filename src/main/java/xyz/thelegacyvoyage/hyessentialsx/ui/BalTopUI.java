@@ -18,6 +18,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.ExplicitPermissionUtil;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -27,6 +28,8 @@ import java.util.Locale;
 import java.util.UUID;
 
 public final class BalTopUI extends InteractiveCustomUIPage<BalTopUI.UIEventData> {
+
+    public static final String EXEMPT_PERMISSION = "hyessentialsx.baltop.exempt";
 
     private static final String LAYOUT = "hyessentialsx/BalTopPage.ui";
     private static final String ROW_LAYOUT = "hyessentialsx/BalTopRow.ui";
@@ -94,6 +97,9 @@ public final class BalTopUI extends InteractiveCustomUIPage<BalTopUI.UIEventData
     private List<BalanceEntry> loadEntries() {
         List<BalanceEntry> entries = new ArrayList<>();
         for (UUID uuid : storage.listPlayerIds()) {
+            if (isExempt(uuid)) {
+                continue;
+            }
             PlayerRef online = Universe.get().getPlayer(uuid);
             String name = online != null ? online.getUsername() : null;
             PlayerDataModel data = storage.getPlayerData(uuid);
@@ -109,6 +115,10 @@ public final class BalTopUI extends InteractiveCustomUIPage<BalTopUI.UIEventData
         entries.sort(Comparator.comparingLong((BalanceEntry entry) -> entry.balance).reversed()
                 .thenComparing(entry -> entry.name.toLowerCase(Locale.ROOT)));
         return entries;
+    }
+
+    private boolean isExempt(@Nonnull UUID uuid) {
+        return ExplicitPermissionUtil.hasExplicitPermission(uuid, EXEMPT_PERMISSION);
     }
 
     @Nonnull

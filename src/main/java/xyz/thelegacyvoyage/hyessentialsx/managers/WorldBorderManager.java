@@ -11,9 +11,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class WorldBorderManager {
 
     private static final long WARNING_COOLDOWN_MS = 3000L;
+    private static final long EXPANSION_CHECK_COOLDOWN_MS = 1000L;
 
     private final ConfigManager config;
     private final Map<UUID, Long> lastWarningMs = new ConcurrentHashMap<>();
+    private long lastExpansionCheckMs = 0L;
 
     public WorldBorderManager(@Nonnull ConfigManager config) {
         this.config = config;
@@ -80,6 +82,48 @@ public final class WorldBorderManager {
 
     public void clearWarningState() {
         lastWarningMs.clear();
+    }
+
+    public synchronized void tickExpansion() {
+        if (!config.isWorldBorderExpansionEnabled()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now - lastExpansionCheckMs < EXPANSION_CHECK_COOLDOWN_MS) {
+            return;
+        }
+        lastExpansionCheckMs = now;
+
+        long intervalMs = config.getWorldBorderExpansionIntervalSeconds() * 1000L;
+        long lastRunAtMs = config.getWorldBorderExpansionLastRunAtMs();
+        if (lastRunAtMs <= 0L) {
+            config.setWorldBorderExpansionState(radius(), now);
+            return;
+        }
+        if (now - lastRunAtMs < intervalMs) {
+            return;
+        }
+
+        int radius = radius();
+        int amount = config.getWorldBorderExpansionAmount();
+        int maxRadius = config.getWorldBorderExpansionMaxRadius();
+        long nextRunAtMs = lastRunAtMs;
+        boolean changed = false;
+        while (now - nextRunAtMs >= intervalMs) {
+            if (maxRadius > 0 && radius >= maxRadius) {
+                break;
+            }
+            long expanded = (long) radius + amount;
+            radius = maxRadius > 0 ? (int) Math.min(maxRadius, expanded) : (int) Math.min(Integer.MAX_VALUE, expanded);
+            nextRunAtMs += intervalMs;
+            changed = true;
+            if (radius >= Integer.MAX_VALUE) {
+                break;
+            }
+        }
+        if (changed) {
+            config.setWorldBorderExpansionState(radius, nextRunAtMs);
+        }
     }
 
     private static double clamp(double value, double min, double max) {

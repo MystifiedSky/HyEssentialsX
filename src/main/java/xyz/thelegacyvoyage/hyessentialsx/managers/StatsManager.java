@@ -2,8 +2,11 @@ package xyz.thelegacyvoyage.hyessentialsx.managers;
 
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.ExplicitPermissionUtil;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.text.DecimalFormat;
 import java.util.Comparator;
 import java.util.List;
@@ -72,6 +75,44 @@ public final class StatsManager {
     }
 
     @Nonnull
+    public List<LeaderboardEntry> topPlayers(@Nonnull String category, @Nonnull String stat, int limit) {
+        return topPlayers(category, stat, limit, null);
+    }
+
+    @Nonnull
+    public List<LeaderboardEntry> topPlayers(@Nonnull String category,
+                                             @Nonnull String stat,
+                                             int limit,
+                                             @Nullable String excludePermission) {
+        String normalizedCategory = category.toLowerCase(Locale.ROOT);
+        List<LeaderboardEntry> entries = new ArrayList<>();
+        for (UUID uuid : storage.listPlayerIds()) {
+            if (isExcluded(uuid, excludePermission)) {
+                continue;
+            }
+            PlayerDataModel data = storage.getPlayerData(uuid);
+            long value = data.getStat(normalizedCategory, stat);
+            String name = data.getLastKnownName();
+            if (name == null || name.isBlank()) {
+                name = uuid.toString();
+            }
+            entries.add(new LeaderboardEntry(uuid, name, value));
+        }
+        entries.sort(Comparator.comparingLong(LeaderboardEntry::value).reversed()
+                .thenComparing(entry -> entry.playerName().toLowerCase(Locale.ROOT)));
+        return entries.stream()
+                .limit(Math.max(1, limit))
+                .toList();
+    }
+
+    private boolean isExcluded(@Nonnull UUID uuid, @Nullable String permission) {
+        if (permission == null || permission.isBlank()) {
+            return false;
+        }
+        return ExplicitPermissionUtil.hasExplicitPermission(uuid, permission);
+    }
+
+    @Nonnull
     public String formatNumber(long value) {
         return NUMBER_FORMAT.format(Math.max(0L, value));
     }
@@ -116,5 +157,8 @@ public final class StatsManager {
 
     private boolean isValidKey(@Nonnull String key) {
         return !key.isBlank() && key.matches("^[.\\w:-]+$");
+    }
+
+    public record LeaderboardEntry(@Nonnull UUID playerId, @Nonnull String playerName, long value) {
     }
 }

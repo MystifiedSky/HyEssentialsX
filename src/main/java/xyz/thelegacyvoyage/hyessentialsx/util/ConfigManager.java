@@ -60,6 +60,13 @@ public final class ConfigManager {
     private boolean adminChatEnabled = true;
     private boolean afkEnabled = true;
     private boolean chatEnabled = false;
+    private boolean chatOverrideLuckPerms = false;
+    private boolean spawnProtectionEnabled = true;
+    private int spawnProtectionRadius = 64;
+    private boolean spawnProtectionAllowBreak = false;
+    private boolean spawnProtectionAllowPlace = false;
+    private boolean spawnProtectionAllowDamage = false;
+    private boolean spawnProtectionAllowInteract = true;
     private String defaultKit = "";
 
     private double nearRadius = 50.0;
@@ -169,8 +176,18 @@ public final class ConfigManager {
 
         JsonObject chat = new JsonObject();
         chat.addProperty("enabled", false);
+        chat.addProperty("overrideLuckPermsChatFormat", false);
         chat.add("groups", toChatGroupObject(chatGroupFormats));
         root.add("chat", chat);
+
+        JsonObject spawnProtection = new JsonObject();
+        spawnProtection.addProperty("enabled", true);
+        spawnProtection.addProperty("radius", 64);
+        spawnProtection.addProperty("allowBreak", false);
+        spawnProtection.addProperty("allowPlace", false);
+        spawnProtection.addProperty("allowDamage", false);
+        spawnProtection.addProperty("allowInteract", true);
+        root.add("spawnProtection", spawnProtection);
 
         JsonObject groupPriorities = new JsonObject();
         for (Map.Entry<String, Integer> entry : chatGroupPriorities.entrySet()) {
@@ -317,6 +334,13 @@ public final class ConfigManager {
                 root.add("autoBroadcast", defaults.get("autoBroadcast"));
                 changed = true;
             }
+            if (changed) {
+                try {
+                    Files.writeString(configPath, gson.toJson(root), StandardCharsets.UTF_8);
+                } catch (Exception e) {
+                    Log.warn("Failed to persist updated config defaults: " + e.getMessage());
+                }
+            }
 
             JsonObject general = obj(root, "general");
             useWorldDefaultSpawnIfUnset = bool(general, "spawnFallbackToWorldDefault", true);
@@ -401,6 +425,11 @@ public final class ConfigManager {
 
             JsonObject chat = obj(root, "chat");
             chatEnabled = bool(chat, "enabled", chatEnabled);
+            if (chat.has("overrideLuckPermsChatFormat")) {
+                chatOverrideLuckPerms = bool(chat, "overrideLuckPermsChatFormat", chatOverrideLuckPerms);
+            } else {
+                chatOverrideLuckPerms = bool(chat, "overrideLuckPerms", chatOverrideLuckPerms);
+            }
             chatGroupFormats = readChatGroupFormats(chat, chatGroupFormats);
             String legacyFormat = str(chat, "format", "");
             if (!legacyFormat.isBlank() && !hasGroupFormat(chatGroupFormats, "Default")) {
@@ -411,6 +440,14 @@ public final class ConfigManager {
             }
             JsonObject groupPriorities = obj(root, "groupPriorities");
             chatGroupPriorities = readGroupPriorities(groupPriorities, chatGroupPriorities);
+
+            JsonObject spawnProtection = obj(root, "spawnProtection");
+            spawnProtectionEnabled = bool(spawnProtection, "enabled", spawnProtectionEnabled);
+            spawnProtectionRadius = intVal(spawnProtection, "radius", spawnProtectionRadius);
+            spawnProtectionAllowBreak = bool(spawnProtection, "allowBreak", spawnProtectionAllowBreak);
+            spawnProtectionAllowPlace = bool(spawnProtection, "allowPlace", spawnProtectionAllowPlace);
+            spawnProtectionAllowDamage = bool(spawnProtection, "allowDamage", spawnProtectionAllowDamage);
+            spawnProtectionAllowInteract = bool(spawnProtection, "allowInteract", spawnProtectionAllowInteract);
 
             JsonObject kits = obj(root, "kits");
             defaultKit = str(kits, "defaultKit", defaultKit).trim();
@@ -640,6 +677,34 @@ public final class ConfigManager {
 
     public boolean isChatFormatEnabled() {
         return chatEnabled;
+    }
+
+    public boolean isOverrideLuckPermsChatFormat() {
+        return chatOverrideLuckPerms;
+    }
+
+    public boolean isSpawnProtectionEnabled() {
+        return spawnProtectionEnabled;
+    }
+
+    public int getSpawnProtectionRadius() {
+        return spawnProtectionRadius;
+    }
+
+    public boolean isSpawnProtectionAllowBreak() {
+        return spawnProtectionAllowBreak;
+    }
+
+    public boolean isSpawnProtectionAllowPlace() {
+        return spawnProtectionAllowPlace;
+    }
+
+    public boolean isSpawnProtectionAllowDamage() {
+        return spawnProtectionAllowDamage;
+    }
+
+    public boolean isSpawnProtectionAllowInteract() {
+        return spawnProtectionAllowInteract;
     }
 
     @Nonnull
@@ -887,7 +952,17 @@ public final class ConfigManager {
 
         JsonObject chat = obj(root, "chat");
         chat.addProperty("enabled", chatEnabled);
+        chat.addProperty("overrideLuckPermsChatFormat", chatOverrideLuckPerms);
+        chat.remove("overrideLuckPerms");
         chat.add("groups", toChatGroupObject(chatGroupFormats));
+
+        JsonObject spawnProtection = obj(root, "spawnProtection");
+        spawnProtection.addProperty("enabled", spawnProtectionEnabled);
+        spawnProtection.addProperty("radius", spawnProtectionRadius);
+        spawnProtection.addProperty("allowBreak", spawnProtectionAllowBreak);
+        spawnProtection.addProperty("allowPlace", spawnProtectionAllowPlace);
+        spawnProtection.addProperty("allowDamage", spawnProtectionAllowDamage);
+        spawnProtection.addProperty("allowInteract", spawnProtectionAllowInteract);
 
         JsonObject groupPriorities = new JsonObject();
         for (Map.Entry<String, Integer> entry : chatGroupPriorities.entrySet()) {

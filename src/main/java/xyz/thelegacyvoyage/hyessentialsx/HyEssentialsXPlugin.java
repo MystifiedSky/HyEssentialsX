@@ -70,6 +70,7 @@ import xyz.thelegacyvoyage.hyessentialsx.listeners.AfkListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerDataListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerVisibilityListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.SpawnProtectionListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.TeleportWarmupListener;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AfkManager;
@@ -297,6 +298,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         new ChatModerationListener(muteManager, adminChatManager, configManager).register(bus);
         new CleanupListener(tpManager, backManager, flyManager, godManager, staminaManager, vanishManager).register(bus);
         new AfkListener(afkManager).register(bus);
+        new SpawnProtectionListener(spawnManager, configManager).register(bus);
         Log.info("[HyEssentialsX] Listeners registered");
 
         new DeathBackListener(backManager).register(getEntityStoreRegistry());
@@ -306,6 +308,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         new InfiniteStaminaListener(staminaManager).register(getEntityStoreRegistry());
         new PlayerVisibilityListener(vanishManager).register(getEntityStoreRegistry());
         new TeleportWarmupListener(tpManager).register(getEntityStoreRegistry());
+        new SpawnProtectionListener(spawnManager, configManager).register(getEntityStoreRegistry());
     }
 
     private void registerWorldHooks() {

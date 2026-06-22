@@ -93,7 +93,7 @@ public final class ChatModerationListener {
                         .replace("{group}", groupName)
                         .replace("{faction}", faction);
                 Message formatted = Messages.m(formattedText);
-                if (trySetMessage(event, formatted)) {
+                if (!config.isOverrideLuckPermsChatFormat()) {
                     return;
                 }
                 event.setCancelled(true);

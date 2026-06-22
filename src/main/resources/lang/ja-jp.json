@@ -33,6 +33,7 @@
   "home.multiple": "&c複数のホームがあります。/home <name> を使用してください。",
   "home.not_found": "&cホームが見つかりません。",
   "home.list": "&eホーム: &f{homes}",
+  "home.ui_failed": "&cホームUIを開けませんでした。",
   "warp.disabled": "&cワープは無効です。",
   "warp.not_found": "&cワープが見つかりません。",
   "warp.list": "&eワープ: &f{warps}",
@@ -43,8 +44,14 @@
   "language.current": "&e現在の言語: &f{language}&e。利用可能: &f{available}",
   "language.not_found": "&c言語 '{language}' が見つかりません。利用可能: &f{available}",
   "language.changed": "&a言語を &f{language}&a に設定しました。",
-  "player.not_found": "&cPlayer not found.",
-  "tphere.self": "&cYou can't teleport yourself.",
-  "tphere.success": "&aTeleported {player} to you.",
-  "tphere.target": "&aYou were teleported to {player}."
+  "player.not_found": "&cプレイヤーが見つかりません。",
+  "tphere.self": "&c自分自身にはテレポートできません。",
+  "tphere.success": "&a{player} をあなたのところへテレポートしました。",
+  "tphere.target": "&aあなたは {player} のところへテレポートされました。",
+  "vanish.enabled": "&aバニッシュを有効にしました。",
+  "vanish.disabled": "&aバニッシュを無効にしました。",
+  "vanish.enabled_for": "&a{player} のバニッシュを有効にしました。",
+  "vanish.disabled_for": "&a{player} のバニッシュを無効にしました。",
+  "vanish.enabled_by": "&a{player} によりバニッシュが有効になりました。",
+  "vanish.disabled_by": "&a{player} によりバニッシュが無効になりました。"
 }

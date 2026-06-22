@@ -4,10 +4,14 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.HomeManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
+import xyz.thelegacyvoyage.hyessentialsx.ui.HomesUI;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -21,11 +25,18 @@ public final class HomesCommand extends AbstractPlayerCommand {
 
     private final HomeManager homeManager;
     private final ConfigManager config;
+    private final TPManager tpManager;
+    private final CommandCooldownManager cooldowns;
 
-    public HomesCommand(@Nonnull HomeManager homeManager, @Nonnull ConfigManager config) {
+    public HomesCommand(@Nonnull HomeManager homeManager,
+                        @Nonnull TPManager tpManager,
+                        @Nonnull ConfigManager config,
+                        @Nonnull CommandCooldownManager cooldowns) {
         super("homes", "Lists all your homes");
         this.homeManager = homeManager;
+        this.tpManager = tpManager;
         this.config = config;
+        this.cooldowns = cooldowns;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
@@ -54,11 +65,17 @@ public final class HomesCommand extends AbstractPlayerCommand {
 
         List<String> homes = homeManager.listHomes(playerRef.getUuid());
         if (homes.isEmpty()) {
-            Messages.warn(context, "You have no homes set.");
+            Messages.errKey(context, "home.none", Map.of());
             return;
         }
 
-        Messages.sendKey(context, "home.list", Map.of("homes", String.join(", ", homes)));
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            Messages.errKey(context, "home.ui_failed", Map.of());
+            return;
+        }
+        HomesUI page = new HomesUI(playerRef, homeManager, tpManager, config, cooldowns);
+        page.open(player, ref, store);
     }
 }
 

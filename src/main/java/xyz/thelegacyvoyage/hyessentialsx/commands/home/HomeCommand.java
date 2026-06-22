@@ -3,21 +3,21 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.home;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.CommandUtil;
-import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
-import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.HomeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.HomeModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
+import xyz.thelegacyvoyage.hyessentialsx.ui.HomesUI;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -32,7 +32,6 @@ public final class HomeCommand extends AbstractPlayerCommand {
     private final TPManager tpManager;
     private final ConfigManager config;
     private final CommandCooldownManager cooldowns;
-    private final RequiredArg<String> nameArg;
     public HomeCommand(@Nonnull HomeManager homeManager,
                        @Nonnull TPManager tpManager,
                        @Nonnull ConfigManager config,
@@ -43,8 +42,8 @@ public final class HomeCommand extends AbstractPlayerCommand {
         this.config = config;
         this.cooldowns = cooldowns;
         this.setPermissionGroup(null);
+        this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
-        this.nameArg = withRequiredArg("name", "Home name", ArgTypes.STRING);
     }
 
     @Override
@@ -68,35 +67,34 @@ public final class HomeCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "home.disabled", Map.of());
             return;
         }
-        if (!cooldowns.canUse(context, playerRef, CooldownKeys.HOME, "/home", BYPASS_PERMISSION)) {
-            return;
-        }
-
-        String name = context.get(nameArg);
-        String rawArgs = CommandUtil.stripCommandName(context.getInputString()).trim();
-        if (rawArgs.isEmpty()) {
+        String name = CommandInputUtil.getArg(context, 0);
+        if (name == null || name.trim().isEmpty()) {
             List<String> homes = homeManager.listHomes(playerRef.getUuid());
             if (homes.isEmpty()) {
                 Messages.errKey(context, "home.none", Map.of());
                 return;
             }
-            if (homes.size() == 1) {
-                name = homes.get(0);
-            } else if (homes.contains("home")) {
-                name = "home";
-            } else {
-                Messages.errKey(context, "home.multiple", Map.of());
+            Player player = store.getComponent(ref, Player.getComponentType());
+            if (player == null) {
+                Messages.errKey(context, "home.ui_failed", Map.of());
                 return;
             }
+            HomesUI page = new HomesUI(playerRef, homeManager, tpManager, config, cooldowns);
+            page.open(player, ref, store);
+            return;
         }
 
-        HomeModel home = homeManager.getHome(playerRef.getUuid(), name);
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.HOME, "/home", BYPASS_PERMISSION)) {
+            return;
+        }
+
+        HomeModel home = homeManager.getHome(playerRef.getUuid(), name.trim());
         if (home == null) {
             Messages.errKey(context, "home.not_found", Map.of());
             return;
         }
 
-        final String homeName = name;
+        final String homeName = name.trim();
         int warmupSeconds = config.getHomeWarmupSeconds();
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(playerRef.getUuid())) {
@@ -147,7 +145,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
         }
 
         cooldowns.apply(playerRef, CooldownKeys.HOME);
-        Messages.okKey(context, "teleport.success.home", Map.of("home", name));
+        Messages.okKey(context, "teleport.success.home", Map.of("home", homeName));
     }
 }
 

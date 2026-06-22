@@ -33,6 +33,7 @@
   "home.multiple": "&cلديك عدة منازل. استخدم /home <name>.",
   "home.not_found": "&cالمنزل غير موجود.",
   "home.list": "&eالمنازل: &f{homes}",
+  "home.ui_failed": "&cتعذر فتح قائمة المنازل.",
   "warp.disabled": "&cنقاط الانتقال معطلة.",
   "warp.not_found": "&cنقطة الانتقال غير موجودة.",
   "warp.list": "&eالنقاط: &f{warps}",
@@ -43,8 +44,14 @@
   "language.current": "&eاللغة الحالية: &f{language}&e. المتاحة: &f{available}",
   "language.not_found": "&cاللغة '{language}' غير موجودة. المتاحة: &f{available}",
   "language.changed": "&aتم ضبط اللغة إلى &f{language}&a.",
-  "player.not_found": "&cPlayer not found.",
-  "tphere.self": "&cYou can't teleport yourself.",
-  "tphere.success": "&aTeleported {player} to you.",
-  "tphere.target": "&aYou were teleported to {player}."
+  "player.not_found": "&cاللاعب غير موجود.",
+  "tphere.self": "&cلا يمكنك نقل نفسك.",
+  "tphere.success": "&aتم نقل {player} إليك.",
+  "tphere.target": "&aتم نقلك إلى {player}.",
+  "vanish.enabled": "&aتم تفعيل الاختفاء.",
+  "vanish.disabled": "&aتم إيقاف الاختفاء.",
+  "vanish.enabled_for": "&aتم تفعيل الاختفاء لـ {player}.",
+  "vanish.disabled_for": "&aتم إيقاف الاختفاء لـ {player}.",
+  "vanish.enabled_by": "&aتم تفعيل الاختفاء بواسطة {player}.",
+  "vanish.disabled_by": "&aتم إيقاف الاختفاء بواسطة {player}."
 }

@@ -33,6 +33,7 @@
   "home.multiple": "&cআপনার একাধিক হোম আছে। /home <name> ব্যবহার করুন।",
   "home.not_found": "&cহোম পাওয়া যায়নি।",
   "home.list": "&eহোমসমূহ: &f{homes}",
+  "home.ui_failed": "&cহোম মেনু খুলতে ব্যর্থ।",
   "warp.disabled": "&cওয়ার্প বন্ধ আছে।",
   "warp.not_found": "&cওয়ার্প পাওয়া যায়নি।",
   "warp.list": "&eওয়ার্পসমূহ: &f{warps}",
@@ -43,8 +44,14 @@
   "language.current": "&eবর্তমান ভাষা: &f{language}&e। উপলভ্য: &f{available}",
   "language.not_found": "&c'{language}' ভাষা পাওয়া যায়নি। উপলভ্য: &f{available}",
   "language.changed": "&aভাষা &f{language}&a এ সেট করা হয়েছে।",
-  "player.not_found": "&cPlayer not found.",
-  "tphere.self": "&cYou can't teleport yourself.",
-  "tphere.success": "&aTeleported {player} to you.",
-  "tphere.target": "&aYou were teleported to {player}."
+  "player.not_found": "&cখেলোয়াড় পাওয়া যায়নি।",
+  "tphere.self": "&cআপনি নিজেকে টেলিপোর্ট করতে পারবেন না।",
+  "tphere.success": "&a{player} কে আপনার কাছে টেলিপোর্ট করা হয়েছে।",
+  "tphere.target": "&aআপনাকে {player} এর কাছে টেলিপোর্ট করা হয়েছে।",
+  "vanish.enabled": "&aঅদৃশ্যতা চালু হয়েছে।",
+  "vanish.disabled": "&aঅদৃশ্যতা বন্ধ হয়েছে।",
+  "vanish.enabled_for": "&a{player} এর জন্য অদৃশ্যতা চালু হয়েছে।",
+  "vanish.disabled_for": "&a{player} এর জন্য অদৃশ্যতা বন্ধ হয়েছে।",
+  "vanish.enabled_by": "&a{player} দ্বারা অদৃশ্যতা চালু হয়েছে।",
+  "vanish.disabled_by": "&a{player} দ্বারা অদৃশ্যতা বন্ধ হয়েছে।"
 }

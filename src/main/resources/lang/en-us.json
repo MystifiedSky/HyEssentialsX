@@ -33,6 +33,7 @@
   "home.multiple": "&cYou have multiple homes. Use /home <name>.",
   "home.not_found": "&cHome not found.",
   "home.list": "&eHomes: &f{homes}",
+  "home.ui_failed": "&cCould not open the homes menu.",
   "warp.disabled": "&cWarps are disabled.",
   "warp.not_found": "&cWarp not found.",
   "warp.list": "&eWarps: &f{warps}",
@@ -46,5 +47,11 @@
   "player.not_found": "&cPlayer not found.",
   "tphere.self": "&cYou can't teleport yourself.",
   "tphere.success": "&aTeleported {player} to you.",
-  "tphere.target": "&aYou were teleported to {player}."
+  "tphere.target": "&aYou were teleported to {player}.",
+  "vanish.enabled": "&aVanish enabled.",
+  "vanish.disabled": "&aVanish disabled.",
+  "vanish.enabled_for": "&aVanish enabled for {player}.",
+  "vanish.disabled_for": "&aVanish disabled for {player}.",
+  "vanish.enabled_by": "&aVanish enabled by {player}.",
+  "vanish.disabled_by": "&aVanish disabled by {player}."
 }

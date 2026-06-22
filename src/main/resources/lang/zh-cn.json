@@ -33,6 +33,7 @@
   "home.multiple": "&c你有多个家。使用 /home <name>。",
   "home.not_found": "&c未找到家。",
   "home.list": "&e家: &f{homes}",
+  "home.ui_failed": "&c无法打开家园菜单。",
   "warp.disabled": "&c传送点已禁用。",
   "warp.not_found": "&c未找到传送点。",
   "warp.list": "&e传送点: &f{warps}",
@@ -43,8 +44,14 @@
   "language.current": "&e当前语言：&f{language}&e。可用：&f{available}",
   "language.not_found": "&c未找到语言 '{language}'。可用：&f{available}",
   "language.changed": "&a语言已设置为 &f{language}&a。",
-  "player.not_found": "&cPlayer not found.",
-  "tphere.self": "&cYou can't teleport yourself.",
-  "tphere.success": "&aTeleported {player} to you.",
-  "tphere.target": "&aYou were teleported to {player}."
+  "player.not_found": "&c玩家未找到。",
+  "tphere.self": "&c你不能传送自己。",
+  "tphere.success": "&a已将 {player} 传送到你身边。",
+  "tphere.target": "&a你已被传送到 {player}。",
+  "vanish.enabled": "&a隐身已开启。",
+  "vanish.disabled": "&a隐身已关闭。",
+  "vanish.enabled_for": "&a已为 {player} 开启隐身。",
+  "vanish.disabled_for": "&a已为 {player} 关闭隐身。",
+  "vanish.enabled_by": "&a由 {player} 开启了隐身。",
+  "vanish.disabled_by": "&a由 {player} 关闭了隐身。"
 }

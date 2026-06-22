@@ -33,6 +33,7 @@
   "home.multiple": "&cਤੁਹਾਡੇ ਕਈ ਘਰ ਹਨ। /home <name> ਵਰਤੋ।",
   "home.not_found": "&cਘਰ ਨਹੀਂ ਮਿਲਿਆ।",
   "home.list": "&eਘਰ: &f{homes}",
+  "home.ui_failed": "&cਹੋਮ ਮੈਨੂ ਨਹੀਂ ਖੁਲ ਸਕਿਆ।",
   "warp.disabled": "&cਵਾਰਪ ਬੰਦ ਹਨ।",
   "warp.not_found": "&cਵਾਰਪ ਨਹੀਂ ਮਿਲਿਆ।",
   "warp.list": "&eਵਾਰਪ: &f{warps}",
@@ -43,8 +44,14 @@
   "language.current": "&eਮੌਜੂਦਾ ਭਾਸ਼ਾ: &f{language}&e। ਉਪਲਬਧ: &f{available}",
   "language.not_found": "&cਭਾਸ਼ਾ '{language}' ਨਹੀਂ ਮਿਲੀ। ਉਪਲਬਧ: &f{available}",
   "language.changed": "&aਭਾਸ਼ਾ &f{language}&a ਤੇ ਸੈਟ ਕੀਤੀ ਗਈ।",
-  "player.not_found": "&cPlayer not found.",
-  "tphere.self": "&cYou can't teleport yourself.",
-  "tphere.success": "&aTeleported {player} to you.",
-  "tphere.target": "&aYou were teleported to {player}."
+  "player.not_found": "&cਖਿਡਾਰੀ ਨਹੀਂ ਮਿਲਿਆ।",
+  "tphere.self": "&cਤੁਸੀਂ ਆਪਣੇ ਆਪ ਨੂੰ ਟੈਲੀਪੋਰਟ ਨਹੀਂ ਕਰ ਸਕਦੇ।",
+  "tphere.success": "&a{player} ਨੂੰ ਤੁਹਾਡੇ ਕੋਲ ਟੈਲੀਪੋਰਟ ਕੀਤਾ ਗਿਆ।",
+  "tphere.target": "&aਤੁਹਾਨੂੰ {player} ਕੋਲ ਟੈਲੀਪੋਰਟ ਕੀਤਾ ਗਿਆ।",
+  "vanish.enabled": "&aਗਾਇਬ ਮੋਡ ਚਾਲੂ ਹੋ ਗਿਆ।",
+  "vanish.disabled": "&aਗਾਇਬ ਮੋਡ ਬੰਦ ਹੋ ਗਿਆ।",
+  "vanish.enabled_for": "&a{player} ਲਈ ਗਾਇਬ ਮੋਡ ਚਾਲੂ ਕੀਤਾ ਗਿਆ।",
+  "vanish.disabled_for": "&a{player} ਲਈ ਗਾਇਬ ਮੋਡ ਬੰਦ ਕੀਤਾ ਗਿਆ।",
+  "vanish.enabled_by": "&a{player} ਵੱਲੋਂ ਗਾਇਬ ਮੋਡ ਚਾਲੂ ਕੀਤਾ ਗਿਆ।",
+  "vanish.disabled_by": "&a{player} ਵੱਲੋਂ ਗਾਇਬ ਮੋਡ ਬੰਦ ਕੀਤਾ ਗਿਆ।"
 }

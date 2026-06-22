@@ -13,9 +13,11 @@ import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -57,6 +59,8 @@ public final class ConfigManager {
     private boolean tpaEnabled = true;
     private boolean adminChatEnabled = true;
     private boolean afkEnabled = true;
+    private boolean chatEnabled = false;
+    private String defaultKit = "";
 
     private double nearRadius = 50.0;
     private boolean nearShowDistance = true;
@@ -86,6 +90,8 @@ public final class ConfigManager {
     private List<String> quitMessages = List.of(
             "<#FCA5A5><bold>- </bold></#FCA5A5><#93C5FD><bold>{player} left the server.</bold></#93C5FD>"
     );
+    private Map<String, String> chatGroupFormats = defaultChatGroups();
+    private Map<String, Integer> chatGroupPriorities = defaultGroupPriorities();
 
     private int afkTimeoutSeconds = 300;
     private boolean afkAnnounceOnAuto = true;
@@ -161,6 +167,17 @@ public final class ConfigManager {
         joinQuit.add("quitMessages", toArray(quitMessages));
         root.add("joinAndQuit", joinQuit);
 
+        JsonObject chat = new JsonObject();
+        chat.addProperty("enabled", false);
+        chat.add("groups", toChatGroupObject(chatGroupFormats));
+        root.add("chat", chat);
+
+        JsonObject groupPriorities = new JsonObject();
+        for (Map.Entry<String, Integer> entry : chatGroupPriorities.entrySet()) {
+            groupPriorities.addProperty(entry.getKey(), entry.getValue());
+        }
+        root.add("groupPriorities", groupPriorities);
+
         JsonObject features = new JsonObject();
         features.addProperty("homes", true);
         features.addProperty("warps", true);
@@ -175,6 +192,10 @@ public final class ConfigManager {
         features.addProperty("tpa", true);
         features.addProperty("adminChat", true);
         root.add("features", features);
+
+        JsonObject kits = new JsonObject();
+        kits.addProperty("defaultKit", "");
+        root.add("kits", kits);
 
         JsonObject motd = new JsonObject();
         motd.addProperty("enabled", true);
@@ -287,7 +308,9 @@ public final class ConfigManager {
         try {
             String content = Files.readString(configPath, StandardCharsets.UTF_8);
             root = gson.fromJson(content, JsonObject.class);
-            if (root == null) root = buildDefaultConfig();
+            if (root == null) {
+                throw new IllegalStateException("config.json parsed to null");
+            }
             JsonObject defaults = buildDefaultConfig();
             boolean changed = mergeDefaults(root, defaults);
             if (!root.has("autoBroadcast") || !root.get("autoBroadcast").isJsonObject()) {
@@ -376,6 +399,22 @@ public final class ConfigManager {
             joinMessages = readStringList(joinQuit, "joinMessages", "joinMessage", joinMessages);
             quitMessages = readStringList(joinQuit, "quitMessages", "quitMessage", quitMessages);
 
+            JsonObject chat = obj(root, "chat");
+            chatEnabled = bool(chat, "enabled", chatEnabled);
+            chatGroupFormats = readChatGroupFormats(chat, chatGroupFormats);
+            String legacyFormat = str(chat, "format", "");
+            if (!legacyFormat.isBlank() && !hasGroupFormat(chatGroupFormats, "Default")) {
+                chatGroupFormats.put("Default", legacyFormat);
+            }
+            if (chatGroupFormats.isEmpty()) {
+                chatGroupFormats = defaultChatGroups();
+            }
+            JsonObject groupPriorities = obj(root, "groupPriorities");
+            chatGroupPriorities = readGroupPriorities(groupPriorities, chatGroupPriorities);
+
+            JsonObject kits = obj(root, "kits");
+            defaultKit = str(kits, "defaultKit", defaultKit).trim();
+
             JsonObject motd = obj(root, "motd");
             motdEnabled = bool(motd, "enabled", motdEnabled);
             motdShowOnJoin = bool(motd, "showOnJoin", motdShowOnJoin);
@@ -436,8 +475,10 @@ public final class ConfigManager {
             }
             setVersionFromPlugin();
         } catch (Exception e) {
+            backupBadConfig();
             Log.warn("Failed to load config.json, using defaults: " + e.getMessage());
             root = buildDefaultConfig();
+            save();
         }
     }
 
@@ -591,6 +632,68 @@ public final class ConfigManager {
 
     public boolean isJoinQuitEnabled() {
         return joinQuitEnabled;
+    }
+
+    public boolean isChatEnabled() {
+        return chatEnabled;
+    }
+
+    public boolean isChatFormatEnabled() {
+        return chatEnabled;
+    }
+
+    @Nonnull
+    public String getDefaultKitName() {
+        return defaultKit;
+    }
+
+    @Nonnull
+    public String getChatFormatForGroup(@Nonnull String groupName) {
+        for (Map.Entry<String, String> entry : chatGroupFormats.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(groupName)) {
+                return entry.getValue();
+            }
+        }
+        return chatGroupFormats.getOrDefault("Default", "");
+    }
+
+    @Nonnull
+    public String getDefaultChatFormat() {
+        return chatGroupFormats.getOrDefault("Default", "");
+    }
+
+    @Nonnull
+    public String getChatFormat() {
+        return getDefaultChatFormat();
+    }
+
+    @Nonnull
+    public Map<String, String> getChatGroupFormats() {
+        return Collections.unmodifiableMap(chatGroupFormats);
+    }
+
+    @Nonnull
+    public String getHighestPriorityGroup(@Nullable java.util.Set<String> groupNames) {
+        if (groupNames == null || groupNames.isEmpty()) return "Default";
+        String highestGroup = "Default";
+        int highestPriority = Integer.MIN_VALUE;
+        for (String groupName : groupNames) {
+            int priority = getPriorityForGroup(groupName);
+            if (priority > highestPriority) {
+                highestPriority = priority;
+                highestGroup = groupName;
+            }
+        }
+        return highestGroup;
+    }
+
+    private int getPriorityForGroup(@Nonnull String groupName) {
+        for (Map.Entry<String, Integer> entry : chatGroupPriorities.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(groupName)) {
+                return entry.getValue();
+            }
+        }
+        return 0;
     }
 
     public int getAfkTimeoutSeconds() {
@@ -782,6 +885,16 @@ public final class ConfigManager {
         joinQuit.add("joinMessages", toArray(joinMessages));
         joinQuit.add("quitMessages", toArray(quitMessages));
 
+        JsonObject chat = obj(root, "chat");
+        chat.addProperty("enabled", chatEnabled);
+        chat.add("groups", toChatGroupObject(chatGroupFormats));
+
+        JsonObject groupPriorities = new JsonObject();
+        for (Map.Entry<String, Integer> entry : chatGroupPriorities.entrySet()) {
+            groupPriorities.addProperty(entry.getKey(), entry.getValue());
+        }
+        root.add("groupPriorities", groupPriorities);
+
         JsonObject motd = obj(root, "motd");
         motd.addProperty("enabled", motdEnabled);
         motd.addProperty("showOnJoin", motdShowOnJoin);
@@ -841,6 +954,17 @@ public final class ConfigManager {
         storage.addProperty("mysqlDatabase", mysqlDatabase);
         storage.addProperty("mysqlUser", mysqlUser);
         storage.addProperty("mysqlPassword", mysqlPassword);
+    }
+
+    private void backupBadConfig() {
+        try {
+            if (!Files.exists(configPath)) return;
+            Path backupPath = configPath.resolveSibling(configPath.getFileName().toString() + ".bak");
+            Files.move(configPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
+            Log.warn("Backed up invalid config.json to: " + backupPath);
+        } catch (Exception e) {
+            Log.warn("Failed to backup invalid config.json: " + e.getMessage());
+        }
     }
 
     private void setVersionFromPlugin() {
@@ -939,10 +1063,73 @@ public final class ConfigManager {
     }
 
     @Nonnull
+    private Map<String, String> readChatGroupFormats(@Nonnull JsonObject chat, @Nonnull Map<String, String> def) {
+        JsonElement el = chat.get("groups");
+        if (el == null) return def;
+        Map<String, String> out = new LinkedHashMap<>();
+        if (el.isJsonObject()) {
+            JsonObject obj = el.getAsJsonObject();
+            for (Map.Entry<String, JsonElement> entry : obj.entrySet()) {
+                if (!entry.getValue().isJsonPrimitive()) continue;
+                String format = entry.getValue().getAsString().trim();
+                if (!format.isBlank()) {
+                    out.put(entry.getKey(), format);
+                }
+            }
+        } else if (el.isJsonArray()) {
+            for (JsonElement entry : el.getAsJsonArray()) {
+                if (!entry.isJsonObject()) continue;
+                JsonObject groupObj = entry.getAsJsonObject();
+                String name = str(groupObj, "name", "").trim();
+                if (name.isBlank()) {
+                    name = str(groupObj, "group", "").trim();
+                }
+                if (name.isBlank()) {
+                    name = str(groupObj, "permission", "").trim();
+                }
+                String format = str(groupObj, "format", "").trim();
+                if (!name.isBlank() && !format.isBlank()) {
+                    out.put(name, format);
+                }
+            }
+        }
+        return out.isEmpty() ? def : out;
+    }
+
+    @Nonnull
+    private Map<String, Integer> readGroupPriorities(@Nonnull JsonObject obj, @Nonnull Map<String, Integer> def) {
+        if (obj.entrySet().isEmpty()) return def;
+        Map<String, Integer> out = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonElement> entry : obj.entrySet()) {
+            JsonElement value = entry.getValue();
+            if (value != null && value.isJsonPrimitive()) {
+                out.put(entry.getKey(), value.getAsInt());
+            }
+        }
+        return out.isEmpty() ? def : out;
+    }
+
+    private boolean hasGroupFormat(@Nonnull Map<String, String> groups, @Nonnull String groupName) {
+        for (String key : groups.keySet()) {
+            if (key.equalsIgnoreCase(groupName)) return true;
+        }
+        return false;
+    }
+
+    @Nonnull
     private JsonArray toArray(@Nonnull List<String> values) {
         JsonArray arr = new JsonArray();
         for (String value : values) arr.add(value);
         return arr;
+    }
+
+    @Nonnull
+    private JsonObject toChatGroupObject(@Nonnull Map<String, String> groups) {
+        JsonObject obj = new JsonObject();
+        for (Map.Entry<String, String> entry : groups.entrySet()) {
+            obj.addProperty(entry.getKey(), entry.getValue());
+        }
+        return obj;
     }
 
     private boolean mergeDefaults(@Nonnull JsonObject target, @Nonnull JsonObject defaults) {
@@ -962,5 +1149,29 @@ public final class ConfigManager {
             }
         }
         return changed;
+    }
+
+    @Nonnull
+    private static Map<String, String> defaultChatGroups() {
+        Map<String, String> groups = new LinkedHashMap<>();
+        groups.put("Default", "&7[{group}] &f{player}&7: &f{message}");
+        groups.put("Member", "&#5EEAD4[{group}] &f{player}&7: &f{message}");
+        groups.put("VIP", "&#FBBF24[{group}] &f{player}&7: &f{message}");
+        groups.put("Moderator", "&#34D399[{group}] &f{player}&7: &f{message}");
+        groups.put("Admin", "&#F87171[{group}] &f{player}&7: &f{message}");
+        groups.put("OP", "&#FB7185[{group}] &f{player}&7: &f{message}");
+        return groups;
+    }
+
+    @Nonnull
+    private static Map<String, Integer> defaultGroupPriorities() {
+        Map<String, Integer> priorities = new LinkedHashMap<>();
+        priorities.put("Default", 0);
+        priorities.put("Member", 1);
+        priorities.put("VIP", 10);
+        priorities.put("Moderator", 50);
+        priorities.put("Admin", 90);
+        priorities.put("OP", 100);
+        return priorities;
     }
 }

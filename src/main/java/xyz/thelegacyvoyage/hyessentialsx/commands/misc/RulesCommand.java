@@ -39,13 +39,13 @@ public final class RulesCommand extends CommandBase {
 
         List<String> rules = config.getRules();
         if (rules.isEmpty()) {
-            Messages.send(context, "&7No rules set.");
+            context.sendMessage(Messages.m("&7No rules set."));
             return;
         }
 
-        Messages.send(context, "&aRules:");
+        context.sendMessage(Messages.m("&aRules:"));
         for (String rule : rules) {
-            Messages.send(context, rule);
+            context.sendMessage(Messages.m(rule));
         }
     }
 }

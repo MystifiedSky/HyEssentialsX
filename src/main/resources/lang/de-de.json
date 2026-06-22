@@ -33,6 +33,7 @@
   "home.multiple": "&cDu hast mehrere Häuser. Verwende /home <name>.",
   "home.not_found": "&cHaus nicht gefunden.",
   "home.list": "&eHäuser: &f{homes}",
+  "home.ui_failed": "&cHomes-UI konnte nicht geöffnet werden.",
   "warp.disabled": "&cWarps sind deaktiviert.",
   "warp.not_found": "&cWarp nicht gefunden.",
   "warp.list": "&eWarps: &f{warps}",
@@ -43,8 +44,14 @@
   "language.current": "&eAktuelle Sprache: &f{language}&e. Verfügbar: &f{available}",
   "language.not_found": "&cSprache '{language}' nicht gefunden. Verfügbar: &f{available}",
   "language.changed": "&aSprache auf &f{language}&a gesetzt.",
-  "player.not_found": "&cPlayer not found.",
-  "tphere.self": "&cYou can't teleport yourself.",
-  "tphere.success": "&aTeleported {player} to you.",
-  "tphere.target": "&aYou were teleported to {player}."
+  "player.not_found": "&cSpieler nicht gefunden.",
+  "tphere.self": "&cDu kannst dich nicht selbst teleportieren.",
+  "tphere.success": "&a{player} wurde zu dir teleportiert.",
+  "tphere.target": "&aDu wurdest zu {player} teleportiert.",
+  "vanish.enabled": "&aVanish aktiviert.",
+  "vanish.disabled": "&aVanish deaktiviert.",
+  "vanish.enabled_for": "&aVanish für {player} aktiviert.",
+  "vanish.disabled_for": "&aVanish für {player} deaktiviert.",
+  "vanish.enabled_by": "&aVanish von {player} aktiviert.",
+  "vanish.disabled_by": "&aVanish von {player} deaktiviert."
 }

@@ -9,16 +9,29 @@ import com.hypixel.hytale.component.system.RefChangeSystem;
 import com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
 
 import javax.annotation.Nonnull;
 
 public final class PlayerVisibilityListener {
 
+    private final VanishManager vanishManager;
+
+    public PlayerVisibilityListener(@Nonnull VanishManager vanishManager) {
+        this.vanishManager = vanishManager;
+    }
+
     public void register(@Nonnull ComponentRegistryProxy<EntityStore> registry) {
-        registry.registerSystem(new VisibilityResetSystem());
+        registry.registerSystem(new VisibilityResetSystem(vanishManager));
     }
 
     private static final class VisibilityResetSystem extends RefChangeSystem<EntityStore, PlayerRef> {
+
+        private final VanishManager vanishManager;
+
+        private VisibilityResetSystem(@Nonnull VanishManager vanishManager) {
+            this.vanishManager = vanishManager;
+        }
 
         @Override
         public Query<EntityStore> getQuery() {
@@ -32,7 +45,10 @@ public final class PlayerVisibilityListener {
                 @Nonnull Store<EntityStore> store,
                 @Nonnull CommandBuffer<EntityStore> buffer
         ) {
-            // Ensure players are visible when they spawn in.
+            if (vanishManager.isEnabled(component.getUuid())) {
+                store.addComponent(ref, HiddenFromAdventurePlayers.getComponentType());
+                return;
+            }
             store.removeComponent(ref, HiddenFromAdventurePlayers.getComponentType());
         }
 

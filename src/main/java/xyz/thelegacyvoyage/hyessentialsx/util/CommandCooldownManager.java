@@ -2,6 +2,7 @@ package xyz.thelegacyvoyage.hyessentialsx.util;
 
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 
 import javax.annotation.Nonnull;
@@ -43,6 +44,37 @@ public final class CommandCooldownManager {
         }
 
         Messages.warnKey(context, "cooldown.wait", Map.of(
+                "time", TimeUtil.formatDurationSeconds(remaining),
+                "command", commandLabel
+        ));
+        return false;
+    }
+
+    public boolean canUse(@Nonnull PlayerRef playerRef,
+                          @Nonnull String key,
+                          @Nonnull String commandLabel,
+                          @Nonnull String bypassPermission) {
+        int cooldownSeconds = config.getCooldownSeconds(key);
+        if (cooldownSeconds <= 0) {
+            return true;
+        }
+        if (PermissionsModule.get().hasPermission(playerRef.getUuid(), bypassPermission)) {
+            return true;
+        }
+
+        PlayerDataModel data = storage.getPlayerData(playerRef.getUuid());
+        Long lastUsed = data.getCommandCooldowns().get(key);
+        if (lastUsed == null) {
+            return true;
+        }
+
+        long elapsedSeconds = (System.currentTimeMillis() - lastUsed) / 1000L;
+        long remaining = cooldownSeconds - elapsedSeconds;
+        if (remaining <= 0) {
+            return true;
+        }
+
+        Messages.sendPrefixedKey(playerRef, "cooldown.wait", Map.of(
                 "time", TimeUtil.formatDurationSeconds(remaining),
                 "command", commandLabel
         ));

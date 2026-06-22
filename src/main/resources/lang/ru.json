@@ -33,6 +33,7 @@
   "home.multiple": "&cУ вас несколько домов. Используйте /home <name>.",
   "home.not_found": "&cДом не найден.",
   "home.list": "&eДома: &f{homes}",
+  "home.ui_failed": "&cНе удалось открыть меню домов.",
   "warp.disabled": "&cВарпы отключены.",
   "warp.not_found": "&cВарп не найден.",
   "warp.list": "&eВарпы: &f{warps}",
@@ -43,8 +44,14 @@
   "language.current": "&eТекущий язык: &f{language}&e. Доступные: &f{available}",
   "language.not_found": "&cЯзык '{language}' не найден. Доступные: &f{available}",
   "language.changed": "&aЯзык установлен на &f{language}&a.",
-  "player.not_found": "&cPlayer not found.",
-  "tphere.self": "&cYou can't teleport yourself.",
-  "tphere.success": "&aTeleported {player} to you.",
-  "tphere.target": "&aYou were teleported to {player}."
+  "player.not_found": "&cИгрок не найден.",
+  "tphere.self": "&cВы не можете телепортировать себя.",
+  "tphere.success": "&aИгрок {player} был телепортирован к вам.",
+  "tphere.target": "&aВы были телепортированы к {player}.",
+  "vanish.enabled": "&aНевидимость включена.",
+  "vanish.disabled": "&aНевидимость выключена.",
+  "vanish.enabled_for": "&aНевидимость включена для {player}.",
+  "vanish.disabled_for": "&aНевидимость выключена для {player}.",
+  "vanish.enabled_by": "&aНевидимость включена пользователем {player}.",
+  "vanish.disabled_by": "&aНевидимость выключена пользователем {player}."
 }

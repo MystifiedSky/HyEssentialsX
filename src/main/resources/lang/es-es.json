@@ -33,6 +33,7 @@
   "home.multiple": "&cTienes varias casas. Usa /home <name>.",
   "home.not_found": "&cCasa no encontrada.",
   "home.list": "&eCasas: &f{homes}",
+  "home.ui_failed": "&cNo se pudo abrir el menú de hogares.",
   "warp.disabled": "&cLos warps están desactivados.",
   "warp.not_found": "&cWarp no encontrado.",
   "warp.list": "&eWarps: &f{warps}",
@@ -43,8 +44,14 @@
   "language.current": "&eIdioma actual: &f{language}&e. Disponibles: &f{available}",
   "language.not_found": "&cIdioma '{language}' no encontrado. Disponibles: &f{available}",
   "language.changed": "&aIdioma establecido a &f{language}&a.",
-  "player.not_found": "&cPlayer not found.",
-  "tphere.self": "&cYou can't teleport yourself.",
-  "tphere.success": "&aTeleported {player} to you.",
-  "tphere.target": "&aYou were teleported to {player}."
+  "player.not_found": "&cJugador no encontrado.",
+  "tphere.self": "&cNo puedes teletransportarte a ti mismo.",
+  "tphere.success": "&a{player} fue teletransportado hacia ti.",
+  "tphere.target": "&aFuiste teletransportado hacia {player}.",
+  "vanish.enabled": "&aInvisibilidad activada.",
+  "vanish.disabled": "&aInvisibilidad desactivada.",
+  "vanish.enabled_for": "&aInvisibilidad activada para {player}.",
+  "vanish.disabled_for": "&aInvisibilidad desactivada para {player}.",
+  "vanish.enabled_by": "&aInvisibilidad activada por {player}.",
+  "vanish.disabled_by": "&aInvisibilidad desactivada por {player}."
 }

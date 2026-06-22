@@ -33,6 +33,7 @@
   "home.multiple": "&cआपके पास कई होम हैं। /home <name> उपयोग करें।",
   "home.not_found": "&cहोम नहीं मिला।",
   "home.list": "&eहोम: &f{homes}",
+  "home.ui_failed": "&cहोम मेनू खोलने में विफल।",
   "warp.disabled": "&cवार्प बंद हैं।",
   "warp.not_found": "&cवार्प नहीं मिला।",
   "warp.list": "&eवार्प: &f{warps}",
@@ -43,8 +44,14 @@
   "language.current": "&eवर्तमान भाषा: &f{language}&e. उपलब्ध: &f{available}",
   "language.not_found": "&cभाषा '{language}' नहीं मिली। उपलब्ध: &f{available}",
   "language.changed": "&aभाषा &f{language}&a पर सेट की गई।",
-  "player.not_found": "&cPlayer not found.",
-  "tphere.self": "&cYou can't teleport yourself.",
-  "tphere.success": "&aTeleported {player} to you.",
-  "tphere.target": "&aYou were teleported to {player}."
+  "player.not_found": "&cखिलाड़ी नहीं मिला।",
+  "tphere.self": "&cआप खुद को टेलीपोर्ट नहीं कर सकते।",
+  "tphere.success": "&a{player} को आपके पास टेलीपोर्ट किया गया।",
+  "tphere.target": "&aआपको {player} के पास टेलीपोर्ट किया गया।",
+  "vanish.enabled": "&aअदृश्यता चालू हुई।",
+  "vanish.disabled": "&aअदृश्यता बंद हुई।",
+  "vanish.enabled_for": "&a{player} के लिए अदृश्यता चालू हुई।",
+  "vanish.disabled_for": "&a{player} के लिए अदृश्यता बंद हुई।",
+  "vanish.enabled_by": "&a{player} द्वारा अदृश्यता चालू हुई।",
+  "vanish.disabled_by": "&a{player} द्वारा अदृश्यता बंद हुई।"
 }

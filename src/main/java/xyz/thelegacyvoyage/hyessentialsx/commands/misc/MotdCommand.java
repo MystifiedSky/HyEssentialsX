@@ -37,7 +37,7 @@ public final class MotdCommand extends CommandBase {
         }
 
         for (String line : config.getMotdMessages()) {
-            Messages.send(context, line);
+            context.sendMessage(Messages.m(line));
         }
     }
 }

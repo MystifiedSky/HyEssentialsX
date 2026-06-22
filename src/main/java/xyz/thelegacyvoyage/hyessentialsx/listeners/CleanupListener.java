@@ -7,6 +7,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.GodManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.InfiniteStaminaManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
 import javax.annotation.Nonnull;
@@ -19,17 +20,20 @@ public final class CleanupListener {
     private final FlyManager fly;
     private final GodManager god;
     private final InfiniteStaminaManager stamina;
+    private final VanishManager vanish;
 
     public CleanupListener(@Nonnull TPManager tp,
                            @Nonnull BackManager back,
                            @Nonnull FlyManager fly,
                            @Nonnull GodManager god,
-                           @Nonnull InfiniteStaminaManager stamina) {
+                           @Nonnull InfiniteStaminaManager stamina,
+                           @Nonnull VanishManager vanish) {
         this.tp = tp;
         this.back = back;
         this.fly = fly;
         this.god = god;
         this.stamina = stamina;
+        this.vanish = vanish;
     }
 
     public void register(@Nonnull EventRegistry events) {
@@ -41,6 +45,7 @@ public final class CleanupListener {
             fly.clear(uuid);
             god.clear(uuid);
             stamina.clear(uuid);
+            vanish.clear(uuid);
         });
 
         Log.info("Cleanup listener registered.");

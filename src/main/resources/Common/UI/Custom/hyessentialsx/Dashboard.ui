@@ -1,8 +1,5 @@
-// HyEssentialsX Dashboard UI
-// Import Common.ui for reusable components
 $C = "../Common.ui";
 
-// Custom button styles
 @PrimaryButton = TextButtonStyle(
   Default: (Background: #3a7bd5, LabelStyle: (FontSize: 14, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
   Hovered: (Background: #4a8be5, LabelStyle: (FontSize: 14, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
@@ -15,25 +12,21 @@ $C = "../Common.ui";
   Pressed: (Background: #1b2532, LabelStyle: (FontSize: 14, TextColor: #96a9be, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center))
 );
 
-// Main container
 Group {
   Anchor: (Width: 400, Height: 280);
   Background: #141c26(0.98);
   LayoutMode: Top;
   Padding: (Full: 20);
 
-  // Title
   Label {
     Text: "HyEssentialsX Dashboard";
     Anchor: (Height: 40);
     Style: (FontSize: 24, TextColor: #ffffff, HorizontalAlignment: Center, RenderBold: true);
   }
 
-  // Separator
   Group { Anchor: (Height: 1); Background: #2b3542; }
   Group { Anchor: (Height: 16); }
 
-  // Status text
   Label #StatusText {
     Text: "Welcome to HyEssentialsX!";
     Anchor: (Height: 30);
@@ -42,17 +35,14 @@ Group {
 
   Group { Anchor: (Height: 8); }
 
-  // Info section
   Label #VersionText {
     Text: "Version: unknown | By MystifiedSky";
     Anchor: (Height: 24);
     Style: (FontSize: 14, TextColor: #6e7da1, HorizontalAlignment: Center);
   }
 
-  // Spacer
   Group { FlexWeight: 1; }
 
-  // Buttons row
   Group {
     LayoutMode: Center;
     Anchor: (Height: 50);
@@ -72,7 +62,6 @@ Group {
     }
   }
 
-  // Footer
   Group { Anchor: (Height: 8); }
   Label {
     Text: "Press ESC to close";

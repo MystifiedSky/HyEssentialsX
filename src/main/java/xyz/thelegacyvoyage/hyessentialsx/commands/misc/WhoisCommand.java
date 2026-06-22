@@ -67,8 +67,8 @@ public final class WhoisCommand extends CommandBase {
         PlayerDataModel data = storage.getPlayerData(uuid);
         String displayName = (data.getLastKnownName() != null) ? data.getLastKnownName() : name;
 
-        Messages.send(context, "&aPlayer: &f" + displayName);
-        Messages.send(context, "&aUUID: &f" + uuid);
+        context.sendMessage(Messages.m("&aPlayer: &f" + displayName));
+        context.sendMessage(Messages.m("&aUUID: &f" + uuid));
 
         if (online != null) {
             Transform t = online.getTransform();
@@ -76,15 +76,15 @@ public final class WhoisCommand extends CommandBase {
             if (t != null) {
                 Vector3d pos = t.getPosition();
                 if (pos != null) {
-                    Messages.send(context, "&aLocation: &f" + (world != null ? world.getName() : "unknown") +
-                            " &7(" + (int) pos.getX() + ", " + (int) pos.getY() + ", " + (int) pos.getZ() + ")");
+                    context.sendMessage(Messages.m("&aLocation: &f" + (world != null ? world.getName() : "unknown") +
+                            " &7(" + (int) pos.getX() + ", " + (int) pos.getY() + ", " + (int) pos.getZ() + ")"));
                 }
             }
-            Messages.send(context, "&aStatus: &fOnline");
+            context.sendMessage(Messages.m("&aStatus: &fOnline"));
         } else {
             long lastSeen = data.getLastSeenAt();
             String ago = TimeUtil.formatDurationSeconds(Math.max(0, (System.currentTimeMillis() - lastSeen) / 1000L));
-            Messages.send(context, "&aStatus: &fOffline &7(" + ago + " ago)");
+            context.sendMessage(Messages.m("&aStatus: &fOffline &7(" + ago + " ago)"));
         }
     }
 }

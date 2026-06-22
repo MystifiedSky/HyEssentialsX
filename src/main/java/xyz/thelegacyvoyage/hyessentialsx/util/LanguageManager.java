@@ -41,6 +41,10 @@ public final class LanguageManager {
     private final Gson gson = new GsonBuilder()
             .disableHtmlEscaping()
             .create();
+    private final Gson prettyGson = new GsonBuilder()
+            .setPrettyPrinting()
+            .disableHtmlEscaping()
+            .create();
     private final Path langDir;
     private final StorageManager storage;
     private final Map<String, Map<String, String>> cache = new ConcurrentHashMap<>();
@@ -193,17 +197,49 @@ public final class LanguageManager {
             Files.createDirectories(langDir);
             String normalized = normalize(languageCode);
             Path target = langDir.resolve(normalized + ".json");
-            if (Files.exists(target)) return;
             try (InputStream in = LanguageManager.class.getClassLoader().getResourceAsStream("lang/" + normalized + ".json")) {
                 if (in == null) {
                     Log.warn("Missing bundled language resource: " + normalized);
                     return;
                 }
-                Files.write(target, in.readAllBytes());
-                Log.info("Created language file: " + target);
+                JsonObject bundled = gson.fromJson(new String(in.readAllBytes(), StandardCharsets.UTF_8), JsonObject.class);
+                if (bundled == null) {
+                    Log.warn("Failed to parse bundled language resource: " + normalized);
+                    return;
+                }
+                if (Files.exists(target)) {
+                    if (mergeMissingKeys(target, bundled)) {
+                        Log.info("Updated language file with new keys: " + target);
+                    }
+                } else {
+                    Files.writeString(target, prettyGson.toJson(bundled), StandardCharsets.UTF_8);
+                    Log.info("Created language file: " + target);
+                }
             }
         } catch (Exception e) {
             Log.warn("Failed to write language file: " + e.getMessage());
+        }
+    }
+
+    private boolean mergeMissingKeys(@Nonnull Path target, @Nonnull JsonObject bundled) {
+        try {
+            String content = Files.readString(target, StandardCharsets.UTF_8);
+            JsonObject existing = gson.fromJson(content, JsonObject.class);
+            if (existing == null) existing = new JsonObject();
+            boolean changed = false;
+            for (Map.Entry<String, JsonElement> entry : bundled.entrySet()) {
+                if (!existing.has(entry.getKey())) {
+                    existing.add(entry.getKey(), entry.getValue());
+                    changed = true;
+                }
+            }
+            if (changed) {
+                Files.writeString(target, prettyGson.toJson(existing), StandardCharsets.UTF_8);
+            }
+            return changed;
+        } catch (Exception e) {
+            Log.warn("Failed to merge language file: " + target + " (" + e.getMessage() + ")");
+            return false;
         }
     }
 

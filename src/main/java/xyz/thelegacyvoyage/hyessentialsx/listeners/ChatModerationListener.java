@@ -10,6 +10,8 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.MuteModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.HyFactionsUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.LuckPermsUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
@@ -73,7 +75,33 @@ public final class ChatModerationListener {
             }
 
             String raw = event.getContent();
-            if (raw != null && hasColorCodes(raw)) {
+            if (raw == null) raw = "";
+
+            if (config.isChatFormatEnabled()) {
+                String groupName = LuckPermsUtil.getPrimaryGroup(sender.getUuid());
+                if (groupName == null || groupName.isBlank()) {
+                    groupName = config.getHighestPriorityGroup(
+                            LuckPermsUtil.getGroupsFallback(sender.getUuid())
+                    );
+                }
+                String format = config.getChatFormatForGroup(groupName);
+                String faction = HyFactionsUtil.getFactionName(sender.getUuid());
+                if (faction == null) faction = "";
+                String formattedText = format
+                        .replace("{player}", sender.getUsername())
+                        .replace("{message}", raw)
+                        .replace("{group}", groupName)
+                        .replace("{faction}", faction);
+                Message formatted = Messages.m(formattedText);
+                if (trySetMessage(event, formatted)) {
+                    return;
+                }
+                event.setCancelled(true);
+                Universe.get().sendMessage(formatted);
+                return;
+            }
+
+            if (hasColorCodes(raw)) {
                 Message formatted = Messages.m(raw);
                 if (trySetMessage(event, formatted)) {
                     return;

@@ -42,6 +42,7 @@ public final class ConfigManager {
             .create();
     private JsonObject root;
 
+    private boolean debugMode = false;
     private boolean useWorldDefaultSpawnIfUnset = true;
     private boolean placeholderApiEnabled = false;
     private String languageCode = "en-us";
@@ -137,6 +138,7 @@ public final class ConfigManager {
     private List<RankupTier> rankupTiers = defaultRankupTiers();
     private String defaultKit = "";
 
+    private boolean adminShopsEnabled = true;
     private boolean playerShopsEnabled = true;
     private int playerShopMaxShopsPerPlayer = 1;
     private long playerShopCreationCost = 0L;
@@ -506,6 +508,10 @@ public final class ConfigManager {
         playerShops.addProperty("chestLinkRadius", playerShopChestLinkRadius);
         root.add("playerShops", playerShops);
 
+        JsonObject adminShops = new JsonObject();
+        adminShops.addProperty("enabled", adminShopsEnabled);
+        root.add("adminShops", adminShops);
+
         JsonObject mail = new JsonObject();
         mail.addProperty("enabled", mailEnabled);
         mail.addProperty("cooldownSeconds", mailCooldownSeconds);
@@ -621,6 +627,7 @@ public final class ConfigManager {
                 }
             }
 
+            debugMode = bool(root, "debugMode", debugMode);
             JsonObject general = obj(root, "general");
             useWorldDefaultSpawnIfUnset = bool(general, "spawnFallbackToWorldDefault", true);
             languageCode = str(general, "language", languageCode).toLowerCase();
@@ -890,6 +897,9 @@ public final class ConfigManager {
             playerShopCreationCost = Math.max(0L, longVal(playerShops, "shopCreationCost", playerShopCreationCost));
             playerShopChestLinkRadius = Math.max(1, intVal(playerShops, "chestLinkRadius", playerShopChestLinkRadius));
 
+            JsonObject adminShops = obj(root, "adminShops");
+            adminShopsEnabled = bool(adminShops, "enabled", adminShopsEnabled);
+
             JsonObject mail = obj(root, "mail");
             mailEnabled = bool(mail, "enabled", mailEnabled);
             mailCooldownSeconds = Math.max(0, intVal(mail, "cooldownSeconds", mailCooldownSeconds));
@@ -1102,6 +1112,10 @@ public final class ConfigManager {
 
     public boolean isNearEnabled() {
         return nearEnabled;
+    }
+
+    public boolean isDebugMode() {
+        return debugMode;
     }
 
     public boolean isPlaceholderApiEnabled() {
@@ -1369,6 +1383,10 @@ public final class ConfigManager {
 
     public boolean isPlayerShopsEnabled() {
         return playerShopsEnabled;
+    }
+
+    public boolean isAdminShopsEnabled() {
+        return adminShopsEnabled;
     }
 
     public int getPlayerShopMaxShopsPerPlayer() {
@@ -1838,6 +1856,9 @@ public final class ConfigManager {
         playerShops.addProperty("maxShopsPerPlayer", playerShopMaxShopsPerPlayer);
         playerShops.addProperty("shopCreationCost", Math.max(0L, playerShopCreationCost));
         playerShops.addProperty("chestLinkRadius", playerShopChestLinkRadius);
+
+        JsonObject adminShops = obj(root, "adminShops");
+        adminShops.addProperty("enabled", adminShopsEnabled);
 
         JsonObject mail = obj(root, "mail");
         mail.addProperty("enabled", mailEnabled);

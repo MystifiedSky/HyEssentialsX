@@ -27,13 +27,17 @@ import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopTradeModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopContainerUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShopBrowseUI.UIEventData> {
@@ -372,28 +376,43 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
     private void executeTrade(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store, int tradeIndex) {
         if (tradeIndex < 0 || tradeIndex >= shop.getTrades().size()) return;
         ShopTradeModel trade = shop.getTrades().get(tradeIndex);
+        debugLog(() -> "Trade start player=" + String.valueOf(playerRef.getUsername())
+                + " uuid=" + playerRef.getUuid()
+                + " shop=" + shop.getName()
+                + " tradeIndex=" + tradeIndex
+                + " tradeId=" + trade.getId());
+        debugLog(() -> "Trade details moneyTrade=" + trade.isMoneyTrade()
+                + " sellTrade=" + trade.isSellTrade()
+                + " moneyCost=" + trade.getMoneyCost()
+                + " costItems=" + formatItems(trade.getCostItems())
+                + " rewardItems=" + formatItems(trade.getRewardItems()));
         if (!shop.isOpen()) {
+            debugLog("Trade blocked: shop closed.");
             Messages.sendPrefixedKey(playerRef, "shop.trade.closed", java.util.Map.of());
             return;
         }
         if (!trade.isEnabled()) {
+            debugLog("Trade blocked: trade disabled.");
             Messages.sendPrefixedKey(playerRef, "shop.trade.disabled", java.util.Map.of());
             return;
         }
 
         Player player = store.getComponent(ref, Player.getComponentType());
         if (player == null) {
+            debugLog("Trade failed: missing player component.");
             Messages.sendPrefixedKey(playerRef, "shop.trade.inventory_failed", java.util.Map.of());
             return;
         }
         Inventory inventory = player.getInventory();
         if (inventory == null) {
+            debugLog("Trade failed: missing inventory.");
             Messages.sendPrefixedKey(playerRef, "shop.trade.inventory_failed", java.util.Map.of());
             return;
         }
 
         World world = resolveWorld(store);
         if (world == null) {
+            debugLog("Trade failed: missing world.");
             Messages.sendPrefixedKey(playerRef, "shop.trade.world_failed", java.util.Map.of());
             return;
         }
@@ -403,124 +422,225 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
                 config.getPlayerShopChestLinkRadius()
         );
         boolean needsStorage = requiresRewardItems(trade) || requiresCostStorage(trade);
+        debugLog(() -> "Storage resolved world=" + world.getName()
+                + " containers=" + containers.size()
+                + " needsStorage=" + needsStorage
+                + " storageRewards=" + containerCountSummary(containers, trade.getRewardItems())
+                + " storageCosts=" + containerCountSummary(containers, trade.getCostItems()));
         if (needsStorage && containers.isEmpty()) {
+            debugLog("Trade blocked: no storage linked.");
             Messages.sendPrefixedKey(playerRef, "shop.trade.no_storage", java.util.Map.of());
             return;
         }
 
         if (trade.isMoneyTrade() && trade.isSellTrade()) {
+            debugLog(() -> "Money-sell begin cost=" + trade.getMoneyCost()
+                    + " ownerUuid=" + shop.getOwnerUuid()
+                    + " playerCostCounts=" + inventoryCountSummary(inventory, trade.getCostItems())
+                    + " storageCostCounts=" + containerCountSummary(containers, trade.getCostItems()));
             if (!economy.isEnabled()) {
+                debugLog("Money-sell blocked: economy disabled.");
                 Messages.sendPrefixedKey(playerRef, "shop.trade.economy_disabled", java.util.Map.of());
                 return;
             }
             if (!hasOwnerFunds(trade.getMoneyCost())) {
+                debugLog(() -> {
+                    UUID owner = resolveOwnerUuid();
+                    long balance = owner != null ? economy.getBalance(owner) : -1L;
+                    return "Money-sell blocked: owner funds insufficient ownerUuid=" + shop.getOwnerUuid()
+                            + " resolved=" + owner + " balance=" + balance + " cost=" + trade.getMoneyCost();
+                });
                 Messages.sendPrefixedKey(playerRef, "shop.trade.out_of_funds", java.util.Map.of());
                 return;
             }
             if (!InventoryUtil.hasItems(inventory, trade.getCostItems())) {
+                debugLog(() -> "Money-sell blocked: player missing items playerCostCounts="
+                        + inventoryCountSummary(inventory, trade.getCostItems()));
                 Messages.sendPrefixedKey(playerRef, "shop.trade.missing_items", java.util.Map.of());
                 return;
             }
             if (!ShopContainerUtil.canAddItems(containers, trade.getCostItems())) {
+                debugLog("Money-sell blocked: shop storage full.");
                 Messages.sendPrefixedKey(playerRef, "shop.trade.storage_full", java.util.Map.of());
                 return;
             }
             if (!InventoryUtil.removeItems(inventory, trade.getCostItems())) {
+                debugLog("Money-sell failed: could not remove items from player inventory.");
                 Messages.sendPrefixedKey(playerRef, "shop.trade.remove_failed", java.util.Map.of());
                 return;
             }
+            debugLog(() -> "Money-sell removed player items newPlayerCounts="
+                    + inventoryCountSummary(inventory, trade.getCostItems()));
             if (!ShopContainerUtil.addItems(containers, trade.getCostItems())) {
-                InventoryUtil.addItemsWithOverflow(inventory, trade.getCostItems());
+                debugLog("Money-sell failed: could not add items to shop storage.");
+                returnItemsToPlayer(inventory, player, trade.getCostItems());
                 Messages.sendPrefixedKey(playerRef, "shop.trade.storage_full", java.util.Map.of());
                 return;
             }
+            debugLog(() -> "Money-sell added items to shop storage newStorageCounts="
+                    + containerCountSummary(containers, trade.getCostItems()));
             if (!withdrawOwner(trade.getMoneyCost())) {
+                debugLog("Money-sell failed: owner withdraw failed after storage add.");
                 ShopContainerUtil.removeItemsById(containers, trade.getCostItems());
-                InventoryUtil.addItemsWithOverflow(inventory, trade.getCostItems());
+                returnItemsToPlayer(inventory, player, trade.getCostItems());
                 Messages.sendPrefixedKey(playerRef, "shop.trade.out_of_funds", java.util.Map.of());
                 return;
             }
+            debugLog(() -> {
+                UUID owner = resolveOwnerUuid();
+                long balance = owner != null ? economy.getBalance(owner) : -1L;
+                return "Money-sell owner withdrawn newOwnerBalance=" + balance;
+            });
             economy.deposit(playerRef.getUuid(), trade.getMoneyCost());
+            debugLog(() -> "Money-sell player credited newPlayerBalance="
+                    + economy.getBalance(playerRef.getUuid()));
             Messages.sendPrefixed(playerRef, formatTradeMessage(trade));
             return;
         }
 
         if (trade.isMoneyTrade()) {
+            debugLog(() -> "Money-buy begin cost=" + trade.getMoneyCost()
+                    + " playerBalance=" + economy.getBalance(playerRef.getUuid())
+                    + " rewardItems=" + formatItems(trade.getRewardItems())
+                    + " storageRewardCounts=" + containerCountSummary(containers, trade.getRewardItems())
+                    + " playerRewardCounts=" + inventoryCountSummary(inventory, trade.getRewardItems()));
             if (!economy.isEnabled()) {
+                debugLog("Money-buy blocked: economy disabled.");
                 Messages.sendPrefixedKey(playerRef, "shop.trade.economy_disabled", java.util.Map.of());
                 return;
             }
             long cost = trade.getMoneyCost();
             if (economy.getBalance(playerRef.getUuid()) < cost) {
+                debugLog(() -> "Money-buy blocked: insufficient funds balance="
+                        + economy.getBalance(playerRef.getUuid()) + " cost=" + cost);
                 Messages.sendPrefixedKey(playerRef, "shop.trade.insufficient_funds", java.util.Map.of());
                 return;
             }
             if (!ShopContainerUtil.hasItems(containers, trade.getRewardItems())) {
+                debugLog(() -> "Money-buy blocked: out of stock storageRewardCounts="
+                        + containerCountSummary(containers, trade.getRewardItems()));
                 Messages.sendPrefixedKey(playerRef, "shop.trade.out_of_stock", java.util.Map.of());
                 return;
             }
             if (!economy.withdraw(playerRef.getUuid(), cost)) {
+                debugLog("Money-buy failed: payment withdraw failed.");
                 Messages.sendPrefixedKey(playerRef, "shop.trade.payment_failed", java.util.Map.of());
                 return;
             }
+            debugLog(() -> "Money-buy payment withdrawn newPlayerBalance="
+                    + economy.getBalance(playerRef.getUuid()));
             if (!ShopContainerUtil.removeItemsById(containers, trade.getRewardItems())) {
+                debugLog("Money-buy failed: could not remove items from storage after payment.");
                 economy.deposit(playerRef.getUuid(), cost);
                 Messages.sendPrefixedKey(playerRef, "shop.trade.out_of_stock", java.util.Map.of());
                 return;
             }
-            depositOwner(cost);
+            debugLog(() -> "Money-buy removed items from storage newStorageRewardCounts="
+                    + containerCountSummary(containers, trade.getRewardItems()));
+            Map<String, Integer> beforeRewards = snapshotItemCounts(inventory, trade.getRewardItems());
             List<com.hypixel.hytale.server.core.inventory.ItemStack> overflow =
                     InventoryUtil.addItemsWithOverflow(inventory, trade.getRewardItems());
             if (!overflow.isEmpty()) {
-                dropOverflow(player, overflow);
-                Messages.sendPrefixedKey(playerRef, "shop.trade.inventory_full", java.util.Map.of());
+                debugLog(() -> "Money-buy failed: inventory overflow size=" + overflow.size());
+                rollbackAddedItems(inventory, beforeRewards);
+                if (!ShopContainerUtil.addItems(containers, trade.getRewardItems())) {
+                    Log.warn("Failed to restore shop items after inventory rollback for trade " + trade.getId());
+                }
+                economy.deposit(playerRef.getUuid(), cost);
+                debugLog(() -> "Money-buy rollback complete playerBalance=" + economy.getBalance(playerRef.getUuid())
+                        + " storageRewardCounts=" + containerCountSummary(containers, trade.getRewardItems()));
+                Messages.sendPrefixedKey(playerRef, "shop.trade.inventory_full_canceled", java.util.Map.of());
+                return;
             }
+            depositOwner(cost);
+            debugLog(() -> {
+                UUID owner = resolveOwnerUuid();
+                long balance = owner != null ? economy.getBalance(owner) : -1L;
+                return "Money-buy owner credited newOwnerBalance=" + balance;
+            });
             Messages.sendPrefixed(playerRef, formatTradeMessage(trade));
             return;
         }
 
+        debugLog(() -> "Barter begin costItems=" + formatItems(trade.getCostItems())
+                + " rewardItems=" + formatItems(trade.getRewardItems())
+                + " playerCostCounts=" + inventoryCountSummary(inventory, trade.getCostItems())
+                + " storageRewardCounts=" + containerCountSummary(containers, trade.getRewardItems()));
         if (!InventoryUtil.hasItems(inventory, trade.getCostItems())) {
+            debugLog(() -> "Barter blocked: player missing items playerCostCounts="
+                    + inventoryCountSummary(inventory, trade.getCostItems()));
             Messages.sendPrefixedKey(playerRef, "shop.trade.missing_items", java.util.Map.of());
             return;
         }
         if (!ShopContainerUtil.hasItems(containers, trade.getRewardItems())) {
+            debugLog(() -> "Barter blocked: out of stock storageRewardCounts="
+                    + containerCountSummary(containers, trade.getRewardItems()));
             Messages.sendPrefixedKey(playerRef, "shop.trade.out_of_stock", java.util.Map.of());
             return;
         }
         if (!ShopContainerUtil.canAddItems(containers, trade.getCostItems())) {
+            debugLog("Barter blocked: shop storage full for cost items.");
             Messages.sendPrefixedKey(playerRef, "shop.trade.storage_full", java.util.Map.of());
             return;
         }
         if (!InventoryUtil.removeItems(inventory, trade.getCostItems())) {
+            debugLog("Barter failed: could not remove cost items from player inventory.");
             Messages.sendPrefixedKey(playerRef, "shop.trade.remove_failed", java.util.Map.of());
             return;
         }
+        debugLog(() -> "Barter removed player cost items newPlayerCostCounts="
+                + inventoryCountSummary(inventory, trade.getCostItems()));
         if (!ShopContainerUtil.removeItemsById(containers, trade.getRewardItems())) {
-            InventoryUtil.addItemsWithOverflow(inventory, trade.getCostItems());
+            debugLog("Barter failed: could not remove reward items from storage.");
+            returnItemsToPlayer(inventory, player, trade.getCostItems());
             Messages.sendPrefixedKey(playerRef, "shop.trade.out_of_stock", java.util.Map.of());
             return;
         }
+        debugLog(() -> "Barter removed reward items from storage newStorageRewardCounts="
+                + containerCountSummary(containers, trade.getRewardItems()));
         if (!ShopContainerUtil.addItems(containers, trade.getCostItems())) {
+            debugLog("Barter failed: could not add cost items to storage.");
             ShopContainerUtil.addItems(containers, trade.getRewardItems());
-            InventoryUtil.addItemsWithOverflow(inventory, trade.getCostItems());
+            returnItemsToPlayer(inventory, player, trade.getCostItems());
             Messages.sendPrefixedKey(playerRef, "shop.trade.storage_full", java.util.Map.of());
             return;
         }
+        debugLog(() -> "Barter added cost items to storage newStorageCostCounts="
+                + containerCountSummary(containers, trade.getCostItems()));
 
+        Map<String, Integer> beforeRewards = snapshotItemCounts(inventory, trade.getRewardItems());
         List<com.hypixel.hytale.server.core.inventory.ItemStack> overflow =
                 InventoryUtil.addItemsWithOverflow(inventory, trade.getRewardItems());
         if (!overflow.isEmpty()) {
-            dropOverflow(player, overflow);
-            Messages.sendPrefixedKey(playerRef, "shop.trade.inventory_full", java.util.Map.of());
+            debugLog(() -> "Barter failed: inventory overflow size=" + overflow.size());
+            rollbackAddedItems(inventory, beforeRewards);
+            if (!ShopContainerUtil.removeItemsById(containers, trade.getCostItems())) {
+                Log.warn("Failed to remove shop payment items after inventory rollback for trade " + trade.getId());
+            }
+            if (!ShopContainerUtil.addItems(containers, trade.getRewardItems())) {
+                Log.warn("Failed to restore shop items after inventory rollback for trade " + trade.getId());
+            }
+            returnItemsToPlayer(inventory, player, trade.getCostItems());
+            debugLog(() -> "Barter rollback complete storageRewardCounts="
+                    + containerCountSummary(containers, trade.getRewardItems())
+                    + " playerCostCounts=" + inventoryCountSummary(inventory, trade.getCostItems()));
+            Messages.sendPrefixedKey(playerRef, "shop.trade.inventory_full_canceled", java.util.Map.of());
+            return;
         }
+        debugLog(() -> "Barter complete newPlayerRewardCounts="
+                + inventoryCountSummary(inventory, trade.getRewardItems()));
         Messages.sendPrefixed(playerRef, formatTradeMessage(trade));
     }
 
     private void dropOverflow(@Nonnull Player player,
                               @Nonnull List<com.hypixel.hytale.server.core.inventory.ItemStack> overflow) {
+        debugLog(() -> "Dropping overflow stacks=" + overflow.size() + " items=" + stackSummary(overflow));
         for (com.hypixel.hytale.server.core.inventory.ItemStack stack : overflow) {
             if (stack == null || stack.isEmpty()) continue;
+            debugLog(() -> "Dropping overflow itemId=" + String.valueOf(stack.getItemId())
+                    + " qty=" + stack.getQuantity());
             if (!tryDropItem(player, stack)) {
+                debugLog("Drop overflow failed, stopping remaining drops.");
                 return;
             }
         }
@@ -536,12 +656,130 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
                 if (!method.getParameterTypes()[0].isAssignableFrom(stack.getClass())) continue;
                 try {
                     method.invoke(player, stack);
+                    debugLog(() -> "Drop overflow succeeded using method=" + method.getName());
                     return true;
-                } catch (Exception ignored) {
+                } catch (Exception ex) {
+                    debugLog(() -> "Drop overflow failed using method=" + method.getName()
+                            + " error=" + ex.getClass().getSimpleName());
                 }
             }
         }
+        debugLog("Drop overflow failed: no compatible drop method.");
         return false;
+    }
+
+    @Nonnull
+    private Map<String, Integer> snapshotItemCounts(@Nonnull Inventory inventory,
+                                                    @Nonnull List<ShopItemModel> items) {
+        Map<String, Integer> counts = new HashMap<>();
+        for (ShopItemModel item : items) {
+            if (item == null) continue;
+            String id = item.getItemId();
+            if (id == null || id.isBlank()) continue;
+            counts.computeIfAbsent(id, key -> InventoryUtil.countItem(inventory, key));
+        }
+        debugLog(() -> "Snapshot counts " + formatCountSummary(counts));
+        return counts;
+    }
+
+    private void rollbackAddedItems(@Nonnull Inventory inventory,
+                                    @Nonnull Map<String, Integer> before) {
+        List<ShopItemModel> added = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : before.entrySet()) {
+            String id = entry.getKey();
+            int previous = entry.getValue();
+            int current = InventoryUtil.countItem(inventory, id);
+            int delta = current - previous;
+            if (delta > 0) {
+                added.add(new ShopItemModel(id, delta));
+            }
+        }
+        if (added.isEmpty()) {
+            debugLog("Rollback: no items added to remove.");
+            return;
+        }
+        debugLog(() -> "Rollback removing added items=" + formatItems(added));
+        if (!InventoryUtil.removeItems(inventory, added)) {
+            Log.warn("Failed to remove rolled-back items from player inventory.");
+        }
+    }
+
+    private void returnItemsToPlayer(@Nonnull Inventory inventory,
+                                     @Nonnull Player player,
+                                     @Nonnull List<ShopItemModel> items) {
+        debugLog(() -> "Returning items to player items=" + formatItems(items));
+        List<com.hypixel.hytale.server.core.inventory.ItemStack> overflow =
+                InventoryUtil.addItemsWithOverflow(inventory, items);
+        debugLog(() -> "Return items overflow size=" + overflow.size()
+                + " items=" + stackSummary(overflow));
+        if (!overflow.isEmpty()) {
+            dropOverflow(player, overflow);
+        }
+    }
+
+    private void debugLog(@Nonnull String message) {
+        if (!config.isDebugMode()) return;
+        Log.info("[PlayerShopTrade] " + message);
+    }
+
+    private void debugLog(@Nonnull java.util.function.Supplier<String> supplier) {
+        if (!config.isDebugMode()) return;
+        Log.info("[PlayerShopTrade] " + supplier.get());
+    }
+
+    @Nonnull
+    private String inventoryCountSummary(@Nonnull Inventory inventory, @Nonnull List<ShopItemModel> items) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (ShopItemModel item : items) {
+            if (item == null) continue;
+            String id = item.getItemId();
+            if (id == null || id.isBlank()) continue;
+            if (!counts.containsKey(id)) {
+                counts.put(id, InventoryUtil.countItem(inventory, id));
+            }
+        }
+        return formatCountSummary(counts);
+    }
+
+    @Nonnull
+    private String containerCountSummary(@Nonnull List<ItemContainer> containers, @Nonnull List<ShopItemModel> items) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (ShopItemModel item : items) {
+            if (item == null) continue;
+            String id = item.getItemId();
+            if (id == null || id.isBlank()) continue;
+            if (!counts.containsKey(id)) {
+                counts.put(id, ShopContainerUtil.countItem(containers, id));
+            }
+        }
+        return formatCountSummary(counts);
+    }
+
+    @Nonnull
+    private String formatCountSummary(@Nonnull Map<String, Integer> counts) {
+        if (counts.isEmpty()) return "none";
+        StringBuilder out = new StringBuilder();
+        for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+            if (out.length() > 0) out.append(", ");
+            out.append(entry.getKey()).append("=").append(entry.getValue());
+        }
+        return out.toString();
+    }
+
+    @Nonnull
+    private String stackSummary(@Nonnull List<com.hypixel.hytale.server.core.inventory.ItemStack> stacks) {
+        if (stacks.isEmpty()) return "none";
+        StringBuilder out = new StringBuilder();
+        for (com.hypixel.hytale.server.core.inventory.ItemStack stack : stacks) {
+            if (stack == null || stack.isEmpty()) continue;
+            if (out.length() > 0) out.append(", ");
+            String id = stack.getItemId();
+            if (id == null || id.isBlank()) {
+                id = "unknown";
+            }
+            out.append(id).append("=").append(stack.getQuantity());
+        }
+        return out.length() == 0 ? "none" : out.toString();
     }
 
     private boolean hasOwnerFunds(long amount) {

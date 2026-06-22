@@ -464,8 +464,12 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (configManager.isRtpEnabled()) {
             reg.accept(new RtpCommand(configManager, cooldownManager, tpManager, backManager));
         }
-        reg.accept(new ShopCommand(shopManager, economyManager, shopAdminDraftCache));
-        reg.accept(new PlayerShopCommand(shopManager, economyManager, shopAdminDraftCache, configManager, storage));
+        if (configManager.isAdminShopsEnabled()) {
+            reg.accept(new ShopCommand(shopManager, economyManager, shopAdminDraftCache));
+        }
+        if (configManager.isPlayerShopsEnabled()) {
+            reg.accept(new PlayerShopCommand(shopManager, economyManager, shopAdminDraftCache, configManager, storage));
+        }
         reg.accept(new ClearInventoryCommand());
         reg.accept(new MoreCommand());
         reg.accept(new RepairCommand(cooldownManager));

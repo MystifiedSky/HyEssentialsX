@@ -134,6 +134,10 @@ public final class ShopNpcInteractionRegistry {
             }
             return new PlayerShopBrowseUI(playerRef, shopManager, economyManager, configManager, shop, shopManager.getStorage(), draftCache);
         }
+        if (configManager != null && !configManager.isAdminShopsEnabled()) {
+            Messages.sendPrefixedKey(playerRef, "shop.admin.disabled", java.util.Map.of());
+            return null;
+        }
         if (!shop.getUsePermission().isBlank()
                 && !hasPermission(store, playerEntityRef, playerRef, shop.getUsePermission())
                 && !(shop.getUsePermission().equalsIgnoreCase(ShopManager.DEFAULT_USE_PERMISSION)

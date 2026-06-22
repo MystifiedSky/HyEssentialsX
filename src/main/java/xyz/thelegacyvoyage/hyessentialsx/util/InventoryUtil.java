@@ -233,7 +233,16 @@ public final class InventoryUtil {
         List<ItemStack> overflow = new ArrayList<>();
         if (items.isEmpty()) return overflow;
         ItemContainer container = inventory.getCombinedEverything();
-        if (container == null) return overflow;
+        if (container == null) {
+            for (ShopItemModel item : items) {
+                if (item == null) continue;
+                String itemId = item.getItemId();
+                int qty = item.getQuantity();
+                if (itemId.isBlank() || qty <= 0) continue;
+                overflow.add(new ItemStack(itemId, qty, 0, 0, null));
+            }
+            return overflow;
+        }
         for (ShopItemModel item : items) {
             if (item == null) continue;
             String itemId = item.getItemId();

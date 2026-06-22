@@ -14,6 +14,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -32,10 +33,13 @@ public final class JumpToCommand extends AbstractPlayerCommand {
     private static final double STEP_SIZE = 0.005;
 
     private final CommandCooldownManager cooldowns;
+    private final BackManager backManager;
 
-    public JumpToCommand(@Nonnull CommandCooldownManager cooldowns) {
+    public JumpToCommand(@Nonnull CommandCooldownManager cooldowns,
+                         @Nonnull BackManager backManager) {
         super("jumpto", "Teleports to target block");
         this.cooldowns = cooldowns;
+        this.backManager = backManager;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"junp", "j", "jump"});
@@ -82,6 +86,21 @@ public final class JumpToCommand extends AbstractPlayerCommand {
         if (target == null) {
             Messages.err(context, "No block in range.");
             return;
+        }
+
+        if (transform.getPosition() != null) {
+            com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
+            float startYaw = (rot != null) ? rot.getY() : 0f;
+            float startPitch = (rot != null) ? rot.getX() : 0f;
+            backManager.recordLocation(
+                    playerRef.getUuid(),
+                    world.getName(),
+                    transform.getPosition().getX(),
+                    transform.getPosition().getY(),
+                    transform.getPosition().getZ(),
+                    startYaw,
+                    startPitch
+            );
         }
 
         String err = TeleportationUtil.teleportToLocation(

@@ -18,6 +18,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.UUID;
 
@@ -87,26 +88,10 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
         Ref<EntityStore> teleportedRef = isHere ? targetRef : requesterRef;
         Store<EntityStore> teleportedStore = isHere ? targetStore : requesterStore;
 
-        TransformComponent transform = teleportedStore.getComponent(teleportedRef, TransformComponent.getComponentType());
-        if (transform != null) {
-            Vector3d pos = transform.getPosition();
-            Vector3f rot = transform.getRotation();
-            float yaw = (rot != null) ? rot.getY() : 0f;
-            float pitch = (rot != null) ? rot.getX() : 0f;
-            World teleportWorld = teleportedStore.getExternalData().getWorld();
-            if (teleportWorld != null) {
-                backManager.recordLocation(
-                        teleportedRef == requesterRef ? requester.getUuid() : playerRef.getUuid(),
-                        teleportWorld.getName(),
-                        pos.getX(), pos.getY(), pos.getZ(),
-                        yaw, pitch
-                );
-            }
-        }
-
         int warmupSeconds = config.getTpaWarmupSeconds();
         UUID teleportedId = isHere ? playerRef.getUuid() : requester.getUuid();
         PlayerRef teleportedPlayer = isHere ? playerRef : requester;
+        BackSnapshot backSnapshot = captureBackSnapshot(teleportedPlayer, teleportedRef, teleportedStore);
 
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(teleportedId)) {
@@ -130,6 +115,15 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
                                 : TeleportationUtil.teleportToPlayer(buffer, requesterRef, playerRef);
                         if (err != null) {
                             Messages.sendPrefixed(teleportedPlayer, err);
+                            return;
+                        }
+                        if (backSnapshot != null) {
+                            backManager.recordLocation(
+                                    teleportedId,
+                                    backSnapshot.worldName,
+                                    backSnapshot.pos.getX(), backSnapshot.pos.getY(), backSnapshot.pos.getZ(),
+                                    backSnapshot.yaw, backSnapshot.pitch
+                            );
                         }
                     }
             );
@@ -150,6 +144,14 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
         }
 
         tpManager.cancel(requester.getUuid(), null);
+        if (backSnapshot != null) {
+            backManager.recordLocation(
+                    teleportedId,
+                    backSnapshot.worldName,
+                    backSnapshot.pos.getX(), backSnapshot.pos.getY(), backSnapshot.pos.getZ(),
+                    backSnapshot.yaw, backSnapshot.pitch
+            );
+        }
         String err = isHere
                 ? TeleportationUtil.teleportToPlayer(targetStore, targetRef, requester)
                 : TeleportationUtil.teleportToPlayer(requesterStore, requesterRef, playerRef);
@@ -164,6 +166,44 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
         Messages.send(requester, isHere
                 ? "&#55FF55Teleporting " + playerRef.getUsername() + " to you..."
                 : "&#55FF55Teleporting to " + playerRef.getUsername() + "...");
+    }
+
+    @Nullable
+    private BackSnapshot captureBackSnapshot(@Nonnull PlayerRef playerRef,
+                                             @Nonnull Ref<EntityStore> ref,
+                                             @Nonnull Store<EntityStore> store) {
+        com.hypixel.hytale.math.vector.Transform transform = playerRef.getTransform();
+        Vector3d pos = (transform != null) ? transform.getPosition() : null;
+        Vector3f rot = (transform != null) ? transform.getRotation() : null;
+        if (pos == null) {
+            TransformComponent component = store.getComponent(ref, TransformComponent.getComponentType());
+            if (component != null) {
+                pos = component.getPosition();
+                rot = component.getRotation();
+            }
+        }
+        if (pos == null) {
+            return null;
+        }
+        float yaw = (rot != null) ? rot.getY() : 0f;
+        float pitch = (rot != null) ? rot.getX() : 0f;
+        World world = store.getExternalData().getWorld();
+        if (world == null) {
+            UUID worldId = playerRef.getWorldUuid();
+            if (worldId != null) {
+                world = Universe.get().getWorld(worldId);
+            }
+        }
+        if (world == null) {
+            return null;
+        }
+        return new BackSnapshot(world.getName(), pos, yaw, pitch);
+    }
+
+    private record BackSnapshot(@Nonnull String worldName,
+                                @Nonnull Vector3d pos,
+                                float yaw,
+                                float pitch) {
     }
 }
 

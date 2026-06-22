@@ -10,7 +10,9 @@ import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
@@ -21,6 +23,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
@@ -35,19 +38,22 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
     private final TPManager tpManager;
     private final ConfigManager config;
     private final CommandCooldownManager cooldowns;
+    private final BackManager backManager;
     private final Gson gson = new Gson();
 
     public WarpsUI(@Nonnull PlayerRef playerRef,
                    @Nonnull WarpManager warpManager,
                    @Nonnull TPManager tpManager,
                    @Nonnull ConfigManager config,
-                   @Nonnull CommandCooldownManager cooldowns) {
+                   @Nonnull CommandCooldownManager cooldowns,
+                   @Nonnull BackManager backManager) {
         super(playerRef, CustomPageLifetime.CanDismiss);
         this.playerRef = playerRef;
         this.warpManager = warpManager;
         this.tpManager = tpManager;
         this.config = config;
         this.cooldowns = cooldowns;
+        this.backManager = backManager;
     }
 
     @Override
@@ -167,9 +173,14 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
                 Messages.sendPrefixedKey(playerRef, "teleport.position_unavailable", Map.of());
                 return;
             }
+            com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
+            float startYaw = (rot != null) ? rot.getY() : 0f;
+            float startPitch = (rot != null) ? rot.getX() : 0f;
+            com.hypixel.hytale.math.vector.Vector3d startPos = transform.getPosition().clone();
+            String startWorldName = resolveWorldName(store);
             tpManager.queue(
                     playerRef.getUuid(),
-                    transform.getPosition().clone(),
+                    startPos,
                     warmupSeconds,
                     buffer -> {
                         String err = TeleportationUtil.teleportToLocation(
@@ -183,12 +194,38 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
                             Messages.sendPrefixed(playerRef, err);
                             return;
                         }
+                        if (startWorldName != null) {
+                            backManager.recordLocation(
+                                    playerRef.getUuid(),
+                                    startWorldName,
+                                    startPos.getX(), startPos.getY(), startPos.getZ(),
+                                    startYaw, startPitch
+                            );
+                        }
                         cooldowns.apply(playerRef, CooldownKeys.WARP);
                         Messages.sendPrefixedKey(playerRef, "teleport.success.warp", Map.of("warp", name));
                     }
             );
             Messages.sendPrefixedKey(playerRef, "teleport.warmup", Map.of("seconds", String.valueOf(warmupSeconds)));
             return;
+        }
+
+        com.hypixel.hytale.math.vector.Transform transform = playerRef.getTransform();
+        if (transform != null && transform.getPosition() != null) {
+            String worldName = resolveWorldName(store);
+            if (worldName != null) {
+                com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
+                float startYaw = (rot != null) ? rot.getY() : 0f;
+                float startPitch = (rot != null) ? rot.getX() : 0f;
+                backManager.recordLocation(
+                        playerRef.getUuid(),
+                        worldName,
+                        transform.getPosition().getX(),
+                        transform.getPosition().getY(),
+                        transform.getPosition().getZ(),
+                        startYaw, startPitch
+                );
+            }
         }
 
         String err = TeleportationUtil.teleportToLocation(
@@ -205,5 +242,11 @@ public final class WarpsUI extends com.hypixel.hytale.server.core.entity.entitie
 
         cooldowns.apply(playerRef, CooldownKeys.WARP);
         Messages.sendPrefixedKey(playerRef, "teleport.success.warp", Map.of("warp", name));
+    }
+
+    @Nullable
+    private String resolveWorldName(@Nonnull Store<EntityStore> store) {
+        World world = store.getExternalData().getWorld();
+        return world != null ? world.getName() : null;
     }
 }

@@ -9,6 +9,7 @@ import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayer
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
@@ -20,9 +21,11 @@ public final class TphereCommand extends AbstractPlayerCommand {
     private static final String PERMISSION_NODE = "hyessentialsx.tphere";
 
     private final RequiredArg<PlayerRef> targetArg;
+    private final BackManager backManager;
 
-    public TphereCommand() {
+    public TphereCommand(@Nonnull BackManager backManager) {
         super("tphere", "Teleports a player to you");
+        this.backManager = backManager;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.targetArg = withRequiredArg("player", "Player to teleport", ArgTypes.PLAYER_REF);
@@ -59,6 +62,24 @@ public final class TphereCommand extends AbstractPlayerCommand {
 
         Ref<EntityStore> targetRef = target.getReference();
         Store<EntityStore> targetStore = targetRef.getStore();
+
+        com.hypixel.hytale.math.vector.Transform targetTransform = target.getTransform();
+        if (targetTransform != null && targetTransform.getPosition() != null) {
+            com.hypixel.hytale.math.vector.Vector3f rot = targetTransform.getRotation();
+            float startYaw = (rot != null) ? rot.getY() : 0f;
+            float startPitch = (rot != null) ? rot.getX() : 0f;
+            World targetWorld = targetStore.getExternalData().getWorld();
+            String worldName = (targetWorld != null) ? targetWorld.getName() : world.getName();
+            backManager.recordLocation(
+                    target.getUuid(),
+                    worldName,
+                    targetTransform.getPosition().getX(),
+                    targetTransform.getPosition().getY(),
+                    targetTransform.getPosition().getZ(),
+                    startYaw,
+                    startPitch
+            );
+        }
 
         String err = TeleportationUtil.teleportToPlayer(targetStore, targetRef, playerRef);
         if (err != null) {

@@ -9,6 +9,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.HomeManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.HomeModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
@@ -32,15 +33,18 @@ public final class HomeCommand extends AbstractPlayerCommand {
     private final TPManager tpManager;
     private final ConfigManager config;
     private final CommandCooldownManager cooldowns;
+    private final BackManager backManager;
     public HomeCommand(@Nonnull HomeManager homeManager,
                        @Nonnull TPManager tpManager,
                        @Nonnull ConfigManager config,
-                       @Nonnull CommandCooldownManager cooldowns) {
+                       @Nonnull CommandCooldownManager cooldowns,
+                       @Nonnull BackManager backManager) {
         super("home", "Teleports to a home");
         this.homeManager = homeManager;
         this.tpManager = tpManager;
         this.config = config;
         this.cooldowns = cooldowns;
+        this.backManager = backManager;
         this.setPermissionGroup(null);
         this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
@@ -79,7 +83,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
                 Messages.errKey(context, "home.ui_failed", Map.of());
                 return;
             }
-            HomesUI page = new HomesUI(playerRef, homeManager, tpManager, config, cooldowns);
+            HomesUI page = new HomesUI(playerRef, homeManager, tpManager, config, cooldowns, backManager);
             page.open(player, ref, store);
             return;
         }
@@ -106,9 +110,13 @@ public final class HomeCommand extends AbstractPlayerCommand {
                 Messages.errKey(context, "teleport.position_unavailable", Map.of());
                 return;
             }
+            com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
+            float startYaw = (rot != null) ? rot.getY() : 0f;
+            float startPitch = (rot != null) ? rot.getX() : 0f;
+            com.hypixel.hytale.math.vector.Vector3d startPos = transform.getPosition().clone();
             tpManager.queue(
                     playerRef.getUuid(),
-                    transform.getPosition().clone(),
+                    startPos,
                     warmupSeconds,
                     buffer -> {
                         String err = TeleportationUtil.teleportToLocation(
@@ -123,12 +131,31 @@ public final class HomeCommand extends AbstractPlayerCommand {
                             Messages.sendPrefixed(playerRef, err);
                             return;
                         }
+                        backManager.recordLocation(
+                                playerRef.getUuid(),
+                                world.getName(),
+                                startPos.getX(), startPos.getY(), startPos.getZ(),
+                                startYaw, startPitch
+                        );
                         cooldowns.apply(playerRef, CooldownKeys.HOME);
                         Messages.sendPrefixedKey(playerRef, "teleport.success.home", Map.of("home", homeName));
                     }
             );
             Messages.sendPrefixedKey(playerRef, "teleport.warmup", Map.of("seconds", String.valueOf(warmupSeconds)));
             return;
+        }
+
+        com.hypixel.hytale.math.vector.Transform transform = playerRef.getTransform();
+        if (transform != null && transform.getPosition() != null) {
+            com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
+            float startYaw = (rot != null) ? rot.getY() : 0f;
+            float startPitch = (rot != null) ? rot.getX() : 0f;
+            backManager.recordLocation(
+                    playerRef.getUuid(),
+                    world.getName(),
+                    transform.getPosition().getX(), transform.getPosition().getY(), transform.getPosition().getZ(),
+                    startYaw, startPitch
+            );
         }
 
         String err = TeleportationUtil.teleportToLocation(

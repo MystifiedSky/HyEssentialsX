@@ -8,6 +8,7 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.HomeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.ui.HomesUI;
@@ -27,16 +28,19 @@ public final class HomesCommand extends AbstractPlayerCommand {
     private final ConfigManager config;
     private final TPManager tpManager;
     private final CommandCooldownManager cooldowns;
+    private final BackManager backManager;
 
     public HomesCommand(@Nonnull HomeManager homeManager,
                         @Nonnull TPManager tpManager,
                         @Nonnull ConfigManager config,
-                        @Nonnull CommandCooldownManager cooldowns) {
+                        @Nonnull CommandCooldownManager cooldowns,
+                        @Nonnull BackManager backManager) {
         super("homes", "Lists all your homes");
         this.homeManager = homeManager;
         this.tpManager = tpManager;
         this.config = config;
         this.cooldowns = cooldowns;
+        this.backManager = backManager;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
@@ -74,7 +78,7 @@ public final class HomesCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "home.ui_failed", Map.of());
             return;
         }
-        HomesUI page = new HomesUI(playerRef, homeManager, tpManager, config, cooldowns);
+        HomesUI page = new HomesUI(playerRef, homeManager, tpManager, config, cooldowns, backManager);
         page.open(player, ref, store);
     }
 }

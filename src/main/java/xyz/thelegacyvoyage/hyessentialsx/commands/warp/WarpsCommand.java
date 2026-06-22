@@ -8,6 +8,7 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.ui.WarpsUI;
@@ -27,16 +28,19 @@ public final class WarpsCommand extends AbstractPlayerCommand {
     private final ConfigManager config;
     private final TPManager tpManager;
     private final CommandCooldownManager cooldowns;
+    private final BackManager backManager;
 
     public WarpsCommand(@Nonnull WarpManager warpManager,
                         @Nonnull TPManager tpManager,
                         @Nonnull ConfigManager config,
-                        @Nonnull CommandCooldownManager cooldowns) {
+                        @Nonnull CommandCooldownManager cooldowns,
+                        @Nonnull BackManager backManager) {
         super("warps", "Lists all warps");
         this.warpManager = warpManager;
         this.config = config;
         this.tpManager = tpManager;
         this.cooldowns = cooldowns;
+        this.backManager = backManager;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
@@ -69,7 +73,7 @@ public final class WarpsCommand extends AbstractPlayerCommand {
                 Messages.errKey(context, "warp.ui_failed", Map.of());
                 return;
             }
-            WarpsUI page = new WarpsUI(playerRef, warpManager, tpManager, config, cooldowns);
+            WarpsUI page = new WarpsUI(playerRef, warpManager, tpManager, config, cooldowns, backManager);
             page.open(player, ref, store);
             return;
         }

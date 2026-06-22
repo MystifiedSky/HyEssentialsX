@@ -290,14 +290,14 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         if (configManager.isHomesEnabled()) {
             getCommandRegistry().registerCommand(new SetHomeCommand(homeManager, configManager));
-            getCommandRegistry().registerCommand(new HomeCommand(homeManager, tpManager, configManager, cooldownManager));
-            getCommandRegistry().registerCommand(new HomesCommand(homeManager, tpManager, configManager, cooldownManager));
+            getCommandRegistry().registerCommand(new HomeCommand(homeManager, tpManager, configManager, cooldownManager, backManager));
+            getCommandRegistry().registerCommand(new HomesCommand(homeManager, tpManager, configManager, cooldownManager, backManager));
             getCommandRegistry().registerCommand(new DelHomeCommand(homeManager, configManager));
         }
         if (configManager.isWarpsEnabled()) {
             getCommandRegistry().registerCommand(new SetWarpCommand(warpManager, configManager));
-            getCommandRegistry().registerCommand(new WarpCommand(warpManager, tpManager, configManager, cooldownManager));
-            getCommandRegistry().registerCommand(new WarpsCommand(warpManager, tpManager, configManager, cooldownManager));
+            getCommandRegistry().registerCommand(new WarpCommand(warpManager, tpManager, configManager, cooldownManager, backManager));
+            getCommandRegistry().registerCommand(new WarpsCommand(warpManager, tpManager, configManager, cooldownManager, backManager));
             getCommandRegistry().registerCommand(new DelWarpCommand(warpManager, configManager));
         }
         if (configManager.isKitsEnabled()) {
@@ -333,7 +333,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             getCommandRegistry().registerCommand(new TpaIgnoreCommand(tpManager, configManager));
             getCommandRegistry().registerCommand(new TpahereCommand(tpManager, configManager, cooldownManager));
             getCommandRegistry().registerCommand(new TpahereAllCommand(tpManager, configManager, cooldownManager));
-            getCommandRegistry().registerCommand(new TphereCommand());
+            getCommandRegistry().registerCommand(new TphereCommand(backManager));
         }
         getCommandRegistry().registerCommand(new BackCommand(backManager, tpManager, configManager, cooldownManager));
         getCommandRegistry().registerCommand(new FlyCommand(flyManager, storage));
@@ -361,10 +361,10 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         getCommandRegistry().registerCommand(new WhoisCommand(storage));
         getCommandRegistry().registerCommand(new SeenCommand(storage));
-        getCommandRegistry().registerCommand(new TopCommand());
-        getCommandRegistry().registerCommand(new JumpToCommand(cooldownManager));
+        getCommandRegistry().registerCommand(new TopCommand(backManager));
+        getCommandRegistry().registerCommand(new JumpToCommand(cooldownManager, backManager));
         if (configManager.isRtpEnabled()) {
-            getCommandRegistry().registerCommand(new RtpCommand(configManager, cooldownManager, tpManager));
+            getCommandRegistry().registerCommand(new RtpCommand(configManager, cooldownManager, tpManager, backManager));
         }
         getCommandRegistry().registerCommand(new ClearInventoryCommand());
         getCommandRegistry().registerCommand(new RepairCommand(cooldownManager));

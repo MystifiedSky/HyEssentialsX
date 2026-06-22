@@ -11,6 +11,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
@@ -20,8 +21,11 @@ public final class TopCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.top";
 
-    public TopCommand() {
+    private final BackManager backManager;
+
+    public TopCommand(@Nonnull BackManager backManager) {
         super("top", "Teleports to highest block");
+        this.backManager = backManager;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
@@ -58,6 +62,20 @@ public final class TopCommand extends AbstractPlayerCommand {
         if (chunk == null) {
             Messages.err(context, "Chunk not loaded.");
             return;
+        }
+
+        if (transform.getPosition() != null) {
+            com.hypixel.hytale.math.vector.Vector3f rot = transform.getRotation();
+            float startYaw = (rot != null) ? rot.getY() : 0f;
+            float startPitch = (rot != null) ? rot.getX() : 0f;
+            backManager.recordLocation(
+                    playerRef.getUuid(),
+                    world.getName(),
+                    transform.getPosition().getX(),
+                    transform.getPosition().getY(),
+                    transform.getPosition().getZ(),
+                    startYaw, startPitch
+            );
         }
 
         int localX = ChunkUtil.localCoordinate(blockX);

@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public final class ConfigManager {
@@ -39,6 +40,7 @@ public final class ConfigManager {
     private int tpaRequestTimeoutSeconds = 60;
     private int rtpMaxDistance = 5000;
     private int rtpMinDistance = 1000;
+    private Map<String, String> rtpWorldOverrides = new LinkedHashMap<>();
     private final Map<String, Integer> commandCooldowns = new HashMap<>(buildDefaultCooldowns());
     private int homeWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
     private int warpWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
@@ -350,6 +352,7 @@ public final class ConfigManager {
         rtp.addProperty("minRadius", rtpMinDistance);
         rtp.addProperty("cooldownSeconds", 600);
         rtp.addProperty("warmupSeconds", rtpWarmupSeconds);
+        rtp.add("worldOverrides", toStringMapObject(rtpWorldOverrides));
         root.add("rtp", rtp);
 
         JsonObject near = new JsonObject();
@@ -500,6 +503,7 @@ public final class ConfigManager {
             rtpMaxDistance = intVal(rtp, "radius", 5000);
             rtpMinDistance = intVal(rtp, "minRadius", rtpMinDistance);
             rtpWarmupSeconds = intVal(rtp, "warmupSeconds", rtpWarmupSeconds);
+            rtpWorldOverrides = readStringMap(rtp, "worldOverrides", rtpWorldOverrides);
 
             JsonObject legacyCooldowns = root.has("cooldowns") && root.get("cooldowns").isJsonObject()
                     ? root.getAsJsonObject("cooldowns")
@@ -773,6 +777,12 @@ public final class ConfigManager {
 
     public int getRtpMinDistance() {
         return rtpMinDistance;
+    }
+
+    @Nullable
+    public String getRtpWorldOverride(@Nonnull String worldName) {
+        if (rtpWorldOverrides.isEmpty()) return null;
+        return rtpWorldOverrides.get(worldName.toLowerCase(Locale.ROOT));
     }
 
     public int getCooldownSeconds(@Nonnull String key) {
@@ -1287,6 +1297,7 @@ public final class ConfigManager {
         rtp.addProperty("enabled", rtpEnabled);
         rtp.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.RTP));
         rtp.addProperty("warmupSeconds", rtpWarmupSeconds);
+        rtp.add("worldOverrides", toStringMapObject(rtpWorldOverrides));
         root.remove("cooldowns");
 
         JsonObject near = obj(root, "near");
@@ -1717,6 +1728,24 @@ public final class ConfigManager {
     }
 
     @Nonnull
+    private Map<String, String> readStringMap(@Nonnull JsonObject obj,
+                                              @Nonnull String key,
+                                              @Nonnull Map<String, String> def) {
+        JsonElement el = obj.get(key);
+        if (el == null || !el.isJsonObject()) return def;
+        Map<String, String> out = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonElement> entry : el.getAsJsonObject().entrySet()) {
+            if (entry.getValue() == null || !entry.getValue().isJsonPrimitive()) continue;
+            String mapKey = entry.getKey() != null ? entry.getKey().trim() : "";
+            if (mapKey.isBlank()) continue;
+            String value = entry.getValue().getAsString().trim();
+            if (value.isBlank()) continue;
+            out.put(mapKey.toLowerCase(Locale.ROOT), value);
+        }
+        return out.isEmpty() ? def : out;
+    }
+
+    @Nonnull
     private Map<String, Long> normalizeKeyedMap(@Nonnull Map<String, Long> input) {
         Map<String, Long> out = new LinkedHashMap<>();
         for (Map.Entry<String, Long> entry : input.entrySet()) {
@@ -1747,6 +1776,15 @@ public final class ConfigManager {
     private JsonObject toLongMapObject(@Nonnull Map<String, Long> values) {
         JsonObject obj = new JsonObject();
         for (Map.Entry<String, Long> entry : values.entrySet()) {
+            obj.addProperty(entry.getKey(), entry.getValue());
+        }
+        return obj;
+    }
+
+    @Nonnull
+    private JsonObject toStringMapObject(@Nonnull Map<String, String> values) {
+        JsonObject obj = new JsonObject();
+        for (Map.Entry<String, String> entry : values.entrySet()) {
             obj.addProperty(entry.getKey(), entry.getValue());
         }
         return obj;

@@ -10,9 +10,11 @@ import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
@@ -32,15 +34,18 @@ public final class RtpCommand extends AbstractPlayerCommand {
     private final ConfigManager config;
     private final CommandCooldownManager cooldowns;
     private final TPManager tpManager;
+    private final BackManager backManager;
     private final Random random = new Random();
 
     public RtpCommand(@Nonnull ConfigManager config,
                       @Nonnull CommandCooldownManager cooldowns,
-                      @Nonnull TPManager tpManager) {
+                      @Nonnull TPManager tpManager,
+                      @Nonnull BackManager backManager) {
         super("rtp", "Random teleport");
         this.config = config;
         this.cooldowns = cooldowns;
         this.tpManager = tpManager;
+        this.backManager = backManager;
         this.setPermissionGroup(null);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"randomtp", "wild"});
@@ -76,6 +81,18 @@ public final class RtpCommand extends AbstractPlayerCommand {
             return;
         }
 
+        World chosenWorld = world;
+        String overrideWorldName = config.getRtpWorldOverride(world.getName());
+        if (overrideWorldName != null && !overrideWorldName.equalsIgnoreCase(world.getName())) {
+            World overrideWorld = Universe.get().getWorld(overrideWorldName);
+            if (overrideWorld != null) {
+                chosenWorld = overrideWorld;
+            } else {
+                Messages.warn(context, "RTP override world '" + overrideWorldName + "' is not loaded. Using current world.");
+            }
+        }
+        final World targetWorld = chosenWorld;
+
         Transform transform = playerRef.getTransform();
         if (transform == null) {
             Messages.errKey(context, "teleport.position_unavailable", Map.of());
@@ -101,7 +118,7 @@ public final class RtpCommand extends AbstractPlayerCommand {
             int blockX = (int) Math.floor(pos.getX() + dx);
             int blockZ = (int) Math.floor(pos.getZ() + dz);
             long chunkIndex = ChunkUtil.indexChunkFromBlock(blockX, blockZ);
-            WorldChunk chunk = world.getChunk(chunkIndex);
+            WorldChunk chunk = targetWorld.getChunk(chunkIndex);
             if (chunk == null) continue;
 
             int localX = ChunkUtil.localCoordinate(blockX);
@@ -140,6 +157,9 @@ public final class RtpCommand extends AbstractPlayerCommand {
                 Messages.errKey(context, "teleport.position_unavailable", Map.of());
                 return;
             }
+            com.hypixel.hytale.math.vector.Vector3f rot = transformNow.getRotation();
+            float startYaw = (rot != null) ? rot.getY() : 0f;
+            float startPitch = (rot != null) ? rot.getX() : 0f;
             Vector3d startPos = transformNow.getPosition().clone();
             double finalTargetX = targetX;
             double finalTargetY = targetY;
@@ -152,7 +172,7 @@ public final class RtpCommand extends AbstractPlayerCommand {
                         String err = TeleportationUtil.teleportToLocation(
                                 buffer,
                                 ref,
-                                world.getName(),
+                                targetWorld.getName(),
                                 finalTargetX, finalTargetY, finalTargetZ,
                                 0f, 0f
                         );
@@ -160,6 +180,12 @@ public final class RtpCommand extends AbstractPlayerCommand {
                             Messages.sendPrefixed(playerRef, err);
                             return;
                         }
+                        backManager.recordLocation(
+                                playerRef.getUuid(),
+                                world.getName(),
+                                startPos.getX(), startPos.getY(), startPos.getZ(),
+                                startYaw, startPitch
+                        );
                         cooldowns.apply(playerRef, CooldownKeys.RTP);
                         Messages.sendPrefixedKey(playerRef, "teleport.success.rtp", Map.of());
                     }
@@ -168,10 +194,25 @@ public final class RtpCommand extends AbstractPlayerCommand {
             return;
         }
 
+        Transform transformNow = playerRef.getTransform();
+        if (transformNow != null && transformNow.getPosition() != null) {
+            com.hypixel.hytale.math.vector.Vector3f rot = transformNow.getRotation();
+            float startYaw = (rot != null) ? rot.getY() : 0f;
+            float startPitch = (rot != null) ? rot.getX() : 0f;
+            backManager.recordLocation(
+                    playerRef.getUuid(),
+                    world.getName(),
+                    transformNow.getPosition().getX(),
+                    transformNow.getPosition().getY(),
+                    transformNow.getPosition().getZ(),
+                    startYaw, startPitch
+            );
+        }
+
         String err = TeleportationUtil.teleportToLocation(
                 store,
                 ref,
-                world.getName(),
+                targetWorld.getName(),
                 targetX, targetY, targetZ,
                 0f, 0f
         );

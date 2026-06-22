@@ -1,0 +1,77 @@
+$C = "../Common.ui";
+
+Group {
+  Anchor: (Width: 520, Height: 420);
+  Background: #141c26(0.98);
+  LayoutMode: Top;
+  Padding: (Full: 16);
+
+  Label #EditorTitle {
+    Text: "Scoreboard Editor";
+    Anchor: (Height: 26);
+    Style: (FontSize: 18, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center);
+  }
+
+  Group { Anchor: (Height: 8); }
+
+  Group #LinesContainer {
+    Anchor: (Height: 220);
+    Background: #0d1218(0.5);
+    Padding: (Full: 8);
+
+    Group #LinesList {
+      FlexWeight: 1;
+      LayoutMode: TopScrolling;
+      ScrollbarStyle: $C.@DefaultScrollbarStyle;
+    }
+  }
+
+  Group { Anchor: (Height: 8); }
+
+  Label #EditModeLabel {
+    Text: "Editing line";
+    Anchor: (Height: 18);
+    Visible: false;
+    Style: (FontSize: 12, TextColor: #FBBF24);
+  }
+
+  $C.@TextField #NewLineInput {
+    Anchor: (Height: 36);
+    PlaceholderText: "Scoreboard line";
+  }
+
+  Group { Anchor: (Height: 8); }
+
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 36);
+
+    $C.@TextButton #AddLineButton {
+      @Text = "Add";
+      Anchor: (Width: 120, Height: 36);
+    }
+
+    Group { Anchor: (Width: 8); }
+
+    $C.@TextButton #UpdateLineButton {
+      @Text = "Update";
+      Anchor: (Width: 120, Height: 36);
+      Visible: false;
+    }
+
+    Group { Anchor: (Width: 8); }
+
+    $C.@SecondaryTextButton #CancelEditButton {
+      @Text = "Cancel";
+      Anchor: (Width: 120, Height: 36);
+      Visible: false;
+    }
+
+    Group { FlexWeight: 1; }
+
+    $C.@SecondaryTextButton #CloseButton {
+      @Text = "Close";
+      Anchor: (Width: 120, Height: 36);
+    }
+  }
+}

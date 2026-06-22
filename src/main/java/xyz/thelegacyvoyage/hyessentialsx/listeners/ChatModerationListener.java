@@ -89,7 +89,7 @@ public final class ChatModerationListener {
                 event.setFormatter((playerRef, message) -> {
                     String content = message != null ? message : "";
                     String baseWithToken = formattedBase.replace("{message}", MESSAGE_TOKEN);
-                    String resolvedBase = PlaceholderApiUtil.applyString(sender, baseWithToken, config);
+                    String resolvedBase = PlaceholderApiUtil.applyString(sender, baseWithToken);
                     String resolved = resolvedBase.replace(MESSAGE_TOKEN, content);
                     return Messages.m(resolved);
                 });
@@ -114,7 +114,7 @@ public final class ChatModerationListener {
             event.setFormatter((playerRef, message) -> {
                 String content = message != null ? message : "";
                 String baseWithToken = formattedBase.replace("{message}", MESSAGE_TOKEN);
-                String resolvedBase = PlaceholderApiUtil.applyString(sender, baseWithToken, config);
+                String resolvedBase = PlaceholderApiUtil.applyString(sender, baseWithToken);
                 String resolved = resolvedBase.replace(MESSAGE_TOKEN, content);
                 return Messages.m(resolved);
             });

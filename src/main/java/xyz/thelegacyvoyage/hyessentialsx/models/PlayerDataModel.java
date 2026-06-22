@@ -25,6 +25,10 @@ public final class PlayerDataModel {
     private boolean flyEnabled;
     private long lastPaycheckAt;
     private boolean frozen;
+    private int scoreboardOffsetX;
+    private int scoreboardOffsetY;
+    private boolean scoreboardOffsetCustomized;
+    private Boolean scoreboardHidden;
     private List<MailMessageModel> mailInbox = new ArrayList<>();
     private List<MailMessageModel> mailSent = new ArrayList<>();
     private int mailNextId = 1;
@@ -170,6 +174,43 @@ public final class PlayerDataModel {
 
     public void setFrozen(boolean frozen) {
         this.frozen = frozen;
+    }
+
+    public int getScoreboardOffsetX() {
+        return scoreboardOffsetX;
+    }
+
+    public void setScoreboardOffsetX(int scoreboardOffsetX) {
+        this.scoreboardOffsetX = scoreboardOffsetX;
+    }
+
+    public int getScoreboardOffsetY() {
+        return scoreboardOffsetY;
+    }
+
+    public void setScoreboardOffsetY(int scoreboardOffsetY) {
+        this.scoreboardOffsetY = scoreboardOffsetY;
+    }
+
+    public boolean isScoreboardOffsetCustomized() {
+        return scoreboardOffsetCustomized;
+    }
+
+    public void setScoreboardOffsetCustomized(boolean scoreboardOffsetCustomized) {
+        this.scoreboardOffsetCustomized = scoreboardOffsetCustomized;
+    }
+
+    public boolean isScoreboardHidden() {
+        return scoreboardHidden != null && scoreboardHidden;
+    }
+
+    @Nullable
+    public Boolean getScoreboardHidden() {
+        return scoreboardHidden;
+    }
+
+    public void setScoreboardHidden(@Nullable Boolean scoreboardHidden) {
+        this.scoreboardHidden = scoreboardHidden;
     }
 
     @Nonnull

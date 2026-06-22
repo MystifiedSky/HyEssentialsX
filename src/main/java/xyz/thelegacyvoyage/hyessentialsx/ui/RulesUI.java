@@ -106,7 +106,7 @@ public final class RulesUI extends com.hypixel.hytale.server.core.entity.entitie
             String rule = rules.get(i);
             cmd.append("#RuleList", ROW_LAYOUT);
             String selector = "#RuleList[" + i + "]";
-            cmd.set(selector + ".TextSpans", PlaceholderApiUtil.apply(playerRef, rule, config));
+            cmd.set(selector + ".TextSpans", PlaceholderApiUtil.apply(playerRef, rule));
         }
     }
 }

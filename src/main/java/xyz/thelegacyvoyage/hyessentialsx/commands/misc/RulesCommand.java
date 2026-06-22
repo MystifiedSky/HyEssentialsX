@@ -70,7 +70,7 @@ public final class RulesCommand extends AbstractPlayerCommand {
 
         context.sendMessage(Messages.m("&aRules:"));
         for (String rule : rules) {
-            context.sendMessage(PlaceholderApiUtil.apply(playerRef, rule, config));
+            context.sendMessage(PlaceholderApiUtil.apply(playerRef, rule));
         }
     }
 }

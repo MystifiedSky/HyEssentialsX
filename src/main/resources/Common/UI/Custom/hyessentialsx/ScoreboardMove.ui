@@ -1,0 +1,84 @@
+$C = "../Common.ui";
+
+Group {
+  Anchor: (Width: 520, Height: 320);
+  Background: #141c26(0.98);
+  LayoutMode: Top;
+  Padding: (Full: 16);
+
+  Label #Title {
+    Text: "Scoreboard Position";
+    Anchor: (Height: 26);
+    Style: (FontSize: 18, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center);
+  }
+
+  Group { Anchor: (Height: 6); }
+
+  Label #OffsetText {
+    Text: "Offset: 20, 20";
+    Anchor: (Height: 20);
+    Style: (FontSize: 13, TextColor: #96a9be, HorizontalAlignment: Center);
+  }
+
+  Group { Anchor: (Height: 10); }
+
+  Group {
+    LayoutMode: Center;
+    Anchor: (Height: 40);
+
+    $C.@TextButton #UpButton {
+      @Text = "Up";
+      Anchor: (Width: 140, Height: 40);
+    }
+  }
+
+  Group { Anchor: (Height: 6); }
+
+  Group {
+    LayoutMode: Center;
+    Anchor: (Height: 40);
+
+    $C.@TextButton #LeftButton {
+      @Text = "Left";
+      Anchor: (Width: 140, Height: 40);
+    }
+
+    Group { Anchor: (Width: 8); }
+
+    $C.@SecondaryTextButton #ResetButton {
+      @Text = "Reset";
+      Anchor: (Width: 140, Height: 40);
+    }
+
+    Group { Anchor: (Width: 8); }
+
+    $C.@TextButton #RightButton {
+      @Text = "Right";
+      Anchor: (Width: 140, Height: 40);
+    }
+  }
+
+  Group { Anchor: (Height: 6); }
+
+  Group {
+    LayoutMode: Center;
+    Anchor: (Height: 40);
+
+    $C.@TextButton #DownButton {
+      @Text = "Down";
+      Anchor: (Width: 140, Height: 40);
+    }
+  }
+
+  Group { FlexWeight: 1; }
+
+  Group {
+    LayoutMode: Center;
+    Anchor: (Height: 40);
+
+    $C.@SecondaryTextButton #CloseButton {
+      @Text = "Close";
+      Anchor: (Width: 160, Height: 40);
+    }
+  }
+}

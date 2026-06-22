@@ -13,6 +13,9 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
 import com.hypixel.hytale.server.core.inventory.Inventory;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
+import com.hypixel.hytale.server.core.entity.Frozen;
+import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
+import com.hypixel.hytale.protocol.MovementStates;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -20,6 +23,8 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.core.modules.entity.component.Interactable;
+import com.hypixel.hytale.server.core.modules.entity.component.Invulnerable;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
@@ -1052,8 +1057,41 @@ public final class ShopAdminUI extends InteractiveCustomUIPage<ShopAdminUI.UIEve
             NPCEntity newNpc = pair.second();
             ShopNpcInteractionRegistry.applyNpcInteractions(store, newRef);
             applyNameplate(store, newRef);
+            applyNpcDefaults(store, newRef, newNpc, npcModel.getPosition(), rotation, shop.getDisplayName());
             npcModel.setNpcId(newNpc.getUuid().toString());
         }
+    }
+
+    private void applyNpcDefaults(@Nonnull Store<EntityStore> store,
+                                  @Nonnull Ref<EntityStore> npcRef,
+                                  @Nonnull NPCEntity npc,
+                                  @Nonnull Vector3i blockPos,
+                                  @Nonnull Vector3f rotation,
+                                  @Nonnull String displayName) {
+        if (store.getComponent(npcRef, Interactable.getComponentType()) == null) {
+            store.addComponent(npcRef, Interactable.getComponentType(), Interactable.INSTANCE);
+        }
+        if (store.getComponent(npcRef, Invulnerable.getComponentType()) == null) {
+            store.addComponent(npcRef, Invulnerable.getComponentType(), Invulnerable.INSTANCE);
+        }
+        if (store.getComponent(npcRef, Frozen.getComponentType()) == null) {
+            store.addComponent(npcRef, Frozen.getComponentType(), Frozen.get());
+        }
+        ShopNpcNameplateUtil.apply(store, npcRef, displayName);
+        MovementStatesComponent movementStates = store.getComponent(npcRef, MovementStatesComponent.getComponentType());
+        if (movementStates != null) {
+            MovementStates states = movementStates.getMovementStates();
+            states.idle = true;
+            states.horizontalIdle = true;
+            states.walking = false;
+            states.running = false;
+            states.sprinting = false;
+            states.onGround = true;
+        }
+        npc.setDespawnTime(Float.MAX_VALUE);
+        npc.setDespawning(false);
+        npc.setLeashPoint(new Vector3d(blockPos.getX() + 0.5D, blockPos.getY(), blockPos.getZ() + 0.5D));
+        npc.setLeashHeading(rotation.getY());
     }
 
     private void restoreDraft() {

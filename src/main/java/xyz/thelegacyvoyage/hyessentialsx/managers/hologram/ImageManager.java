@@ -52,7 +52,9 @@ public class ImageManager {
    @Nonnull
    private final Map<String, ImageManager.ImageData> imageRegistry = new ConcurrentHashMap();
    private static final String ASSET_PREFIX = "HyEssentialsX_Hologram_Image_";
-   private static final String ASSETS_ZIP_NAME = "HyEssentialsX_HologramAssets.zip";
+   private static final String ASSETS_ZIP_NAME = "HyEssentialsX_Assets.zip";
+   private static final String ASSET_PACK_NAME = "HyEssentialsX_Assets";
+   private static final String SCOREBOARD_ASSET_PREFIX = "Common/UI/Custom/Textures/HyEssentialsX/Scoreboard/";
 
    public ImageManager(@Nonnull HologramService plugin) {
       this.plugin = plugin;
@@ -75,7 +77,7 @@ public class ImageManager {
       try {
          this.plugin.getLogger().at(Level.INFO).log("Images folder: " + String.valueOf(this.imagesFolder.toAbsolutePath()));
          this.plugin.getLogger().at(Level.INFO).log("Mods folder: " + String.valueOf(this.modsFolder.toAbsolutePath()));
-         this.plugin.getLogger().at(Level.INFO).log("Assets zip location: " + String.valueOf(this.modsFolder.resolve("HyEssentialsX_HologramAssets.zip")));
+         this.plugin.getLogger().at(Level.INFO).log("Assets zip location: " + String.valueOf(this.modsFolder.resolve(ASSETS_ZIP_NAME)));
          if (!Files.exists(this.imagesFolder, new LinkOption[0])) {
             Files.createDirectories(this.imagesFolder);
             this.plugin.getLogger().at(Level.INFO).log("Created images folder at: " + String.valueOf(this.imagesFolder));
@@ -97,7 +99,7 @@ public class ImageManager {
             this.plugin.getLogger().at(Level.WARNING).log("Base billboard ModelAsset NOT loaded - run /holo reload and restart server!");
          }
 
-         Path assetsZip = this.modsFolder.resolve("HyEssentialsX_HologramAssets.zip");
+         Path assetsZip = this.modsFolder.resolve(ASSETS_ZIP_NAME);
          if (!Files.exists(assetsZip, new LinkOption[0]) && !imageFiles.isEmpty()) {
             this.plugin.getLogger().at(Level.INFO).log("Generating initial assets zip...");
             this.generateAssetsZip();
@@ -186,8 +188,8 @@ public class ImageManager {
    }
 
    public void generateAssetsZip() {
-      Path assetsZip = this.modsFolder.resolve("HyEssentialsX_HologramAssets.zip");
-      this.plugin.getLogger().at(Level.INFO).log("=== Generating HyEssentialsX_HologramAssets.zip ===");
+      Path assetsZip = this.modsFolder.resolve(ASSETS_ZIP_NAME);
+      this.plugin.getLogger().at(Level.INFO).log("=== Generating " + ASSETS_ZIP_NAME + " ===");
       this.plugin.getLogger().at(Level.INFO).log("Output location: " + String.valueOf(assetsZip.toAbsolutePath()));
 
       try {
@@ -202,6 +204,7 @@ public class ImageManager {
 
             while(true) {
                if (!var4.hasNext()) {
+                  this.addScoreboardTexturesToZip(zos);
                   String manifest = this.createManifestJson();
                   this.addStringToZip(zos, manifest, "manifest.json");
                   break;
@@ -255,7 +258,7 @@ public class ImageManager {
          }
 
          zos.close();
-         this.plugin.getLogger().at(Level.INFO).log("=== Successfully created HyEssentialsX_HologramAssets.zip ===");
+         this.plugin.getLogger().at(Level.INFO).log("=== Successfully created " + ASSETS_ZIP_NAME + " ===");
          this.plugin.getLogger().at(Level.INFO).log("Contains " + imageFiles.size() + " custom image(s) (with billboard variants)");
       } catch (IOException var25) {
          this.plugin.getLogger().at(Level.SEVERE).log("Failed to generate assets zip: " + var25.getMessage());
@@ -342,6 +345,67 @@ public class ImageManager {
       zos.closeEntry();
    }
 
+   private void addScoreboardTexturesToZip(ZipOutputStream zos) {
+      Path scoreboardFolder = this.resolveScoreboardFolder();
+      if (scoreboardFolder == null || !Files.exists(scoreboardFolder, new LinkOption[0])) {
+         return;
+      }
+
+      try (Stream<Path> files = Files.list(scoreboardFolder)) {
+         files.filter((p) -> !Files.isDirectory(p, new LinkOption[0]))
+              .filter((p) -> {
+                 String name = p.getFileName().toString().toLowerCase();
+                 return name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg");
+              })
+              .forEach((p) -> {
+                 try {
+                    String token = this.sanitizeScoreboardToken(p.getFileName().toString());
+                    if (token.isEmpty()) {
+                       token = "logo";
+                    }
+                    String zipPath = SCOREBOARD_ASSET_PREFIX + token + ".png";
+                    byte[] pngBytes = this.readImageAsPng(p);
+                    if (pngBytes != null) {
+                       zos.putNextEntry(new ZipEntry(zipPath));
+                       zos.write(pngBytes);
+                       zos.closeEntry();
+                    } else {
+                       this.plugin.getLogger().at(Level.WARNING).log("Failed to convert scoreboard image to PNG: " + p.getFileName());
+                    }
+                 } catch (Exception var6) {
+                    this.plugin.getLogger().at(Level.WARNING).log("Failed to add scoreboard texture: " + p.getFileName() + ": " + var6.getMessage());
+                 }
+              });
+      } catch (IOException var4) {
+         this.plugin.getLogger().at(Level.WARNING).log("Failed to scan scoreboard textures: " + var4.getMessage());
+      }
+   }
+
+   @Nullable
+   private Path resolveScoreboardFolder() {
+      Path parent = this.pluginDataFolder.getParent();
+      return parent != null ? parent.resolve("scoreboard") : null;
+   }
+
+   @Nonnull
+   private String sanitizeScoreboardToken(@Nonnull String filename) {
+      String base = filename;
+      int dot = filename.lastIndexOf('.');
+      if (dot > 0) {
+         base = filename.substring(0, dot);
+      }
+      StringBuilder out = new StringBuilder();
+      for(int i = 0; i < base.length(); ++i) {
+         char c = base.charAt(i);
+         if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+            out.append(Character.toLowerCase(c));
+         } else if (c == '_' || c == '-') {
+            out.append('_');
+         }
+      }
+      return out.toString();
+   }
+
    private String createModelAssetJsonString(String modelAssetId, String texturePath, int width, int height, boolean billboard) {
       return this.createModelAssetJsonString(modelAssetId, texturePath, width, height, billboard, false);
    }
@@ -389,7 +453,7 @@ public class ImageManager {
    }
 
    private String createManifestJson() {
-      return "{\n  \"Name\": \"HyEssentialsX_HologramAssets\",\n  \"Group\": \"xyz.thelegacyvoyage.hyessentialsx.hologram\",\n  \"Version\": \"1.0.0\",\n  \"Description\": \"Custom image assets for HologramService plugin\",\n  \"IncludesAssetPack\": true\n}\n";
+      return "{\n  \"Name\": \"" + ASSET_PACK_NAME + "\",\n  \"Group\": \"xyz.thelegacyvoyage.hyessentialsx.assets\",\n  \"Version\": \"1.0.0\",\n  \"Description\": \"HyEssentialsX combined assets\",\n  \"IncludesAssetPack\": true\n}\n";
    }
 
    private boolean isModelAssetLoaded(@Nonnull String modelAssetId) {
@@ -498,7 +562,7 @@ public class ImageManager {
 
    private void createReadme() {
       Path readmePath = this.imagesFolder.resolve("README.txt");
-      String readme = "HologramService - Image Display\n=============================\n\nHOW TO USE:\n-----------\n1. Place your PNG image in this folder (e.g., logo.png)\n2. Run: /holo reload (this generates HyEssentialsX_HologramAssets.zip in the mods folder)\n3. RESTART THE SERVER (required for Hytale to load new images)\n4. Use in holograms: /holo addline <name> image:logo\n   Or with scale: /holo addline <name> image:logo:2.0\n\nIMPORTANT:\n- Running /holo reload generates HyEssentialsX_HologramAssets.zip in the mods folder\n- A server restart is REQUIRED after that for images to load!\n- The zip contains all textures and model definitions needed by Hytale\n\nSUPPORTED FORMATS:\n- PNG (recommended - supports transparency)\n- JPG/JPEG\n\nIMAGE NAMING:\n- Use lowercase letters, numbers, and underscores\n- Example: my_logo.png -> use as image:my_logo\n\nFILE STRUCTURE GENERATED:\n- mods/HyEssentialsX_HologramAssets.zip\n  - Common/Characters/HologramService/*.png (your textures)\n  - Common/Characters/HyEssentialsX_Hologram_Billboard.blockymodel (base model)\n  - Server/Models/*.json (model asset definitions)\n\nTROUBLESHOOTING:\n- If image doesn't appear, make sure you:\n  1. Ran /holo reload\n  2. Restarted the server\n- Use /holo listimages to see available images\n- Check logs for \"Successfully created HyEssentialsX_HologramAssets.zip\"\n";
+      String readme = "HologramService - Image Display\n=============================\n\nHOW TO USE:\n-----------\n1. Place your PNG image in this folder (e.g., logo.png)\n2. Run: /holo reload (this generates HyEssentialsX_Assets.zip in the mods folder)\n3. RESTART THE SERVER (required for Hytale to load new images)\n4. Use in holograms: /holo addline <name> image:logo\n   Or with scale: /holo addline <name> image:logo:2.0\n\nIMPORTANT:\n- Running /holo reload generates HyEssentialsX_Assets.zip in the mods folder\n- A server restart is REQUIRED after that for images to load!\n- The zip contains all textures and model definitions needed by Hytale\n\nSUPPORTED FORMATS:\n- PNG (recommended - supports transparency)\n- JPG/JPEG\n\nIMAGE NAMING:\n- Use lowercase letters, numbers, and underscores\n- Example: my_logo.png -> use as image:my_logo\n\nFILE STRUCTURE GENERATED:\n- mods/HyEssentialsX_Assets.zip\n  - Common/Characters/HologramService/*.png (your textures)\n  - Common/Characters/HyEssentialsX_Hologram_Billboard.blockymodel (base model)\n  - Server/Models/*.json (model asset definitions)\n\nTROUBLESHOOTING:\n- If image doesn't appear, make sure you:\n  1. Ran /holo reload\n  2. Restarted the server\n- Use /holo listimages to see available images\n- Check logs for \"Successfully created HyEssentialsX_Assets.zip\"\n";
 
       try {
          Files.writeString(readmePath, readme, new OpenOption[0]);
@@ -575,7 +639,7 @@ public class ImageManager {
 
    private int loadAssetsLive(@Nonnull List<ImageManager.ImageFileInfo> imageFiles) {
       int loadedCount = 0;
-      String packName = "HyEssentialsX_HologramAssets";
+      String packName = ASSET_PACK_NAME;
 
       try {
          CommonAssetModule commonAssetModule = CommonAssetModule.get();
@@ -751,7 +815,7 @@ public class ImageManager {
 
    @Nonnull
    public Path getAssetsZipPath() {
-      return this.modsFolder.resolve("HyEssentialsX_HologramAssets.zip");
+      return this.modsFolder.resolve(ASSETS_ZIP_NAME);
    }
 
    private static class ImageFileInfo {

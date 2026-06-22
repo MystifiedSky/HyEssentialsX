@@ -164,7 +164,7 @@ public final class DeathMessageListener {
                             .replace("{killer}", vars.get("killer"))
                             .replace("{cause}", vars.get("cause"));
                     msg = normalizeSpacing(msg);
-                    target.sendMessage(PlaceholderApiUtil.apply(target, msg, config));
+                    target.sendMessage(PlaceholderApiUtil.apply(target, msg));
                 }
             }
         }

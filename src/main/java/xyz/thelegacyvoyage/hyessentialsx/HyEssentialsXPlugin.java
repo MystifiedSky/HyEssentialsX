@@ -80,6 +80,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.economy.PayCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.shop.ShopCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.shop.PlayerShopCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.hologram.HologramCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.scoreboard.ScoreboardCommand;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.ChatModerationListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.CleanupListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.CombatLogListener;
@@ -98,6 +99,7 @@ import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerDataListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.PlayerVisibilityListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.RespawnTeleportListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.ScoreboardListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.SpawnProtectionListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.TeleportWarmupListener;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
@@ -122,6 +124,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.RankupManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SleepPercentManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.ScoreboardManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopNpcFixTask;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopNpcInteractionRegistry;
@@ -180,6 +183,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private EconomyManager economyManager;
     private PaycheckManager paycheckManager;
     private PlaytimeManager playtimeManager;
+    private ScoreboardManager scoreboardManager;
     private RankupManager rankupManager;
     private CustomCommandManager customCommandManager;
     private AutoBroadcastManager autoBroadcastManager;
@@ -242,6 +246,12 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         afkManager = new AfkManager(configManager);
         afkManager.start();
+        if (scoreboardManager != null) {
+            scoreboardManager.shutdown();
+        }
+        scoreboardManager = new ScoreboardManager(configManager, storage, economyManager, playtimeManager, dataDirectory);
+        scoreboardManager.start();
+        scoreboardManager.refreshAll();
         unregisterHyCommands();
         registerCommands();
         if (combatLogManager != null && configManager != null) {
@@ -299,6 +309,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         economyManager = new EconomyManager(storage, configManager);
         paycheckManager = new PaycheckManager(configManager, economyManager, storage);
         playtimeManager = new PlaytimeManager(storage);
+        scoreboardManager = new ScoreboardManager(configManager, storage, economyManager, playtimeManager, dataDirectory);
         rankupManager = new RankupManager(configManager, economyManager, storage, playtimeManager);
         customCommandManager = new CustomCommandManager(dataDirectory);
         autoBroadcastManager = new AutoBroadcastManager(configManager);
@@ -337,6 +348,10 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         sleepPercentManager.start();
         rankupManager.start();
         paycheckManager.start();
+        if (scoreboardManager != null) {
+            scoreboardManager.start();
+            scoreboardManager.refreshAll();
+        }
 
         Log.info("[HyEssentialsX] Started! Use /hyessentialsx help");
     }
@@ -356,6 +371,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (sleepPercentManager != null) sleepPercentManager.shutdown();
         if (rankupManager != null) rankupManager.shutdown();
         if (paycheckManager != null) paycheckManager.shutdown();
+        if (scoreboardManager != null) scoreboardManager.shutdown();
         if (shopNpcFixTask != null) shopNpcFixTask.stop();
         if (hologramService != null) {
             hologramService.shutdown();
@@ -456,6 +472,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             reg.accept(new RankupCommand(rankupManager, economyManager));
         }
         reg.accept(new PlaytimeCommand(playtimeManager, storage));
+        if (scoreboardManager != null && configManager.isScoreboardEnabled()) {
+            reg.accept(new ScoreboardCommand(scoreboardManager, configManager));
+        }
         reg.accept(new WhoisCommand(storage));
         reg.accept(new IpHistoryCommand(storage));
         reg.accept(new SeenCommand(storage));
@@ -499,6 +518,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         EventRegistry bus = getEventRegistry();
         new PlayerListener(configManager, storage, vanishManager, mailManager).register(bus);
         new PlayerDataListener(storage, banManager, messageManager, adminChatManager, freecamManager, godManager, staminaManager, flyManager, economyManager, playtimeManager).register(bus);
+        if (scoreboardManager != null && configManager.isScoreboardEnabled()) {
+            new ScoreboardListener(scoreboardManager).register(bus);
+        }
         new ChatModerationListener(muteManager, adminChatManager, configManager).register(bus);
         new IpBanListener(ipBanManager, storage).register(bus);
         new CleanupListener(tpManager, backManager, flyManager, godManager, staminaManager, vanishManager).register(bus);

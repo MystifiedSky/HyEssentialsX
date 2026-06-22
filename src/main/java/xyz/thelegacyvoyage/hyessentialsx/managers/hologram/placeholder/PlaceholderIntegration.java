@@ -98,7 +98,7 @@ public class PlaceholderIntegration {
             return text;
         }
         try {
-            Message msg = PlaceholderApiUtil.apply(playerRef, text, config);
+            Message msg = PlaceholderApiUtil.apply(playerRef, text);
             return extractMessageText(msg, text);
         } catch (Throwable ignored) {
             return text;

@@ -33,11 +33,7 @@ public final class PlaceholderApiUtil {
 
     @Nonnull
     public static Message apply(@Nullable PlayerRef player,
-                                @Nonnull String text,
-                                @Nonnull ConfigManager config) {
-        if (!config.isPlaceholderApiEnabled()) {
-            return Messages.m(text);
-        }
+                                @Nonnull String text) {
         if (!isAvailable()) {
             return Messages.m(text);
         }
@@ -59,11 +55,7 @@ public final class PlaceholderApiUtil {
 
     @Nonnull
     public static String applyString(@Nullable PlayerRef player,
-                                     @Nonnull String text,
-                                     @Nonnull ConfigManager config) {
-        if (!config.isPlaceholderApiEnabled()) {
-            return text;
-        }
+                                     @Nonnull String text) {
         if (!isAvailable()) {
             return text;
         }

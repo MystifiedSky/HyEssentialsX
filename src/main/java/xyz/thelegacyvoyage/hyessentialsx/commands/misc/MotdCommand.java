@@ -50,7 +50,7 @@ public final class MotdCommand extends CommandBase {
         String playerName = player != null ? player.getUsername() : "Console";
         Map<String, String> placeholders = buildPlaceholders(playerName, player);
         for (String line : config.getMotdMessages()) {
-            context.sendMessage(PlaceholderApiUtil.apply(player, applyPlaceholders(line, placeholders), config));
+            context.sendMessage(PlaceholderApiUtil.apply(player, applyPlaceholders(line, placeholders)));
         }
     }
 

@@ -1,0 +1,25 @@
+Group #ScoreboardRoot {
+  Anchor: (Width: 240, Height: 180, Right: 20, Top: 20);
+  LayoutMode: Top;
+  Padding: (Top: 8, Bottom: 8, Left: 10, Right: 10);
+  Background: #0b0f15(0.65);
+
+  Group #ScoreboardHeader {
+    LayoutMode: Top;
+    Anchor: (Width: 220, Height: 40);
+
+    Group #ScoreboardLogo {
+      Anchor: (Width: 32, Height: 32);
+      Background: (TexturePath: "../Textures/HyEssentialsX/Scoreboard/scoreboard_logo.png");
+    }
+
+    Group #ScoreboardLogoSpacer {
+      Anchor: (Height: 6);
+    }
+  }
+
+  Group #ScoreboardLines {
+    LayoutMode: Top;
+    Anchor: (Width: 220, Height: 120);
+  }
+}

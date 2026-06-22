@@ -109,8 +109,7 @@ public class PlayerListener {
             for (String line : config.getMotdMessages()) {
                 player.sendMessage(PlaceholderApiUtil.apply(
                         player,
-                        applyPlaceholders(line, buildPlaceholders(playerName, player, true)),
-                        config
+                        applyPlaceholders(line, buildPlaceholders(playerName, player, true))
                 ));
             }
         }
@@ -174,7 +173,7 @@ public class PlayerListener {
         }
         Map<String, String> placeholders = buildPlaceholders(playerName, player, true);
         for (String line : config.getWelcomeMessages()) {
-            player.sendMessage(PlaceholderApiUtil.apply(player, applyPlaceholders(line, placeholders), config));
+            player.sendMessage(PlaceholderApiUtil.apply(player, applyPlaceholders(line, placeholders)));
         }
     }
 
@@ -186,7 +185,7 @@ public class PlayerListener {
         Map<String, String> placeholders = buildPlaceholders(playerName, playerRef, joining);
         for (PlayerRef target : Universe.get().getPlayers()) {
             for (String line : lines) {
-                target.sendMessage(PlaceholderApiUtil.apply(target, applyPlaceholders(line, placeholders), config));
+                target.sendMessage(PlaceholderApiUtil.apply(target, applyPlaceholders(line, placeholders)));
             }
         }
     }

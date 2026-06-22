@@ -31,11 +31,14 @@ public final class ConfigManager {
     private static final int DEFAULT_TELEPORT_WARMUP_SECONDS = 5;
     private static final List<String> DEFAULT_SPAWN_RESPAWN_PRIORITY = List.of("bed", "setspawn", "world");
     private static final List<String> DEFAULT_COMBAT_BLOCKED_COMMANDS = List.of("home", "spawn", "tpa", "tp", "warp");
+    private static final int DEFAULT_SCOREBOARD_MAX_LINES = 30;
+    private static final int DEFAULT_SCOREBOARD_LINE_MAX_LENGTH = 256;
 
     private final Path configPath;
     private final Path economyPath;
     private final Path rankupPath;
     private final Path chatPath;
+    private final Path scoreboardPath;
     private final Gson gson = new GsonBuilder()
             .setPrettyPrinting()
             .disableHtmlEscaping()
@@ -44,7 +47,6 @@ public final class ConfigManager {
 
     private boolean debugMode = false;
     private boolean useWorldDefaultSpawnIfUnset = true;
-    private boolean placeholderApiEnabled = false;
     private String languageCode = "en-us";
     private boolean hologramsEnabled = true;
     private boolean hologramPlaceholdersEnabled = true;
@@ -53,6 +55,32 @@ public final class ConfigManager {
     private int hologramMaxLineLength = 128;
     private int hologramMaxNameLength = 32;
     private double hologramDefaultLineSpacing = 0.25D;
+    private boolean scoreboardEnabled = false;
+    private int scoreboardUpdateIntervalMs = 2000;
+    private String scoreboardAnchor = "top_right";
+    private int scoreboardOffsetX = 20;
+    private int scoreboardOffsetY = 20;
+    private int scoreboardWidth = 240;
+    private int scoreboardHeight = 0;
+    private int scoreboardLineSpacing = 2;
+    private int scoreboardLineHeight = 16;
+    private int scoreboardFontSize = 14;
+    private int scoreboardPaddingTop = 8;
+    private int scoreboardPaddingBottom = 8;
+    private int scoreboardPaddingLeft = 10;
+    private int scoreboardPaddingRight = 10;
+    private String scoreboardBackgroundColor = "#0b0f15(0.65)";
+    private String scoreboardTextColor = "#f6f8ff";
+    private int scoreboardMaxPlayers = 0;
+    private String scoreboardBalanceFormat = "compact";
+    private boolean scoreboardLogoEnabled = true;
+    private String scoreboardLogoTexture = "file:scoreboard/HyEssentialsX.png";
+    private int scoreboardLogoWidth = 175;
+    private int scoreboardLogoHeight = 39;
+    private int scoreboardLogoPaddingBottom = 6;
+    private boolean scoreboardDefaultHidden = true;
+    private Map<String, String> scoreboardPlaceholders = defaultScoreboardPlaceholders();
+    private List<String> scoreboardLines = defaultScoreboardLines();
     private int tpaRequestTimeoutSeconds = 60;
     private int rtpMaxDistance = 5000;
     private int rtpMinDistance = 1000;
@@ -237,6 +265,7 @@ public final class ConfigManager {
         this.economyPath = dataFolder.resolve("economyConfig.json");
         this.rankupPath = dataFolder.resolve("rankupConfig.json");
         this.chatPath = dataFolder.resolve("chatConfig.json");
+        this.scoreboardPath = dataFolder.resolve("scoreboardConfig.json");
         ensureExists();
         load();
     }
@@ -253,10 +282,11 @@ public final class ConfigManager {
         boolean hasEconomy = Files.exists(economyPath);
         boolean hasRankup = Files.exists(rankupPath);
         boolean hasChat = Files.exists(chatPath);
+        boolean hasScoreboard = Files.exists(scoreboardPath);
 
-        if (hasMain && hasEconomy && hasRankup && hasChat) return;
+        if (hasMain && hasEconomy && hasRankup && hasChat && hasScoreboard) return;
 
-        if (hasMain && (!hasEconomy || !hasRankup || !hasChat)) {
+        if (hasMain && (!hasEconomy || !hasRankup || !hasChat || !hasScoreboard)) {
             needsSplitMigration = true;
             return;
         }
@@ -277,6 +307,10 @@ public final class ConfigManager {
             if (!hasChat) {
                 writeJson(chatPath, buildDefaultChatRoot());
                 Log.info("Created default chatConfig.json");
+            }
+            if (!hasScoreboard) {
+                writeJson(scoreboardPath, buildDefaultScoreboardRoot());
+                Log.info("Created default scoreboardConfig.json");
             }
         } catch (Exception e) {
             Log.error("Failed to create default config files: " + e.getMessage(), e);
@@ -320,6 +354,39 @@ public final class ConfigManager {
         spawnProtection.addProperty("allowDamage", false);
         spawnProtection.addProperty("allowInteract", true);
         root.add("spawnProtection", spawnProtection);
+
+        JsonObject scoreboard = new JsonObject();
+        scoreboard.addProperty("enabled", scoreboardEnabled);
+        scoreboard.addProperty("updateIntervalMs", scoreboardUpdateIntervalMs);
+        scoreboard.addProperty("anchor", scoreboardAnchor);
+        scoreboard.addProperty("offsetX", scoreboardOffsetX);
+        scoreboard.addProperty("offsetY", scoreboardOffsetY);
+        scoreboard.addProperty("width", scoreboardWidth);
+        scoreboard.addProperty("height", scoreboardHeight);
+        scoreboard.addProperty("lineSpacing", scoreboardLineSpacing);
+        scoreboard.addProperty("lineHeight", scoreboardLineHeight);
+        scoreboard.addProperty("fontSize", scoreboardFontSize);
+        scoreboard.addProperty("backgroundColor", scoreboardBackgroundColor);
+        scoreboard.addProperty("textColor", scoreboardTextColor);
+        scoreboard.addProperty("maxPlayers", scoreboardMaxPlayers);
+        scoreboard.addProperty("balanceFormat", scoreboardBalanceFormat);
+        scoreboard.addProperty("defaultHideScoreboard", scoreboardDefaultHidden);
+        JsonObject scoreboardPadding = new JsonObject();
+        scoreboardPadding.addProperty("top", scoreboardPaddingTop);
+        scoreboardPadding.addProperty("bottom", scoreboardPaddingBottom);
+        scoreboardPadding.addProperty("left", scoreboardPaddingLeft);
+        scoreboardPadding.addProperty("right", scoreboardPaddingRight);
+        scoreboard.add("padding", scoreboardPadding);
+        JsonObject scoreboardLogo = new JsonObject();
+        scoreboardLogo.addProperty("enabled", scoreboardLogoEnabled);
+        scoreboardLogo.addProperty("texture", scoreboardLogoTexture);
+        scoreboardLogo.addProperty("width", scoreboardLogoWidth);
+        scoreboardLogo.addProperty("height", scoreboardLogoHeight);
+        scoreboardLogo.addProperty("paddingBottom", scoreboardLogoPaddingBottom);
+        scoreboard.add("logo", scoreboardLogo);
+        scoreboard.add("placeholders", toStringMapObject(scoreboardPlaceholders));
+        scoreboard.add("lines", toArray(scoreboardLines));
+        root.add("scoreboard", scoreboard);
 
         JsonObject economy = new JsonObject();
         economy.addProperty("enabled", true);
@@ -531,10 +598,6 @@ public final class ConfigManager {
         general.addProperty("language", languageCode);
         root.add("general", general);
 
-        JsonObject placeholders = new JsonObject();
-        placeholders.addProperty("enabled", placeholderApiEnabled);
-        root.add("placeholders", placeholders);
-
         JsonObject holograms = new JsonObject();
         holograms.addProperty("enabled", hologramsEnabled);
         holograms.addProperty("maxLines", hologramMaxLines);
@@ -631,8 +694,6 @@ public final class ConfigManager {
             JsonObject general = obj(root, "general");
             useWorldDefaultSpawnIfUnset = bool(general, "spawnFallbackToWorldDefault", true);
             languageCode = str(general, "language", languageCode).toLowerCase();
-            JsonObject placeholders = obj(root, "placeholders");
-            placeholderApiEnabled = bool(placeholders, "enabled", placeholderApiEnabled);
 
             JsonObject holograms = obj(root, "holograms");
             hologramsEnabled = bool(holograms, "enabled", hologramsEnabled);
@@ -643,6 +704,37 @@ public final class ConfigManager {
             JsonObject hologramPlaceholders = obj(holograms, "placeholders");
             hologramPlaceholdersEnabled = bool(hologramPlaceholders, "enabled", hologramPlaceholdersEnabled);
             hologramPlaceholderUpdateIntervalMs = intVal(hologramPlaceholders, "updateIntervalMs", hologramPlaceholderUpdateIntervalMs);
+
+            JsonObject scoreboard = obj(root, "scoreboard");
+            scoreboardEnabled = bool(scoreboard, "enabled", scoreboardEnabled);
+            scoreboardUpdateIntervalMs = intVal(scoreboard, "updateIntervalMs", scoreboardUpdateIntervalMs);
+            scoreboardAnchor = normalizeScoreboardAnchor(str(scoreboard, "anchor", scoreboardAnchor));
+            scoreboardOffsetX = intVal(scoreboard, "offsetX", scoreboardOffsetX);
+            scoreboardOffsetY = intVal(scoreboard, "offsetY", scoreboardOffsetY);
+            scoreboardWidth = intVal(scoreboard, "width", scoreboardWidth);
+            scoreboardHeight = intVal(scoreboard, "height", scoreboardHeight);
+            scoreboardLineSpacing = intVal(scoreboard, "lineSpacing", scoreboardLineSpacing);
+            scoreboardLineHeight = intVal(scoreboard, "lineHeight", scoreboardLineHeight);
+            scoreboardFontSize = intVal(scoreboard, "fontSize", scoreboardFontSize);
+            scoreboardBackgroundColor = str(scoreboard, "backgroundColor", scoreboardBackgroundColor);
+            scoreboardTextColor = str(scoreboard, "textColor", scoreboardTextColor);
+            scoreboardMaxPlayers = intVal(scoreboard, "maxPlayers", scoreboardMaxPlayers);
+            scoreboardBalanceFormat = str(scoreboard, "balanceFormat", scoreboardBalanceFormat);
+            scoreboardDefaultHidden = bool(scoreboard, "defaultHideScoreboard",
+                    bool(scoreboard, "defaultHidden", scoreboardDefaultHidden));
+            JsonObject scoreboardPadding = obj(scoreboard, "padding");
+            scoreboardPaddingTop = intVal(scoreboardPadding, "top", scoreboardPaddingTop);
+            scoreboardPaddingBottom = intVal(scoreboardPadding, "bottom", scoreboardPaddingBottom);
+            scoreboardPaddingLeft = intVal(scoreboardPadding, "left", scoreboardPaddingLeft);
+            scoreboardPaddingRight = intVal(scoreboardPadding, "right", scoreboardPaddingRight);
+            JsonObject scoreboardLogo = obj(scoreboard, "logo");
+            scoreboardLogoEnabled = bool(scoreboardLogo, "enabled", scoreboardLogoEnabled);
+            scoreboardLogoTexture = str(scoreboardLogo, "texture", scoreboardLogoTexture);
+            scoreboardLogoWidth = intVal(scoreboardLogo, "width", scoreboardLogoWidth);
+            scoreboardLogoHeight = intVal(scoreboardLogo, "height", scoreboardLogoHeight);
+            scoreboardLogoPaddingBottom = intVal(scoreboardLogo, "paddingBottom", scoreboardLogoPaddingBottom);
+            scoreboardPlaceholders = readStringMap(scoreboard, "placeholders", scoreboardPlaceholders);
+            scoreboardLines = sanitizeScoreboardLines(list(scoreboard, "lines", scoreboardLines));
 
             JsonObject tpa = obj(root, "tpa");
             tpaRequestTimeoutSeconds = intVal(tpa, "timeoutSeconds", 60);
@@ -1118,10 +1210,6 @@ public final class ConfigManager {
         return debugMode;
     }
 
-    public boolean isPlaceholderApiEnabled() {
-        return placeholderApiEnabled;
-    }
-
     public boolean isHologramsEnabled() {
         return hologramsEnabled;
     }
@@ -1148,6 +1236,142 @@ public final class ConfigManager {
 
     public double getHologramDefaultLineSpacing() {
         return Math.max(0.05D, hologramDefaultLineSpacing);
+    }
+
+    public boolean isScoreboardEnabled() {
+        return scoreboardEnabled;
+    }
+
+    public int getScoreboardUpdateIntervalMs() {
+        return Math.max(250, scoreboardUpdateIntervalMs);
+    }
+
+    @Nonnull
+    public String getScoreboardAnchor() {
+        return scoreboardAnchor;
+    }
+
+    public int getScoreboardOffsetX() {
+        return scoreboardOffsetX;
+    }
+
+    public int getScoreboardOffsetY() {
+        return scoreboardOffsetY;
+    }
+
+    public void setScoreboardOffsets(int offsetX, int offsetY) {
+        scoreboardOffsetX = Math.max(0, offsetX);
+        scoreboardOffsetY = Math.max(0, offsetY);
+        save();
+    }
+
+    public int getScoreboardWidth() {
+        return Math.max(0, scoreboardWidth);
+    }
+
+    public int getScoreboardHeight() {
+        return Math.max(0, scoreboardHeight);
+    }
+
+    public int getScoreboardLineSpacing() {
+        return Math.max(0, scoreboardLineSpacing);
+    }
+
+    public int getScoreboardLineHeight() {
+        return Math.max(1, scoreboardLineHeight);
+    }
+
+    public int getScoreboardFontSize() {
+        return Math.max(8, scoreboardFontSize);
+    }
+
+    public int getScoreboardPaddingTop() {
+        return Math.max(0, scoreboardPaddingTop);
+    }
+
+    public int getScoreboardPaddingBottom() {
+        return Math.max(0, scoreboardPaddingBottom);
+    }
+
+    public int getScoreboardPaddingLeft() {
+        return Math.max(0, scoreboardPaddingLeft);
+    }
+
+    public int getScoreboardPaddingRight() {
+        return Math.max(0, scoreboardPaddingRight);
+    }
+
+    @Nonnull
+    public String getScoreboardBackgroundColor() {
+        return scoreboardBackgroundColor;
+    }
+
+    @Nonnull
+    public String getScoreboardTextColor() {
+        return scoreboardTextColor;
+    }
+
+    public int getScoreboardMaxPlayers() {
+        return Math.max(0, scoreboardMaxPlayers);
+    }
+
+    @Nonnull
+    public String getScoreboardBalanceFormat() {
+        return scoreboardBalanceFormat;
+    }
+
+    public boolean isScoreboardLogoEnabled() {
+        return scoreboardLogoEnabled;
+    }
+
+    @Nonnull
+    public String getScoreboardLogoTexture() {
+        return scoreboardLogoTexture;
+    }
+
+    public int getScoreboardLogoWidth() {
+        return Math.max(1, scoreboardLogoWidth);
+    }
+
+    public int getScoreboardLogoHeight() {
+        return Math.max(1, scoreboardLogoHeight);
+    }
+
+    public int getScoreboardLogoPaddingBottom() {
+        return Math.max(0, scoreboardLogoPaddingBottom);
+    }
+
+    public boolean isScoreboardDefaultHidden() {
+        return scoreboardDefaultHidden;
+    }
+
+    @Nonnull
+    public Map<String, String> getScoreboardPlaceholders() {
+        return Collections.unmodifiableMap(scoreboardPlaceholders);
+    }
+
+    @Nonnull
+    public List<String> getScoreboardLines() {
+        return Collections.unmodifiableList(scoreboardLines);
+    }
+
+    public void setScoreboardLines(@Nonnull List<String> lines) {
+        scoreboardLines = sanitizeScoreboardLines(lines);
+        save();
+    }
+
+    public void setScoreboardPlaceholders(@Nonnull Map<String, String> placeholders) {
+        Map<String, String> sanitized = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+            String key = entry.getKey();
+            if (key == null) continue;
+            String trimmed = key.trim().toLowerCase(Locale.ROOT);
+            if (trimmed.isBlank()) continue;
+            String value = entry.getValue() == null ? "" : entry.getValue().trim();
+            sanitized.put(trimmed, value);
+        }
+        scoreboardPlaceholders = sanitized.isEmpty() ? defaultScoreboardPlaceholders() : sanitized;
+        save();
     }
 
     public boolean isMotdEnabled() {
@@ -1656,9 +1880,6 @@ public final class ConfigManager {
         general.addProperty("spawnFallbackToWorldDefault", useWorldDefaultSpawnIfUnset);
         general.addProperty("language", languageCode);
 
-        JsonObject placeholders = obj(root, "placeholders");
-        placeholders.addProperty("enabled", placeholderApiEnabled);
-
         JsonObject holograms = obj(root, "holograms");
         holograms.addProperty("enabled", hologramsEnabled);
         holograms.addProperty("maxLines", hologramMaxLines);
@@ -1668,6 +1889,36 @@ public final class ConfigManager {
         JsonObject hologramPlaceholders = obj(holograms, "placeholders");
         hologramPlaceholders.addProperty("enabled", hologramPlaceholdersEnabled);
         hologramPlaceholders.addProperty("updateIntervalMs", hologramPlaceholderUpdateIntervalMs);
+
+        JsonObject scoreboard = obj(root, "scoreboard");
+        scoreboard.addProperty("enabled", scoreboardEnabled);
+        scoreboard.addProperty("updateIntervalMs", scoreboardUpdateIntervalMs);
+        scoreboard.addProperty("anchor", scoreboardAnchor);
+        scoreboard.addProperty("offsetX", scoreboardOffsetX);
+        scoreboard.addProperty("offsetY", scoreboardOffsetY);
+        scoreboard.addProperty("width", scoreboardWidth);
+        scoreboard.addProperty("height", scoreboardHeight);
+        scoreboard.addProperty("lineSpacing", scoreboardLineSpacing);
+        scoreboard.addProperty("lineHeight", scoreboardLineHeight);
+        scoreboard.addProperty("fontSize", scoreboardFontSize);
+        scoreboard.addProperty("backgroundColor", scoreboardBackgroundColor);
+        scoreboard.addProperty("textColor", scoreboardTextColor);
+        scoreboard.addProperty("maxPlayers", scoreboardMaxPlayers);
+        scoreboard.addProperty("balanceFormat", scoreboardBalanceFormat);
+        scoreboard.addProperty("defaultHideScoreboard", scoreboardDefaultHidden);
+        JsonObject scoreboardPadding = obj(scoreboard, "padding");
+        scoreboardPadding.addProperty("top", scoreboardPaddingTop);
+        scoreboardPadding.addProperty("bottom", scoreboardPaddingBottom);
+        scoreboardPadding.addProperty("left", scoreboardPaddingLeft);
+        scoreboardPadding.addProperty("right", scoreboardPaddingRight);
+        JsonObject scoreboardLogo = obj(scoreboard, "logo");
+        scoreboardLogo.addProperty("enabled", scoreboardLogoEnabled);
+        scoreboardLogo.addProperty("texture", scoreboardLogoTexture);
+        scoreboardLogo.addProperty("width", scoreboardLogoWidth);
+        scoreboardLogo.addProperty("height", scoreboardLogoHeight);
+        scoreboardLogo.addProperty("paddingBottom", scoreboardLogoPaddingBottom);
+        scoreboard.add("placeholders", toStringMapObject(scoreboardPlaceholders));
+        scoreboard.add("lines", toArray(scoreboardLines));
 
         JsonObject tpa = obj(root, "tpa");
         tpa.addProperty("enabled", tpaEnabled);
@@ -1880,9 +2131,11 @@ public final class ConfigManager {
         boolean hasEconomy = Files.exists(economyPath);
         boolean hasRankup = Files.exists(rankupPath);
         boolean hasChat = Files.exists(chatPath);
+        boolean hasScoreboard = Files.exists(scoreboardPath);
         JsonObject economy = hasEconomy ? readOrDefault(economyPath, buildDefaultEconomyRoot()) : new JsonObject();
         JsonObject rankup = hasRankup ? readOrDefault(rankupPath, buildDefaultRankupRoot()) : new JsonObject();
         JsonObject chat = hasChat ? readOrDefault(chatPath, buildDefaultChatRoot()) : new JsonObject();
+        JsonObject scoreboard = hasScoreboard ? readOrDefault(scoreboardPath, buildDefaultScoreboardRoot()) : new JsonObject();
 
         JsonObject merged = main.deepCopy();
         if (hasEconomy && economy.has("economy")) {
@@ -1903,6 +2156,16 @@ public final class ConfigManager {
             JsonObject defRankup = buildDefaultRankupRoot();
             if (defRankup.has("rankup")) {
                 merged.add("rankup", defRankup.get("rankup"));
+            }
+        }
+        if (hasScoreboard && scoreboard.has("scoreboard")) {
+            merged.add("scoreboard", scoreboard.get("scoreboard"));
+        } else if (main.has("scoreboard")) {
+            merged.add("scoreboard", main.get("scoreboard"));
+        } else {
+            JsonObject defScoreboard = buildDefaultScoreboardRoot();
+            if (defScoreboard.has("scoreboard")) {
+                merged.add("scoreboard", defScoreboard.get("scoreboard"));
             }
         }
         if (hasChat && !chat.entrySet().isEmpty()) {
@@ -1948,6 +2211,7 @@ public final class ConfigManager {
         JsonObject main = full.deepCopy();
         main.remove("economy");
         main.remove("rankup");
+        main.remove("scoreboard");
         stripChatSections(main);
 
         JsonObject economy = buildDefaultEconomyRoot();
@@ -1960,11 +2224,16 @@ public final class ConfigManager {
         }
         JsonObject chat = buildDefaultChatRoot();
         fillChatRoot(chat, full);
+        JsonObject scoreboard = buildDefaultScoreboardRoot();
+        if (full.has("scoreboard")) {
+            scoreboard.add("scoreboard", full.get("scoreboard"));
+        }
 
         writeJson(configPath, main);
         writeJson(economyPath, economy);
         writeJson(rankupPath, rankup);
         writeJson(chatPath, chat);
+        writeJson(scoreboardPath, scoreboard);
     }
 
     private void writeJson(@Nonnull Path path, @Nonnull JsonObject data) throws Exception {
@@ -1976,6 +2245,7 @@ public final class ConfigManager {
         JsonObject root = buildDefaultConfig();
         root.remove("economy");
         root.remove("rankup");
+        root.remove("scoreboard");
         stripChatSections(root);
         return root;
     }
@@ -2005,6 +2275,16 @@ public final class ConfigManager {
         JsonObject root = new JsonObject();
         JsonObject defaults = buildDefaultConfig();
         fillChatRoot(root, defaults);
+        return root;
+    }
+
+    @Nonnull
+    private JsonObject buildDefaultScoreboardRoot() {
+        JsonObject root = new JsonObject();
+        JsonObject defaults = buildDefaultConfig();
+        if (defaults.has("scoreboard")) {
+            root.add("scoreboard", defaults.get("scoreboard"));
+        }
         return root;
     }
 
@@ -2102,6 +2382,10 @@ public final class ConfigManager {
 
     private boolean cleanupConfig(@Nonnull JsonObject root) {
         boolean changed = false;
+        if (root.has("placeholders")) {
+            root.remove("placeholders");
+            changed = true;
+        }
         JsonObject chat = getObjectOrNull(root, "chat");
         JsonObject legacyPriorities = getObjectOrNull(root, "groupPriorities");
         if (legacyPriorities != null) {
@@ -2301,6 +2585,46 @@ public final class ConfigManager {
             }
         }
         return out.isEmpty() ? DEFAULT_COMBAT_BLOCKED_COMMANDS : out;
+    }
+
+    @Nonnull
+    private String normalizeScoreboardAnchor(@Nullable String anchor) {
+        if (anchor == null) {
+            return "top_right";
+        }
+        String value = anchor.trim().toLowerCase(Locale.ROOT);
+        if (value.isBlank()) {
+            return "top_right";
+        }
+        value = value.replace('-', '_');
+        value = value.replace(' ', '_');
+        return switch (value) {
+            case "topright", "top_right" -> "top_right";
+            case "topleft", "top_left" -> "top_left";
+            case "bottomright", "bottom_right" -> "bottom_right";
+            case "bottomleft", "bottom_left" -> "bottom_left";
+            default -> "top_right";
+        };
+    }
+
+    @Nonnull
+    private List<String> sanitizeScoreboardLines(@Nonnull List<String> input) {
+        if (input.isEmpty()) {
+            return defaultScoreboardLines();
+        }
+        List<String> lines = new ArrayList<>();
+        for (String line : input) {
+            if (line == null) continue;
+            String cleaned = line.replace("\r", "");
+            if (cleaned.length() > DEFAULT_SCOREBOARD_LINE_MAX_LENGTH) {
+                cleaned = cleaned.substring(0, DEFAULT_SCOREBOARD_LINE_MAX_LENGTH);
+            }
+            lines.add(cleaned);
+            if (lines.size() >= DEFAULT_SCOREBOARD_MAX_LINES) {
+                break;
+            }
+        }
+        return lines.isEmpty() ? defaultScoreboardLines() : lines;
     }
 
     @Nonnull
@@ -2526,6 +2850,34 @@ public final class ConfigManager {
         priorities.put("Admin", 90);
         priorities.put("OP", 100);
         return priorities;
+    }
+
+    @Nonnull
+    private static Map<String, String> defaultScoreboardPlaceholders() {
+        Map<String, String> placeholders = new LinkedHashMap<>();
+        placeholders.put("server_name", "The Legacy Voyage");
+        placeholders.put("discord", "https://discord.gg/########");
+        placeholders.put("website", "https://www.example.com/");
+        return placeholders;
+    }
+
+    @Nonnull
+    private static List<String> defaultScoreboardLines() {
+        return List.of(
+                "&4Server: &6{server_name}",
+                "&2World: &6{world}",
+                "&cPlayers: &6{player_count}&c/&6{max_players}",
+                "",
+                "&dName: &6{player}",
+                "&dRank: &6{rank}",
+                "&dBalance: &6{balance}",
+                "",
+                "&2Coords: &6{coords}",
+                "&cTPS: &6{tps}",
+                "",
+                "&9Discord: &6{discord}",
+                "&8Website: &6{website}"
+        );
     }
 
     @Nonnull

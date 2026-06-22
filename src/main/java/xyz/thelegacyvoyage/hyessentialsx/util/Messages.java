@@ -204,7 +204,7 @@ public final class Messages {
         PlayerRef player = CommandSenderUtil.resolvePlayer(ctx);
         String raw = prefix(null) + translateIfKey(null, text);
         if (player != null && configManager != null) {
-            ctx.sendMessage(PlaceholderApiUtil.apply(player, raw, configManager));
+            ctx.sendMessage(PlaceholderApiUtil.apply(player, raw));
             return;
         }
         ctx.sendMessage(m(raw));
@@ -213,7 +213,7 @@ public final class Messages {
     public static void send(@Nonnull PlayerRef player, @Nonnull String text) {
         String raw = translateIfKey(player, text);
         if (configManager != null) {
-            player.sendMessage(PlaceholderApiUtil.apply(player, raw, configManager));
+            player.sendMessage(PlaceholderApiUtil.apply(player, raw));
             return;
         }
         player.sendMessage(m(raw));
@@ -222,7 +222,7 @@ public final class Messages {
     public static void sendPrefixed(@Nonnull PlayerRef player, @Nonnull String text) {
         String raw = prefix(player) + translateIfKey(player, text);
         if (configManager != null) {
-            player.sendMessage(PlaceholderApiUtil.apply(player, raw, configManager));
+            player.sendMessage(PlaceholderApiUtil.apply(player, raw));
             return;
         }
         player.sendMessage(m(raw));
@@ -267,7 +267,7 @@ public final class Messages {
         PlayerRef player = CommandSenderUtil.resolvePlayer(ctx);
         String raw = tr(player, key, placeholders);
         if (player != null && configManager != null) {
-            ctx.sendMessage(PlaceholderApiUtil.apply(player, raw, configManager));
+            ctx.sendMessage(PlaceholderApiUtil.apply(player, raw));
             return;
         }
         ctx.sendMessage(m(raw));
@@ -276,7 +276,7 @@ public final class Messages {
     public static void sendKey(@Nonnull PlayerRef player, @Nonnull String key, @Nonnull Map<String, String> placeholders) {
         String raw = tr(player, key, placeholders);
         if (configManager != null) {
-            player.sendMessage(PlaceholderApiUtil.apply(player, raw, configManager));
+            player.sendMessage(PlaceholderApiUtil.apply(player, raw));
             return;
         }
         player.sendMessage(m(raw));
@@ -285,7 +285,7 @@ public final class Messages {
     public static void sendPrefixedKey(@Nonnull PlayerRef player, @Nonnull String key, @Nonnull Map<String, String> placeholders) {
         String raw = prefix(player) + tr(player, key, placeholders);
         if (configManager != null) {
-            player.sendMessage(PlaceholderApiUtil.apply(player, raw, configManager));
+            player.sendMessage(PlaceholderApiUtil.apply(player, raw));
             return;
         }
         player.sendMessage(m(raw));

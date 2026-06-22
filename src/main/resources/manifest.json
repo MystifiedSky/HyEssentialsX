@@ -7,7 +7,9 @@
   "Main": "xyz.thelegacyvoyage.hyessentialsx.HyEssentialsXPlugin",
   "LoadOrder": "POSTWORLD",
   "IncludesAssetPack": true,
+  "Dependencies": {},
   "OptionalDependencies": {
+    "Buuz135:MultipleHUD": ">= 1.0.4",
     "HelpChat:PlaceholderAPI": ">= 1.0.2"
   }
 }

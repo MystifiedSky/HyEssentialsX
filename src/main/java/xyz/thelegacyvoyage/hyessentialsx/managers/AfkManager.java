@@ -89,25 +89,34 @@ public final class AfkManager {
         int timeoutMs = Math.max(0, config.getAfkTimeoutSeconds()) * 1000;
 
         for (PlayerRef player : Universe.get().getPlayers()) {
-            UUID uuid = player.getUuid();
-            Vector3d pos = safePosition(player);
-            if (pos != null) {
-                Vector3d last = lastPositions.get(uuid);
-                if (last == null || moved(last, pos)) {
-                    lastPositions.put(uuid, pos);
-                    lastActivity.put(uuid, now);
-                    if (isAfk(uuid)) {
-                        clearAfk(player, config.isAfkAnnounceOnReturn());
-                    }
-                    continue;
-                }
-            }
+            if (player == null) continue;
+            var worldId = player.getWorldUuid();
+            if (worldId == null) continue;
+            var world = Universe.get().getWorld(worldId);
+            if (world == null) continue;
+            world.execute(() -> handlePlayerTick(player, now, timeoutMs));
+        }
+    }
 
-            if (timeoutMs > 0 && !isAfk(uuid)) {
-                long lastSeen = lastActivity.getOrDefault(uuid, now);
-                if (now - lastSeen >= timeoutMs) {
-                    setAfk(player, false, config.isAfkAnnounceOnAuto());
+    private void handlePlayerTick(@Nonnull PlayerRef player, long now, int timeoutMs) {
+        UUID uuid = player.getUuid();
+        Vector3d pos = safePosition(player);
+        if (pos != null) {
+            Vector3d last = lastPositions.get(uuid);
+            if (last == null || moved(last, pos)) {
+                lastPositions.put(uuid, pos);
+                lastActivity.put(uuid, now);
+                if (isAfk(uuid)) {
+                    clearAfk(player, config.isAfkAnnounceOnReturn());
                 }
+                return;
+            }
+        }
+
+        if (timeoutMs > 0 && !isAfk(uuid)) {
+            long lastSeen = lastActivity.getOrDefault(uuid, now);
+            if (now - lastSeen >= timeoutMs) {
+                setAfk(player, false, config.isAfkAnnounceOnAuto());
             }
         }
     }

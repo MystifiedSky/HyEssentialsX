@@ -7,7 +7,6 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
-import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
@@ -92,26 +91,7 @@ public final class AdminChatCommand extends AbstractPlayerCommand {
     }
 
     private boolean hasAdminChatPermission(@Nonnull PlayerRef ref) {
-        Boolean componentHas = null;
-        try {
-            Ref<EntityStore> reference = ref.getReference();
-            Store<EntityStore> store = reference.getStore();
-            if (store != null) {
-                Player playerComponent = store.getComponent(reference, Player.getComponentType());
-                if (playerComponent != null) {
-                    componentHas = playerComponent.hasPermission(PERMISSION_NODE);
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        boolean moduleHas = PermissionsModule.get().hasPermission(ref.getUuid(), PERMISSION_NODE, false);
-        if (PermissionsModule.get().getFirstPermissionProvider() == null) {
-            return componentHas != null && componentHas;
-        }
-        if (componentHas == null) {
-            return moduleHas;
-        }
-        return moduleHas && componentHas;
+        return PermissionsModule.get().hasPermission(ref.getUuid(), PERMISSION_NODE, false);
     }
 }
 

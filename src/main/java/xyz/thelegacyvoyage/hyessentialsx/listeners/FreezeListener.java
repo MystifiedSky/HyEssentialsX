@@ -49,14 +49,23 @@ public final class FreezeListener {
         });
 
         events.registerGlobal(PlayerReadyEvent.class, event -> {
+            Player playerEntity = event.getPlayer();
+            if (playerEntity == null) return;
+            com.hypixel.hytale.server.core.universe.world.World world = playerEntity.getWorld();
+            if (world == null) return;
             Ref<EntityStore> ref = event.getPlayerRef();
-            Store<EntityStore> store = ref.getStore();
-            if (store == null) return;
-            PlayerRef player = store.getComponent(ref, PlayerRef.getComponentType());
-            if (player == null) return;
-            if (freezeManager.isFrozen(player.getUuid())) {
-                freezeManager.updateState(player);
-            }
+            if (ref == null) return;
+
+            // Ensure store access happens on the world thread.
+            world.execute(() -> {
+                Store<EntityStore> store = ref.getStore();
+                if (store == null) return;
+                PlayerRef player = store.getComponent(ref, PlayerRef.getComponentType());
+                if (player == null) return;
+                if (freezeManager.isFrozen(player.getUuid())) {
+                    freezeManager.updateState(player);
+                }
+            });
         });
 
         events.registerGlobal(PlayerDisconnectEvent.class, event -> {

@@ -9,6 +9,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -26,9 +27,12 @@ public final class SqliteStorageBackend implements StorageBackend {
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private final String url;
     private boolean available;
+    private volatile boolean readOnly;
+    private volatile boolean loggedReadOnly;
 
     public SqliteStorageBackend(@Nonnull Path dbFile) {
         this.url = "jdbc:sqlite:" + dbFile.toAbsolutePath();
+        detectReadOnly(dbFile);
         init();
         if (!available) {
             throw new IllegalStateException("SQLite backend unavailable");
@@ -80,7 +84,7 @@ public final class SqliteStorageBackend implements StorageBackend {
 
     @Override
     public void savePlayerData(@Nonnull UUID uuid, @Nonnull PlayerDataModel data) {
-        if (!available) return;
+        if (!available || readOnly) return;
         try (Connection conn = open();
              PreparedStatement ps = conn.prepareStatement(
                      "INSERT INTO hex_players (uuid, json) VALUES (?, ?) " +
@@ -89,6 +93,7 @@ public final class SqliteStorageBackend implements StorageBackend {
             ps.setString(2, gson.toJson(data));
             ps.executeUpdate();
         } catch (Exception e) {
+            if (handleWriteException(e)) return;
             Log.warn("Failed to save player data to SQLite: " + e.getMessage());
         }
     }
@@ -136,7 +141,7 @@ public final class SqliteStorageBackend implements StorageBackend {
 
     @Override
     public void saveWarps(@Nonnull Map<String, WarpModel> warps) {
-        if (!available) return;
+        if (!available || readOnly) return;
         try (Connection conn = open()) {
             conn.setAutoCommit(false);
             try (Statement st = conn.createStatement()) {
@@ -152,6 +157,7 @@ public final class SqliteStorageBackend implements StorageBackend {
             }
             conn.commit();
         } catch (Exception e) {
+            if (handleWriteException(e)) return;
             Log.warn("Failed to save warps to SQLite: " + e.getMessage());
         }
     }
@@ -179,7 +185,7 @@ public final class SqliteStorageBackend implements StorageBackend {
 
     @Override
     public void saveKits(@Nonnull Map<String, KitModel> kits) {
-        if (!available) return;
+        if (!available || readOnly) return;
         try (Connection conn = open()) {
             conn.setAutoCommit(false);
             try (Statement st = conn.createStatement()) {
@@ -195,6 +201,7 @@ public final class SqliteStorageBackend implements StorageBackend {
             }
             conn.commit();
         } catch (Exception e) {
+            if (handleWriteException(e)) return;
             Log.warn("Failed to save kits to SQLite: " + e.getMessage());
         }
     }
@@ -202,5 +209,41 @@ public final class SqliteStorageBackend implements StorageBackend {
     @Override
     public void shutdown() {
         // no-op
+    }
+
+    private void detectReadOnly(@Nonnull Path dbFile) {
+        try {
+            Path parent = dbFile.getParent();
+            if (parent != null && Files.exists(parent) && !Files.isWritable(parent)) {
+                readOnly = true;
+                logReadOnly(dbFile);
+                return;
+            }
+            if (Files.exists(dbFile) && !Files.isWritable(dbFile)) {
+                readOnly = true;
+                logReadOnly(dbFile);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private boolean handleWriteException(@Nonnull Exception e) {
+        String message = e.getMessage();
+        if (message == null) return false;
+        String lower = message.toLowerCase();
+        if (lower.contains("sqlite_readonly") || lower.contains("readonly")) {
+            readOnly = true;
+            logReadOnly(null);
+            return true;
+        }
+        return false;
+    }
+
+    private void logReadOnly(Path dbFile) {
+        if (loggedReadOnly) return;
+        loggedReadOnly = true;
+        String pathInfo = dbFile != null ? (" (" + dbFile.toAbsolutePath() + ")") : "";
+        Log.error("SQLite database is read-only" + pathInfo +
+                ". Writes have been disabled to avoid log spam. Fix file permissions or switch storage to JSON/MySQL.");
     }
 }

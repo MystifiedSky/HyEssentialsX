@@ -115,17 +115,26 @@ public class PlayerListener {
     }
 
     private void onPlayerReady(PlayerReadyEvent event) {
+        com.hypixel.hytale.server.core.entity.entities.Player playerEntity = event.getPlayer();
+        if (playerEntity == null) return;
+        com.hypixel.hytale.server.core.universe.world.World world = playerEntity.getWorld();
+        if (world == null) return;
         Ref<com.hypixel.hytale.server.core.universe.world.storage.EntityStore> ref = event.getPlayerRef();
-        Store<com.hypixel.hytale.server.core.universe.world.storage.EntityStore> store = ref.getStore();
-        PlayerRef player = store.getComponent(ref, PlayerRef.getComponentType());
-        if (player == null) return;
-        HiddenPlayersManager hidden = player.getHiddenPlayersManager();
-        if (hidden == null) return;
-        for (var vanishedId : vanishManager.getVanishedPlayers()) {
-            if (!vanishedId.equals(player.getUuid())) {
-                hidden.hidePlayer(vanishedId);
+        if (ref == null) return;
+
+        // PlayerReadyEvent can fire on non-world threads. Always hop to world thread before touching the store.
+        world.execute(() -> {
+            Store<com.hypixel.hytale.server.core.universe.world.storage.EntityStore> store = ref.getStore();
+            PlayerRef player = store.getComponent(ref, PlayerRef.getComponentType());
+            if (player == null) return;
+            HiddenPlayersManager hidden = player.getHiddenPlayersManager();
+            if (hidden == null) return;
+            for (var vanishedId : vanishManager.getVanishedPlayers()) {
+                if (!vanishedId.equals(player.getUuid())) {
+                    hidden.hidePlayer(vanishedId);
+                }
             }
-        }
+        });
     }
 
     /**

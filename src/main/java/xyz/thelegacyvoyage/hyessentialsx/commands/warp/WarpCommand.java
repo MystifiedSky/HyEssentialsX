@@ -261,6 +261,15 @@ public final class WarpCommand extends CommandBase {
             Messages.sendKey(context, "warp.list", Map.of("warps", String.join(", ", visibleWarps)));
             return;
         }
+        World senderWorld = resolvePlayerWorld(senderPlayer);
+        if (senderWorld == null) {
+            Messages.sendKey(context, "warp.list", Map.of("warps", String.join(", ", visibleWarps)));
+            return;
+        }
+        senderWorld.execute(() -> openWarpListUi(context, senderPlayer));
+    }
+
+    private void openWarpListUi(@Nonnull CommandContext context, @Nonnull PlayerRef senderPlayer) {
         Ref<EntityStore> senderRef = senderPlayer.getReference();
         Store<EntityStore> senderStore = senderRef != null ? senderRef.getStore() : null;
         if (senderRef == null || !senderRef.isValid() || senderStore == null) {
@@ -274,6 +283,31 @@ public final class WarpCommand extends CommandBase {
         }
         WarpsUI page = new WarpsUI(senderPlayer, warpManager, tpManager, config, cooldowns, backManager);
         page.open(player, senderRef, senderStore);
+    }
+
+    @Nullable
+    private World resolvePlayerWorld(@Nonnull PlayerRef playerRef) {
+        try {
+            if (playerRef.getWorldUuid() != null) {
+                World world = Universe.get().getWorld(playerRef.getWorldUuid());
+                if (world != null) {
+                    return world;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        Ref<EntityStore> ref = playerRef.getReference();
+        Store<EntityStore> store = ref != null ? ref.getStore() : null;
+        if (store == null) {
+            return null;
+        }
+        try {
+            if (store.getExternalData() != null && store.getExternalData().getWorld() != null) {
+                return store.getExternalData().getWorld();
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     @Nullable

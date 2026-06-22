@@ -8,11 +8,14 @@ import com.hypixel.hytale.protocol.BlockMaterial;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.modules.collision.WorldUtil;
 import com.hypixel.hytale.server.core.modules.entity.component.HeadRotation;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
+import com.hypixel.hytale.server.core.universe.world.chunk.ChunkColumn;
 import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
+import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -204,7 +207,16 @@ public final class ThruCommand extends AbstractPlayerCommand {
 
     private boolean isLiquidAt(@Nonnull WorldChunk chunk, int x, int y, int z) {
         try {
-            return chunk.getFluidLevel(x, y, z) > 0 || chunk.getFluidId(x, y, z) != 0;
+            Ref<ChunkStore> chunkRef = chunk.getReference();
+            if (chunkRef == null) {
+                return false;
+            }
+            ChunkColumn chunkColumn = chunk.getWorld().getChunkStore().getStore()
+                    .getComponent(chunkRef, ChunkColumn.getComponentType());
+            if (chunkColumn == null) {
+                return false;
+            }
+            return WorldUtil.getFluidIdAtPosition(chunk.getWorld().getChunkStore().getStore(), chunkColumn, x, y, z) != 0;
         } catch (RuntimeException ex) {
             return false;
         }

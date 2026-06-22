@@ -17,7 +17,7 @@ import com.hypixel.hytale.server.core.event.events.ecs.DamageBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.PlaceBlockEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
-import com.hypixel.hytale.server.core.event.events.player.PlayerInteractEvent;
+import com.hypixel.hytale.server.core.event.events.player.PlayerMouseButtonEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage.EntitySource;
@@ -75,8 +75,8 @@ public final class FreezeListener {
             }
         });
 
-        events.registerGlobal(PlayerInteractEvent.class, event -> {
-            PlayerRef player = event.getPlayer().getPlayerRef();
+        events.registerGlobal(PlayerMouseButtonEvent.class, event -> {
+            PlayerRef player = event.getPlayerRefComponent();
             if (player == null) return;
             if (!freezeManager.isFrozen(player.getUuid())) return;
             event.setCancelled(true);

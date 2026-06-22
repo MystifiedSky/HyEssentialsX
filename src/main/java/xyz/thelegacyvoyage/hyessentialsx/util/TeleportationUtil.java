@@ -17,6 +17,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.UUID;
 
 public final class TeleportationUtil {
@@ -88,10 +90,10 @@ public final class TeleportationUtil {
         if (tp == null) {
             return "Teleport API mismatch. Please update the plugin for this server build.";
         }
-        if (!tryPutTeleport(buffer, ref, tp)) {
-            store.putComponent(ref, Teleport.getComponentType(), tp);
+        if (tryPutTeleport(buffer, ref, tp)) {
+            return null;
         }
-        return null;
+        return applyTeleport(store, ref, tp);
     }
 
     @Nullable
@@ -120,8 +122,7 @@ public final class TeleportationUtil {
         if (tp == null) {
             return "Teleport API mismatch. Please update the plugin for this server build.";
         }
-        store.putComponent(ref, Teleport.getComponentType(), tp);
-        return null;
+        return applyTeleport(store, ref, tp);
     }
 
 
@@ -199,8 +200,7 @@ public final class TeleportationUtil {
         if (tp == null) {
             return "Teleport API mismatch. Please update the plugin for this server build.";
         }
-        store.putComponent(ref, Teleport.getComponentType(), tp);
-        return null;
+        return applyTeleport(store, ref, tp);
     }
 
     @Nullable
@@ -348,6 +348,59 @@ public final class TeleportationUtil {
             }
         }
         return false;
+    }
+
+    @Nullable
+    private static String applyTeleport(@Nonnull Store<EntityStore> store,
+                                        @Nonnull Ref<EntityStore> ref,
+                                        @Nonnull Teleport tp) {
+        try {
+            if (store.isInThread()) {
+                store.putComponent(ref, Teleport.getComponentType(), tp);
+                return null;
+            }
+        } catch (Exception e) {
+            return "Teleport failed to queue: " + e.getMessage();
+        }
+
+        World world = resolveOwningWorld(store);
+        if (world == null) {
+            return "Teleport failed to queue: current world is not loaded.";
+        }
+
+        CompletableFuture<String> future = new CompletableFuture<>();
+        try {
+            // Direct teleports may be invoked from async command execution; marshal them back to the entity's world thread.
+            world.execute(() -> {
+                try {
+                    store.putComponent(ref, Teleport.getComponentType(), tp);
+                    future.complete(null);
+                } catch (Exception e) {
+                    future.complete("Teleport failed to queue: " + e.getMessage());
+                }
+            });
+        } catch (IllegalThreadStateException e) {
+            return "Teleport failed to queue: world is shutting down.";
+        } catch (Exception e) {
+            return "Teleport failed to queue: " + e.getMessage();
+        }
+
+        try {
+            return future.get(1, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            return "Teleport failed to queue: timed out waiting for the world thread.";
+        }
+    }
+
+    @Nullable
+    private static World resolveOwningWorld(@Nonnull Store<EntityStore> store) {
+        try {
+            if (store.getExternalData() != null) {
+                return store.getExternalData().getWorld();
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 }
 

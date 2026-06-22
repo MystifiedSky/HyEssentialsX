@@ -15,7 +15,9 @@ public final class PlayerDataModel {
     private long firstJoinAt;
     private Map<String, HomeModel> homes = new HashMap<>();
     private Map<String, Long> kitCooldowns = new HashMap<>();
+    private Map<String, Integer> kitUseCounts = new HashMap<>();
     private Map<String, Long> commandCooldowns = new HashMap<>();
+    private boolean starterKitClaimed;
     private MuteModel mute;
     private BanModel ban;
     private String language;
@@ -80,11 +82,26 @@ public final class PlayerDataModel {
 
     @Nonnull
     public Map<String, Long> getKitCooldowns() {
+        if (kitCooldowns == null) {
+            kitCooldowns = new HashMap<>();
+        }
         return kitCooldowns;
     }
 
     public void setKitCooldowns(@Nonnull Map<String, Long> kitCooldowns) {
         this.kitCooldowns = kitCooldowns;
+    }
+
+    @Nonnull
+    public Map<String, Integer> getKitUseCounts() {
+        if (kitUseCounts == null) {
+            kitUseCounts = new HashMap<>();
+        }
+        return kitUseCounts;
+    }
+
+    public void setKitUseCounts(@Nonnull Map<String, Integer> kitUseCounts) {
+        this.kitUseCounts = kitUseCounts;
     }
 
     @Nonnull
@@ -94,6 +111,14 @@ public final class PlayerDataModel {
 
     public void setCommandCooldowns(@Nonnull Map<String, Long> commandCooldowns) {
         this.commandCooldowns = commandCooldowns;
+    }
+
+    public boolean isStarterKitClaimed() {
+        return starterKitClaimed;
+    }
+
+    public void setStarterKitClaimed(boolean starterKitClaimed) {
+        this.starterKitClaimed = starterKitClaimed;
     }
 
     @Nullable

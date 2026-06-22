@@ -32,6 +32,7 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
     private final ConfigManager config;
     private final RequiredArg<String> nameArg;
     private final OptionalArg<String> cooldownArg;
+    private final OptionalArg<Integer> maxUsesArg;
 
     public KitCreateCommand(@Nonnull KitManager kitManager, @Nonnull ConfigManager config) {
         super("kitcreate", "Creates a kit");
@@ -41,6 +42,7 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
         this.cooldownArg = withOptionalArg("cooldown", "Cooldown (e.g. 30d)", ArgTypes.STRING);
+        this.maxUsesArg = withOptionalArg("maxUses", "Max amount of claims (0 = unlimited)", ArgTypes.INTEGER);
     }
 
     @Override
@@ -81,6 +83,26 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
             }
             cooldownSeconds = (int) Math.min(Integer.MAX_VALUE, secs);
         }
+        int maxUses = 0;
+        Integer maxUsesInput = context.provided(maxUsesArg) ? context.get(maxUsesArg) : null;
+        if (maxUsesInput == null) {
+            String rawMaxUses = CommandInputUtil.getArg(context, 2);
+            if (rawMaxUses != null && !rawMaxUses.isBlank()) {
+                try {
+                    maxUsesInput = Integer.parseInt(rawMaxUses.trim());
+                } catch (NumberFormatException ignored) {
+                    Messages.errKey(context, "kit.max_uses_invalid", java.util.Map.of());
+                    return;
+                }
+            }
+        }
+        if (maxUsesInput != null) {
+            if (maxUsesInput < 0) {
+                Messages.errKey(context, "kit.max_uses_invalid", java.util.Map.of());
+                return;
+            }
+            maxUses = maxUsesInput;
+        }
 
         Player player = store.getComponent(ref, Player.getComponentType());
         if (player == null) {
@@ -95,7 +117,7 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
         }
 
         List<KitItemModel> items = InventoryUtil.snapshot(inventory);
-        kitManager.setKit(new KitModel(name, cooldownSeconds, items));
+        kitManager.setKit(new KitModel(name, cooldownSeconds, maxUses, items));
 
         Messages.okKey(context, "kit.created", java.util.Map.of("kit", name));
     }

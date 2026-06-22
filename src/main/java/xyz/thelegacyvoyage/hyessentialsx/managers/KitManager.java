@@ -49,10 +49,31 @@ public final class KitManager {
         return Math.max(0L, remaining);
     }
 
-    public void markUsed(@Nonnull UUID playerId, @Nonnull KitModel kit) {
-        if (kit.getCooldownSeconds() <= 0) return;
+    public int getRemainingUses(@Nonnull UUID playerId, @Nonnull KitModel kit) {
+        int maxUses = kit.getMaxUses();
+        if (maxUses <= 0) return Integer.MAX_VALUE;
+        int used = getUsedCount(playerId, kit);
+        return Math.max(0, maxUses - used);
+    }
+
+    public boolean hasRemainingUses(@Nonnull UUID playerId, @Nonnull KitModel kit) {
+        return getRemainingUses(playerId, kit) > 0;
+    }
+
+    public int getUsedCount(@Nonnull UUID playerId, @Nonnull KitModel kit) {
         PlayerDataModel data = storage.getPlayerData(playerId);
-        data.getKitCooldowns().put(kit.getName().toLowerCase(), System.currentTimeMillis());
+        Integer used = data.getKitUseCounts().get(kit.getName().toLowerCase());
+        return used == null ? 0 : Math.max(0, used);
+    }
+
+    public void markUsed(@Nonnull UUID playerId, @Nonnull KitModel kit) {
+        PlayerDataModel data = storage.getPlayerData(playerId);
+        String key = kit.getName().toLowerCase();
+        if (kit.getCooldownSeconds() > 0) {
+            data.getKitCooldowns().put(key, System.currentTimeMillis());
+        }
+        int next = Math.max(0, data.getKitUseCounts().getOrDefault(key, 0)) + 1;
+        data.getKitUseCounts().put(key, next);
         storage.savePlayerDataAsync(playerId, data);
     }
 }

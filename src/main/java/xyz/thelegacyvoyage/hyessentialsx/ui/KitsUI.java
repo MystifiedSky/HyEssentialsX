@@ -181,6 +181,10 @@ public final class KitsUI extends com.hypixel.hytale.server.core.entity.entities
         boolean bypassKitCooldown = PermissionsModule.get().hasPermission(playerRef.getUuid(), BYPASS_PERMISSION)
                 || PermissionsModule.get().hasPermission(playerRef.getUuid(), kitBypass);
         if (!bypassKitCooldown) {
+            if (!kitManager.hasRemainingUses(playerRef.getUuid(), kit)) {
+                Messages.sendPrefixedKey(playerRef, "kit.max_uses_reached", Map.of());
+                return;
+            }
             long remaining = kitManager.getRemainingCooldownSeconds(playerRef.getUuid(), kit);
             if (remaining > 0) {
                 Messages.sendPrefixedKey(playerRef, "kit.cooldown", Map.of(

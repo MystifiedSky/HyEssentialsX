@@ -35,6 +35,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.importer.ImportHomesCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitCreateCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitDeleteCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitEditCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.kit.KitsCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.ListCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.DiscordCommand;
@@ -488,6 +489,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         if (configManager.isKitsEnabled()) {
             reg.accept(new KitCreateCommand(kitManager, configManager));
+            reg.accept(new KitEditCommand(kitManager, configManager));
             reg.accept(new KitCommand(kitManager, configManager));
             reg.accept(new KitsCommand(kitManager, configManager));
             reg.accept(new KitDeleteCommand(kitManager, configManager));
@@ -603,7 +605,21 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private void registerListeners() {
         EventRegistry bus = getEventRegistry();
         new PlayerListener(configManager, storage, vanishManager, mailManager).register(bus);
-        new PlayerDataListener(storage, banManager, messageManager, socialSpyManager, adminChatManager, freecamManager, godManager, staminaManager, flyManager, economyManager, playtimeManager).register(bus);
+        new PlayerDataListener(
+                storage,
+                banManager,
+                messageManager,
+                socialSpyManager,
+                adminChatManager,
+                freecamManager,
+                godManager,
+                staminaManager,
+                flyManager,
+                economyManager,
+                playtimeManager,
+                configManager,
+                kitManager
+        ).register(bus);
         if (scoreboardManager != null && configManager.isScoreboardEnabled()) {
             new ScoreboardListener(scoreboardManager).register(bus);
         }

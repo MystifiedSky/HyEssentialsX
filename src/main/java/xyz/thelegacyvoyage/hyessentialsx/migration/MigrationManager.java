@@ -39,7 +39,14 @@ public final class MigrationManager {
         if (parent == null) {
             parent = dataFolder;
         }
-        return parent.resolve(mod.getFolderName());
+        Path primary = parent.resolve(mod.getFolderName());
+        if (mod == ModType.EASY_HOME && (!Files.exists(primary) || !Files.isDirectory(primary))) {
+            Path fallback = parent.resolve("EasyHome");
+            if (Files.exists(fallback) && Files.isDirectory(fallback)) {
+                return fallback;
+            }
+        }
+        return primary;
     }
 
     @Nonnull
@@ -107,6 +114,7 @@ public final class MigrationManager {
             case HOMES_PLUS -> new HomesPlusMigration(sourceDir);
             case HOME_MANAGER -> new HomeManagerMigration(sourceDir);
             case KUKSO_HY_WARPS -> new KuksoHyWarpsMigration(sourceDir);
+            case EASY_HOME -> new EasyHomeMigration(sourceDir);
         };
     }
 
@@ -275,7 +283,8 @@ public final class MigrationManager {
         ESSENTIALS_PLUS("EssentialsPlus", "EssentialsPlus"),
         HOMES_PLUS("HomesPlus", "HomesPlus_HomesPlus"),
         HOME_MANAGER("HomeManager", "homemanager-data"),
-        KUKSO_HY_WARPS("KuksoHyWarps", "KuksoHyWarps");
+        KUKSO_HY_WARPS("KuksoHyWarps", "KuksoHyWarps"),
+        EASY_HOME("EasyHome", "cryptobench_EasyHome");
 
         private final String displayName;
         private final String folderName;

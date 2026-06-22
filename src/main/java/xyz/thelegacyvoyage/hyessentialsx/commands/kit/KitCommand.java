@@ -109,6 +109,10 @@ public final class KitCommand extends AbstractPlayerCommand {
         boolean bypassKitCooldown = context.sender().hasPermission(BYPASS_PERMISSION)
                 || context.sender().hasPermission(kitBypass);
         if (!bypassKitCooldown) {
+            if (!kitManager.hasRemainingUses(playerRef.getUuid(), kit)) {
+                Messages.warnKey(context, "kit.max_uses_reached", java.util.Map.of());
+                return;
+            }
             long remaining = kitManager.getRemainingCooldownSeconds(playerRef.getUuid(), kit);
             if (remaining > 0) {
                 Messages.warnKey(context, "kit.cooldown", java.util.Map.of(

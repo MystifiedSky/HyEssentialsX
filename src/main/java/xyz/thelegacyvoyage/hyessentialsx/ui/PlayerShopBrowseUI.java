@@ -540,8 +540,12 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
             Map<String, Integer> beforeRewards = snapshotItemCounts(inventory, trade.getRewardItems());
             List<com.hypixel.hytale.server.core.inventory.ItemStack> overflow =
                     InventoryUtil.addItemsWithOverflow(inventory, trade.getRewardItems());
-            if (!overflow.isEmpty()) {
-                debugLog(() -> "Money-buy failed: inventory overflow size=" + overflow.size());
+            boolean rewardsDelivered = overflow.isEmpty() && receivedExpectedItems(beforeRewards, inventory, trade.getRewardItems());
+            if (!rewardsDelivered) {
+                debugLog(() -> "Money-buy failed: reward delivery check failed overflowSize=" + overflow.size()
+                        + " expectedRewards=" + formatItems(trade.getRewardItems())
+                        + " beforeRewards=" + formatCountSummary(beforeRewards)
+                        + " afterRewards=" + inventoryCountSummary(inventory, trade.getRewardItems()));
                 rollbackAddedItems(inventory, beforeRewards);
                 if (!ShopContainerUtil.addItems(containers, trade.getRewardItems())) {
                     Log.warn("Failed to restore shop items after inventory rollback for trade " + trade.getId());
@@ -611,8 +615,12 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
         Map<String, Integer> beforeRewards = snapshotItemCounts(inventory, trade.getRewardItems());
         List<com.hypixel.hytale.server.core.inventory.ItemStack> overflow =
                 InventoryUtil.addItemsWithOverflow(inventory, trade.getRewardItems());
-        if (!overflow.isEmpty()) {
-            debugLog(() -> "Barter failed: inventory overflow size=" + overflow.size());
+        boolean rewardsDelivered = overflow.isEmpty() && receivedExpectedItems(beforeRewards, inventory, trade.getRewardItems());
+        if (!rewardsDelivered) {
+            debugLog(() -> "Barter failed: reward delivery check failed overflowSize=" + overflow.size()
+                    + " expectedRewards=" + formatItems(trade.getRewardItems())
+                    + " beforeRewards=" + formatCountSummary(beforeRewards)
+                    + " afterRewards=" + inventoryCountSummary(inventory, trade.getRewardItems()));
             rollbackAddedItems(inventory, beforeRewards);
             if (!ShopContainerUtil.removeItemsById(containers, trade.getCostItems())) {
                 Log.warn("Failed to remove shop payment items after inventory rollback for trade " + trade.getId());
@@ -680,6 +688,30 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
         }
         debugLog(() -> "Snapshot counts " + formatCountSummary(counts));
         return counts;
+    }
+
+    private boolean receivedExpectedItems(@Nonnull Map<String, Integer> before,
+                                          @Nonnull Inventory inventory,
+                                          @Nonnull List<ShopItemModel> items) {
+        if (items.isEmpty()) return true;
+        Map<String, Integer> expected = new LinkedHashMap<>();
+        for (ShopItemModel item : items) {
+            if (item == null) continue;
+            String id = item.getItemId();
+            int qty = item.getQuantity();
+            if (id == null || id.isBlank() || qty <= 0) continue;
+            expected.merge(id, qty, Integer::sum);
+        }
+        for (Map.Entry<String, Integer> entry : expected.entrySet()) {
+            String id = entry.getKey();
+            int wanted = entry.getValue();
+            int previous = before.getOrDefault(id, 0);
+            int current = InventoryUtil.countItem(inventory, id);
+            if ((current - previous) < wanted) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void rollbackAddedItems(@Nonnull Inventory inventory,

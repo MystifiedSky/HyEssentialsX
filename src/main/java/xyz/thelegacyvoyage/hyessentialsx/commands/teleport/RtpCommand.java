@@ -8,7 +8,7 @@ import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.protocol.BlockMaterial;
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
@@ -21,15 +21,17 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-public final class RtpCommand extends AbstractPlayerCommand {
+public final class RtpCommand extends CommandBase {
 
     private static final String PERMISSION_NODE = "hyessentialsx.rtp";
     private static final String BYPASS_PERMISSION = "hyessentialsx.rtp.bypass";
@@ -62,13 +64,7 @@ public final class RtpCommand extends AbstractPlayerCommand {
     }
 
     @Override
-    protected void execute(
-            @Nonnull CommandContext context,
-            @Nonnull Store<EntityStore> store,
-            @Nonnull Ref<EntityStore> ref,
-            @Nonnull PlayerRef playerRef,
-            @Nonnull World world
-    ) {
+    protected void executeSync(@Nonnull CommandContext context) {
         if (!context.sender().hasPermission(PERMISSION_NODE)) {
             Messages.noPerm(context, "/rtp");
             return;
@@ -77,11 +73,16 @@ public final class RtpCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "rtp.disabled", Map.of());
             return;
         }
+        PlayerRef senderPlayer = CommandSenderUtil.resolvePlayer(context);
         List<String> args = CommandInputUtil.getArgs(context);
-        PlayerRef target = playerRef;
+        PlayerRef target = senderPlayer;
         String worldArg = null;
-        boolean isOther = false;
-        if (!args.isEmpty()) {
+        if (args.isEmpty()) {
+            if (senderPlayer == null) {
+                Messages.err(context, "Usage: /rtp <player> [world]");
+                return;
+            }
+        } else {
             String targetName = args.get(0);
             PlayerRef resolved = Universe.get().getPlayerByUsername(targetName, NameMatching.EXACT_IGNORE_CASE);
             if (resolved == null) {
@@ -89,17 +90,21 @@ public final class RtpCommand extends AbstractPlayerCommand {
                 return;
             }
             target = resolved;
-            isOther = !target.getUuid().equals(playerRef.getUuid());
-            if (isOther && !context.sender().hasPermission(OTHER_PERMISSION)) {
-                Messages.noPerm(context, "/rtp <player>");
-                return;
-            }
             if (args.size() >= 2) {
                 worldArg = args.get(1);
             }
         }
+        if (target == null) {
+            Messages.errKey(context, "player.not_found", Map.of());
+            return;
+        }
+        boolean isOther = senderPlayer == null || !target.getUuid().equals(senderPlayer.getUuid());
+        if (isOther && !context.sender().hasPermission(OTHER_PERMISSION)) {
+            Messages.noPerm(context, "/rtp <player>");
+            return;
+        }
         if (!isOther) {
-            if (!cooldowns.canUse(context, playerRef, CooldownKeys.RTP, "/rtp", BYPASS_PERMISSION)) {
+            if (!cooldowns.canUse(context, senderPlayer, CooldownKeys.RTP, "/rtp", BYPASS_PERMISSION)) {
                 return;
             }
         } else {
@@ -114,7 +119,15 @@ public final class RtpCommand extends AbstractPlayerCommand {
             return;
         }
 
-        World chosenWorld = resolveTargetWorld(target, world);
+        World senderWorld = null;
+        if (senderPlayer != null && senderPlayer.getWorldUuid() != null) {
+            senderWorld = Universe.get().getWorld(senderPlayer.getWorldUuid());
+        }
+        World chosenWorld = resolveTargetWorld(target, senderWorld);
+        if (chosenWorld == null) {
+            Messages.errKey(context, "error.world_not_loaded", Map.of());
+            return;
+        }
         if (worldArg != null && !worldArg.isBlank()) {
             World specified = Universe.get().getWorld(worldArg);
             if (specified == null) {
@@ -276,8 +289,8 @@ public final class RtpCommand extends AbstractPlayerCommand {
         }
     }
 
-    @Nonnull
-    private World resolveTargetWorld(@Nonnull PlayerRef target, @Nonnull World fallback) {
+    @Nullable
+    private World resolveTargetWorld(@Nonnull PlayerRef target, @Nullable World fallback) {
         try {
             Ref<EntityStore> targetRef = target.getReference();
             Store<EntityStore> targetStore = targetRef.getStore();

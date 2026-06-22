@@ -2,32 +2,34 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.moderation;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
-import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FreezeManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
+import java.util.List;
 import java.util.Map;
 
 public final class FreezeCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.freeze";
+    private static final String ALL_PERMISSION = "hyessentialsx.freeze.all";
 
     private final FreezeManager freezeManager;
-    private final RequiredArg<PlayerRef> targetArg;
 
     public FreezeCommand(@Nonnull FreezeManager freezeManager) {
         super("freeze", "Freeze a player");
         this.freezeManager = freezeManager;
         this.setPermissionGroup(null);
+        this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
-        this.targetArg = withRequiredArg("player", "Player to freeze", ArgTypes.PLAYER_REF);
     }
 
     @Override
@@ -48,7 +50,36 @@ public final class FreezeCommand extends AbstractPlayerCommand {
             return;
         }
 
-        PlayerRef target = context.get(targetArg);
+        List<String> args = CommandInputUtil.getArgs(context);
+        if (args.isEmpty()) {
+            Messages.err(context, "Usage: /freeze <player|all>");
+            return;
+        }
+
+        String first = args.get(0);
+        if ("all".equalsIgnoreCase(first)) {
+            if (!context.sender().hasPermission(ALL_PERMISSION)) {
+                Messages.noPerm(context, "/freeze all");
+                return;
+            }
+            int count = 0;
+            for (PlayerRef target : Universe.get().getPlayers()) {
+                if (target == null) continue;
+                if (target.getUuid().equals(playerRef.getUuid())) {
+                    continue;
+                }
+                if (freezeManager.isFrozen(target.getUuid())) {
+                    continue;
+                }
+                freezeManager.freeze(target);
+                count++;
+                Messages.sendPrefixed(target, "&cYou have been frozen by staff.");
+            }
+            Messages.ok(context, "Froze " + count + " player(s).");
+            return;
+        }
+
+        PlayerRef target = Universe.get().getPlayerByUsername(first, NameMatching.EXACT_IGNORE_CASE);
         if (target == null) {
             Messages.errKey(context, "player.not_found", Map.of());
             return;

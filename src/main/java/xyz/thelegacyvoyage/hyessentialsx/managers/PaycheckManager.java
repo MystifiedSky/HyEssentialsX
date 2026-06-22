@@ -25,16 +25,19 @@ public final class PaycheckManager {
     private final ConfigManager config;
     private final EconomyManager economy;
     private final StorageManager storage;
+    private final PlaytimeManager playtime;
 
     private ScheduledExecutorService scheduler;
     private ScheduledFuture<?> task;
 
     public PaycheckManager(@Nonnull ConfigManager config,
                            @Nonnull EconomyManager economy,
-                           @Nonnull StorageManager storage) {
+                           @Nonnull StorageManager storage,
+                           @Nonnull PlaytimeManager playtime) {
         this.config = config;
         this.economy = economy;
         this.storage = storage;
+        this.playtime = playtime;
     }
 
     public void start() {
@@ -73,30 +76,41 @@ public final class PaycheckManager {
     private void checkWorld(@Nonnull World world) {
         Collection<PlayerRef> players = world.getPlayerRefs();
         if (players.isEmpty()) return;
-        long intervalMillis = Math.max(60_000L, Math.round(config.getPaycheckIntervalHours() * 3600_000d));
-        long now = System.currentTimeMillis();
+        long intervalSeconds = Math.max(60L, Math.round(config.getPaycheckIntervalHours() * 3600d));
         for (PlayerRef ref : players) {
             if (ref == null) continue;
             UUID uuid = ref.getUuid();
             PlayerDataModel data = storage.getPlayerData(uuid);
-            long last = data.getLastPaycheckAt();
+            long playtimeSeconds = playtime.getPlaytimeSeconds(uuid);
+            long last = data.getLastPaycheckPlaytimeSeconds();
             if (last <= 0L) {
-                // Missing timestamp: seed it to avoid free paychecks on restart/older data.
-                data.setLastPaycheckAt(now);
+                // Missing playtime checkpoint: seed it to avoid free paychecks on update/older data.
+                if (data.getLastPaycheckAt() > 0L) {
+                    data.setLastPaycheckPlaytimeSeconds(playtimeSeconds);
+                    storage.savePlayerDataAsync(uuid, data);
+                    continue;
+                }
+                data.setLastPaycheckPlaytimeSeconds(playtimeSeconds);
                 storage.savePlayerDataAsync(uuid, data);
                 continue;
             }
-            if (last > 0L && now - last < intervalMillis) {
+            if (playtimeSeconds < last) {
+                data.setLastPaycheckPlaytimeSeconds(playtimeSeconds);
+                storage.savePlayerDataAsync(uuid, data);
+                continue;
+            }
+            if (playtimeSeconds - last < intervalSeconds) {
                 continue;
             }
             long amount = resolvePaycheckAmount(uuid);
+            long nextPaycheckAt = Math.min(playtimeSeconds, last + intervalSeconds);
             if (amount <= 0L) {
-                data.setLastPaycheckAt(now);
+                data.setLastPaycheckPlaytimeSeconds(nextPaycheckAt);
                 storage.savePlayerDataAsync(uuid, data);
                 continue;
             }
             economy.deposit(uuid, amount);
-            data.setLastPaycheckAt(now);
+            data.setLastPaycheckPlaytimeSeconds(nextPaycheckAt);
             storage.savePlayerDataAsync(uuid, data);
             Messages.sendPrefixedKey(ref, "economy.paycheck", Map.of(
                     "amount", economy.formatAmount(amount)

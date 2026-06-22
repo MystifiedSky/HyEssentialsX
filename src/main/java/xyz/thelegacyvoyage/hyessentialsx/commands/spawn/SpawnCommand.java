@@ -2,9 +2,11 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.spawn;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.math.vector.Vector3d;
@@ -14,17 +16,22 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandInputUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Map;
 
 public final class SpawnCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.spawn";
+    private static final String OTHER_PERMISSION = "hyessentialsx.spawn.other";
+    private static final String ALL_PERMISSION = "hyessentialsx.spawn.all";
     private static final String BYPASS_PERMISSION = "hyessentialsx.spawn.bypass";
     private final SpawnManager spawnManager;
     private final BackManager backManager;
@@ -44,6 +51,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
         this.configManager = configManager;
         this.cooldowns = cooldowns;
         this.setPermissionGroup(null);
+        this.setAllowsExtraArguments(true);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
@@ -68,6 +76,63 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "spawn.disabled", Map.of());
             return;
         }
+        List<String> args = CommandInputUtil.getArgs(context);
+        if (args.isEmpty()) {
+            spawnSelf(context, store, ref, playerRef, world);
+            return;
+        }
+
+        String firstArg = args.get(0);
+        if ("all".equalsIgnoreCase(firstArg)) {
+            if (!context.sender().hasPermission(ALL_PERMISSION)) {
+                Messages.noPerm(context, "/spawn all");
+                return;
+            }
+            int success = 0;
+            int skipped = 0;
+            for (PlayerRef target : Universe.get().getPlayers()) {
+                if (target == null) continue;
+                SpawnResult result = spawnOther(context, target, world, false);
+                if (result == SpawnResult.IMMEDIATE || result == SpawnResult.QUEUED) {
+                    success++;
+                } else {
+                    skipped++;
+                }
+            }
+            String msg = "Teleported " + success + " player(s) to spawn.";
+            if (skipped > 0) {
+                msg += " Skipped " + skipped + " player(s).";
+            }
+            Messages.ok(context, msg);
+            return;
+        }
+
+        PlayerRef target = Universe.get().getPlayerByUsername(firstArg, NameMatching.EXACT_IGNORE_CASE);
+        if (target == null) {
+            Messages.errKey(context, "player.not_found", Map.of());
+            return;
+        }
+        if (target.getUuid().equals(playerRef.getUuid())) {
+            spawnSelf(context, store, ref, playerRef, world);
+            return;
+        }
+        if (!context.sender().hasPermission(OTHER_PERMISSION)) {
+            Messages.noPerm(context, "/spawn " + target.getUsername());
+            return;
+        }
+        SpawnResult result = spawnOther(context, target, world, true);
+        if (result == SpawnResult.IMMEDIATE) {
+            Messages.ok(context, "Teleported " + target.getUsername() + " to spawn.");
+        } else if (result == SpawnResult.QUEUED) {
+            Messages.ok(context, "Teleporting " + target.getUsername() + " shortly...");
+        }
+    }
+
+    private void spawnSelf(@Nonnull CommandContext context,
+                           @Nonnull Store<EntityStore> store,
+                           @Nonnull Ref<EntityStore> ref,
+                           @Nonnull PlayerRef playerRef,
+                           @Nonnull World world) {
         if (!cooldowns.canUse(context, playerRef, CooldownKeys.SPAWN, "/spawn", BYPASS_PERMISSION)) {
             return;
         }
@@ -148,6 +213,144 @@ public final class SpawnCommand extends AbstractPlayerCommand {
 
         cooldowns.apply(playerRef, CooldownKeys.SPAWN);
         Messages.okKey(context, "teleport.success.spawn", Map.of());
+    }
+
+    private SpawnResult spawnOther(@Nonnull CommandContext context,
+                                   @Nonnull PlayerRef target,
+                                   @Nonnull World fallbackWorld,
+                                   boolean notifySender) {
+        World targetWorld = resolveTargetWorld(target, fallbackWorld);
+        if (targetWorld == null) {
+            if (notifySender) {
+                Messages.err(context, "Target world is not loaded.");
+            }
+            return SpawnResult.FAILED;
+        }
+
+        SpawnModel spawn = spawnManager.getSpawn();
+        if (spawn == null && configManager.isUseWorldDefaultSpawnIfUnset()) {
+            spawn = spawnManager.getSpawnOrWorldDefault(targetWorld, target.getUuid());
+        }
+        if (spawn == null) {
+            if (notifySender) {
+                Messages.errKey(context, "spawn.not_set", Map.of());
+            }
+            return SpawnResult.FAILED;
+        }
+
+        if (!cooldowns.canUse(target, CooldownKeys.SPAWN, "/spawn", BYPASS_PERMISSION)) {
+            if (notifySender) {
+                Messages.err(context, "Target is on cooldown.");
+            }
+            return SpawnResult.FAILED;
+        }
+
+        com.hypixel.hytale.math.vector.Transform transform = target.getTransform();
+        Vector3d startPos = null;
+        float startYaw = 0f;
+        float startPitch = 0f;
+        if (transform != null) {
+            startPos = transform.getPosition();
+            Vector3f rot = transform.getRotation();
+            startYaw = (rot != null) ? rot.getY() : 0f;
+            startPitch = (rot != null) ? rot.getX() : 0f;
+        }
+
+        Ref<EntityStore> targetRef = target.getReference();
+        Store<EntityStore> targetStore = targetRef != null ? targetRef.getStore() : null;
+        if (targetRef == null || targetStore == null) {
+            if (notifySender) {
+                Messages.err(context, "Could not access target.");
+            }
+            return SpawnResult.FAILED;
+        }
+
+        final SpawnModel finalSpawn = spawn;
+        int warmupSeconds = configManager.getSpawnWarmupSeconds();
+        if (warmupSeconds > 0) {
+            if (tpManager.hasPending(target.getUuid())) {
+                if (notifySender) {
+                    Messages.err(context, "Target already has a pending teleport.");
+                }
+                return SpawnResult.FAILED;
+            }
+            if (startPos == null) {
+                if (notifySender) {
+                    Messages.err(context, "Could not read target position.");
+                }
+                return SpawnResult.FAILED;
+            }
+            Vector3d finalStartPos = startPos.clone();
+            float finalStartYaw = startYaw;
+            float finalStartPitch = startPitch;
+            tpManager.queue(
+                    target.getUuid(),
+                    finalStartPos,
+                    warmupSeconds,
+                    buffer -> {
+                        String err = TeleportationUtil.teleportToSpawn(buffer, targetRef, finalSpawn);
+                        if (err != null) {
+                            Messages.sendPrefixed(target, err);
+                            return;
+                        }
+                        backManager.recordLocation(
+                                target.getUuid(),
+                                targetWorld.getName(),
+                                finalStartPos.getX(), finalStartPos.getY(), finalStartPos.getZ(),
+                                finalStartYaw, finalStartPitch
+                        );
+                        cooldowns.apply(target, CooldownKeys.SPAWN);
+                        Messages.sendPrefixedKey(target, "teleport.success.spawn", Map.of());
+                    }
+            );
+            Messages.sendPrefixedKey(target, "teleport.warmup", Map.of("seconds", String.valueOf(warmupSeconds)));
+            return SpawnResult.QUEUED;
+        }
+
+        if (startPos != null) {
+            backManager.recordLocation(
+                    target.getUuid(),
+                    targetWorld.getName(),
+                    startPos.getX(), startPos.getY(), startPos.getZ(),
+                    startYaw, startPitch
+            );
+        }
+
+        tpManager.cancel(target.getUuid(), null);
+        String err = TeleportationUtil.teleportToSpawn(targetStore, targetRef, spawn);
+        if (err != null) {
+            if (notifySender) {
+                Messages.err(context, err);
+            }
+            return SpawnResult.FAILED;
+        }
+
+        cooldowns.apply(target, CooldownKeys.SPAWN);
+        Messages.sendPrefixedKey(target, "teleport.success.spawn", Map.of());
+        return SpawnResult.IMMEDIATE;
+    }
+
+    @Nullable
+    private World resolveTargetWorld(@Nonnull PlayerRef target, @Nonnull World fallback) {
+        try {
+            Ref<EntityStore> targetRef = target.getReference();
+            Store<EntityStore> targetStore = targetRef != null ? targetRef.getStore() : null;
+            if (targetStore != null && targetStore.getExternalData().getWorld() != null) {
+                return targetStore.getExternalData().getWorld();
+            }
+        } catch (Exception ignored) {
+        }
+        if (target.getWorldUuid() != null) {
+            World byUuid = Universe.get().getWorld(target.getWorldUuid());
+            if (byUuid != null) return byUuid;
+        }
+        return fallback;
+    }
+
+    private enum SpawnResult {
+        IMMEDIATE,
+        QUEUED,
+        FAILED
     }
 }
 

@@ -24,6 +24,7 @@ public final class PlayerDataModel {
     private String rankupTier;
     private boolean flyEnabled;
     private long lastPaycheckAt;
+    private long lastPaycheckPlaytimeSeconds;
     private boolean frozen;
     private int scoreboardOffsetX;
     private int scoreboardOffsetY;
@@ -166,6 +167,14 @@ public final class PlayerDataModel {
 
     public void setLastPaycheckAt(long lastPaycheckAt) {
         this.lastPaycheckAt = Math.max(0L, lastPaycheckAt);
+    }
+
+    public long getLastPaycheckPlaytimeSeconds() {
+        return lastPaycheckPlaytimeSeconds;
+    }
+
+    public void setLastPaycheckPlaytimeSeconds(long lastPaycheckPlaytimeSeconds) {
+        this.lastPaycheckPlaytimeSeconds = Math.max(0L, lastPaycheckPlaytimeSeconds);
     }
 
     public boolean isFrozen() {

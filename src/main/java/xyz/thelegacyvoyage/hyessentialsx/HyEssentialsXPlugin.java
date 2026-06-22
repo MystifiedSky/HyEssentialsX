@@ -240,7 +240,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (paycheckManager != null) {
             paycheckManager.shutdown();
         }
-        paycheckManager = new PaycheckManager(configManager, economyManager, storage);
+        paycheckManager = new PaycheckManager(configManager, economyManager, storage, playtimeManager);
         paycheckManager.start();
         if (afkManager != null) {
             afkManager.shutdown();
@@ -309,8 +309,8 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         vanishManager = new VanishManager();
         sleepPercentManager = new SleepPercentManager(configManager);
         economyManager = new EconomyManager(storage, configManager);
-        paycheckManager = new PaycheckManager(configManager, economyManager, storage);
         playtimeManager = new PlaytimeManager(storage);
+        paycheckManager = new PaycheckManager(configManager, economyManager, storage, playtimeManager);
         scoreboardManager = new ScoreboardManager(configManager, storage, economyManager, playtimeManager, dataDirectory);
         rankupManager = new RankupManager(configManager, economyManager, storage, playtimeManager);
         customCommandManager = new CustomCommandManager(dataDirectory);
@@ -395,7 +395,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             }
             registry.registerCommand(toRegister);
         };
-        reg.accept(new HyEssentialsXPluginCommand(storage, dataDirectory, languageManager));
+        reg.accept(new HyEssentialsXPluginCommand(storage, spawnManager, dataDirectory, languageManager));
         if (configManager.isCombatLogEnabled()) {
             reg.accept(new CombatLogCommand(combatLogManager, configManager));
         }
@@ -406,7 +406,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         if (configManager.isHomesEnabled()) {
             reg.accept(new SetHomeCommand(homeManager, configManager));
-            reg.accept(new HomeCommand(homeManager, tpManager, configManager, cooldownManager, backManager));
+            reg.accept(new HomeCommand(homeManager, tpManager, configManager, cooldownManager, backManager, storage));
             reg.accept(new HomesCommand(homeManager, tpManager, configManager, cooldownManager, backManager));
             reg.accept(new DelHomeCommand(homeManager, configManager));
         }

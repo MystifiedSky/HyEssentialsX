@@ -2,6 +2,8 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.plugin;
 
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractCommandCollection;
 import xyz.thelegacyvoyage.hyessentialsx.commands.importer.ImportHomesCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.plugin.MigrateSubCommand;
+import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.LanguageManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 
@@ -20,6 +22,7 @@ import java.nio.file.Path;
 public class HyEssentialsXPluginCommand extends AbstractCommandCollection {
 
     public HyEssentialsXPluginCommand(@Nonnull StorageManager storage,
+                                      @Nonnull SpawnManager spawnManager,
                                       @Nonnull Path dataFolder,
                                       @Nonnull LanguageManager languageManager) {
         super("hyessentialsx", "HyEssentialsX plugin commands");
@@ -31,6 +34,7 @@ public class HyEssentialsXPluginCommand extends AbstractCommandCollection {
         this.addSubCommand(new ReloadSubCommand());
         this.addSubCommand(new UISubCommand());
         this.addSubCommand(new ImportHomesCommand(storage, dataFolder));
+        this.addSubCommand(new MigrateSubCommand(storage, spawnManager, dataFolder));
         this.addSubCommand(new LanguageSubCommand(languageManager));
     }
 

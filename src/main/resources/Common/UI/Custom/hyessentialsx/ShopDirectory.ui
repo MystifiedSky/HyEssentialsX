@@ -114,6 +114,12 @@ $C.@PageOverlay {
             Anchor: (Horizontal: 0, Height: 32, Bottom: 12);
           }
 
+          $C.@SecondaryTextButton #BackToParentButton {
+            Text: "Back";
+            Anchor: (Horizontal: 0, Height: 30, Bottom: 12);
+            Visible: false;
+          }
+
           Group {
             Anchor: (Height: 1, Bottom: 10);
             Background: (Color: #93844c(0.25));

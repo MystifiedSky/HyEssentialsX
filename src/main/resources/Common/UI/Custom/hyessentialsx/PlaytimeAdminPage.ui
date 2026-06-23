@@ -63,6 +63,13 @@ Group #PlaytimeAdminRoot {
 
       Group { FlexWeight: 1; }
 
+      TextButton #BackToParentButton {
+        Text: "Back";
+        Style: $E.@EcoButtonStyle;
+        Anchor: (Height: 34, Bottom: 8);
+        Visible: false;
+      }
+
       TextButton #CloseButton {
         Text: "Close";
         Style: $E.@EcoButtonRedStyle;

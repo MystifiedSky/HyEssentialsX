@@ -44,6 +44,14 @@ $C.@Container {
         FlexWeight: 1;
       }
 
+      $C.@TextButton #BackToParentButton {
+        Anchor: (Height: 20, Width: 70, Right: 8);
+        Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4);
+        Text: "Back";
+        Style: @CustomStyle;
+        Visible: false;
+      }
+
       $C.@TextButton #CloseButton {
         Anchor: (Height: 20, Width: 70);
         Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4);

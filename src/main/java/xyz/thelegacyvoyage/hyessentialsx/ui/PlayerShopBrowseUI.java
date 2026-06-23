@@ -57,6 +57,8 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
     private final ConfigManager config;
     private final StorageManager storage;
     private final ShopAdminDraftCache draftCache;
+    @Nullable
+    private final UiBackTarget backTarget;
     private ShopModel shop;
     private int page;
     private String search = "";
@@ -69,6 +71,17 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
                               @Nonnull ShopModel shop,
                               @Nonnull StorageManager storage,
                               @Nonnull ShopAdminDraftCache draftCache) {
+        this(playerRef, shopManager, economy, config, shop, storage, draftCache, null);
+    }
+
+    public PlayerShopBrowseUI(@Nonnull PlayerRef playerRef,
+                              @Nonnull ShopManager shopManager,
+                              @Nonnull EconomyManager economy,
+                              @Nonnull ConfigManager config,
+                              @Nonnull ShopModel shop,
+                              @Nonnull StorageManager storage,
+                              @Nonnull ShopAdminDraftCache draftCache,
+                              @Nullable UiBackTarget backTarget) {
         super(playerRef, CustomPageLifetime.CanDismiss, UIEventData.CODEC);
         this.playerRef = playerRef;
         this.shopManager = shopManager;
@@ -77,6 +90,7 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
         this.shop = shop;
         this.storage = storage;
         this.draftCache = draftCache;
+        this.backTarget = backTarget;
     }
 
     @Override
@@ -141,6 +155,7 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
                 }
             }
             case "edit" -> openEditor(ref, store);
+            case "back" -> openBack(ref, store);
             default -> {
             }
         }
@@ -164,6 +179,7 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
         cmd.set("#FilterAllButton.Disabled", filter.equals("all"));
         cmd.set("#FilterBuyButton.Disabled", filter.equals("buy"));
         cmd.set("#FilterSellButton.Disabled", filter.equals("sell"));
+        cmd.set("#BackToParentButton.Visible", backTarget != null);
         updateFundsLabel(cmd);
         buildTradeList(ref, store, cmd, evt);
 
@@ -183,6 +199,8 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
                 EventData.of("Action", "next"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#EditShopButton",
                 EventData.of("Action", "edit"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#BackToParentButton",
+                EventData.of("Action", "back"), false);
 
         cmd.set("#EditShopButton.Visible", canEdit(store, ref));
     }
@@ -348,6 +366,19 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
             bindQuickTrade(evt, cardSelector, view.index(), "TradeTenButton", 10);
             bindQuickTrade(evt, cardSelector, view.index(), "TradeHundredButton", 100);
         }
+    }
+
+    private void openBack(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
+        if (backTarget == null) {
+            close();
+            return;
+        }
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            close();
+            return;
+        }
+        backTarget.open(player, ref, store);
     }
 
     @Nonnull

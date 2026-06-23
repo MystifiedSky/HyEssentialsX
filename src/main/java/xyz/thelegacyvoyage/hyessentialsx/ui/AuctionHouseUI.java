@@ -25,6 +25,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.InventoryUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -44,6 +45,8 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
     private final AuctionHouseManager manager;
     private final EconomyManager economy;
     private final ConfigManager config;
+    @Nullable
+    private final UiBackTarget backTarget;
     private String tab = "browse";
     private int page;
     private String priceInput = "";
@@ -55,11 +58,20 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
                           @Nonnull AuctionHouseManager manager,
                           @Nonnull EconomyManager economy,
                           @Nonnull ConfigManager config) {
+        this(playerRef, manager, economy, config, null);
+    }
+
+    public AuctionHouseUI(@Nonnull PlayerRef playerRef,
+                          @Nonnull AuctionHouseManager manager,
+                          @Nonnull EconomyManager economy,
+                          @Nonnull ConfigManager config,
+                          @Nullable UiBackTarget backTarget) {
         super(playerRef, CustomPageLifetime.CanDismiss, UIEventData.CODEC);
         this.playerRef = playerRef;
         this.manager = manager;
         this.economy = economy;
         this.config = config;
+        this.backTarget = backTarget;
     }
 
     @Override
@@ -78,6 +90,7 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
         if (data.action == null) return;
         switch (data.action) {
             case "close" -> close();
+            case "back" -> openBack(ref, store);
             case "tab" -> {
                 tab = switch (data.tab) {
                     case "mine" -> "mine";
@@ -160,6 +173,7 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
         cmd.set("#PriceInput.Value", priceInput);
         cmd.set("#HoursInput.Value", hoursInput);
         cmd.set("#AuctionBalanceValue.Text", economy.isEnabled() ? economy.formatAmount(economy.getBalance(playerRef.getUuid())) : "Disabled");
+        cmd.set("#BackToParentButton.Visible", backTarget != null);
         cmd.set("#ListCost.Text", "Listing cost: " + economy.formatAmount(config.getAuctionHouseListingCost()));
         cmd.set("#DefaultDuration.Text", "Default: " + Math.max(1L, config.getAuctionHouseDefaultListingSeconds() / 3600L) + "h");
         cmd.set("#PageInfo.Text", "Page " + (page + 1) + "/" + totalPages);
@@ -179,6 +193,7 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
         }
 
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#CloseButton", EventData.of("Action", "close"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#BackToParentButton", EventData.of("Action", "back"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#TabBrowse", EventData.of("Action", "tab").append("Tab", "browse"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#TabMine", EventData.of("Action", "tab").append("Tab", "mine"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#TabList", EventData.of("Action", "tab").append("Tab", "list"), false);
@@ -199,6 +214,19 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#ListHeldButton", EventData.of("Action", "list-held"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#PrevPage", EventData.of("Action", "prev"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#NextPage", EventData.of("Action", "next"), false);
+    }
+
+    private void openBack(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
+        if (backTarget == null) {
+            close();
+            return;
+        }
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            close();
+            return;
+        }
+        backTarget.open(player, ref, store);
     }
 
     private void renderRow(@Nonnull UICommandBuilder cmd,

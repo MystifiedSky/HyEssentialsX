@@ -21,6 +21,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.EconomyAuditEntryModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.ui.UiBackTarget;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -53,6 +54,8 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
     private final ConfigManager config;
     private final EconomyHudManager hudManager;
     private final EconomyAuditManager audit;
+    @Nullable
+    private final UiBackTarget backTarget;
 
     private Tab currentTab = Tab.DASHBOARD;
     private String searchQuery = "";
@@ -82,6 +85,16 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
                       @Nonnull ConfigManager config,
                       @Nonnull EconomyHudManager hudManager,
                       @Nonnull EconomyAuditManager audit) {
+        this(playerRef, economy, storage, config, hudManager, audit, null);
+    }
+
+    public EcoAdminUI(@Nonnull PlayerRef playerRef,
+                      @Nonnull EconomyManager economy,
+                      @Nonnull StorageManager storage,
+                      @Nonnull ConfigManager config,
+                      @Nonnull EconomyHudManager hudManager,
+                      @Nonnull EconomyAuditManager audit,
+                      @Nullable UiBackTarget backTarget) {
         super(playerRef, CustomPageLifetime.CanDismiss, AdminEventData.CODEC);
         this.playerRef = playerRef;
         this.economy = economy;
@@ -89,6 +102,7 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
         this.config = config;
         this.hudManager = hudManager;
         this.audit = audit;
+        this.backTarget = backTarget;
         syncConfigDraftFromConfig();
     }
 
@@ -159,6 +173,7 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
         }
         switch (data.action) {
             case "Close" -> close();
+            case "Back" -> openBack(ref, store);
             case "ForceSave" -> {
                 forceSaveData();
                 setStatus("Economy data queued for save.", "#55ff55");
@@ -249,6 +264,8 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
     private void bindEvents(@Nonnull UIEventBuilder events) {
         events.addEventBinding(CustomUIEventBindingType.Activating, "#CloseButton",
                 EventData.of("Action", "Close"), false);
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#BackToParentButton",
+                EventData.of("Action", "Back"), false);
         events.addEventBinding(CustomUIEventBindingType.Activating, "#ForceSaveButton",
                 EventData.of("Action", "ForceSave"), false);
 
@@ -313,6 +330,7 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
 
     private void rebuild(@Nonnull UICommandBuilder cmd, @Nonnull UIEventBuilder events) {
         cmd.set("#PlayerSearch.Value", searchQuery);
+        cmd.set("#BackToParentButton.Visible", backTarget != null);
         cmd.set("#LogFilter.Value", logFilter);
         cmd.set("#ActionAmount.Value", amountInput);
 
@@ -327,6 +345,19 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
         buildTopTab(cmd);
         buildLogTab(cmd);
         buildConfigTab(cmd);
+    }
+
+    private void openBack(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
+        if (backTarget == null) {
+            close();
+            return;
+        }
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            close();
+            return;
+        }
+        backTarget.open(player, ref, store);
     }
 
     private void buildDashboardTab(@Nonnull UICommandBuilder cmd) {

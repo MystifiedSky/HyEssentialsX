@@ -7,6 +7,7 @@ import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.world.events.AllWorldsLoadedEvent;
 import xyz.thelegacyvoyage.hyessentialsx.commands.plugin.HyEssentialsXPluginCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.plugin.AdminCommandCenterCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.teleport.BackCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.AdminChatCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.BroadcastCommand;
@@ -165,6 +166,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WorldBorderManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.hologram.HologramService;
 import xyz.thelegacyvoyage.hyessentialsx.placeholders.HyEssentialsXPlaceholderExpansion;
+import xyz.thelegacyvoyage.hyessentialsx.ui.AdminCommandCenterContext;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AutoBroadcastManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
@@ -536,7 +538,28 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             }
             registry.registerCommand(toRegister);
         };
-        reg.accept(new HyEssentialsXPluginCommand(storage, spawnManager, dataDirectory, languageManager));
+        AdminCommandCenterContext dashboardContext = new AdminCommandCenterContext(
+                storage,
+                configManager,
+                spawnManager,
+                warpManager,
+                kitManager,
+                banManager,
+                ipBanManager,
+                muteManager,
+                freezeManager,
+                economyManager,
+                economyHudManager,
+                economyAuditManager,
+                playtimeManager,
+                playtimeRewardManager,
+                rankupManager,
+                shopManager,
+                shopAdminDraftCache,
+                auctionHouseManager
+        );
+        reg.accept(new AdminCommandCenterCommand(dashboardContext));
+        reg.accept(new HyEssentialsXPluginCommand(storage, spawnManager, dataDirectory, languageManager, dashboardContext));
         if (configManager.isCombatLogEnabled()) {
             reg.accept(new CombatLogCommand(combatLogManager, configManager));
         }

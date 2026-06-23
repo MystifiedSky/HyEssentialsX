@@ -27,6 +27,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.ShopTradeQuantityUtil;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -46,6 +47,8 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
     private final ShopManager shopManager;
     private final EconomyManager economy;
     private final ShopAdminDraftCache draftCache;
+    @Nullable
+    private final UiBackTarget backTarget;
     private ShopModel shop;
     private int page;
     private String search = "";
@@ -56,12 +59,22 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                         @Nonnull EconomyManager economy,
                         @Nonnull ShopModel shop,
                         @Nonnull ShopAdminDraftCache draftCache) {
+        this(playerRef, shopManager, economy, shop, draftCache, null);
+    }
+
+    public ShopBrowseUI(@Nonnull PlayerRef playerRef,
+                        @Nonnull ShopManager shopManager,
+                        @Nonnull EconomyManager economy,
+                        @Nonnull ShopModel shop,
+                        @Nonnull ShopAdminDraftCache draftCache,
+                        @Nullable UiBackTarget backTarget) {
         super(playerRef, CustomPageLifetime.CanDismiss, UIEventData.CODEC);
         this.playerRef = playerRef;
         this.shopManager = shopManager;
         this.economy = economy;
         this.shop = shop;
         this.draftCache = draftCache;
+        this.backTarget = backTarget;
     }
 
     @Override
@@ -126,6 +139,7 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                 }
             }
             case "edit" -> openEditor(ref, store);
+            case "back" -> openBack(ref, store);
             default -> {
             }
         }
@@ -149,6 +163,7 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
         cmd.set("#FilterAllButton.Disabled", filter.equals("all"));
         cmd.set("#FilterBuyButton.Disabled", filter.equals("buy"));
         cmd.set("#FilterSellButton.Disabled", filter.equals("sell"));
+        cmd.set("#BackToParentButton.Visible", backTarget != null);
         updateFundsLabel(cmd);
         buildTradeList(ref, store, cmd, evt);
 
@@ -168,6 +183,8 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
                 EventData.of("Action", "next"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#EditShopButton",
                 EventData.of("Action", "edit"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#BackToParentButton",
+                EventData.of("Action", "back"), false);
 
         cmd.set("#EditShopButton.Visible", canEdit(store, ref));
     }
@@ -309,6 +326,19 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
             bindQuickTrade(evt, cardSelector, view.index(), "TradeTenButton", 10);
             bindQuickTrade(evt, cardSelector, view.index(), "TradeHundredButton", 100);
         }
+    }
+
+    private void openBack(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
+        if (backTarget == null) {
+            close();
+            return;
+        }
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            close();
+            return;
+        }
+        backTarget.open(player, ref, store);
     }
 
     @Nonnull

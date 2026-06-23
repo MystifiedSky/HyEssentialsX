@@ -93,6 +93,12 @@ $C.@PageOverlay {
           Anchor: (Width: 54, Height: 34, Vertical: 0);
           Text: "X";
         }
+
+        $C.@SecondaryTextButton #BackToParentButton {
+          Anchor: (Width: 92, Height: 34, Left: 8, Vertical: 0);
+          Text: "Back";
+          Visible: false;
+        }
       }
 
       Group #BodyRow {

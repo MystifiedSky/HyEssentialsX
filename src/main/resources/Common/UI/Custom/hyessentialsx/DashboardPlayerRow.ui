@@ -1,0 +1,61 @@
+@RowButtonLabel = LabelStyle(
+  FontSize: 10,
+  TextColor: #e9f1ff,
+  RenderBold: true,
+  RenderUppercase: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@RowButton = TextButtonStyle(
+  Default: (Background: (Color: #263544), LabelStyle: @RowButtonLabel),
+  Hovered: (Background: (Color: #34495f), LabelStyle: @RowButtonLabel),
+  Pressed: (Background: (Color: #1d2a36), LabelStyle: @RowButtonLabel),
+  Disabled: (Background: (Color: #2a2f3a), LabelStyle: @RowButtonLabel)
+);
+
+Group #PlayerRow {
+  LayoutMode: Left;
+  Anchor: (Height: 42, Bottom: 5);
+  Padding: (Left: 8, Right: 8, Top: 5, Bottom: 5);
+  Background: (Color: #151d2a);
+  OutlineColor: #2f4a72;
+  OutlineSize: 1;
+
+  Group #OnlineIndicator {
+    Anchor: (Width: 4, Top: 0, Bottom: 0, Right: 8);
+    Background: (Color: #55d98b);
+    Visible: false;
+  }
+
+  Label #PlayerName {
+    Text: "Player";
+    Anchor: (Width: 155, Vertical: 0);
+    Style: (FontSize: 12, TextColor: #f1f6ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 8);
+  }
+
+  Label #PlayerState {
+    Text: "Offline";
+    Anchor: (Width: 145, Vertical: 0);
+    Style: (FontSize: 10, TextColor: #9fb6d5, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 8);
+  }
+
+  Label #PlayerBalance {
+    Text: "-";
+    Anchor: (Width: 100, Vertical: 0);
+    Style: (FontSize: 10, TextColor: #7de0a3, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 8);
+  }
+
+  Label #PlayerPlaytime {
+    Text: "0s";
+    FlexWeight: 1;
+    Anchor: (Vertical: 0);
+    Style: (FontSize: 10, TextColor: #d5c47d, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 8);
+  }
+
+  TextButton #SelectPlayerButton {
+    Text: "Select";
+    Anchor: (Width: 76, Height: 28, Vertical: 0);
+    Style: @RowButton;
+  }
+}

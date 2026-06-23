@@ -28,6 +28,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -56,6 +57,8 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
     private final ConfigManager config;
     private final StorageManager storage;
     private final AuctionHouseManager auctionHouseManager;
+    @Nullable
+    private final UiBackTarget backTarget;
     private String tab = "player";
     private String search = "";
     private int page;
@@ -67,6 +70,17 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
                            @Nonnull ConfigManager config,
                            @Nonnull StorageManager storage,
                            @Nonnull AuctionHouseManager auctionHouseManager) {
+        this(playerRef, shopManager, economy, draftCache, config, storage, auctionHouseManager, null);
+    }
+
+    public ShopDirectoryUI(@Nonnull PlayerRef playerRef,
+                           @Nonnull ShopManager shopManager,
+                           @Nonnull EconomyManager economy,
+                           @Nonnull ShopAdminDraftCache draftCache,
+                           @Nonnull ConfigManager config,
+                           @Nonnull StorageManager storage,
+                           @Nonnull AuctionHouseManager auctionHouseManager,
+                           @Nullable UiBackTarget backTarget) {
         super(playerRef, CustomPageLifetime.CanDismiss, UIEventData.CODEC);
         this.playerRef = playerRef;
         this.shopManager = shopManager;
@@ -75,6 +89,7 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
         this.config = config;
         this.storage = storage;
         this.auctionHouseManager = auctionHouseManager;
+        this.backTarget = backTarget;
     }
 
     @Override
@@ -132,6 +147,7 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
                     openShop(ref, store, data.shopName);
                 }
             }
+            case "back" -> openBack(ref, store);
             default -> {
             }
         }
@@ -159,6 +175,7 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
         cmd.set("#TabPlayer.Disabled", tab.equals("player"));
         cmd.set("#TabAdmin.Disabled", tab.equals("admin"));
         cmd.set("#TabAuction.Disabled", false);
+        cmd.set("#BackToParentButton.Visible", backTarget != null);
         cmd.set("#ShopRows.Visible", !shops.isEmpty());
         cmd.set("#EmptyLabel.Visible", shops.isEmpty());
         cmd.set("#EmptyLabel.Text", "No shops found");
@@ -185,6 +202,8 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
                 EventData.of("Action", "tab").append("Tab", "admin"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#TabAuction",
                 EventData.of("Action", "tab").append("Tab", "auction"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#BackToParentButton",
+                EventData.of("Action", "back"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#PrevPage",
                 EventData.of("Action", "prev"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#NextPage",
@@ -368,12 +387,35 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
             return;
         }
         if (shop.isPlayerShop()) {
-            new PlayerShopBrowseUI(playerRef, shopManager, economy, config, shop, storage, draftCache)
+            new PlayerShopBrowseUI(playerRef, shopManager, economy, config, shop, storage, draftCache, directoryBackTarget())
                     .open(player, ref, store);
         } else {
-            new ShopBrowseUI(playerRef, shopManager, economy, shop, draftCache)
+            new ShopBrowseUI(playerRef, shopManager, economy, shop, draftCache, directoryBackTarget())
                     .open(player, ref, store);
         }
+    }
+
+    @Nonnull
+    private UiBackTarget directoryBackTarget() {
+        String returnTab = tab;
+        String returnSearch = search;
+        int returnPage = page;
+        return (backPlayer, backRef, backStore) -> {
+            ShopDirectoryUI page = new ShopDirectoryUI(
+                    playerRef,
+                    shopManager,
+                    economy,
+                    draftCache,
+                    config,
+                    storage,
+                    auctionHouseManager,
+                    backTarget
+            );
+            page.tab = returnTab;
+            page.search = returnSearch;
+            page.page = returnPage;
+            page.open(backPlayer, backRef, backStore);
+        };
     }
 
     private void openAuctionHouse(@Nonnull Ref<EntityStore> ref,
@@ -392,7 +434,21 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
             return;
         }
         player.getPageManager().openCustomPage(ref, store,
-                new AuctionHouseUI(playerRef, auctionHouseManager, economy, config));
+                new AuctionHouseUI(playerRef, auctionHouseManager, economy, config, directoryBackTarget()));
+    }
+
+    private void openBack(@Nonnull Ref<EntityStore> ref,
+                          @Nonnull Store<EntityStore> store) {
+        if (backTarget == null) {
+            close();
+            return;
+        }
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            close();
+            return;
+        }
+        backTarget.open(player, ref, store);
     }
 
     private int getTotalPages(int count) {

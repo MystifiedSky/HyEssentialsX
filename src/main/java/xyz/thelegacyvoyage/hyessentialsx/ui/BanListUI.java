@@ -25,6 +25,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.VanillaBanUtil;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -44,16 +45,27 @@ public final class BanListUI extends InteractiveCustomUIPage<BanListUI.UIEventDa
     private final BanManager banManager;
     private final IpBanManager ipBanManager;
     private final StorageManager storage;
+    @Nullable
+    private final UiBackTarget backTarget;
 
     public BanListUI(@Nonnull PlayerRef playerRef,
                      @Nonnull BanManager banManager,
                      @Nonnull IpBanManager ipBanManager,
                      @Nonnull StorageManager storage) {
+        this(playerRef, banManager, ipBanManager, storage, null);
+    }
+
+    public BanListUI(@Nonnull PlayerRef playerRef,
+                     @Nonnull BanManager banManager,
+                     @Nonnull IpBanManager ipBanManager,
+                     @Nonnull StorageManager storage,
+                     @Nullable UiBackTarget backTarget) {
         super(playerRef, CustomPageLifetime.CanDismiss, UIEventData.CODEC);
         this.playerRef = playerRef;
         this.banManager = banManager;
         this.ipBanManager = ipBanManager;
         this.storage = storage;
+        this.backTarget = backTarget;
     }
 
     @Override
@@ -67,12 +79,19 @@ public final class BanListUI extends InteractiveCustomUIPage<BanListUI.UIEventDa
 
         List<BanEntry> bans = collectBans();
         cmd.set("#BanCount.Text", bans.size() + " Bans");
+        cmd.set("#BackToParentButton.Visible", backTarget != null);
         buildBanList(cmd, evt, bans);
 
         evt.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 "#CloseButton",
                 EventData.of("Action", "Close"),
+                false
+        );
+        evt.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#BackToParentButton",
+                EventData.of("Action", "Back"),
                 false
         );
     }
@@ -88,6 +107,10 @@ public final class BanListUI extends InteractiveCustomUIPage<BanListUI.UIEventDa
         }
         if (data.action.equals("Close")) {
             close();
+            return;
+        }
+        if (data.action.equals("Back")) {
+            openBack(ref, store);
             return;
         }
 
@@ -161,7 +184,7 @@ public final class BanListUI extends InteractiveCustomUIPage<BanListUI.UIEventDa
             close();
             return;
         }
-        BanListUI page = new BanListUI(playerRef, banManager, ipBanManager, storage);
+        BanListUI page = new BanListUI(playerRef, banManager, ipBanManager, storage, backTarget);
         player.getPageManager().openCustomPage(ref, store, page);
     }
 
@@ -185,8 +208,21 @@ public final class BanListUI extends InteractiveCustomUIPage<BanListUI.UIEventDa
             close();
             return;
         }
-        BanListUI page = new BanListUI(playerRef, banManager, ipBanManager, storage);
+        BanListUI page = new BanListUI(playerRef, banManager, ipBanManager, storage, backTarget);
         player.getPageManager().openCustomPage(ref, store, page);
+    }
+
+    private void openBack(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
+        if (backTarget == null) {
+            close();
+            return;
+        }
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            close();
+            return;
+        }
+        backTarget.open(player, ref, store);
     }
 
     private List<BanEntry> collectBans() {

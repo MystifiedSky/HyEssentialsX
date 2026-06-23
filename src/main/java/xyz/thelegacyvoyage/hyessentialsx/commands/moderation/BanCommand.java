@@ -12,6 +12,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.BanModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.StaffActionUtil;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Method;
@@ -82,6 +83,7 @@ public final class BanCommand extends CommandBase {
                 0L,
                 System.currentTimeMillis()
         ));
+        StaffActionUtil.log(storage, actor, "ban", uuid, name, finalReason);
 
         if (online != null) {
             String reasonText = (reason == null || reason.isBlank())

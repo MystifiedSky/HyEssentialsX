@@ -42,7 +42,7 @@ Group #CommandCenterRoot {
   LayoutMode: Center;
 
   Group #CommandCenterShell {
-    Anchor: (Width: 1120, Height: 700);
+    Anchor: (Width: 1280, Height: 900);
     LayoutMode: Left;
     Background: (Color: #0e1727ef);
     OutlineColor: #2f4a72;
@@ -216,6 +216,19 @@ Group #CommandCenterRoot {
 
         Group {
           LayoutMode: Left;
+          Anchor: (Height: 30, Bottom: 8);
+          TextButton #FilterAllButton { Text: "All"; Style: @CommandButton; Anchor: (Width: 64, Right: 5); }
+          TextButton #FilterOnlineButton { Text: "Online"; Style: @CommandButton; Anchor: (Width: 82, Right: 5); }
+          TextButton #FilterPunishedButton { Text: "Punished"; Style: @CommandButton; Anchor: (Width: 98, Right: 5); }
+          TextButton #FilterWarnedButton { Text: "Warned"; Style: @CommandButton; Anchor: (Width: 88, Right: 5); }
+          TextButton #FilterBalanceButton { Text: "Balance"; Style: @CommandButton; Anchor: (Width: 92, Right: 5); }
+          TextButton #FilterNewButton { Text: "New"; Style: @CommandButton; Anchor: (Width: 66, Right: 10); }
+          TextButton #SortButton { Text: "Sort: Name"; Style: @CommandButtonGold; Anchor: (Width: 132); }
+          Label { Text: ""; FlexWeight: 1; }
+        }
+
+        Group {
+          LayoutMode: Left;
           FlexWeight: 1;
 
           Group #PlayerBrowser {
@@ -230,11 +243,11 @@ Group #CommandCenterRoot {
             Group #PlayerListHeader {
               LayoutMode: Left;
               Anchor: (Height: 24, Bottom: 6);
-              Label { Text: "Player"; Anchor: (Width: 155); Style: (FontSize: 10, TextColor: #8ba6ca, RenderBold: true); }
-              Label { Text: "State"; Anchor: (Width: 145); Style: (FontSize: 10, TextColor: #8ba6ca, RenderBold: true); }
-              Label { Text: "Balance"; Anchor: (Width: 100); Style: (FontSize: 10, TextColor: #8ba6ca, RenderBold: true); }
-              Label { Text: "Playtime"; FlexWeight: 1; Style: (FontSize: 10, TextColor: #8ba6ca, RenderBold: true); }
-              Label { Text: ""; Anchor: (Width: 76); }
+              Label { Text: "Player"; FlexWeight: 1; Style: (FontSize: 10, TextColor: #8ba6ca, RenderBold: true); }
+              Label { Text: "State"; Anchor: (Width: 90); Style: (FontSize: 10, TextColor: #8ba6ca, RenderBold: true); }
+              Label { Text: "Balance"; Anchor: (Width: 90); Style: (FontSize: 10, TextColor: #8ba6ca, RenderBold: true); }
+              Label { Text: "Playtime"; Anchor: (Width: 95); Style: (FontSize: 10, TextColor: #8ba6ca, RenderBold: true); }
+              Label { Text: ""; Anchor: (Width: 58); }
             }
 
             Group #PlayerListContainer {
@@ -254,7 +267,7 @@ Group #CommandCenterRoot {
 
           Group #SelectedPanel {
             LayoutMode: Top;
-            Anchor: (Width: 330);
+            Anchor: (Width: 430);
             Background: (Color: #111f34);
             Padding: (Top: 12, Bottom: 12, Left: 12, Right: 12);
             OutlineColor: #2f4a72;
@@ -268,61 +281,124 @@ Group #CommandCenterRoot {
 
             Label #SelectedMeta {
               Text: "";
-              Anchor: (Height: 44, Bottom: 8);
+              Anchor: (Height: 42, Bottom: 8);
               Style: (FontSize: 10, TextColor: #8da8cc, Wrap: true);
             }
 
-            Label #SelectedState {
-              Text: "";
-              Anchor: (Height: 58, Bottom: 12);
-              Style: (FontSize: 11, TextColor: #d7e7ff, Wrap: true);
-            }
-
-            Group { LayoutMode: Left; Anchor: (Height: 34, Bottom: 8);
-              TextButton #FreezeButton { Text: "Freeze"; Style: @CommandButtonGold; FlexWeight: 1; Anchor: (Right: 6); }
-              TextButton #UnfreezeButton { Text: "Unfreeze"; Style: @CommandButtonGreen; FlexWeight: 1; }
-            }
-
-            Group { LayoutMode: Left; Anchor: (Height: 34, Bottom: 8);
-              TextButton #MuteButton { Text: "Mute"; Style: @CommandButtonGold; FlexWeight: 1; Anchor: (Right: 6); }
-              TextButton #UnmuteButton { Text: "Unmute"; Style: @CommandButtonGreen; FlexWeight: 1; }
-            }
-
-            Group {
-              LayoutMode: Top;
-              Anchor: (Height: 62, Bottom: 8);
-              Padding: (Left: 8, Right: 8, Top: 6, Bottom: 6);
+            Group #RiskFlagListContainer {
+              LayoutMode: TopScrolling;
+              Anchor: (Height: 54, Bottom: 8);
+              Padding: (Top: 5, Bottom: 5, Left: 6, Right: 6);
               Background: (Color: #0b1524);
               OutlineColor: #355986;
               OutlineSize: 1;
-
-              Label {
-                Text: "Ban Reason";
-                Anchor: (Height: 16, Bottom: 4);
-                Style: (FontSize: 10, TextColor: #9ab6d9, RenderBold: true);
-              }
-
-              TextField #BanReasonInput {
-                Anchor: (Height: 28);
-                Style: (FontSize: 12, TextColor: #f0f5ff);
-              }
+              Group #RiskFlagList { LayoutMode: Top; }
             }
 
-            Group { LayoutMode: Left; Anchor: (Height: 34, Bottom: 12);
-              TextButton #BanButton { Text: "Ban"; Style: @CommandButtonRed; FlexWeight: 1; Anchor: (Right: 6); }
-              TextButton #UnbanButton { Text: "Unban"; Style: @CommandButtonGreen; FlexWeight: 1; }
+            Group { LayoutMode: Left; Anchor: (Height: 30, Bottom: 6);
+              TextButton #ProfileTabOverview { Text: "Overview"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+              TextButton #ProfileTabPunishments { Text: "Punish"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+              TextButton #ProfileTabEconomy { Text: "Economy"; Style: @CommandButton; FlexWeight: 1; }
             }
 
-            Label {
-              Text: "Command Hints";
+            Group { LayoutMode: Left; Anchor: (Height: 30, Bottom: 8);
+              TextButton #ProfileTabTravel { Text: "Travel"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+              TextButton #ProfileTabStats { Text: "Stats"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+              TextButton #ProfileTabActivity { Text: "Activity"; Style: @CommandButton; FlexWeight: 1; }
+            }
+
+            Label #SelectedModuleTitle {
+              Text: "Selected Player";
               Anchor: (Height: 20, Bottom: 4);
               Style: (FontSize: 11, TextColor: #8fb6e8, RenderBold: true);
             }
 
-            Label #SelectedCommandHint {
-              Text: "";
-              Style: (FontSize: 10, TextColor: #c8d6ea, Wrap: true);
+            Group #SelectedModuleListContainer {
+              LayoutMode: TopScrolling;
               FlexWeight: 1;
+              Padding: (Top: 7, Bottom: 7, Left: 8, Right: 8);
+              Background: (Color: #0b1524);
+              OutlineColor: #355986;
+              OutlineSize: 1;
+              Group #SelectedModuleList { LayoutMode: Top; }
+            }
+
+            Group #PendingConfirmPanel {
+              LayoutMode: Left;
+              Visible: false;
+              Anchor: (Height: 56, Top: 8);
+              Padding: (Top: 6, Bottom: 6, Left: 8, Right: 8);
+              Background: (Color: #24151b);
+              OutlineColor: #8b3c48;
+              OutlineSize: 1;
+              Label #PendingConfirmText { Text: ""; FlexWeight: 1; Anchor: (Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #ffb7c0, Wrap: true); }
+              TextButton #ConfirmActionButton { Text: "Confirm"; Style: @CommandButtonRed; Anchor: (Width: 82, Height: 32, Vertical: 0, Right: 5); }
+              TextButton #CancelActionButton { Text: "Cancel"; Style: @CommandButton; Anchor: (Width: 76, Height: 32, Vertical: 0); }
+            }
+
+            Group #DangerActionsPanel {
+              LayoutMode: Top;
+              Visible: false;
+              Anchor: (Height: 66, Top: 8);
+              Label { Text: "Danger Zone"; Anchor: (Height: 16, Bottom: 4); Style: (FontSize: 10, TextColor: #ff9f9f, RenderBold: true); }
+              Group { LayoutMode: Left; Anchor: (Height: 30);
+                TextButton #BanButton { Text: "Ban"; Style: @CommandButtonRed; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #UnbanButton { Text: "Unban"; Style: @CommandButtonGreen; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #ClearWarningsButton { Text: "Clear Warns"; Style: @CommandButtonRed; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #ResetBalanceButton { Text: "Reset $"; Style: @CommandButtonRed; FlexWeight: 1; }
+              }
+            }
+
+            Group #TravelActionsPanel {
+              LayoutMode: Left;
+              Visible: false;
+              Anchor: (Height: 34, Top: 8);
+              TextButton #TeleportToButton { Text: "Teleport To"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+              TextButton #TeleportHereButton { Text: "Bring Here"; Style: @CommandButton; FlexWeight: 1; }
+            }
+
+            TextButton #ToggleActionsButton {
+              Text: "Hide Actions";
+              Style: @CommandButton;
+              Anchor: (Height: 28, Top: 8, Bottom: 8);
+            }
+
+            Group #ActionDrawer {
+              LayoutMode: Top;
+              Anchor: (Height: 190);
+
+              Label { Text: "Reason Presets"; Anchor: (Height: 14, Bottom: 3); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true); }
+              Group { LayoutMode: Left; Anchor: (Height: 24, Bottom: 4);
+                TextButton #ReasonSpamButton { Text: "Spam"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #ReasonHarassmentButton { Text: "Harassment"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #ReasonExploitingButton { Text: "Exploiting"; Style: @CommandButton; FlexWeight: 1; }
+              }
+              Group { LayoutMode: Left; Anchor: (Height: 24, Bottom: 5);
+                TextButton #ReasonChargebackButton { Text: "Chargeback"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #ReasonAltButton { Text: "Alt Abuse"; Style: @CommandButton; FlexWeight: 1; }
+              }
+
+              Group {
+                LayoutMode: Top;
+                Anchor: (Height: 54, Bottom: 5);
+                Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4);
+                Background: (Color: #0b1524);
+                OutlineColor: #355986;
+                OutlineSize: 1;
+                Label { Text: "Action Reason / Staff Note"; Anchor: (Height: 14, Bottom: 3); Style: (FontSize: 10, TextColor: #9ab6d9, RenderBold: true); }
+                TextField #BanReasonInput { Anchor: (Height: 28); Style: (FontSize: 12, TextColor: #f0f5ff); }
+              }
+
+              Group { LayoutMode: Left; Anchor: (Height: 26, Bottom: 5);
+                TextButton #FreezeButton { Text: "Freeze"; Style: @CommandButtonGold; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #UnfreezeButton { Text: "Unfreeze"; Style: @CommandButtonGreen; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #MuteButton { Text: "Mute"; Style: @CommandButtonGold; FlexWeight: 1; }
+              }
+              Group { LayoutMode: Left; Anchor: (Height: 26);
+                TextButton #UnmuteButton { Text: "Unmute"; Style: @CommandButtonGreen; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #WarnButton { Text: "Warn"; Style: @CommandButtonGold; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #AddNoteButton { Text: "Add Note"; Style: @CommandButton; FlexWeight: 1; }
+              }
             }
           }
         }
@@ -385,9 +461,10 @@ Group #CommandCenterRoot {
             OutlineSize: 1;
 
             Label { Text: "Moderation Workflows"; Anchor: (Height: 24, Bottom: 8); Style: (FontSize: 13, TextColor: #d7e7ff, RenderBold: true); }
-            Label { Text: "Use the Players tab for fast freeze, mute, unmute, unfreeze, and unban actions."; Anchor: (Height: 58, Bottom: 8); Style: (FontSize: 11, TextColor: #a7c2e6, Wrap: true); }
+            Label { Text: "Use the Players tab for freeze, mute, warnings, ban, unban, and teleport actions."; Anchor: (Height: 44, Bottom: 8); Style: (FontSize: 11, TextColor: #a7c2e6, Wrap: true); }
             TextButton #OpenBansModerationButton { Text: "Open Ban List"; Style: @CommandButtonGold; Anchor: (Height: 34, Bottom: 8); }
-            Label { Text: "Ban, tempban, IP history, and whois commands remain explicit so staff enter reasons intentionally."; Style: (FontSize: 10, TextColor: #8193aa, Wrap: true); FlexWeight: 1; }
+            Label { Text: "Recent staff activity"; Anchor: (Height: 18, Bottom: 4); Style: (FontSize: 11, TextColor: #8fb6e8, RenderBold: true); }
+            Group #StaffActivityList { LayoutMode: Top; FlexWeight: 1; }
           }
         }
       }

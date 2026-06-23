@@ -7,6 +7,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.StaffActivityLogDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
@@ -55,6 +56,7 @@ public final class MysqlStorageBackend implements StorageBackend {
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_shops (name VARCHAR(64) PRIMARY KEY, json LONGTEXT)");
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_ipbans (ip VARCHAR(64) PRIMARY KEY, json LONGTEXT)");
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_auctionhouse (id VARCHAR(64) PRIMARY KEY, json LONGTEXT)");
+                st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_staff_activity (id VARCHAR(64) PRIMARY KEY, json LONGTEXT)");
             }
             available = true;
         } catch (Exception e) {
@@ -333,6 +335,39 @@ public final class MysqlStorageBackend implements StorageBackend {
             ps.executeUpdate();
         } catch (Exception e) {
             Log.warn("Failed to save auction house data to MySQL: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Nonnull
+    public StaffActivityLogDataModel loadStaffActivityLog() {
+        if (!available) return new StaffActivityLogDataModel();
+        try (Connection conn = open();
+             PreparedStatement ps = conn.prepareStatement("SELECT json FROM hex_staff_activity WHERE id = ?")) {
+            ps.setString(1, "global");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    StaffActivityLogDataModel data = gson.fromJson(rs.getString(1), StaffActivityLogDataModel.class);
+                    return data != null ? data : new StaffActivityLogDataModel();
+                }
+            }
+        } catch (Exception e) {
+            Log.warn("Failed to load staff activity from MySQL: " + e.getMessage());
+        }
+        return new StaffActivityLogDataModel();
+    }
+
+    @Override
+    public void saveStaffActivityLog(@Nonnull StaffActivityLogDataModel data) {
+        if (!available) return;
+        try (Connection conn = open();
+             PreparedStatement ps = conn.prepareStatement(
+                     "INSERT INTO hex_staff_activity (id, json) VALUES (?, ?) ON DUPLICATE KEY UPDATE json = VALUES(json)")) {
+            ps.setString(1, "global");
+            ps.setString(2, gson.toJson(data));
+            ps.executeUpdate();
+        } catch (Exception e) {
+            Log.warn("Failed to save staff activity to MySQL: " + e.getMessage());
         }
     }
 

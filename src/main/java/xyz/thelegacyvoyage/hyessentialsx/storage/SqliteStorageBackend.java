@@ -7,6 +7,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.StaffActivityLogDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
@@ -56,6 +57,7 @@ public final class SqliteStorageBackend implements StorageBackend {
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_shops (name TEXT PRIMARY KEY, json TEXT)");
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_ipbans (ip TEXT PRIMARY KEY, json TEXT)");
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_auctionhouse (id TEXT PRIMARY KEY, json TEXT)");
+                st.executeUpdate("CREATE TABLE IF NOT EXISTS hex_staff_activity (id TEXT PRIMARY KEY, json TEXT)");
             }
             available = true;
         } catch (Exception e) {
@@ -331,6 +333,41 @@ public final class SqliteStorageBackend implements StorageBackend {
         } catch (Exception e) {
             if (handleWriteException(e)) return;
             Log.warn("Failed to save auction house data to SQLite: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Nonnull
+    public StaffActivityLogDataModel loadStaffActivityLog() {
+        if (!available) return new StaffActivityLogDataModel();
+        try (Connection conn = open();
+             PreparedStatement ps = conn.prepareStatement("SELECT json FROM hex_staff_activity WHERE id = ?")) {
+            ps.setString(1, "global");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    StaffActivityLogDataModel data = gson.fromJson(rs.getString(1), StaffActivityLogDataModel.class);
+                    return data != null ? data : new StaffActivityLogDataModel();
+                }
+            }
+        } catch (Exception e) {
+            Log.warn("Failed to load staff activity from SQLite: " + e.getMessage());
+        }
+        return new StaffActivityLogDataModel();
+    }
+
+    @Override
+    public void saveStaffActivityLog(@Nonnull StaffActivityLogDataModel data) {
+        if (!available || readOnly) return;
+        try (Connection conn = open();
+             PreparedStatement ps = conn.prepareStatement(
+                     "INSERT INTO hex_staff_activity (id, json) VALUES (?, ?) " +
+                             "ON CONFLICT(id) DO UPDATE SET json = excluded.json")) {
+            ps.setString(1, "global");
+            ps.setString(2, gson.toJson(data));
+            ps.executeUpdate();
+        } catch (Exception e) {
+            if (handleWriteException(e)) return;
+            Log.warn("Failed to save staff activity to SQLite: " + e.getMessage());
         }
     }
 

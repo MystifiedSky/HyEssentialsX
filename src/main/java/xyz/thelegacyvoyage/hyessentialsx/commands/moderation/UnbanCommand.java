@@ -8,6 +8,7 @@ import com.hypixel.hytale.server.core.command.system.basecommands.AbstractAsyncC
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.StaffActionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.VanillaBanUtil;
 
 import javax.annotation.Nonnull;
@@ -60,6 +61,7 @@ public final class UnbanCommand extends AbstractAsyncCommand {
             banManager.unban(uuid);
         }
         VanillaBanUtil.unbanVanilla(uuid);
+        StaffActionUtil.log(storage, StaffActionUtil.resolveActorName(context), "unban", uuid, name, "");
         Messages.okKey(context, "ban.unbanned", java.util.Map.of("player", name));
         return CompletableFuture.completedFuture(null);
     }

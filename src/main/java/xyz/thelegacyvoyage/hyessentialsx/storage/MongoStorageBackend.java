@@ -16,6 +16,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.StaffActivityLogDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
@@ -40,6 +41,7 @@ public final class MongoStorageBackend implements StorageBackend {
     private final MongoCollection<Document> shopsCollection;
     private final MongoCollection<Document> ipBansCollection;
     private final MongoCollection<Document> auctionHouseCollection;
+    private final MongoCollection<Document> staffActivityCollection;
 
     public MongoStorageBackend(@Nonnull String uri,
                                @Nonnull String databaseName,
@@ -53,6 +55,7 @@ public final class MongoStorageBackend implements StorageBackend {
         this.shopsCollection = database.getCollection(prefix + "shops");
         this.ipBansCollection = database.getCollection(prefix + "ipbans");
         this.auctionHouseCollection = database.getCollection(prefix + "auctionhouse");
+        this.staffActivityCollection = database.getCollection(prefix + "staff_activity");
         ensureIndexes();
     }
 
@@ -64,6 +67,7 @@ public final class MongoStorageBackend implements StorageBackend {
             shopsCollection.createIndex(Indexes.ascending("name"));
             ipBansCollection.createIndex(Indexes.ascending("ip"));
             auctionHouseCollection.createIndex(Indexes.ascending("id"));
+            staffActivityCollection.createIndex(Indexes.ascending("id"));
         } catch (Exception e) {
             Log.warn("Failed to ensure MongoDB indexes: " + e.getMessage());
         }
@@ -194,6 +198,36 @@ public final class MongoStorageBackend implements StorageBackend {
             );
         } catch (Exception e) {
             Log.warn("Failed to save auction house data to MongoDB: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Nonnull
+    public StaffActivityLogDataModel loadStaffActivityLog() {
+        try {
+            Document document = staffActivityCollection.find(Filters.eq("id", "global")).first();
+            if (document == null) return new StaffActivityLogDataModel();
+            String json = document.getString("json");
+            if (json == null || json.isBlank()) return new StaffActivityLogDataModel();
+            StaffActivityLogDataModel loaded = gson.fromJson(json, StaffActivityLogDataModel.class);
+            return loaded != null ? loaded : new StaffActivityLogDataModel();
+        } catch (Exception e) {
+            Log.warn("Failed to load staff activity from MongoDB: " + e.getMessage());
+            return new StaffActivityLogDataModel();
+        }
+    }
+
+    @Override
+    public void saveStaffActivityLog(@Nonnull StaffActivityLogDataModel data) {
+        try {
+            Document document = new Document("id", "global").append("json", gson.toJson(data));
+            staffActivityCollection.replaceOne(
+                    Filters.eq("id", "global"),
+                    document,
+                    new ReplaceOptions().upsert(true)
+            );
+        } catch (Exception e) {
+            Log.warn("Failed to save staff activity to MongoDB: " + e.getMessage());
         }
     }
 

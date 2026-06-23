@@ -5,6 +5,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.AuctionHouseDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.StaffActivityLogDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
 
 import javax.annotation.Nonnull;
@@ -47,6 +48,11 @@ public interface StorageBackend {
     AuctionHouseDataModel loadAuctionHouseData();
 
     void saveAuctionHouseData(@Nonnull AuctionHouseDataModel data);
+
+    @Nonnull
+    StaffActivityLogDataModel loadStaffActivityLog();
+
+    void saveStaffActivityLog(@Nonnull StaffActivityLogDataModel data);
 
     void shutdown();
 }

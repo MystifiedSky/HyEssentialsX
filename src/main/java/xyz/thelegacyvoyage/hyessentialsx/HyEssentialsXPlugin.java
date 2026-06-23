@@ -58,6 +58,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.misc.NightCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.AfkCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.MuteCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.BanCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.ClearWarningsCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.IpBanCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.IpHistoryCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.BanListCommand;
@@ -65,6 +66,8 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.TempBanCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnipBanCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnbanCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnmuteCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.WarnCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.WarningsCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.FreecamCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.FreezeCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnfreezeCommand;
@@ -687,7 +690,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new FreezeCommand(freezeManager));
         reg.accept(new UnfreezeCommand(freezeManager));
         reg.accept(new VanishCommand(vanishManager));
-        reg.accept(new MuteCommand(muteManager));
+        reg.accept(new MuteCommand(muteManager, storage));
         reg.accept(new UnmuteCommand(muteManager, storage));
         reg.accept(new BanCommand(banManager, storage));
         reg.accept(new TempBanCommand(banManager, storage));
@@ -695,6 +698,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new UnbanCommand(banManager, storage));
         reg.accept(new IpBanCommand(ipBanManager, storage));
         reg.accept(new UnipBanCommand(ipBanManager, storage));
+        reg.accept(new WarnCommand(storage));
+        reg.accept(new WarningsCommand(storage));
+        reg.accept(new ClearWarningsCommand(storage));
         if (hologramService != null && configManager != null && configManager.isHologramsEnabled()) {
             reg.accept(new HologramCommand(hologramService));
         }

@@ -30,32 +30,32 @@ Group #PlayerRow {
 
   Label #PlayerName {
     Text: "Player";
-    Anchor: (Width: 155, Vertical: 0);
+    FlexWeight: 1;
+    Anchor: (Vertical: 0);
     Style: (FontSize: 12, TextColor: #f1f6ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 8);
   }
 
   Label #PlayerState {
     Text: "Offline";
-    Anchor: (Width: 145, Vertical: 0);
+    Anchor: (Width: 90, Vertical: 0);
     Style: (FontSize: 10, TextColor: #9fb6d5, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 8);
   }
 
   Label #PlayerBalance {
     Text: "-";
-    Anchor: (Width: 100, Vertical: 0);
+    Anchor: (Width: 90, Vertical: 0);
     Style: (FontSize: 10, TextColor: #7de0a3, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 8);
   }
 
   Label #PlayerPlaytime {
     Text: "0s";
-    FlexWeight: 1;
-    Anchor: (Vertical: 0);
+    Anchor: (Width: 95, Vertical: 0);
     Style: (FontSize: 10, TextColor: #d5c47d, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 8);
   }
 
   TextButton #SelectPlayerButton {
-    Text: "Select";
-    Anchor: (Width: 76, Height: 28, Vertical: 0);
+    Text: "View";
+    Anchor: (Width: 58, Height: 28, Vertical: 0);
     Style: @RowButton;
   }
 }

@@ -8,6 +8,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.StaffActivityLogDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.storage.StorageBackend;
 
@@ -182,6 +183,14 @@ class StorageManagerTest {
 
         @Override
         public void saveAuctionHouseData(AuctionHouseDataModel data) {}
+
+        @Override
+        public StaffActivityLogDataModel loadStaffActivityLog() {
+            return new StaffActivityLogDataModel();
+        }
+
+        @Override
+        public void saveStaffActivityLog(StaffActivityLogDataModel data) {}
 
         @Override
         public void shutdown() {}

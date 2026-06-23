@@ -7,7 +7,12 @@ import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.StaffCaseModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.StaffActivityEntryModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.StaffActivityLogDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.StaffNoteModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.WarningModel;
 import xyz.thelegacyvoyage.hyessentialsx.storage.JsonStorageBackend;
 import xyz.thelegacyvoyage.hyessentialsx.storage.MongoStorageBackend;
 import xyz.thelegacyvoyage.hyessentialsx.storage.MysqlStorageBackend;
@@ -32,6 +37,8 @@ import java.util.concurrent.TimeUnit;
 
 public final class StorageManager {
 
+    private static final int MAX_STAFF_ACTIVITY_ENTRIES = 250;
+
     private final StorageBackend backend;
     private final ExecutorService ioPool;
     private final Gson snapshotGson;
@@ -43,6 +50,7 @@ public final class StorageManager {
     private final ConcurrentHashMap<String, ShopModel> shops = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, IpBanModel> ipBans = new ConcurrentHashMap<>();
     private AuctionHouseDataModel auctionHouseData = new AuctionHouseDataModel();
+    private StaffActivityLogDataModel staffActivityLog = new StaffActivityLogDataModel();
 
     public StorageManager(@Nonnull Path dataFolder, @Nonnull ConfigManager config) {
         this(createBackend(dataFolder, config), createIoExecutor());
@@ -134,6 +142,9 @@ public final class StorageManager {
         ipBans.putAll(backend.loadIpBans());
 
         auctionHouseData = backend.loadAuctionHouseData();
+
+        staffActivityLog = backend.loadStaffActivityLog();
+        staffActivityLog.sanitize(MAX_STAFF_ACTIVITY_ENTRIES);
 
         rebuildNameIndex();
     }
@@ -341,6 +352,109 @@ public final class StorageManager {
         submitIoTask(() -> backend.saveAuctionHouseData(asyncSnapshot));
     }
 
+    @Nonnull
+    public synchronized StaffActivityLogDataModel getStaffActivityLog() {
+        StaffActivityLogDataModel snapshot = snapshotGson.fromJson(snapshotGson.toJson(staffActivityLog), StaffActivityLogDataModel.class);
+        if (snapshot == null) {
+            snapshot = new StaffActivityLogDataModel();
+        }
+        snapshot.sanitize(MAX_STAFF_ACTIVITY_ENTRIES);
+        return snapshot;
+    }
+
+    public synchronized void addStaffActivity(@Nonnull StaffActivityEntryModel entry) {
+        staffActivityLog.getEntries().add(entry);
+        staffActivityLog.sanitize(MAX_STAFF_ACTIVITY_ENTRIES);
+        StaffActivityLogDataModel snapshot = getStaffActivityLog();
+        submitIoTask(() -> backend.saveStaffActivityLog(snapshot));
+    }
+
+    @Nonnull
+    public java.util.List<StaffActivityEntryModel> listRecentStaffActivity(int limit) {
+        StaffActivityLogDataModel snapshot = getStaffActivityLog();
+        int end = Math.min(Math.max(0, limit), snapshot.getEntries().size());
+        return java.util.List.copyOf(snapshot.getEntries().subList(0, end));
+    }
+
+    public void addWarning(@Nonnull UUID uuid, @Nonnull WarningModel warning) {
+        PlayerDataModel data = getPlayerData(uuid);
+        data.getWarnings().add(warning);
+        savePlayerDataAsync(uuid, data);
+    }
+
+    public int clearWarnings(@Nonnull UUID uuid) {
+        PlayerDataModel data = getPlayerData(uuid);
+        int before = data.getWarnings().size();
+        data.getWarnings().clear();
+        if (before > 0) {
+            savePlayerDataAsync(uuid, data);
+        }
+        return before;
+    }
+
+    @Nonnull
+    public java.util.List<WarningModel> getWarnings(@Nonnull UUID uuid) {
+        return java.util.List.copyOf(getPlayerData(uuid).getWarnings());
+    }
+
+    public long countActiveWarnings(@Nonnull UUID uuid) {
+        long count = 0L;
+        for (WarningModel warning : getPlayerData(uuid).getWarnings()) {
+            if (warning != null && warning.isActive()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public void addStaffCase(@Nonnull UUID uuid, @Nonnull StaffCaseModel staffCase) {
+        PlayerDataModel data = getPlayerData(uuid);
+        data.getStaffCases().add(staffCase);
+        data.sanitizeForStorage();
+        savePlayerDataAsync(uuid, data);
+    }
+
+    @Nonnull
+    public StaffCaseModel addStaffCase(@Nonnull UUID uuid,
+                                       @Nonnull String type,
+                                       @Nonnull String actor,
+                                       @Nullable String detail) {
+        PlayerDataModel data = getPlayerData(uuid);
+        StaffCaseModel staffCase = new StaffCaseModel(
+                nextCaseId(data),
+                type,
+                actor,
+                detail,
+                System.currentTimeMillis()
+        );
+        data.getStaffCases().add(staffCase);
+        data.sanitizeForStorage();
+        savePlayerDataAsync(uuid, data);
+        return staffCase;
+    }
+
+    @Nonnull
+    private String nextCaseId(@Nonnull PlayerDataModel data) {
+        int max = 0;
+        for (StaffCaseModel staffCase : data.getStaffCases()) {
+            if (staffCase == null || staffCase.getId() == null) continue;
+            String id = staffCase.getId().trim();
+            if (!id.startsWith("CASE-")) continue;
+            try {
+                max = Math.max(max, Integer.parseInt(id.substring("CASE-".length())));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return "CASE-" + String.format(Locale.ROOT, "%04d", max + 1);
+    }
+
+    public void addStaffNote(@Nonnull UUID uuid, @Nonnull StaffNoteModel note) {
+        PlayerDataModel data = getPlayerData(uuid);
+        data.getStaffNotes().add(note);
+        data.sanitizeForStorage();
+        savePlayerDataAsync(uuid, data);
+    }
+
     @Nullable
     public xyz.thelegacyvoyage.hyessentialsx.models.MuteModel getMute(@Nonnull UUID uuid) {
         PlayerDataModel data = getPlayerData(uuid);
@@ -389,6 +503,7 @@ public final class StorageManager {
             backend.saveShops(Map.copyOf(shops));
             backend.saveIpBans(Map.copyOf(ipBans));
             backend.saveAuctionHouseData(getAuctionHouseData());
+            backend.saveStaffActivityLog(getStaffActivityLog());
             for (Map.Entry<UUID, PlayerDataModel> entry : playerCache.entrySet()) {
                 backend.savePlayerData(entry.getKey(), snapshotPlayerData(entry.getValue()));
             }

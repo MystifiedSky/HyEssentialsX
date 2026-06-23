@@ -10,6 +10,7 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.StaffActionUtil;
 
 import javax.annotation.Nonnull;
 import java.util.UUID;
@@ -53,6 +54,7 @@ public final class UnmuteCommand extends CommandBase {
         }
 
         muteManager.unmute(uuid);
+        StaffActionUtil.log(storage, StaffActionUtil.resolveActorName(context), "unmute", uuid, name, "");
         Messages.okKey(context, "mute.unmuted", java.util.Map.of("player", name));
     }
 }

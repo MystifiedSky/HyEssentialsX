@@ -12,6 +12,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.BanModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.StaffActionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
 import javax.annotation.Nonnull;
@@ -84,6 +85,8 @@ public final class TempBanCommand extends CommandBase {
                 expiresAt,
                 System.currentTimeMillis()
         ));
+        StaffActionUtil.log(storage, actor, "tempban", uuid, name,
+                TimeUtil.formatDurationSeconds(seconds) + " - " + finalReason);
 
         if (online != null) {
             String reasonText = (reason == null || reason.isBlank())

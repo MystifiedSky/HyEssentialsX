@@ -14,6 +14,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.IpUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.StaffActionUtil;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Method;
@@ -86,6 +87,7 @@ public final class IpBanCommand extends CommandBase {
         String displayName = resolveDisplayName(online, uuid, targetName);
         IpBanModel ban = new IpBanModel(ip, displayName, uuid.toString(), actor, reason, System.currentTimeMillis());
         ipBans.ban(ip, ban);
+        StaffActionUtil.log(storage, actor, "ipban", uuid, displayName, ip + " - " + reason);
 
         if (online != null) {
             online.getPacketHandler().disconnect(Messages.m("IP Banned: " + reason));

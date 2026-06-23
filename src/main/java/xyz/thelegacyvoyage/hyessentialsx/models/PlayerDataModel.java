@@ -46,6 +46,9 @@ public final class PlayerDataModel {
     private List<String> ignoredPlayerIds = new ArrayList<>();
     private List<String> claimedPlaytimeRewards = new ArrayList<>();
     private Map<String, Map<String, Long>> stats = new HashMap<>();
+    private List<WarningModel> warnings = new ArrayList<>();
+    private List<StaffCaseModel> staffCases = new ArrayList<>();
+    private List<StaffNoteModel> staffNotes = new ArrayList<>();
 
     @SuppressWarnings("unused")
     public PlayerDataModel() {}
@@ -417,6 +420,42 @@ public final class PlayerDataModel {
         this.stats = stats;
     }
 
+    @Nonnull
+    public List<WarningModel> getWarnings() {
+        if (warnings == null) {
+            warnings = new ArrayList<>();
+        }
+        return warnings;
+    }
+
+    public void setWarnings(@Nonnull List<WarningModel> warnings) {
+        this.warnings = warnings;
+    }
+
+    @Nonnull
+    public List<StaffCaseModel> getStaffCases() {
+        if (staffCases == null) {
+            staffCases = new ArrayList<>();
+        }
+        return staffCases;
+    }
+
+    public void setStaffCases(@Nonnull List<StaffCaseModel> staffCases) {
+        this.staffCases = staffCases;
+    }
+
+    @Nonnull
+    public List<StaffNoteModel> getStaffNotes() {
+        if (staffNotes == null) {
+            staffNotes = new ArrayList<>();
+        }
+        return staffNotes;
+    }
+
+    public void setStaffNotes(@Nonnull List<StaffNoteModel> staffNotes) {
+        this.staffNotes = staffNotes;
+    }
+
     public long getStat(@Nonnull String category, @Nonnull String stat) {
         Map<String, Long> categoryStats = getStats().get(category);
         if (categoryStats == null) {
@@ -532,6 +571,38 @@ public final class PlayerDataModel {
                         || entry.getKey().isBlank()
                         || entry.getValue() == null
                         || entry.getValue() <= 0L);
+            }
+        }
+
+        if (warnings == null) {
+            warnings = new ArrayList<>();
+        } else {
+            warnings.removeIf(warning -> warning == null
+                    || warning.getId() == null
+                    || warning.getId().isBlank());
+        }
+
+        if (staffCases == null) {
+            staffCases = new ArrayList<>();
+        } else {
+            staffCases.removeIf(staffCase -> staffCase == null
+                    || staffCase.getId() == null
+                    || staffCase.getId().isBlank());
+            if (staffCases.size() > 100) {
+                staffCases = new ArrayList<>(staffCases.subList(Math.max(0, staffCases.size() - 100), staffCases.size()));
+            }
+        }
+
+        if (staffNotes == null) {
+            staffNotes = new ArrayList<>();
+        } else {
+            staffNotes.removeIf(note -> note == null
+                    || note.getId() == null
+                    || note.getId().isBlank()
+                    || note.getNote() == null
+                    || note.getNote().isBlank());
+            if (staffNotes.size() > 50) {
+                staffNotes = new ArrayList<>(staffNotes.subList(Math.max(0, staffNotes.size() - 50), staffNotes.size()));
             }
         }
     }

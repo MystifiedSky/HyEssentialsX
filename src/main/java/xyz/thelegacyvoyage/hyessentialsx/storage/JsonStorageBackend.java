@@ -8,6 +8,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.StaffActivityLogDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.AtomicFileUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
@@ -214,6 +215,30 @@ public final class JsonStorageBackend implements StorageBackend {
     }
 
     @Override
+    @Nonnull
+    public StaffActivityLogDataModel loadStaffActivityLog() {
+        Path file = staffActivityFile();
+        if (!Files.exists(file)) return new StaffActivityLogDataModel();
+        try {
+            String json = Files.readString(file, StandardCharsets.UTF_8);
+            StaffActivityLogDataModel loaded = gson.fromJson(json, StaffActivityLogDataModel.class);
+            return loaded != null ? loaded : new StaffActivityLogDataModel();
+        } catch (Exception e) {
+            Log.warn("Failed to load staff_activity.json: " + e.getMessage());
+            return new StaffActivityLogDataModel();
+        }
+    }
+
+    @Override
+    public void saveStaffActivityLog(@Nonnull StaffActivityLogDataModel data) {
+        try {
+            AtomicFileUtil.writeStringAtomically(staffActivityFile(), gson.toJson(data), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            Log.error("Failed to save staff_activity.json: " + e.getMessage());
+        }
+    }
+
+    @Override
     public void shutdown() {
         // no-op
     }
@@ -244,6 +269,10 @@ public final class JsonStorageBackend implements StorageBackend {
 
     private Path auctionHouseFile() {
         return dataFolder.resolve("auctionhouse.json");
+    }
+
+    private Path staffActivityFile() {
+        return dataFolder.resolve("staff_activity.json");
     }
 
     

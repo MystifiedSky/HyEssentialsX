@@ -12,6 +12,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.IpUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.StaffActionUtil;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -78,6 +79,7 @@ public final class UnipBanCommand extends CommandBase {
             return;
         }
 
+        StaffActionUtil.log(storage, StaffActionUtil.resolveActorName(context), "unipban", null, ip, "");
         Messages.okKey(context, "ipban.unbanned", Map.of("ip", ip));
     }
 

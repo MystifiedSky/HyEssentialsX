@@ -6,9 +6,11 @@ import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredAr
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.MuteModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.StaffActionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
 import javax.annotation.Nonnull;
@@ -20,13 +22,15 @@ public final class MuteCommand extends CommandBase {
     private static final String PERMISSION_NODE = "hyessentialsx.mute";
 
     private final MuteManager muteManager;
+    private final StorageManager storage;
     private final RequiredArg<PlayerRef> targetArg;
     private final OptionalArg<String> timeArg;
     private final OptionalArg<List<String>> reasonArg;
 
-    public MuteCommand(@Nonnull MuteManager muteManager) {
+    public MuteCommand(@Nonnull MuteManager muteManager, @Nonnull StorageManager storage) {
         super("mute", "Mutes a player");
         this.muteManager = muteManager;
+        this.storage = storage;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"silence"});
@@ -85,6 +89,8 @@ public final class MuteCommand extends CommandBase {
                 expiresAt,
                 System.currentTimeMillis()
         ));
+        StaffActionUtil.log(storage, actor, "mute", target.getUuid(), target.getUsername(),
+                (reason == null || reason.isBlank()) ? Messages.tr(null, "reason.none", java.util.Map.of()) : reason);
 
         Messages.okKey(context, "mute.success", java.util.Map.of("player", target.getUsername()));
     }

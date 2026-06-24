@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import xyz.thelegacyvoyage.hyessentialsx.models.AuctionHouseDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.HomeModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
@@ -103,6 +104,7 @@ class StorageManagerTest {
         PlayerDataModel data = storage.getPlayerData(uuid);
         data.setLastKnownName("replacement");
         data.setPlaytimeSeconds(0L);
+        data.getHomes().put("base", new HomeModel("base", null, "default", 1.0, 2.0, 3.0, 0.0F, 0.0F));
 
         storage.savePlayerDataAsync(uuid, data);
         storage.flush();

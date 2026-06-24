@@ -67,7 +67,18 @@ public final class SqliteStorageBackend implements StorageBackend {
     }
 
     private Connection open() throws Exception {
-        return DriverManager.getConnection(url);
+        Connection conn = DriverManager.getConnection(url);
+        configureConnection(conn);
+        return conn;
+    }
+
+    static void configureConnection(@Nonnull Connection conn) throws Exception {
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("PRAGMA journal_mode = WAL");
+            stmt.execute("PRAGMA synchronous = NORMAL");
+            stmt.execute("PRAGMA foreign_keys = ON");
+            stmt.execute("PRAGMA busy_timeout = 5000");
+        }
     }
 
     @Override

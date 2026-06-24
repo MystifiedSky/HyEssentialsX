@@ -86,6 +86,7 @@ Group #CommandCenterRoot {
       TextButton #TabOverview { Text: "OVERVIEW"; Style: @CommandButton; Anchor: (Height: 34, Bottom: 6); }
       TextButton #TabPlayers { Text: "PLAYERS"; Style: @CommandButton; Anchor: (Height: 34, Bottom: 6); }
       TextButton #TabModeration { Text: "MODERATION"; Style: @CommandButton; Anchor: (Height: 34, Bottom: 6); }
+      TextButton #TabConfig { Text: "CONFIG"; Style: @CommandButton; Anchor: (Height: 34, Bottom: 6); }
       TextButton #TabSystems { Text: "SYSTEMS"; Style: @CommandButton; Anchor: (Height: 34, Bottom: 6); }
       TextButton #TabLaunch { Text: "LAUNCH"; Style: @CommandButton; Anchor: (Height: 34, Bottom: 12); }
 
@@ -463,6 +464,20 @@ Group #CommandCenterRoot {
             Label { Text: "Moderation Workflows"; Anchor: (Height: 24, Bottom: 8); Style: (FontSize: 13, TextColor: #d7e7ff, RenderBold: true); }
             Label { Text: "Use the Players tab for freeze, mute, warnings, ban, unban, and teleport actions."; Anchor: (Height: 44, Bottom: 8); Style: (FontSize: 11, TextColor: #a7c2e6, Wrap: true); }
             TextButton #OpenBansModerationButton { Text: "Open Ban List"; Style: @CommandButtonGold; Anchor: (Height: 34, Bottom: 8); }
+            Label { Text: "Warning Escalation"; Anchor: (Height: 18, Bottom: 4); Style: (FontSize: 11, TextColor: #8fb6e8, RenderBold: true); }
+            Group { LayoutMode: Left; Anchor: (Height: 30, Bottom: 5);
+              TextButton #EscalationRule0Button { Text: "Rule 1"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+              TextButton #EscalationRule1Button { Text: "Rule 2"; Style: @CommandButton; FlexWeight: 1; }
+            }
+            Group { LayoutMode: Left; Anchor: (Height: 30, Bottom: 6);
+              TextButton #EscalationRule2Button { Text: "Rule 3"; Style: @CommandButtonRed; FlexWeight: 1; Anchor: (Right: 5); }
+              TextButton #EscalationDefaultsButton { Text: "Defaults"; Style: @CommandButtonGold; Anchor: (Width: 100); }
+            }
+            Group #EscalationRuleListContainer {
+              LayoutMode: TopScrolling;
+              Anchor: (Height: 94, Bottom: 8);
+              Group #EscalationRuleList { LayoutMode: Top; }
+            }
             Label { Text: "Recent staff activity"; Anchor: (Height: 18, Bottom: 4); Style: (FontSize: 11, TextColor: #8fb6e8, RenderBold: true); }
             Group #StaffActivityList { LayoutMode: Top; FlexWeight: 1; }
           }
@@ -491,6 +506,202 @@ Group #CommandCenterRoot {
           Label #ProgressionValue { Text: "Progression"; Anchor: (Height: 30, Bottom: 5); Style: (FontSize: 12, TextColor: #f2be5c); }
           Group { FlexWeight: 1; }
           Label { Text: "This tab is intentionally read-only. Deeper editors live in Launch so risky changes stay in purpose-built panels."; Style: (FontSize: 11, TextColor: #8193aa, Wrap: true); Anchor: (Height: 46); }
+        }
+      }
+
+      Group #ConfigContent {
+        LayoutMode: Top;
+        FlexWeight: 1;
+        Visible: false;
+
+        Group {
+          LayoutMode: Left;
+          FlexWeight: 1;
+
+          Group {
+            LayoutMode: Top;
+            Background: (Color: #111f34);
+            Anchor: (Width: 430, Right: 10);
+            Padding: (Top: 12, Bottom: 12, Left: 12, Right: 12);
+            OutlineColor: #2f4a72;
+            OutlineSize: 1;
+
+            Label { Text: "Warning Rules"; Anchor: (Height: 24, Bottom: 8); Style: (FontSize: 14, TextColor: #d7e7ff, RenderBold: true); }
+            Label #ConfigRuleSummary { Text: ""; Anchor: (Height: 34, Bottom: 8); Style: (FontSize: 11, TextColor: #a7c2e6, Wrap: true); }
+            Group #ConfigRuleListContainer {
+              LayoutMode: TopScrolling;
+              FlexWeight: 1;
+              Padding: (Top: 6, Bottom: 6, Left: 6, Right: 6);
+              Background: (Color: #0b1524);
+              OutlineColor: #355986;
+              OutlineSize: 1;
+              Group #ConfigRuleList {
+                LayoutMode: Top;
+                Label #ConfigRuleEmptyLabel { Text: "No warning escalation rules configured. Click New or Defaults."; Anchor: (Height: 38, Bottom: 5); Style: (FontSize: 11, TextColor: #8193aa, Wrap: true); }
+                Group #ConfigRuleRow0 { LayoutMode: Left; Anchor: (Height: 42, Bottom: 5); Padding: (Top: 4, Bottom: 4, Left: 6, Right: 6); Background: (Color: #151d2a); OutlineColor: #2f4a72; OutlineSize: 1; Visible: false;
+                  Group { LayoutMode: Top; FlexWeight: 1; Anchor: (Right: 6); Label #ConfigRule0Name { Text: ""; Anchor: (Height: 16, Bottom: 2); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } Label #ConfigRule0Meta { Text: ""; Anchor: (Height: 14); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } }
+                  TextButton #ConfigRule0Button { Text: "Edit"; Style: @CommandButton; Anchor: (Width: 74, Height: 30, Vertical: 0); }
+                }
+                Group #ConfigRuleRow1 { LayoutMode: Left; Anchor: (Height: 42, Bottom: 5); Padding: (Top: 4, Bottom: 4, Left: 6, Right: 6); Background: (Color: #151d2a); OutlineColor: #2f4a72; OutlineSize: 1; Visible: false;
+                  Group { LayoutMode: Top; FlexWeight: 1; Anchor: (Right: 6); Label #ConfigRule1Name { Text: ""; Anchor: (Height: 16, Bottom: 2); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } Label #ConfigRule1Meta { Text: ""; Anchor: (Height: 14); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } }
+                  TextButton #ConfigRule1Button { Text: "Edit"; Style: @CommandButton; Anchor: (Width: 74, Height: 30, Vertical: 0); }
+                }
+                Group #ConfigRuleRow2 { LayoutMode: Left; Anchor: (Height: 42, Bottom: 5); Padding: (Top: 4, Bottom: 4, Left: 6, Right: 6); Background: (Color: #151d2a); OutlineColor: #2f4a72; OutlineSize: 1; Visible: false;
+                  Group { LayoutMode: Top; FlexWeight: 1; Anchor: (Right: 6); Label #ConfigRule2Name { Text: ""; Anchor: (Height: 16, Bottom: 2); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } Label #ConfigRule2Meta { Text: ""; Anchor: (Height: 14); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } }
+                  TextButton #ConfigRule2Button { Text: "Edit"; Style: @CommandButton; Anchor: (Width: 74, Height: 30, Vertical: 0); }
+                }
+                Group #ConfigRuleRow3 { LayoutMode: Left; Anchor: (Height: 42, Bottom: 5); Padding: (Top: 4, Bottom: 4, Left: 6, Right: 6); Background: (Color: #151d2a); OutlineColor: #2f4a72; OutlineSize: 1; Visible: false;
+                  Group { LayoutMode: Top; FlexWeight: 1; Anchor: (Right: 6); Label #ConfigRule3Name { Text: ""; Anchor: (Height: 16, Bottom: 2); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } Label #ConfigRule3Meta { Text: ""; Anchor: (Height: 14); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } }
+                  TextButton #ConfigRule3Button { Text: "Edit"; Style: @CommandButton; Anchor: (Width: 74, Height: 30, Vertical: 0); }
+                }
+                Group #ConfigRuleRow4 { LayoutMode: Left; Anchor: (Height: 42, Bottom: 5); Padding: (Top: 4, Bottom: 4, Left: 6, Right: 6); Background: (Color: #151d2a); OutlineColor: #2f4a72; OutlineSize: 1; Visible: false;
+                  Group { LayoutMode: Top; FlexWeight: 1; Anchor: (Right: 6); Label #ConfigRule4Name { Text: ""; Anchor: (Height: 16, Bottom: 2); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } Label #ConfigRule4Meta { Text: ""; Anchor: (Height: 14); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } }
+                  TextButton #ConfigRule4Button { Text: "Edit"; Style: @CommandButton; Anchor: (Width: 74, Height: 30, Vertical: 0); }
+                }
+                Group #ConfigRuleRow5 { LayoutMode: Left; Anchor: (Height: 42, Bottom: 5); Padding: (Top: 4, Bottom: 4, Left: 6, Right: 6); Background: (Color: #151d2a); OutlineColor: #2f4a72; OutlineSize: 1; Visible: false;
+                  Group { LayoutMode: Top; FlexWeight: 1; Anchor: (Right: 6); Label #ConfigRule5Name { Text: ""; Anchor: (Height: 16, Bottom: 2); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } Label #ConfigRule5Meta { Text: ""; Anchor: (Height: 14); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } }
+                  TextButton #ConfigRule5Button { Text: "Edit"; Style: @CommandButton; Anchor: (Width: 74, Height: 30, Vertical: 0); }
+                }
+                Group #ConfigRuleRow6 { LayoutMode: Left; Anchor: (Height: 42, Bottom: 5); Padding: (Top: 4, Bottom: 4, Left: 6, Right: 6); Background: (Color: #151d2a); OutlineColor: #2f4a72; OutlineSize: 1; Visible: false;
+                  Group { LayoutMode: Top; FlexWeight: 1; Anchor: (Right: 6); Label #ConfigRule6Name { Text: ""; Anchor: (Height: 16, Bottom: 2); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } Label #ConfigRule6Meta { Text: ""; Anchor: (Height: 14); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } }
+                  TextButton #ConfigRule6Button { Text: "Edit"; Style: @CommandButton; Anchor: (Width: 74, Height: 30, Vertical: 0); }
+                }
+                Group #ConfigRuleRow7 { LayoutMode: Left; Anchor: (Height: 42, Bottom: 5); Padding: (Top: 4, Bottom: 4, Left: 6, Right: 6); Background: (Color: #151d2a); OutlineColor: #2f4a72; OutlineSize: 1; Visible: false;
+                  Group { LayoutMode: Top; FlexWeight: 1; Anchor: (Right: 6); Label #ConfigRule7Name { Text: ""; Anchor: (Height: 16, Bottom: 2); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } Label #ConfigRule7Meta { Text: ""; Anchor: (Height: 14); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); } }
+                  TextButton #ConfigRule7Button { Text: "Edit"; Style: @CommandButton; Anchor: (Width: 74, Height: 30, Vertical: 0); }
+                }
+              }
+            }
+            Group { LayoutMode: Left; Anchor: (Height: 34, Top: 8);
+              TextButton #NewConfigRuleButton { Text: "New"; Style: @CommandButtonGreen; FlexWeight: 1; Anchor: (Right: 6); }
+              TextButton #ResetConfigRulesButton { Text: "Defaults"; Style: @CommandButtonGold; FlexWeight: 1; }
+            }
+          }
+
+          Group {
+            LayoutMode: Top;
+            Background: (Color: #111f34);
+            FlexWeight: 1;
+            Padding: (Top: 12, Bottom: 12, Left: 12, Right: 12);
+            OutlineColor: #2f4a72;
+            OutlineSize: 1;
+
+            Label { Text: "Rule Editor"; Anchor: (Height: 24, Bottom: 6); Style: (FontSize: 14, TextColor: #d7e7ff, RenderBold: true); }
+            Label #ConfigEditorHint { Text: ""; Anchor: (Height: 34, Bottom: 8); Style: (FontSize: 11, TextColor: #a7c2e6, Wrap: true); }
+
+            Group { LayoutMode: Left; Anchor: (Height: 54, Bottom: 8);
+              Group { LayoutMode: Top; FlexWeight: 1; Anchor: (Right: 8);
+                Label { Text: "Rule ID"; Anchor: (Height: 16, Bottom: 3); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true); }
+                Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4); Anchor: (Height: 30); OutlineColor: #355986; OutlineSize: 1;
+                  TextField #ConfigRuleIdInput { Anchor: (Height: 24); Style: (FontSize: 12, TextColor: #f0f5ff); }
+                }
+              }
+              Group { LayoutMode: Top; FlexWeight: 1;
+                Label { Text: "Name"; Anchor: (Height: 16, Bottom: 3); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true); }
+                Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4); Anchor: (Height: 30); OutlineColor: #355986; OutlineSize: 1;
+                  TextField #ConfigRuleNameInput { Anchor: (Height: 24); Style: (FontSize: 12, TextColor: #f0f5ff); }
+                }
+              }
+            }
+
+            Group { LayoutMode: Left; Anchor: (Height: 54, Bottom: 8);
+              Group { LayoutMode: Top; Anchor: (Width: 120, Right: 8);
+                Label { Text: "Warnings"; Anchor: (Height: 16, Bottom: 3); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true); }
+                Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4); Anchor: (Height: 30); OutlineColor: #355986; OutlineSize: 1;
+                  TextField #ConfigThresholdInput { Anchor: (Height: 24); Style: (FontSize: 12, TextColor: #f0f5ff); }
+                }
+              }
+              Group { LayoutMode: Top; Anchor: (Width: 160, Right: 8);
+                Label { Text: "Action"; Anchor: (Height: 16, Bottom: 3); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true); }
+                TextButton #ConfigActionButton { Text: "MUTE"; Style: @CommandButtonGold; Anchor: (Height: 30); }
+              }
+              Group { LayoutMode: Top; FlexWeight: 1; Anchor: (Right: 8);
+                Label { Text: "Duration"; Anchor: (Height: 16, Bottom: 3); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true); }
+                Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4); Anchor: (Height: 30); OutlineColor: #355986; OutlineSize: 1;
+                  TextField #ConfigDurationInput { Anchor: (Height: 24); Style: (FontSize: 12, TextColor: #f0f5ff); }
+                }
+              }
+              Group { LayoutMode: Top; FlexWeight: 1;
+                Label { Text: "Window"; Anchor: (Height: 16, Bottom: 3); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true); }
+                Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4); Anchor: (Height: 30); OutlineColor: #355986; OutlineSize: 1;
+                  TextField #ConfigWindowInput { Anchor: (Height: 24); Style: (FontSize: 12, TextColor: #f0f5ff); }
+                }
+              }
+            }
+
+            Group {
+              LayoutMode: Top;
+              Anchor: (Height: 72, Bottom: 8);
+              Label #ConfigDetailLabel { Text: "Reason / Command"; Anchor: (Height: 16, Bottom: 3); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true); }
+              Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4); Anchor: (Height: 50); OutlineColor: #355986; OutlineSize: 1;
+                TextField #ConfigDetailInput { Anchor: (Height: 42); Style: (FontSize: 12, TextColor: #f0f5ff); }
+              }
+            }
+
+            Group { LayoutMode: Left; Anchor: (Height: 34, Bottom: 10);
+              TextButton #SaveConfigRuleButton { Text: "Save Rule"; Style: @CommandButtonGreen; Anchor: (Width: 130, Right: 8); }
+              TextButton #ToggleConfigRuleButton { Text: "Enable"; Style: @CommandButtonGold; Anchor: (Width: 120, Right: 8); }
+              TextButton #DeleteConfigRuleButton { Text: "Delete"; Style: @CommandButtonRed; Anchor: (Width: 110); }
+              Label { Text: ""; FlexWeight: 1; }
+            }
+
+            Group #ConfigIdeasPanel {
+              LayoutMode: Top;
+              FlexWeight: 1;
+              Padding: (Top: 10, Bottom: 10, Left: 10, Right: 10);
+              Background: (Color: #0b1524);
+              OutlineColor: #355986;
+              OutlineSize: 1;
+              Label #ConfigPanelTitle { Text: "Player Warps"; Anchor: (Height: 20, Bottom: 6); Style: (FontSize: 12, TextColor: #d7e7ff, RenderBold: true); }
+              Group { LayoutMode: Left; Anchor: (Height: 30, Bottom: 6);
+                TextButton #ConfigSectionWarpsButton { Text: "Warps"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #ConfigSectionEconomyButton { Text: "Economy"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #ConfigSectionPlaytimeButton { Text: "Playtime"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #ConfigSectionShopsButton { Text: "Shops"; Style: @CommandButton; FlexWeight: 1; }
+              }
+              Group { LayoutMode: Left; Anchor: (Height: 30, Bottom: 6);
+                TextButton #ConfigSectionTravelButton { Text: "RTP"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #ConfigSectionHomesButton { Text: "Homes"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #ConfigSectionChatButton { Text: "Chat"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #ConfigSectionScoreboardButton { Text: "Board"; Style: @CommandButton; FlexWeight: 1; }
+              }
+              Label #ConfigPanelSummary { Text: ""; Anchor: (Height: 34, Bottom: 6); Style: (FontSize: 10, TextColor: #a7c2e6, Wrap: true); }
+              Group #ConfigField0Row { LayoutMode: Left; Anchor: (Height: 32, Bottom: 5);
+                Label #ConfigField0Label { Text: ""; Anchor: (Width: 132, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                Group { Background: (Color: #111f34); Padding: (Left: 7, Right: 7, Top: 4, Bottom: 4); FlexWeight: 1; Anchor: (Right: 6); OutlineColor: #2f4a72; OutlineSize: 1; TextField #ConfigField0Input { Anchor: (Height: 22); Style: (FontSize: 11, TextColor: #f0f5ff); } }
+                TextButton #ConfigField0Button { Text: "Flip"; Style: @CommandButtonGold; Anchor: (Width: 58); }
+              }
+              Group #ConfigField1Row { LayoutMode: Left; Anchor: (Height: 32, Bottom: 5);
+                Label #ConfigField1Label { Text: ""; Anchor: (Width: 132, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                Group { Background: (Color: #111f34); Padding: (Left: 7, Right: 7, Top: 4, Bottom: 4); FlexWeight: 1; Anchor: (Right: 6); OutlineColor: #2f4a72; OutlineSize: 1; TextField #ConfigField1Input { Anchor: (Height: 22); Style: (FontSize: 11, TextColor: #f0f5ff); } }
+                TextButton #ConfigField1Button { Text: "Flip"; Style: @CommandButtonGold; Anchor: (Width: 58); }
+              }
+              Group #ConfigField2Row { LayoutMode: Left; Anchor: (Height: 32, Bottom: 5);
+                Label #ConfigField2Label { Text: ""; Anchor: (Width: 132, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                Group { Background: (Color: #111f34); Padding: (Left: 7, Right: 7, Top: 4, Bottom: 4); FlexWeight: 1; Anchor: (Right: 6); OutlineColor: #2f4a72; OutlineSize: 1; TextField #ConfigField2Input { Anchor: (Height: 22); Style: (FontSize: 11, TextColor: #f0f5ff); } }
+                TextButton #ConfigField2Button { Text: "Flip"; Style: @CommandButtonGold; Anchor: (Width: 58); }
+              }
+              Group #ConfigField3Row { LayoutMode: Left; Anchor: (Height: 32, Bottom: 5);
+                Label #ConfigField3Label { Text: ""; Anchor: (Width: 132, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                Group { Background: (Color: #111f34); Padding: (Left: 7, Right: 7, Top: 4, Bottom: 4); FlexWeight: 1; Anchor: (Right: 6); OutlineColor: #2f4a72; OutlineSize: 1; TextField #ConfigField3Input { Anchor: (Height: 22); Style: (FontSize: 11, TextColor: #f0f5ff); } }
+                TextButton #ConfigField3Button { Text: "Flip"; Style: @CommandButtonGold; Anchor: (Width: 58); }
+              }
+              Group #ConfigField4Row { LayoutMode: Left; Anchor: (Height: 32, Bottom: 5);
+                Label #ConfigField4Label { Text: ""; Anchor: (Width: 132, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                Group { Background: (Color: #111f34); Padding: (Left: 7, Right: 7, Top: 4, Bottom: 4); FlexWeight: 1; Anchor: (Right: 6); OutlineColor: #2f4a72; OutlineSize: 1; TextField #ConfigField4Input { Anchor: (Height: 22); Style: (FontSize: 11, TextColor: #f0f5ff); } }
+                TextButton #ConfigField4Button { Text: "Flip"; Style: @CommandButtonGold; Anchor: (Width: 58); }
+              }
+              Group #ConfigField5Row { LayoutMode: Left; Anchor: (Height: 32, Bottom: 8);
+                Label #ConfigField5Label { Text: ""; Anchor: (Width: 132, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                Group { Background: (Color: #111f34); Padding: (Left: 7, Right: 7, Top: 4, Bottom: 4); FlexWeight: 1; Anchor: (Right: 6); OutlineColor: #2f4a72; OutlineSize: 1; TextField #ConfigField5Input { Anchor: (Height: 22); Style: (FontSize: 11, TextColor: #f0f5ff); } }
+                TextButton #ConfigField5Button { Text: "Flip"; Style: @CommandButtonGold; Anchor: (Width: 58); }
+              }
+              Group { LayoutMode: Left; Anchor: (Height: 34);
+                TextButton #SaveConfigPanelButton { Text: "Save Config"; Style: @CommandButtonGreen; Anchor: (Width: 126, Right: 8); }
+                Label #ConfigPanelStatus { Text: ""; FlexWeight: 1; Anchor: (Vertical: 0); Style: (FontSize: 10, TextColor: #8fb6e8, Wrap: true); }
+              }
+            }
+          }
         }
       }
 

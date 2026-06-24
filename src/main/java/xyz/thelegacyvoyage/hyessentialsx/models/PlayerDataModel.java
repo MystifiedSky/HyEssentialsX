@@ -49,6 +49,7 @@ public final class PlayerDataModel {
     private List<WarningModel> warnings = new ArrayList<>();
     private List<StaffCaseModel> staffCases = new ArrayList<>();
     private List<StaffNoteModel> staffNotes = new ArrayList<>();
+    private Map<String, PlayerWarpModel> playerWarps = new HashMap<>();
 
     @SuppressWarnings("unused")
     public PlayerDataModel() {}
@@ -456,6 +457,18 @@ public final class PlayerDataModel {
         this.staffNotes = staffNotes;
     }
 
+    @Nonnull
+    public Map<String, PlayerWarpModel> getPlayerWarps() {
+        if (playerWarps == null) {
+            playerWarps = new HashMap<>();
+        }
+        return playerWarps;
+    }
+
+    public void setPlayerWarps(@Nonnull Map<String, PlayerWarpModel> playerWarps) {
+        this.playerWarps = playerWarps;
+    }
+
     public long getStat(@Nonnull String category, @Nonnull String stat) {
         Map<String, Long> categoryStats = getStats().get(category);
         if (categoryStats == null) {
@@ -604,6 +617,25 @@ public final class PlayerDataModel {
             if (staffNotes.size() > 50) {
                 staffNotes = new ArrayList<>(staffNotes.subList(Math.max(0, staffNotes.size() - 50), staffNotes.size()));
             }
+        }
+
+        if (playerWarps == null) {
+            playerWarps = new HashMap<>();
+        } else {
+            playerWarps.entrySet().removeIf(entry -> entry == null
+                    || entry.getKey() == null
+                    || entry.getKey().isBlank()
+                    || entry.getValue() == null);
+            Map<String, PlayerWarpModel> cleanedWarps = new HashMap<>();
+            for (Map.Entry<String, PlayerWarpModel> entry : playerWarps.entrySet()) {
+                PlayerWarpModel warp = entry.getValue();
+                warp.sanitize();
+                if (warp.getName().isBlank() || warp.getWorldName().isBlank()) {
+                    continue;
+                }
+                cleanedWarps.put(warp.getName(), warp);
+            }
+            playerWarps = cleanedWarps;
         }
     }
 

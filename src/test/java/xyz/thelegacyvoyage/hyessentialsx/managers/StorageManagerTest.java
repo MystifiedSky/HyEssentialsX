@@ -25,6 +25,7 @@ import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -93,7 +94,40 @@ class StorageManagerTest {
         }
     }
 
-    private static final class BlockingBackend implements StorageBackend {
+    @Test
+    void failedPlayerLoadDoesNotOverwriteStoredData() {
+        FailingLoadBackend backend = new FailingLoadBackend();
+        storage = new StorageManager(backend);
+
+        UUID uuid = UUID.randomUUID();
+        PlayerDataModel data = storage.getPlayerData(uuid);
+        data.setLastKnownName("replacement");
+        data.setPlaytimeSeconds(0L);
+
+        storage.savePlayerDataAsync(uuid, data);
+        storage.flush();
+        storage.shutdown();
+        storage = null;
+
+        assertNull(backend.savedPlayer);
+    }
+
+    @Test
+    void playtimeShutdownCheckpointsActiveSession() throws Exception {
+        BlockingBackend backend = new BlockingBackend();
+        storage = new StorageManager(backend);
+        PlaytimeManager playtime = new PlaytimeManager(storage);
+
+        UUID uuid = UUID.randomUUID();
+        playtime.onJoin(uuid);
+        Thread.sleep(1100L);
+        playtime.shutdown();
+        storage.flush();
+
+        assertTrue(storage.getPlayerData(uuid).getPlaytimeSeconds() >= 1L);
+    }
+
+    private static class BlockingBackend implements StorageBackend {
 
         private static final Gson GSON = new Gson();
 
@@ -116,7 +150,8 @@ class StorageManagerTest {
 
         @Override
         public PlayerDataModel loadPlayerData(UUID uuid) {
-            return copy(players.get(uuid));
+            PlayerDataModel data = players.get(uuid);
+            return data == null ? new PlayerDataModel() : copy(data);
         }
 
         @Override
@@ -200,6 +235,20 @@ class StorageManagerTest {
                 return null;
             }
             return GSON.fromJson(GSON.toJson(data), PlayerDataModel.class);
+        }
+    }
+
+    private static final class FailingLoadBackend extends BlockingBackend {
+        private PlayerDataModel savedPlayer;
+
+        @Override
+        public PlayerDataModel loadPlayerData(UUID uuid) {
+            return null;
+        }
+
+        @Override
+        public void savePlayerData(UUID uuid, PlayerDataModel data) {
+            savedPlayer = data;
         }
     }
 }

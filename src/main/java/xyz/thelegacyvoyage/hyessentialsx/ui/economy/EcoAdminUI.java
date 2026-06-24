@@ -155,19 +155,6 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
             return;
         }
 
-        if (data.cfgSymbol != null) {
-            cfgCurrencySymbol = data.cfgSymbol;
-        }
-        if (data.cfgStarting != null) {
-            cfgStartingBalance = data.cfgStarting;
-        }
-        if (data.cfgHudLabel != null) {
-            cfgHudLabel = data.cfgHudLabel;
-        }
-        if (data.cfgHudInterval != null) {
-            cfgHudInterval = data.cfgHudInterval;
-        }
-
         if (data.action == null) {
             return;
         }
@@ -203,47 +190,6 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
                 handlePlayerAction(data.action);
                 refresh();
             }
-            case "ReloadConfig" -> {
-                config.reload();
-                syncConfigDraftFromConfig();
-                hudManager.start();
-                hudManager.refreshAll();
-                setStatus("Config reloaded.", "#55ff55");
-                refresh();
-            }
-            case "SaveConfig" -> {
-                applyConfigInputs();
-                hudManager.start();
-                hudManager.refreshAll();
-                setStatus("Config saved.", "#55ff55");
-                refresh();
-            }
-            case "ToggleHud" -> {
-                cfgHudEnabled = !cfgHudEnabled;
-                refresh();
-            }
-            case "ToggleHudDefaultHidden" -> {
-                cfgHudDefaultHidden = !cfgHudDefaultHidden;
-                refresh();
-            }
-            case "ToggleHudAnchor" -> {
-                cfgHudAnchor = nextAnchor(cfgHudAnchor);
-                refresh();
-            }
-            case "ResetDefaults" -> {
-                cfgCurrencySymbol = "$";
-                cfgStartingBalance = "0";
-                cfgHudLabel = "HyCoins";
-                cfgHudInterval = "1000";
-                cfgHudEnabled = true;
-                cfgHudDefaultHidden = false;
-                cfgHudAnchor = "bottom_right";
-                applyConfigInputs();
-                hudManager.start();
-                hudManager.refreshAll();
-                setStatus("Economy HUD defaults restored.", "#55ff55");
-                refresh();
-            }
             default -> {
             }
         }
@@ -277,9 +223,6 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
                 EventData.of("Tab", "Top"), false);
         events.addEventBinding(CustomUIEventBindingType.Activating, "#TabLog",
                 EventData.of("Tab", "Log"), false);
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#TabConfig",
-                EventData.of("Tab", "Config"), false);
-
         events.addEventBinding(CustomUIEventBindingType.ValueChanged, "#PlayerSearch",
                 EventData.of("@SearchQuery", "#PlayerSearch.Value"), false);
         events.addEventBinding(CustomUIEventBindingType.ValueChanged, "#LogFilter",
@@ -305,27 +248,6 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
         events.addEventBinding(CustomUIEventBindingType.Activating, "#LogNextButton",
                 EventData.of("Action", "LogNext"), false);
 
-        events.addEventBinding(CustomUIEventBindingType.ValueChanged, "#CurrencySymbolInput",
-                EventData.of("@ConfigSymbol", "#CurrencySymbolInput.Value"), false);
-        events.addEventBinding(CustomUIEventBindingType.ValueChanged, "#StartingBalanceInput",
-                EventData.of("@ConfigStarting", "#StartingBalanceInput.Value"), false);
-        events.addEventBinding(CustomUIEventBindingType.ValueChanged, "#HudLabelInput",
-                EventData.of("@ConfigHudLabel", "#HudLabelInput.Value"), false);
-        events.addEventBinding(CustomUIEventBindingType.ValueChanged, "#HudIntervalInput",
-                EventData.of("@ConfigHudInterval", "#HudIntervalInput.Value"), false);
-
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#HudToggle",
-                EventData.of("Action", "ToggleHud"), false);
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#HudDefaultHiddenToggle",
-                EventData.of("Action", "ToggleHudDefaultHidden"), false);
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#HudAnchorToggle",
-                EventData.of("Action", "ToggleHudAnchor"), false);
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#ReloadConfigButton",
-                EventData.of("Action", "ReloadConfig"), false);
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#SaveConfigButton",
-                EventData.of("Action", "SaveConfig"), false);
-        events.addEventBinding(CustomUIEventBindingType.Activating, "#ResetDefaultsButton",
-                EventData.of("Action", "ResetDefaults"), false);
     }
 
     private void rebuild(@Nonnull UICommandBuilder cmd, @Nonnull UIEventBuilder events) {
@@ -338,13 +260,11 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
         cmd.set("#PlayersContent.Visible", currentTab == Tab.PLAYERS);
         cmd.set("#TopContent.Visible", currentTab == Tab.TOP);
         cmd.set("#LogContent.Visible", currentTab == Tab.LOG);
-        cmd.set("#ConfigContent.Visible", currentTab == Tab.CONFIG);
 
         buildDashboardTab(cmd);
         buildPlayersTab(cmd, events);
         buildTopTab(cmd);
         buildLogTab(cmd);
-        buildConfigTab(cmd);
     }
 
     private void openBack(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
@@ -492,18 +412,6 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
             cmd.appendInline("#LogList", "Label { Text: \"" + escapeInline(line)
                     + "\"; Style: (FontSize: 11, TextColor: #cccccc); Anchor: (Bottom: 3); }");
         }
-    }
-
-    private void buildConfigTab(@Nonnull UICommandBuilder cmd) {
-        cmd.set("#CurrencySymbolInput.Value", cfgCurrencySymbol);
-        cmd.set("#StartingBalanceInput.Value", cfgStartingBalance);
-        cmd.set("#HudLabelInput.Value", cfgHudLabel);
-        cmd.set("#HudIntervalInput.Value", cfgHudInterval);
-        cmd.set("#HudToggle.Text", cfgHudEnabled ? "ON" : "OFF");
-        cmd.set("#HudDefaultHiddenToggle.Text", cfgHudDefaultHidden ? "ON" : "OFF");
-        cmd.set("#HudAnchorToggle.Text", prettyAnchor(cfgHudAnchor));
-        cmd.set("#ConfigStatus.Text", statusMessage == null ? "" : statusMessage);
-        cmd.set("#ConfigStatus.Style.TextColor", statusColor == null ? "#88aaff" : statusColor);
     }
 
     private void handlePlayerAction(@Nonnull String action) {
@@ -776,7 +684,6 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
             case "players" -> Tab.PLAYERS;
             case "top" -> Tab.TOP;
             case "log" -> Tab.LOG;
-            case "config" -> Tab.CONFIG;
             default -> Tab.DASHBOARD;
         };
     }
@@ -797,8 +704,7 @@ public final class EcoAdminUI extends InteractiveCustomUIPage<EcoAdminUI.AdminEv
         DASHBOARD,
         PLAYERS,
         TOP,
-        LOG,
-        CONFIG
+        LOG
     }
 
     public static final class AdminEventData {

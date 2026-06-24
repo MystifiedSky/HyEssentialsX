@@ -24,13 +24,16 @@ import xyz.thelegacyvoyage.hyessentialsx.models.HomeModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpHistoryModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.MuteModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.PlayerWarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.StaffActivityEntryModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.StaffCaseModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.StaffNoteModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarningModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.WarningEscalationRuleModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.economy.EcoAdminUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.PluginInfoUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.StaffActionUtil;
@@ -59,6 +62,9 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
     public static final String LAYOUT = "hyessentialsx/Dashboard.ui";
     private static final String PLAYER_ROW_LAYOUT = "hyessentialsx/DashboardPlayerRow.ui";
     private static final int PLAYER_PAGE_SIZE = 13;
+    private static final int CONFIG_RULE_ROW_COUNT = 8;
+    private static final int CONFIG_PANEL_FIELD_COUNT = 6;
+    private static final int MODERATION_RULE_BUTTON_COUNT = 3;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT);
 
     private final PlayerRef playerRef;
@@ -72,6 +78,18 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
     private int playerPage;
     private String actionReasonInput = "";
     private boolean actionsOpen = true;
+    private String configRuleIdInput = "";
+    private String configRuleNameInput = "";
+    private String configThresholdInput = "3";
+    private String configActionInput = "MUTE";
+    private String configDurationInput = "1h";
+    private String configWindowInput = "7d";
+    private String configDetailInput = "Automatic warning escalation.";
+    private ConfigSection configSection = ConfigSection.PLAYER_WARPS;
+    private ConfigSection loadedConfigSection;
+    private final String[] configPanelInputs = new String[CONFIG_PANEL_FIELD_COUNT];
+    @Nullable
+    private String selectedConfigRuleId;
     @Nullable
     private String pendingAction;
     @Nullable
@@ -133,6 +151,35 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
             refresh();
             return;
         }
+        if ("SelectConfigRule".equals(data.configRuleAction) && data.configRuleId != null) {
+            selectConfigRule(data.configRuleId);
+            refresh();
+            return;
+        }
+        if (data.configRuleIdInput != null) {
+            configRuleIdInput = data.configRuleIdInput.trim();
+        }
+        if (data.configRuleNameInput != null) {
+            configRuleNameInput = data.configRuleNameInput.trim();
+        }
+        if (data.configThresholdInput != null) {
+            configThresholdInput = data.configThresholdInput.trim();
+        }
+        if (data.configDurationInput != null) {
+            configDurationInput = data.configDurationInput.trim();
+        }
+        if (data.configWindowInput != null) {
+            configWindowInput = data.configWindowInput.trim();
+        }
+        if (data.configDetailInput != null) {
+            configDetailInput = data.configDetailInput.trim();
+        }
+        for (int i = 0; i < CONFIG_PANEL_FIELD_COUNT; i++) {
+            String value = data.configPanelInput(i);
+            if (value != null) {
+                configPanelInputs[i] = value.trim();
+            }
+        }
         if (data.actionReason != null) {
             actionReasonInput = data.actionReason;
             return;
@@ -167,6 +214,8 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 EventData.of("Tab", "Players"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#TabModeration",
                 EventData.of("Tab", "Moderation"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#TabConfig",
+                EventData.of("Tab", "Config"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#TabSystems",
                 EventData.of("Tab", "Systems"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#TabLaunch",
@@ -258,6 +307,62 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 EventData.of("Action", "OpenBans"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#OpenBansModerationButton",
                 EventData.of("Action", "OpenBans"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#EscalationRule0Button",
+                EventData.of("Action", "ToggleEscalationSlot0"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#EscalationRule1Button",
+                EventData.of("Action", "ToggleEscalationSlot1"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#EscalationRule2Button",
+                EventData.of("Action", "ToggleEscalationSlot2"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#EscalationDefaultsButton",
+                EventData.of("Action", "ResetEscalations"), false);
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#ConfigRuleIdInput",
+                EventData.of("@ConfigRuleIdInput", "#ConfigRuleIdInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#ConfigRuleNameInput",
+                EventData.of("@ConfigRuleNameInput", "#ConfigRuleNameInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#ConfigThresholdInput",
+                EventData.of("@ConfigThresholdInput", "#ConfigThresholdInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#ConfigDurationInput",
+                EventData.of("@ConfigDurationInput", "#ConfigDurationInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#ConfigWindowInput",
+                EventData.of("@ConfigWindowInput", "#ConfigWindowInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#ConfigDetailInput",
+                EventData.of("@ConfigDetailInput", "#ConfigDetailInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigActionButton",
+                EventData.of("Action", "CycleConfigAction"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#NewConfigRuleButton",
+                EventData.of("Action", "NewConfigRule"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#SaveConfigRuleButton",
+                EventData.of("Action", "SaveConfigRule"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ToggleConfigRuleButton",
+                EventData.of("Action", "ToggleConfigRule"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#DeleteConfigRuleButton",
+                EventData.of("Action", "DeleteConfigRule"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ResetConfigRulesButton",
+                EventData.of("Action", "ResetEscalations"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigSectionWarpsButton",
+                EventData.of("Action", "ConfigSectionPlayerWarps"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigSectionEconomyButton",
+                EventData.of("Action", "ConfigSectionEconomy"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigSectionPlaytimeButton",
+                EventData.of("Action", "ConfigSectionPlaytime"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigSectionShopsButton",
+                EventData.of("Action", "ConfigSectionShops"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigSectionTravelButton",
+                EventData.of("Action", "ConfigSectionTravel"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigSectionHomesButton",
+                EventData.of("Action", "ConfigSectionHomes"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigSectionChatButton",
+                EventData.of("Action", "ConfigSectionChat"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigSectionScoreboardButton",
+                EventData.of("Action", "ConfigSectionScoreboard"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#SaveConfigPanelButton",
+                EventData.of("Action", "SaveConfigPanel"), false);
+        for (int i = 0; i < CONFIG_PANEL_FIELD_COUNT; i++) {
+            evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#ConfigField" + i + "Input",
+                    EventData.of("@ConfigPanelInput" + i, "#ConfigField" + i + "Input.Value"), false);
+            evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigField" + i + "Button",
+                    EventData.of("Action", "ToggleConfigPanelField" + i), false);
+        }
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#OpenShopsButton",
                 EventData.of("Action", "OpenShops"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#OpenAuctionButton",
@@ -272,18 +377,23 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         cmd.set("#TabOverview.Text", currentTab == Tab.OVERVIEW ? "OVERVIEW *" : "OVERVIEW");
         cmd.set("#TabPlayers.Text", currentTab == Tab.PLAYERS ? "PLAYERS *" : "PLAYERS");
         cmd.set("#TabModeration.Text", currentTab == Tab.MODERATION ? "MODERATION *" : "MODERATION");
+        cmd.set("#TabConfig.Text", currentTab == Tab.CONFIG ? "CONFIG *" : "CONFIG");
         cmd.set("#TabSystems.Text", currentTab == Tab.SYSTEMS ? "SYSTEMS *" : "SYSTEMS");
         cmd.set("#TabLaunch.Text", currentTab == Tab.LAUNCH ? "LAUNCH *" : "LAUNCH");
 
         cmd.set("#OverviewContent.Visible", currentTab == Tab.OVERVIEW);
         cmd.set("#PlayersContent.Visible", currentTab == Tab.PLAYERS);
         cmd.set("#ModerationContent.Visible", currentTab == Tab.MODERATION);
+        cmd.set("#ConfigContent.Visible", currentTab == Tab.CONFIG);
         cmd.set("#SystemsContent.Visible", currentTab == Tab.SYSTEMS);
         cmd.set("#LaunchContent.Visible", currentTab == Tab.LAUNCH);
 
         buildOverview(cmd);
         buildPlayers(cmd, evt);
         buildModeration(cmd);
+        if (currentTab == Tab.CONFIG) {
+            buildConfig(cmd, evt);
+        }
         buildSystems(cmd);
         buildLaunch(cmd);
     }
@@ -514,7 +624,23 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         cmd.set("#SelectedModuleTitle.Text", "Travel Inspector");
         appendModuleRow(cmd, "Homes", data.getHomes().size() + " saved");
         appendModuleRow(cmd, "Warps", context.storage().getWarps().size() + " server warps");
+        appendModuleRow(cmd, "Player Warps", data.getPlayerWarps().size() + " owned");
         appendModuleRow(cmd, "Teleport", "Use the Travel action buttons below this module.");
+        appendModuleHeader(cmd, "Player Warps");
+        int warpShown = 0;
+        for (PlayerWarpModel warp : data.getPlayerWarps().values()) {
+            if (warp == null) continue;
+            String state = (warp.isPublicWarp() ? "Public" : "Private")
+                    + (warp.isApproved() ? "" : " / Pending")
+                    + (warp.isEnabled() ? "" : " / Hidden");
+            appendModuleRow(cmd, warp.getName(), state + " | " + warp.getWorldName() + " @ "
+                    + compactLocation(warp.getX(), warp.getY(), warp.getZ()));
+            warpShown++;
+            if (warpShown >= 5) break;
+        }
+        if (warpShown == 0) {
+            cmd.appendInline("#SelectedModuleList", inlineLabel("No player warps owned.", "#8193aa", 24));
+        }
         appendModuleHeader(cmd, "Homes");
         int shown = 0;
         for (HomeModel home : data.getHomes().values()) {
@@ -619,6 +745,128 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                         + "\"; Anchor: (Height: 30, Bottom: 3); Style: (FontSize: 10, TextColor: #c8d6ea, Wrap: true); }");
             }
         }
+
+        buildEscalationRules(cmd);
+    }
+
+    private void buildEscalationRules(@Nonnull UICommandBuilder cmd) {
+        cmd.clear("#EscalationRuleList");
+        List<WarningEscalationRuleModel> rules = sortedWarningRules();
+        if (rules.isEmpty()) {
+            cmd.appendInline("#EscalationRuleList", inlineLabel("No escalation rules configured.", "#8193aa", 24));
+        } else {
+            for (WarningEscalationRuleModel rule : rules) {
+                String duration = rule.getDurationSeconds() <= 0L ? "permanent" : compactDuration(rule.getDurationSeconds());
+                String window = rule.getWindowSeconds() <= 0L ? "all time" : compactDuration(rule.getWindowSeconds());
+                cmd.appendInline("#EscalationRuleList", "Label { Text: \"" + escapeInline((rule.isEnabled() ? "ON " : "OFF ")
+                        + rule.getName() + " | " + rule.getAction() + " | " + duration + " | window " + window)
+                        + "\"; Anchor: (Height: 24, Bottom: 3); Style: (FontSize: 10, TextColor: "
+                        + (rule.isEnabled() ? "#c8d6ea" : "#6f7d90") + ", Wrap: true); }");
+            }
+        }
+        for (int i = 0; i < MODERATION_RULE_BUTTON_COUNT; i++) {
+            String selector = "#EscalationRule" + i + "Button";
+            if (i >= rules.size()) {
+                cmd.set(selector + ".Text", "No Rule");
+                cmd.set(selector + ".Disabled", true);
+                continue;
+            }
+            WarningEscalationRuleModel rule = rules.get(i);
+            cmd.set(selector + ".Text", moderationRuleButtonText(rule));
+            cmd.set(selector + ".Disabled", !canManageWarnRules());
+        }
+    }
+
+    private void buildConfig(@Nonnull UICommandBuilder cmd, @Nonnull UIEventBuilder evt) {
+        List<WarningEscalationRuleModel> rules = sortedWarningRules();
+
+        if ((selectedConfigRuleId == null || context.warningEscalationManager().getRule(selectedConfigRuleId) == null)
+                && !rules.isEmpty() && configRuleIdInput.isBlank()) {
+            loadConfigRule(rules.get(0));
+        }
+
+        cmd.set("#ConfigRuleSummary.Text", rules.size() + " persisted warning escalation rule(s). Changes here are shared with /warnrules."
+                + (rules.size() > CONFIG_RULE_ROW_COUNT ? " Showing first " + CONFIG_RULE_ROW_COUNT + "." : ""));
+        cmd.set("#ConfigRuleEmptyLabel.Visible", rules.isEmpty());
+        for (int i = 0; i < CONFIG_RULE_ROW_COUNT; i++) {
+            String row = "#ConfigRuleRow" + i;
+            if (i >= rules.size()) {
+                cmd.set(row + ".Visible", false);
+                continue;
+            }
+            WarningEscalationRuleModel rule = rules.get(i);
+            String id = rule.getId();
+            boolean selected = selectedConfigRuleId != null && selectedConfigRuleId.equalsIgnoreCase(id);
+            String duration = rule.getDurationSeconds() <= 0L ? "0" : compactDuration(rule.getDurationSeconds());
+            String window = rule.getWindowSeconds() <= 0L ? "0" : compactDuration(rule.getWindowSeconds());
+            cmd.set(row + ".Visible", true);
+            cmd.set(row + ".Background.Color", selected ? "#173055" : "#151d2a");
+            cmd.set("#ConfigRule" + i + "Name.Text", (rule.isEnabled() ? "ON " : "OFF ") + rule.getName());
+            cmd.set("#ConfigRule" + i + "Name.Style.TextColor", rule.isEnabled() ? "#d7e7ff" : "#74849b");
+            cmd.set("#ConfigRule" + i + "Meta.Text", rule.getThreshold() + " warn(s) -> " + rule.getAction()
+                    + " | " + duration + " | " + window);
+            cmd.set("#ConfigRule" + i + "Button.Text", selected ? "Editing" : "Edit");
+            evt.addEventBinding(CustomUIEventBindingType.Activating,
+                    "#ConfigRule" + i + "Button",
+                    EventData.of("ConfigRuleAction", "SelectConfigRule").append("ConfigRuleId", id), false);
+        }
+
+        String action = normalizeConfigAction(configActionInput);
+        cmd.set("#ConfigRuleIdInput.Value", configRuleIdInput);
+        cmd.set("#ConfigRuleNameInput.Value", configRuleNameInput);
+        cmd.set("#ConfigThresholdInput.Value", configThresholdInput);
+        cmd.set("#ConfigActionButton.Text", action);
+        cmd.set("#ConfigDurationInput.Value", configDurationInput);
+        cmd.set("#ConfigWindowInput.Value", configWindowInput);
+        cmd.set("#ConfigDetailInput.Value", configDetailInput);
+        cmd.set("#ConfigDetailLabel.Text", action.equals("COMMAND") ? "Command Case Detail" : "Punishment Reason");
+
+        WarningEscalationRuleModel selected = selectedConfigRuleId == null ? null : context.warningEscalationManager().getRule(selectedConfigRuleId);
+        boolean canEdit = canManageWarnRules();
+        cmd.set("#ConfigEditorHint.Text", canEdit
+                ? "Edit a selected rule or create a new one. Durations accept 30m, 2h, 7d, 1w, none, or 0."
+                : "Missing permission: hyessentialsx.warnrules or hyessentialsx.admin.");
+        cmd.set("#ToggleConfigRuleButton.Text", selected != null && selected.isEnabled() ? "Disable" : "Enable");
+        cmd.set("#ToggleConfigRuleButton.Disabled", !canEdit || selected == null);
+        cmd.set("#SaveConfigRuleButton.Disabled", !canEdit);
+        cmd.set("#DeleteConfigRuleButton.Disabled", !canEdit || selected == null);
+        cmd.set("#NewConfigRuleButton.Disabled", !canEdit);
+        cmd.set("#ResetConfigRulesButton.Disabled", !canEdit);
+        cmd.set("#ConfigActionButton.Disabled", !canEdit);
+        buildConfigPanel(cmd);
+    }
+
+    private void buildConfigPanel(@Nonnull UICommandBuilder cmd) {
+        ensureConfigPanelLoaded();
+        cmd.set("#ConfigPanelTitle.Text", configSection.label());
+        cmd.set("#ConfigPanelSummary.Text", configSection.summary());
+        for (ConfigSection section : ConfigSection.values()) {
+            cmd.set(section.buttonSelector() + ".Text", section == configSection
+                    ? configSectionButtonText(section) + " *"
+                    : configSectionButtonText(section));
+        }
+        String[] labels = configSection.fieldLabels();
+        boolean[] toggles = configSection.toggleFields();
+        for (int i = 0; i < CONFIG_PANEL_FIELD_COUNT; i++) {
+            boolean visible = i < labels.length;
+            String row = "#ConfigField" + i + "Row";
+            cmd.set(row + ".Visible", visible);
+            if (!visible) {
+                continue;
+            }
+            cmd.set("#ConfigField" + i + "Label.Text", labels[i]);
+            cmd.set("#ConfigField" + i + "Input.Value", configPanelInputs[i] == null ? "" : configPanelInputs[i]);
+            boolean toggle = toggles.length > i && toggles[i];
+            boolean cycle = isConfigPanelCycleField(i);
+            cmd.set("#ConfigField" + i + "Button.Visible", toggle || cycle);
+            cmd.set("#ConfigField" + i + "Button.Text", cycle ? "Cycle" : "Flip");
+            cmd.set("#ConfigField" + i + "Button.Disabled", (!toggle && !cycle) || !canManageConfig());
+        }
+        cmd.set("#SaveConfigPanelButton.Disabled", !canManageConfig());
+        cmd.set("#ConfigPanelStatus.Text", canManageConfig()
+                ? "Edits save to config files and survive restarts."
+                : "Missing permission: hyessentialsx.admin.");
+        cmd.set("#ConfigPanelStatus.Style.TextColor", canManageConfig() ? "#8fb6e8" : "#ff7d7d");
     }
 
     private void buildSystems(@Nonnull UICommandBuilder cmd) {
@@ -748,6 +996,65 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 teleportHereSelected(ref, store);
                 refresh();
             }
+            case "ToggleEscalationSlot0" -> toggleEscalationSlot(0);
+            case "ToggleEscalationSlot1" -> toggleEscalationSlot(1);
+            case "ToggleEscalationSlot2" -> toggleEscalationSlot(2);
+            case "ResetEscalations" -> {
+                if (!canManageWarnRules()) {
+                    status("Missing permission: hyessentialsx.warnrules or hyessentialsx.admin.", "#ff7d7d");
+                    refresh();
+                    return;
+                }
+                context.warningEscalationManager().resetDefaultRules();
+                selectedConfigRuleId = null;
+                configRuleIdInput = "";
+                status("Warning escalation defaults restored.", "#55d98b");
+                refresh();
+            }
+            case "CycleConfigAction" -> {
+                configActionInput = nextConfigAction(configActionInput);
+                status("Warning rule action: " + configActionInput + ".", "#8fb6e8");
+                refresh();
+            }
+            case "NewConfigRule" -> {
+                if (!canManageWarnRules()) {
+                    status("Missing permission: hyessentialsx.warnrules or hyessentialsx.admin.", "#ff7d7d");
+                    refresh();
+                    return;
+                }
+                newConfigRuleDraft();
+                refresh();
+            }
+            case "SaveConfigRule" -> {
+                saveConfigRule();
+                refresh();
+            }
+            case "ToggleConfigRule" -> {
+                toggleSelectedConfigRule();
+                refresh();
+            }
+            case "DeleteConfigRule" -> {
+                deleteSelectedConfigRule();
+                refresh();
+            }
+            case "ConfigSectionPlayerWarps" -> switchConfigSection(ConfigSection.PLAYER_WARPS);
+            case "ConfigSectionEconomy" -> switchConfigSection(ConfigSection.ECONOMY);
+            case "ConfigSectionPlaytime" -> switchConfigSection(ConfigSection.PLAYTIME);
+            case "ConfigSectionShops" -> switchConfigSection(ConfigSection.SHOPS);
+            case "ConfigSectionTravel" -> switchConfigSection(ConfigSection.TRAVEL);
+            case "ConfigSectionHomes" -> switchConfigSection(ConfigSection.HOMES);
+            case "ConfigSectionChat" -> switchConfigSection(ConfigSection.CHAT);
+            case "ConfigSectionScoreboard" -> switchConfigSection(ConfigSection.SCOREBOARD);
+            case "SaveConfigPanel" -> {
+                saveConfigPanel();
+                refresh();
+            }
+            case "ToggleConfigPanelField0" -> toggleConfigPanelField(0);
+            case "ToggleConfigPanelField1" -> toggleConfigPanelField(1);
+            case "ToggleConfigPanelField2" -> toggleConfigPanelField(2);
+            case "ToggleConfigPanelField3" -> toggleConfigPanelField(3);
+            case "ToggleConfigPanelField4" -> toggleConfigPanelField(4);
+            case "ToggleConfigPanelField5" -> toggleConfigPanelField(5);
             case "OpenEconomy" -> openEconomy(ref, store);
             case "OpenPlaytime" -> openPlaytime(ref, store);
             case "OpenBans" -> openBans(ref, store);
@@ -769,6 +1076,485 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         actionReasonInput = reason;
         status("Reason preset selected: " + reason + ".", "#8fb6e8");
         refresh();
+    }
+
+    private void switchConfigSection(@Nonnull ConfigSection section) {
+        configSection = section;
+        loadedConfigSection = null;
+        ensureConfigPanelLoaded();
+        status("Configuration section: " + section.label() + ".", "#8fb6e8");
+        refresh();
+    }
+
+    private void toggleConfigPanelField(int index) {
+        ensureConfigPanelLoaded();
+        if (isConfigPanelCycleField(index)) {
+            configPanelInputs[index] = switch (configSection) {
+                case ECONOMY -> nextEconomyHudAnchor(input(index));
+                case SCOREBOARD -> nextScoreboardAnchor(input(index));
+                default -> input(index);
+            };
+            refresh();
+            return;
+        }
+        boolean[] toggles = configSection.toggleFields();
+        if (index < 0 || index >= toggles.length || !toggles[index]) {
+            return;
+        }
+        configPanelInputs[index] = String.valueOf(!parseBooleanLoose(configPanelInputs[index], false));
+        refresh();
+    }
+
+    private boolean isConfigPanelCycleField(int index) {
+        return (configSection == ConfigSection.ECONOMY && index == 5)
+                || (configSection == ConfigSection.SCOREBOARD && index == 3);
+    }
+
+    private void ensureConfigPanelLoaded() {
+        if (loadedConfigSection == configSection) {
+            return;
+        }
+        String[] values = configSection.currentValues(this);
+        for (int i = 0; i < CONFIG_PANEL_FIELD_COUNT; i++) {
+            configPanelInputs[i] = i < values.length ? values[i] : "";
+        }
+        loadedConfigSection = configSection;
+    }
+
+    private void saveConfigPanel() {
+        if (!canManageConfig()) {
+            status("Missing permission: hyessentialsx.admin.", "#ff7d7d");
+            return;
+        }
+        ensureConfigPanelLoaded();
+        try {
+            switch (configSection) {
+                case PLAYER_WARPS -> {
+                    context.config().setPlayerWarpsEnabled(parseBooleanStrict(input(0), "Player warps enabled"));
+                    context.config().setPlayerWarpsGuiEnabled(parseBooleanStrict(input(1), "Player warps UI"));
+                    context.config().setPlayerWarpAutoApprove(parseBooleanStrict(input(2), "Auto approve"));
+                    context.config().setPlayerWarpMaxWarpsPerPlayer(parseInt(input(3), "Max warps per player", 0, 1000));
+                    context.config().setPlayerWarpCreateCost(parseMoney(input(4), "Create cost"));
+                    context.config().setPlayerWarpVisitCost(parseMoney(input(5), "Visit cost"));
+                }
+                case ECONOMY -> {
+                    context.config().setEconomyStartingBalance(parseMoney(input(0), "Starting balance"));
+                    context.config().setEconomyHudEnabled(parseBooleanStrict(input(1), "HUD enabled"));
+                    context.config().setEconomyHudDefaultHidden(parseBooleanStrict(input(2), "HUD default hidden"));
+                    context.config().setEconomyHudLabel(input(3));
+                    context.config().setEconomyHudUpdateIntervalMs(parseInt(input(4), "HUD update ms", 250, 60000));
+                    context.config().setEconomyHudAnchor(input(5));
+                }
+                case PLAYTIME -> {
+                    context.config().setPlaytimeRewardsEnabled(parseBooleanStrict(input(0), "Rewards enabled"));
+                    context.config().setPlaytimeRewardsAutoClaim(parseBooleanStrict(input(1), "Auto claim"));
+                    context.config().setPlaytimeRewardsCheckIntervalSeconds(parseInt(input(2), "Reward check seconds", 5, 86400));
+                    context.config().setRankupPlaytimeEnabled(parseBooleanStrict(input(3), "Rankup playtime requirement"));
+                    context.config().setRankupCurrencyEnabled(parseBooleanStrict(input(4), "Rankup currency requirement"));
+                    context.config().setRankupAutoEnabled(parseBooleanStrict(input(5), "Auto rankup"));
+                }
+                case SHOPS -> {
+                    context.config().setPlayerShopsEnabled(parseBooleanStrict(input(0), "Player shops enabled"));
+                    context.config().setPlayerShopMaxShopsPerPlayer(parseInt(input(1), "Max shops per player", 0, 1000));
+                    context.config().setPlayerShopCreationCost(parseMoney(input(2), "Shop creation cost"));
+                    context.config().setPlayerShopMaxTradeQuantity(parseInt(input(3), "Max trade quantity", 1, 1000000));
+                    context.config().setAuctionHouseEnabled(parseBooleanStrict(input(4), "Auction house enabled"));
+                    context.config().setAuctionHouseMaxListingsPerPlayer(parseInt(input(5), "Max auction listings", 0, 1000));
+                }
+                case TRAVEL -> {
+                    context.config().setRtpEnabled(parseBooleanStrict(input(0), "RTP enabled"));
+                    int minRadius = parseInt(input(1), "Min radius", 0, 1000000);
+                    int maxRadius = parseInt(input(2), "Max radius", minRadius, 1000000);
+                    context.config().setRtpDistanceRange(minRadius, maxRadius);
+                    context.config().setCooldownSeconds(CooldownKeys.RTP, parseInt(input(3), "RTP cooldown", 0, 86400));
+                    context.config().setRtpWarmupSeconds(parseInt(input(4), "RTP warmup", 0, 3600));
+                    context.config().setPlayerWarpVisitCost(parseMoney(input(5), "Player warp visit cost"));
+                }
+                case HOMES -> {
+                    context.config().setHomesEnabled(parseBooleanStrict(input(0), "Homes enabled"));
+                    context.config().setHomeMaxHomesPerPlayer(parseInt(input(1), "Max homes per player", -1, 1000));
+                    context.config().setCooldownSeconds(CooldownKeys.HOME, parseInt(input(2), "Home cooldown", 0, 86400));
+                    context.config().setHomeWarmupSeconds(parseInt(input(3), "Home warmup", 0, 3600));
+                }
+                case CHAT -> {
+                    context.config().setChatEnabled(parseBooleanStrict(input(0), "Chat format enabled"));
+                    context.config().setChatOverrideLuckPerms(parseBooleanStrict(input(1), "Override LuckPerms"));
+                    context.config().setAdminChatEnabled(parseBooleanStrict(input(2), "Admin chat enabled"));
+                    context.config().setBroadcastEnabled(parseBooleanStrict(input(3), "Broadcast enabled"));
+                    context.config().setSleepChatEnabled(parseBooleanStrict(input(4), "Sleep chat messages"));
+                    context.config().setCombatLogBlockCommands(parseBooleanStrict(input(5), "Combat command block"));
+                }
+                case SCOREBOARD -> {
+                    context.config().setScoreboardEnabled(parseBooleanStrict(input(0), "Scoreboard enabled"));
+                    context.config().setScoreboardDefaultHidden(parseBooleanStrict(input(1), "Default hidden"));
+                    context.config().setScoreboardUpdateIntervalMs(parseInt(input(2), "Update interval ms", 250, 60000));
+                    context.config().setScoreboardAnchor(input(3));
+                    context.config().setScoreboardSize(parseInt(input(4), "Width", 120, 2000), context.config().getScoreboardHeight());
+                    context.config().setScoreboardOffsets(parseInt(input(5), "Offset X", 0, 2000), context.config().getScoreboardOffsetY());
+                }
+            }
+            loadedConfigSection = null;
+            ensureConfigPanelLoaded();
+            if (configSection == ConfigSection.ECONOMY && context.economyHudManager() != null) {
+                context.economyHudManager().start();
+                context.economyHudManager().refreshAll();
+            }
+            status(configSection.label() + " saved to config.", "#55d98b");
+        } catch (IllegalArgumentException ex) {
+            status(ex.getMessage(), "#ff7d7d");
+        }
+    }
+
+    @Nonnull
+    private String input(int index) {
+        if (index < 0 || index >= configPanelInputs.length || configPanelInputs[index] == null) {
+            return "";
+        }
+        return configPanelInputs[index].trim();
+    }
+
+    private boolean parseBooleanStrict(@Nonnull String raw, @Nonnull String label) {
+        String normalized = raw.trim().toLowerCase(Locale.ROOT);
+        if (normalized.equals("true") || normalized.equals("yes") || normalized.equals("on") || normalized.equals("1")) {
+            return true;
+        }
+        if (normalized.equals("false") || normalized.equals("no") || normalized.equals("off") || normalized.equals("0")) {
+            return false;
+        }
+        throw new IllegalArgumentException(label + " must be true or false.");
+    }
+
+    private boolean parseBooleanLoose(@Nullable String raw, boolean fallback) {
+        if (raw == null) {
+            return fallback;
+        }
+        String normalized = raw.trim().toLowerCase(Locale.ROOT);
+        if (normalized.equals("true") || normalized.equals("yes") || normalized.equals("on") || normalized.equals("1")) {
+            return true;
+        }
+        if (normalized.equals("false") || normalized.equals("no") || normalized.equals("off") || normalized.equals("0")) {
+            return false;
+        }
+        return fallback;
+    }
+
+    private int parseInt(@Nonnull String raw, @Nonnull String label, int min, int max) {
+        try {
+            int value = Integer.parseInt(raw.trim());
+            if (value < min || value > max) {
+                throw new IllegalArgumentException(label + " must be between " + min + " and " + max + ".");
+            }
+            return value;
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException(label + " must be a whole number.");
+        }
+    }
+
+    private long parseMoney(@Nonnull String raw, @Nonnull String label) {
+        long parsed = context.economyManager() == null ? parseLongMoney(raw) : context.economyManager().parseAmount(raw);
+        if (parsed < 0L) {
+            throw new IllegalArgumentException(label + " must be a valid non-negative money amount.");
+        }
+        return parsed;
+    }
+
+    private long parseLongMoney(@Nonnull String raw) {
+        try {
+            return Long.parseLong(raw.trim());
+        } catch (NumberFormatException ex) {
+            return -1L;
+        }
+    }
+
+    @Nonnull
+    private String moneyText(long amount) {
+        return context.economyManager() == null ? String.valueOf(Math.max(0L, amount)) : context.economyManager().formatAmountRaw(amount);
+    }
+
+    @Nonnull
+    private String configSectionButtonText(@Nonnull ConfigSection section) {
+        return switch (section) {
+            case PLAYER_WARPS -> "Warps";
+            case ECONOMY -> "Economy";
+            case PLAYTIME -> "Playtime";
+            case SHOPS -> "Shops";
+            case TRAVEL -> "RTP";
+            case HOMES -> "Homes";
+            case CHAT -> "Chat";
+            case SCOREBOARD -> "Board";
+        };
+    }
+
+    @Nonnull
+    private String nextEconomyHudAnchor(@Nonnull String anchor) {
+        return switch (anchor.trim().toLowerCase(Locale.ROOT)) {
+            case "top_left" -> "top_right";
+            case "top_right" -> "bottom_right";
+            case "bottom_right" -> "bottom_left";
+            default -> "top_left";
+        };
+    }
+
+    @Nonnull
+    private String nextScoreboardAnchor(@Nonnull String anchor) {
+        return switch (anchor.trim().toLowerCase(Locale.ROOT)) {
+            case "top_left" -> "top_right";
+            case "top_right" -> "bottom_right";
+            case "bottom_right" -> "bottom_left";
+            case "bottom_left" -> "top_center";
+            case "top_center" -> "bottom_center";
+            default -> "top_left";
+        };
+    }
+
+    private boolean ruleEnabled(@Nonnull String id) {
+        for (WarningEscalationRuleModel rule : context.warningEscalationManager().listRules()) {
+            if (rule != null && rule.getId().equalsIgnoreCase(id)) {
+                return rule.isEnabled();
+            }
+        }
+        return false;
+    }
+
+    private void toggleEscalationSlot(int slot) {
+        List<WarningEscalationRuleModel> rules = sortedWarningRules();
+        if (slot < 0 || slot >= rules.size()) {
+            status("No warning escalation rule is assigned to that shortcut.", "#ffb86b");
+            refresh();
+            return;
+        }
+        toggleEscalation(rules.get(slot).getId());
+    }
+
+    private void toggleEscalation(@Nonnull String id) {
+        if (!canManageWarnRules()) {
+            status("Missing permission: hyessentialsx.warnrules or hyessentialsx.admin.", "#ff7d7d");
+            refresh();
+            return;
+        }
+        boolean next = !ruleEnabled(id);
+        context.warningEscalationManager().setRuleEnabled(id, next);
+        logActivity("warning-escalation-rule", playerRef.getUuid(), playerRef.getUsername(), id + "=" + next);
+        status("Warning escalation rule " + id + " is now " + (next ? "enabled" : "disabled") + ".", "#55d98b");
+        refresh();
+    }
+
+    @Nonnull
+    private List<WarningEscalationRuleModel> sortedWarningRules() {
+        List<WarningEscalationRuleModel> rules = new ArrayList<>(context.warningEscalationManager().listRules());
+        rules.removeIf(Objects::isNull);
+        rules.sort(Comparator.comparingInt(WarningEscalationRuleModel::getThreshold)
+                .thenComparing(rule -> rule.getId().toLowerCase(Locale.ROOT)));
+        return rules;
+    }
+
+    @Nonnull
+    private String moderationRuleButtonText(@Nonnull WarningEscalationRuleModel rule) {
+        String state = rule.isEnabled() ? "On" : "Off";
+        String action = switch (rule.getAction()) {
+            case "TEMPBAN" -> "Tempban";
+            case "COMMAND" -> "Command";
+            default -> rule.getAction().charAt(0) + rule.getAction().substring(1).toLowerCase(Locale.ROOT);
+        };
+        return rule.getThreshold() + " Warn " + action + ": " + state;
+    }
+
+    private void selectConfigRule(@Nonnull String id) {
+        WarningEscalationRuleModel rule = context.warningEscalationManager().getRule(id);
+        if (rule == null) {
+            status("Warning escalation rule not found: " + id, "#ff7d7d");
+            return;
+        }
+        loadConfigRule(rule);
+        status("Editing warning escalation rule " + rule.getId() + ".", "#8fb6e8");
+    }
+
+    private void loadConfigRule(@Nonnull WarningEscalationRuleModel rule) {
+        selectedConfigRuleId = rule.getId();
+        configRuleIdInput = rule.getId();
+        configRuleNameInput = rule.getName();
+        configThresholdInput = String.valueOf(rule.getThreshold());
+        configActionInput = rule.getAction();
+        configDurationInput = rule.getDurationSeconds() <= 0L ? "0" : compactDuration(rule.getDurationSeconds());
+        configWindowInput = rule.getWindowSeconds() <= 0L ? "0" : compactDuration(rule.getWindowSeconds());
+        configDetailInput = "COMMAND".equals(rule.getAction()) ? rule.getCommand() : rule.getReason();
+    }
+
+    private void newConfigRuleDraft() {
+        selectedConfigRuleId = null;
+        int next = 1;
+        for (WarningEscalationRuleModel rule : context.warningEscalationManager().listRules()) {
+            if (rule != null) {
+                next = Math.max(next, rule.getThreshold() + 1);
+            }
+        }
+        configRuleIdInput = "warn-" + next + "-mute";
+        configRuleNameInput = next + " warnings: temporary mute";
+        configThresholdInput = String.valueOf(next);
+        configActionInput = "MUTE";
+        configDurationInput = "1h";
+        configWindowInput = "7d";
+        configDetailInput = "Automatic escalation after " + next + " active warnings.";
+        status("New warning escalation rule draft created.", "#8fb6e8");
+    }
+
+    private void saveConfigRule() {
+        if (!canManageWarnRules()) {
+            status("Missing permission: hyessentialsx.warnrules or hyessentialsx.admin.", "#ff7d7d");
+            return;
+        }
+        String id = configRuleIdInput.trim();
+        if (id.isBlank() || !id.matches("[a-zA-Z0-9_-]{2,48}")) {
+            status("Rule IDs must be 2-48 letters, numbers, underscores, or hyphens.", "#ff7d7d");
+            return;
+        }
+        int threshold;
+        try {
+            threshold = Integer.parseInt(configThresholdInput.trim());
+        } catch (NumberFormatException ignored) {
+            status("Warnings must be a whole number greater than 0.", "#ff7d7d");
+            return;
+        }
+        if (threshold <= 0) {
+            status("Warnings must be greater than 0.", "#ff7d7d");
+            return;
+        }
+        String action = normalizeConfigAction(configActionInput);
+        long duration = parseConfigDuration(configDurationInput);
+        long window = parseConfigDuration(configWindowInput);
+        if (duration < 0L || window < 0L) {
+            status("Duration/window must be 0, none, permanent, or a duration like 30m, 2h, 7d, 1w.", "#ff7d7d");
+            return;
+        }
+
+        WarningEscalationRuleModel existing = selectedConfigRuleId == null
+                ? context.warningEscalationManager().getRule(id)
+                : context.warningEscalationManager().getRule(selectedConfigRuleId);
+        WarningEscalationRuleModel rule = existing == null
+                ? new WarningEscalationRuleModel(id, configRuleNameInput, threshold, action, duration, window, "", "")
+                : existing;
+        rule.setId(id);
+        rule.setName(configRuleNameInput.isBlank() ? id : configRuleNameInput);
+        rule.setThreshold(threshold);
+        rule.setAction(action);
+        rule.setDurationSeconds(duration);
+        rule.setWindowSeconds(window);
+        if ("COMMAND".equals(action)) {
+            rule.setCommand(configDetailInput);
+            rule.setReason("");
+        } else {
+            rule.setReason(configDetailInput);
+            rule.setCommand("");
+        }
+        if (existing == null) {
+            rule.setEnabled(true);
+        }
+        if (selectedConfigRuleId != null && !selectedConfigRuleId.equalsIgnoreCase(id)) {
+            context.warningEscalationManager().deleteRule(selectedConfigRuleId);
+        }
+        context.warningEscalationManager().saveRule(rule);
+        selectedConfigRuleId = rule.getId();
+        loadConfigRule(rule);
+        logActivity("warning-escalation-rule-save", playerRef.getUuid(), playerRef.getUsername(),
+                rule.getId() + " " + rule.getThreshold() + " " + rule.getAction());
+        status("Saved warning escalation rule " + rule.getId() + ".", "#55d98b");
+    }
+
+    private void toggleSelectedConfigRule() {
+        if (!canManageWarnRules()) {
+            status("Missing permission: hyessentialsx.warnrules or hyessentialsx.admin.", "#ff7d7d");
+            return;
+        }
+        WarningEscalationRuleModel rule = selectedConfigRuleId == null ? null : context.warningEscalationManager().getRule(selectedConfigRuleId);
+        if (rule == null) {
+            status("Select a warning rule first.", "#ffb86b");
+            return;
+        }
+        boolean next = !rule.isEnabled();
+        context.warningEscalationManager().setRuleEnabled(rule.getId(), next);
+        rule.setEnabled(next);
+        loadConfigRule(rule);
+        logActivity("warning-escalation-rule", playerRef.getUuid(), playerRef.getUsername(), rule.getId() + "=" + next);
+        status("Warning escalation rule " + rule.getId() + " is now " + (next ? "enabled" : "disabled") + ".", "#55d98b");
+    }
+
+    private void deleteSelectedConfigRule() {
+        if (!canManageWarnRules()) {
+            status("Missing permission: hyessentialsx.warnrules or hyessentialsx.admin.", "#ff7d7d");
+            return;
+        }
+        if (selectedConfigRuleId == null || selectedConfigRuleId.isBlank()) {
+            status("Select a warning rule first.", "#ffb86b");
+            return;
+        }
+        String id = selectedConfigRuleId;
+        if (!context.warningEscalationManager().deleteRule(id)) {
+            status("Warning escalation rule not found: " + id, "#ff7d7d");
+            return;
+        }
+        selectedConfigRuleId = null;
+        configRuleIdInput = "";
+        configRuleNameInput = "";
+        configThresholdInput = "3";
+        configActionInput = "MUTE";
+        configDurationInput = "1h";
+        configWindowInput = "7d";
+        configDetailInput = "";
+        logActivity("warning-escalation-rule-delete", playerRef.getUuid(), playerRef.getUsername(), id);
+        status("Deleted warning escalation rule " + id + ".", "#55d98b");
+    }
+
+    private boolean canManageWarnRules() {
+        return canUse("hyessentialsx.warnrules") || canUse("hyessentialsx.admin");
+    }
+
+    private boolean canManageConfig() {
+        return canUse("hyessentialsx.admin");
+    }
+
+    @Nonnull
+    private String normalizeConfigAction(@Nonnull String raw) {
+        String normalized = raw.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "MUTE", "TEMPBAN", "BAN", "COMMAND" -> normalized;
+            default -> "MUTE";
+        };
+    }
+
+    @Nonnull
+    private String nextConfigAction(@Nonnull String raw) {
+        return switch (normalizeConfigAction(raw)) {
+            case "MUTE" -> "TEMPBAN";
+            case "TEMPBAN" -> "BAN";
+            case "BAN" -> "COMMAND";
+            default -> "MUTE";
+        };
+    }
+
+    private long parseConfigDuration(@Nonnull String raw) {
+        String trimmed = raw.trim();
+        if (trimmed.equals("0") || trimmed.equalsIgnoreCase("none") || trimmed.equalsIgnoreCase("permanent")) {
+            return 0L;
+        }
+        return TimeUtil.parseDurationSeconds(trimmed);
+    }
+
+    @Nonnull
+    private String compactDuration(long seconds) {
+        if (seconds <= 0L) return "0";
+        long year = 60L * 60L * 24L * 365L;
+        long month = 60L * 60L * 24L * 30L;
+        long week = 60L * 60L * 24L * 7L;
+        long day = 60L * 60L * 24L;
+        long hour = 60L * 60L;
+        long minute = 60L;
+        if (seconds % year == 0L) return (seconds / year) + "y";
+        if (seconds % month == 0L) return (seconds / month) + "mo";
+        if (seconds % week == 0L) return (seconds / week) + "w";
+        if (seconds % day == 0L) return (seconds / day) + "d";
+        if (seconds % hour == 0L) return (seconds / hour) + "h";
+        if (seconds % minute == 0L) return (seconds / minute) + "m";
+        return seconds + "s";
     }
 
     private void requestConfirmation(@Nonnull String action) {
@@ -873,12 +1659,13 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         WarningModel warning = new WarningModel(UUID.randomUUID().toString(), name, playerRef.getUsername(), reason,
                 System.currentTimeMillis(), 0L);
         context.storage().addWarning(id, warning);
+        WarningEscalationRuleModel escalated = context.warningEscalationManager().evaluate(id, name, playerRef.getUsername());
         PlayerRef target = Universe.get().getPlayer(id);
         if (target != null) {
             Messages.sendPrefixedKey(target, "warn.target", Map.of("reason", reason));
         }
         logActivity("warn", id, name, reason);
-        status("Warned " + name + ".", "#55d98b");
+        status(escalated == null ? "Warned " + name + "." : "Warned " + name + " and applied " + escalated.getAction() + ".", "#55d98b");
     }
 
     private void addNoteSelected() {
@@ -1606,6 +2393,7 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         return switch (raw.toLowerCase(Locale.ROOT)) {
             case "players" -> Tab.PLAYERS;
             case "moderation" -> Tab.MODERATION;
+            case "config", "configuration" -> Tab.CONFIG;
             case "systems" -> Tab.SYSTEMS;
             case "launch" -> Tab.LAUNCH;
             default -> Tab.OVERVIEW;
@@ -1628,8 +2416,183 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         OVERVIEW,
         PLAYERS,
         MODERATION,
+        CONFIG,
         SYSTEMS,
         LAUNCH
+    }
+
+    private enum ConfigSection {
+        PLAYER_WARPS("Player Warps", "#ConfigSectionWarpsButton",
+                "Limits, approval behavior, and economy costs for player-created warps.",
+                new String[]{"Enabled", "GUI Enabled", "Auto Approve", "Max Warps", "Create Cost", "Visit Cost"},
+                new boolean[]{true, true, true, false, false, false}) {
+            @Override
+            String[] currentValues(HyEssentialsXDashboardUI ui) {
+                return new String[]{
+                        String.valueOf(ui.context.config().isPlayerWarpsEnabled()),
+                        String.valueOf(ui.context.config().isPlayerWarpsGuiEnabled()),
+                        String.valueOf(ui.context.config().isPlayerWarpAutoApprove()),
+                        String.valueOf(ui.context.config().getPlayerWarpMaxWarpsPerPlayer()),
+                        ui.moneyText(ui.context.config().getPlayerWarpCreateCost()),
+                        ui.moneyText(ui.context.config().getPlayerWarpVisitCost())
+                };
+            }
+        },
+        ECONOMY("Economy HUD", "#ConfigSectionEconomyButton",
+                "Starting balance and HUD defaults used by the economy display.",
+                new String[]{"Starting Balance", "HUD Enabled", "HUD Hidden", "HUD Label", "Update MS", "Anchor"},
+                new boolean[]{false, true, true, false, false, false}) {
+            @Override
+            String[] currentValues(HyEssentialsXDashboardUI ui) {
+                return new String[]{
+                        ui.moneyText(ui.context.config().getEconomyStartingBalance()),
+                        String.valueOf(ui.context.config().isEconomyHudEnabled()),
+                        String.valueOf(ui.context.config().isEconomyHudDefaultHidden()),
+                        ui.context.config().getEconomyHudLabel(),
+                        String.valueOf(ui.context.config().getEconomyHudUpdateIntervalMs()),
+                        ui.context.config().getEconomyHudAnchor()
+                };
+            }
+        },
+        PLAYTIME("Playtime & Rankups", "#ConfigSectionPlaytimeButton",
+                "Reward automation and rankup requirement switches.",
+                new String[]{"Rewards Enabled", "Auto Claim", "Check Seconds", "Use Playtime", "Use Currency", "Auto Rankup"},
+                new boolean[]{true, true, false, true, true, true}) {
+            @Override
+            String[] currentValues(HyEssentialsXDashboardUI ui) {
+                return new String[]{
+                        String.valueOf(ui.context.config().isPlaytimeRewardsEnabled()),
+                        String.valueOf(ui.context.config().isPlaytimeRewardsAutoClaim()),
+                        String.valueOf(ui.context.config().getPlaytimeRewardsCheckIntervalSeconds()),
+                        String.valueOf(ui.context.config().isRankupPlaytimeEnabled()),
+                        String.valueOf(ui.context.config().isRankupCurrencyEnabled()),
+                        String.valueOf(ui.context.config().isRankupAutoEnabled())
+                };
+            }
+        },
+        SHOPS("Shops & Auction", "#ConfigSectionShopsButton",
+                "Player shop limits, creation cost, and auction listing caps.",
+                new String[]{"Player Shops", "Max Shops", "Shop Cost", "Max Trade Qty", "Auction House", "Max Listings"},
+                new boolean[]{true, false, false, false, true, false}) {
+            @Override
+            String[] currentValues(HyEssentialsXDashboardUI ui) {
+                return new String[]{
+                        String.valueOf(ui.context.config().isPlayerShopsEnabled()),
+                        String.valueOf(ui.context.config().getPlayerShopMaxShopsPerPlayer()),
+                        ui.moneyText(ui.context.config().getPlayerShopCreationCost()),
+                        String.valueOf(ui.context.config().getPlayerShopMaxTradeQuantity()),
+                        String.valueOf(ui.context.config().isAuctionHouseEnabled()),
+                        String.valueOf(ui.context.config().getAuctionHouseMaxListingsPerPlayer())
+                };
+            }
+        },
+        TRAVEL("RTP & Travel", "#ConfigSectionTravelButton",
+                "Random teleport safety radius, cooldown, warmup, and player-warp visit cost.",
+                new String[]{"RTP Enabled", "Min Radius", "Max Radius", "Cooldown Sec", "Warmup Sec", "Warp Visit Cost"},
+                new boolean[]{true, false, false, false, false, false}) {
+            @Override
+            String[] currentValues(HyEssentialsXDashboardUI ui) {
+                return new String[]{
+                        String.valueOf(ui.context.config().isRtpEnabled()),
+                        String.valueOf(ui.context.config().getRtpMinDistance()),
+                        String.valueOf(ui.context.config().getRtpMaxDistance()),
+                        String.valueOf(ui.context.config().getCooldownSeconds(CooldownKeys.RTP)),
+                        String.valueOf(ui.context.config().getRtpWarmupSeconds()),
+                        ui.moneyText(ui.context.config().getPlayerWarpVisitCost())
+                };
+            }
+        },
+        HOMES("Homes", "#ConfigSectionHomesButton",
+                "Default home limits plus cooldown and warmup timing. -1 means unlimited.",
+                new String[]{"Homes Enabled", "Max Homes", "Cooldown Sec", "Warmup Sec"},
+                new boolean[]{true, false, false, false}) {
+            @Override
+            String[] currentValues(HyEssentialsXDashboardUI ui) {
+                return new String[]{
+                        String.valueOf(ui.context.config().isHomesEnabled()),
+                        String.valueOf(ui.context.config().getHomeMaxHomesPerPlayer()),
+                        String.valueOf(ui.context.config().getCooldownSeconds(CooldownKeys.HOME)),
+                        String.valueOf(ui.context.config().getHomeWarmupSeconds())
+                };
+            }
+        },
+        CHAT("Chat Moderation", "#ConfigSectionChatButton",
+                "Chat format, admin chat, broadcast, sleep chat, and combat command protection.",
+                new String[]{"Chat Format", "Override LP", "Admin Chat", "Broadcast", "Sleep Chat", "Combat Blocks Cmds"},
+                new boolean[]{true, true, true, true, true, true}) {
+            @Override
+            String[] currentValues(HyEssentialsXDashboardUI ui) {
+                return new String[]{
+                        String.valueOf(ui.context.config().isChatEnabled()),
+                        String.valueOf(ui.context.config().isOverrideLuckPermsChatFormat()),
+                        String.valueOf(ui.context.config().isAdminChatEnabled()),
+                        String.valueOf(ui.context.config().isBroadcastEnabled()),
+                        String.valueOf(ui.context.config().isSleepChatEnabled()),
+                        String.valueOf(ui.context.config().isCombatLogBlockCommands())
+                };
+            }
+        },
+        SCOREBOARD("Scoreboard", "#ConfigSectionScoreboardButton",
+                "Preset-style scoreboard placement and refresh controls.",
+                new String[]{"Enabled", "Default Hidden", "Update MS", "Anchor", "Width", "Offset X"},
+                new boolean[]{true, true, false, false, false, false}) {
+            @Override
+            String[] currentValues(HyEssentialsXDashboardUI ui) {
+                return new String[]{
+                        String.valueOf(ui.context.config().isScoreboardEnabled()),
+                        String.valueOf(ui.context.config().isScoreboardDefaultHidden()),
+                        String.valueOf(ui.context.config().getScoreboardUpdateIntervalMs()),
+                        ui.context.config().getScoreboardAnchor(),
+                        String.valueOf(ui.context.config().getScoreboardWidth()),
+                        String.valueOf(ui.context.config().getScoreboardOffsetX())
+                };
+            }
+        };
+
+        private final String label;
+        private final String buttonSelector;
+        private final String summary;
+        private final String[] fieldLabels;
+        private final boolean[] toggleFields;
+
+        ConfigSection(String label,
+                      String buttonSelector,
+                      String summary,
+                      String[] fieldLabels,
+                      boolean[] toggleFields) {
+            this.label = label;
+            this.buttonSelector = buttonSelector;
+            this.summary = summary;
+            this.fieldLabels = fieldLabels;
+            this.toggleFields = toggleFields;
+        }
+
+        @Nonnull
+        String label() {
+            return label;
+        }
+
+        @Nonnull
+        String buttonSelector() {
+            return buttonSelector;
+        }
+
+        @Nonnull
+        String summary() {
+            return summary;
+        }
+
+        @Nonnull
+        String[] fieldLabels() {
+            return fieldLabels;
+        }
+
+        @Nonnull
+        boolean[] toggleFields() {
+            return toggleFields;
+        }
+
+        abstract String[] currentValues(HyEssentialsXDashboardUI ui);
     }
 
     private enum ProfileTab {
@@ -1740,8 +2703,22 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 .append(new KeyedCodec<>("PlayerAction", Codec.STRING), (d, v) -> d.playerAction = v, d -> d.playerAction).add()
                 .append(new KeyedCodec<>("PlayerUuid", Codec.STRING), (d, v) -> d.playerUuid = v, d -> d.playerUuid).add()
                 .append(new KeyedCodec<>("PlayerName", Codec.STRING), (d, v) -> d.playerName = v, d -> d.playerName).add()
+                .append(new KeyedCodec<>("ConfigRuleAction", Codec.STRING), (d, v) -> d.configRuleAction = v, d -> d.configRuleAction).add()
+                .append(new KeyedCodec<>("ConfigRuleId", Codec.STRING), (d, v) -> d.configRuleId = v, d -> d.configRuleId).add()
                 .append(new KeyedCodec<>("@PlayerSearch", Codec.STRING), (d, v) -> d.playerSearch = v, d -> d.playerSearch).add()
                 .append(new KeyedCodec<>("@ActionReason", Codec.STRING), (d, v) -> d.actionReason = v, d -> d.actionReason).add()
+                .append(new KeyedCodec<>("@ConfigRuleIdInput", Codec.STRING), (d, v) -> d.configRuleIdInput = v, d -> d.configRuleIdInput).add()
+                .append(new KeyedCodec<>("@ConfigRuleNameInput", Codec.STRING), (d, v) -> d.configRuleNameInput = v, d -> d.configRuleNameInput).add()
+                .append(new KeyedCodec<>("@ConfigThresholdInput", Codec.STRING), (d, v) -> d.configThresholdInput = v, d -> d.configThresholdInput).add()
+                .append(new KeyedCodec<>("@ConfigDurationInput", Codec.STRING), (d, v) -> d.configDurationInput = v, d -> d.configDurationInput).add()
+                .append(new KeyedCodec<>("@ConfigWindowInput", Codec.STRING), (d, v) -> d.configWindowInput = v, d -> d.configWindowInput).add()
+                .append(new KeyedCodec<>("@ConfigDetailInput", Codec.STRING), (d, v) -> d.configDetailInput = v, d -> d.configDetailInput).add()
+                .append(new KeyedCodec<>("@ConfigPanelInput0", Codec.STRING), (d, v) -> d.configPanelInput0 = v, d -> d.configPanelInput0).add()
+                .append(new KeyedCodec<>("@ConfigPanelInput1", Codec.STRING), (d, v) -> d.configPanelInput1 = v, d -> d.configPanelInput1).add()
+                .append(new KeyedCodec<>("@ConfigPanelInput2", Codec.STRING), (d, v) -> d.configPanelInput2 = v, d -> d.configPanelInput2).add()
+                .append(new KeyedCodec<>("@ConfigPanelInput3", Codec.STRING), (d, v) -> d.configPanelInput3 = v, d -> d.configPanelInput3).add()
+                .append(new KeyedCodec<>("@ConfigPanelInput4", Codec.STRING), (d, v) -> d.configPanelInput4 = v, d -> d.configPanelInput4).add()
+                .append(new KeyedCodec<>("@ConfigPanelInput5", Codec.STRING), (d, v) -> d.configPanelInput5 = v, d -> d.configPanelInput5).add()
                 .build();
 
         private String tab;
@@ -1750,7 +2727,34 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         private String playerAction;
         private String playerUuid;
         private String playerName;
+        private String configRuleAction;
+        private String configRuleId;
         private String playerSearch;
         private String actionReason;
+        private String configRuleIdInput;
+        private String configRuleNameInput;
+        private String configThresholdInput;
+        private String configDurationInput;
+        private String configWindowInput;
+        private String configDetailInput;
+        private String configPanelInput0;
+        private String configPanelInput1;
+        private String configPanelInput2;
+        private String configPanelInput3;
+        private String configPanelInput4;
+        private String configPanelInput5;
+
+        @Nullable
+        private String configPanelInput(int index) {
+            return switch (index) {
+                case 0 -> configPanelInput0;
+                case 1 -> configPanelInput1;
+                case 2 -> configPanelInput2;
+                case 3 -> configPanelInput3;
+                case 4 -> configPanelInput4;
+                case 5 -> configPanelInput5;
+                default -> null;
+            };
+        }
     }
 }

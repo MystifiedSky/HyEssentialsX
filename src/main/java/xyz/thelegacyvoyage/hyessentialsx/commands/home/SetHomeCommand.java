@@ -131,7 +131,7 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
             return -1;
         }
 
-        int max = -1;
+        int max = config.getHomeMaxHomesPerPlayer();
         for (int i = 1; i <= MAX_PERMISSION_SCAN; i++) {
             if (xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(sender, MAX_PERMISSION_PREFIX + i)) {
                 max = i;

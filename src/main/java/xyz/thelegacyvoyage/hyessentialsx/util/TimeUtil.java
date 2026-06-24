@@ -14,6 +14,30 @@ public final class TimeUtil {
     public static long parseDurationSeconds(@Nonnull String input) {
         String s = input.trim().toLowerCase(Locale.ROOT);
         if (s.isEmpty()) return -1;
+        if (s.contains(" ")) {
+            long total = 0L;
+            for (String part : s.split("\\s+")) {
+                if (part.isBlank()) continue;
+                long parsed = parseSingleDurationToken(part);
+                if (parsed < 0L) return -1;
+                total += parsed;
+            }
+            return total;
+        }
+        return parseSingleDurationToken(s);
+    }
+
+    private static long parseSingleDurationToken(@Nonnull String s) {
+        if (s.endsWith("mo")) {
+            String numberPart = s.substring(0, s.length() - 2);
+            try {
+                long value = Long.parseLong(numberPart);
+                if (value < 0) return -1;
+                return value * 60L * 60L * 24L * 30L;
+            } catch (NumberFormatException e) {
+                return -1;
+            }
+        }
 
         long multiplier;
         char suffix = s.charAt(s.length() - 1);

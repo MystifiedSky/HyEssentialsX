@@ -89,7 +89,7 @@ public final class MongoStorageBackend implements StorageBackend {
             return loaded != null ? loaded : new PlayerDataModel();
         } catch (Exception e) {
             Log.warn("Failed to load player data from MongoDB for " + uuid + ": " + e.getMessage());
-            return new PlayerDataModel();
+            return null;
         }
     }
 

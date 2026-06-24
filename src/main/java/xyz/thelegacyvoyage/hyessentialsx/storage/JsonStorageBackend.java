@@ -55,7 +55,7 @@ public final class JsonStorageBackend implements StorageBackend {
             return loaded != null ? loaded : new PlayerDataModel();
         } catch (Exception e) {
             Log.warn("Failed to load player data for " + uuid + ": " + e.getMessage());
-            return new PlayerDataModel();
+            return null;
         }
     }
 

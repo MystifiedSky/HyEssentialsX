@@ -34,7 +34,7 @@ Group #AdminRoot {
         }
 
         Label {
-          Text: "Control balances, logs, and HUD settings";
+          Text: "Control balances, logs, and audit history";
           Style: (FontSize: 10, TextColor: #9ab6d9, Wrap: true);
           Anchor: (Left: 0, Right: 0);
         }
@@ -62,12 +62,6 @@ Group #AdminRoot {
         Text: "Log";
         Style: $E.@EcoButtonStyle;
         Anchor: (Height: 34, Bottom: 6);
-      }
-
-      TextButton #TabConfig {
-        Text: "Config";
-        Style: $E.@EcoButtonStyle;
-        Anchor: (Height: 34, Bottom: 12);
       }
 
       Group { FlexWeight: 1; }
@@ -384,112 +378,6 @@ Group #AdminRoot {
         }
       }
 
-      Group #ConfigContent {
-        LayoutMode: Top;
-        FlexWeight: 1;
-        Visible: false;
-
-        Group {
-          LayoutMode: Left;
-          Anchor: (Height: 36, Bottom: 10);
-
-          TextButton #ReloadConfigButton { Text: "Reload"; Style: $E.@EcoButtonStyle; Anchor: (Width: 90, Height: 30); }
-          TextButton #SaveConfigButton { Text: "Save"; Style: $E.@EcoButtonAccentStyle; Anchor: (Width: 90, Height: 30, Left: 8); }
-          TextButton #ResetDefaultsButton { Text: "Reset"; Style: $E.@EcoButtonRedStyle; Anchor: (Width: 90, Height: 30, Left: 8); }
-
-          Label #ConfigStatus {
-            Text: "";
-            Style: (FontSize: 12, TextColor: #8da8cc);
-            Anchor: (Vertical: 0, Left: 12);
-          }
-        }
-
-        Group #ConfigForm {
-          LayoutMode: Top;
-          Background: (Color: #111f34);
-          FlexWeight: 1;
-          Padding: (Top: 12, Bottom: 12, Left: 12, Right: 12);
-          OutlineColor: #2f4a72;
-          OutlineSize: 1;
-
-          Group {
-            LayoutMode: Left;
-            Anchor: (Height: 34, Bottom: 8);
-            Label { Text: "Currency Symbol"; Style: (FontSize: 12, TextColor: #9ab6d9); Anchor: (Width: 130, Vertical: 0); }
-            Group {
-              Background: (Color: #0b1524);
-              Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4);
-              Anchor: (Width: 120, Height: 30, Vertical: 0);
-              OutlineColor: #355986;
-              OutlineSize: 1;
-              TextField #CurrencySymbolInput { Style: (FontSize: 13, TextColor: #f0f5ff); FlexWeight: 1; }
-            }
-          }
-
-          Group {
-            LayoutMode: Left;
-            Anchor: (Height: 34, Bottom: 8);
-            Label { Text: "Starting Balance"; Style: (FontSize: 12, TextColor: #9ab6d9); Anchor: (Width: 130, Vertical: 0); }
-            Group {
-              Background: (Color: #0b1524);
-              Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4);
-              Anchor: (Width: 160, Height: 30, Vertical: 0);
-              OutlineColor: #355986;
-              OutlineSize: 1;
-              TextField #StartingBalanceInput { Style: (FontSize: 13, TextColor: #f0f5ff); FlexWeight: 1; }
-            }
-          }
-
-          Group {
-            LayoutMode: Left;
-            Anchor: (Height: 34, Bottom: 8);
-            Label { Text: "HUD Label"; Style: (FontSize: 12, TextColor: #9ab6d9); Anchor: (Width: 130, Vertical: 0); }
-            Group {
-              Background: (Color: #0b1524);
-              Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4);
-              Anchor: (Width: 240, Height: 30, Vertical: 0);
-              OutlineColor: #355986;
-              OutlineSize: 1;
-              TextField #HudLabelInput { Style: (FontSize: 13, TextColor: #f0f5ff); FlexWeight: 1; }
-            }
-          }
-
-          Group {
-            LayoutMode: Left;
-            Anchor: (Height: 34, Bottom: 10);
-            Label { Text: "HUD Interval (ms)"; Style: (FontSize: 12, TextColor: #9ab6d9); Anchor: (Width: 130, Vertical: 0); }
-            Group {
-              Background: (Color: #0b1524);
-              Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4);
-              Anchor: (Width: 160, Height: 30, Vertical: 0);
-              OutlineColor: #355986;
-              OutlineSize: 1;
-              TextField #HudIntervalInput { Style: (FontSize: 13, TextColor: #f0f5ff); FlexWeight: 1; }
-            }
-          }
-
-          Group {
-            LayoutMode: Left;
-            Anchor: (Height: 34, Bottom: 8);
-            Label { Text: "HUD Enabled"; Style: (FontSize: 12, TextColor: #9ab6d9); Anchor: (Width: 130, Vertical: 0); }
-            TextButton #HudToggle { Text: "ON"; Style: $E.@EcoButtonStyle; Anchor: (Width: 92, Height: 28, Vertical: 0); }
-          }
-
-          Group {
-            LayoutMode: Left;
-            Anchor: (Height: 34, Bottom: 8);
-            Label { Text: "HUD Default Hidden"; Style: (FontSize: 12, TextColor: #9ab6d9); Anchor: (Width: 130, Vertical: 0); }
-            TextButton #HudDefaultHiddenToggle { Text: "OFF"; Style: $E.@EcoButtonStyle; Anchor: (Width: 92, Height: 28, Vertical: 0); }
-          }
-
-          Group {
-            LayoutMode: Left;
-            Anchor: (Height: 34);
-            Label { Text: "HUD Anchor"; Style: (FontSize: 12, TextColor: #9ab6d9); Anchor: (Width: 130, Vertical: 0); }
-            TextButton #HudAnchorToggle { Text: "BOTTOM RIGHT"; Style: $E.@EcoButtonStyle; Anchor: (Width: 170, Height: 28, Vertical: 0); }
-          }
-        }
-      }
     }
   }
 }

@@ -6,14 +6,31 @@ import javax.annotation.Nonnull;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public final class PlaytimeManager {
 
+    private static final long CHECKPOINT_INTERVAL_SECONDS = 60L;
+
     private final StorageManager storage;
     private final Map<UUID, Long> joinTimes = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService checkpointExecutor;
 
     public PlaytimeManager(@Nonnull StorageManager storage) {
         this.storage = storage;
+        this.checkpointExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "HyEssentialsX-Playtime");
+            t.setDaemon(true);
+            return t;
+        });
+        this.checkpointExecutor.scheduleAtFixedRate(
+                this::checkpointActiveSessionsSafely,
+                CHECKPOINT_INTERVAL_SECONDS,
+                CHECKPOINT_INTERVAL_SECONDS,
+                TimeUnit.SECONDS
+        );
     }
 
     public void onJoin(@Nonnull UUID uuid) {
@@ -77,6 +94,46 @@ public final class PlaytimeManager {
         }
         data.setPlaytimeSeconds(Math.max(0L, updated));
         storage.savePlayerDataAsync(uuid, data);
+    }
+
+    public void shutdown() {
+        checkpointExecutor.shutdownNow();
+        checkpointActiveSessions();
+    }
+
+    private void checkpointActiveSessionsSafely() {
+        try {
+            checkpointActiveSessions();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void checkpointActiveSessions() {
+        long now = System.currentTimeMillis();
+        for (Map.Entry<UUID, Long> entry : joinTimes.entrySet()) {
+            UUID uuid = entry.getKey();
+            Long joinedAt = entry.getValue();
+            if (uuid == null || joinedAt == null || joinedAt <= 0L) {
+                continue;
+            }
+            long sessionSeconds = Math.max(0L, (now - joinedAt) / 1000L);
+            if (sessionSeconds <= 0L) {
+                continue;
+            }
+            if (joinTimes.replace(uuid, joinedAt, now)) {
+                PlayerDataModel data = storage.getPlayerData(uuid);
+                long base = Math.max(0L, data.getPlaytimeSeconds());
+                long updated;
+                try {
+                    updated = Math.addExact(base, sessionSeconds);
+                } catch (ArithmeticException overflow) {
+                    updated = Long.MAX_VALUE;
+                }
+                data.setPlaytimeSeconds(updated);
+                data.setLastJoinAt(now);
+                storage.savePlayerDataAsync(uuid, data);
+            }
+        }
     }
 }
 

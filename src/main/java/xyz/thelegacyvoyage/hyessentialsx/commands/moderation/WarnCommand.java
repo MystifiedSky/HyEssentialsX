@@ -9,7 +9,9 @@ import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.WarningEscalationManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.WarningEscalationRuleModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarningModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -25,12 +27,14 @@ public final class WarnCommand extends CommandBase {
     private static final String PERMISSION_NODE = "hyessentialsx.warn";
 
     private final StorageManager storage;
+    private final WarningEscalationManager escalationManager;
     private final RequiredArg<String> playerArg;
     private final OptionalArg<List<String>> reasonArg;
 
-    public WarnCommand(@Nonnull StorageManager storage) {
+    public WarnCommand(@Nonnull StorageManager storage, @Nonnull WarningEscalationManager escalationManager) {
         super("warn", "Warn a player");
         this.storage = storage;
+        this.escalationManager = escalationManager;
         this.setPermissionGroups();
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.playerArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
@@ -74,11 +78,19 @@ public final class WarnCommand extends CommandBase {
                 System.currentTimeMillis(), 0L);
         storage.addWarning(uuid, warning);
         StaffActionUtil.log(storage, actor, "warn", uuid, displayName, reason);
+        WarningEscalationRuleModel escalated = escalationManager.evaluate(uuid, displayName, actor);
 
         Messages.okKey(context, "warn.success", Map.of(
                 "player", displayName,
                 "count", String.valueOf(storage.countActiveWarnings(uuid))
         ));
+        if (escalated != null) {
+            Messages.okKey(context, "warn.escalated", Map.of(
+                    "player", displayName,
+                    "rule", escalated.getName(),
+                    "action", escalated.getAction()
+            ));
+        }
         if (online != null) {
             Messages.sendPrefixedKey(online, "warn.target", Map.of("reason", reason));
         }

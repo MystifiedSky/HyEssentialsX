@@ -95,6 +95,7 @@ public final class MysqlStorageBackend implements StorageBackend {
             }
         } catch (Exception e) {
             Log.warn("Failed to load player data from MySQL: " + e.getMessage());
+            return null;
         }
         return new PlayerDataModel();
     }

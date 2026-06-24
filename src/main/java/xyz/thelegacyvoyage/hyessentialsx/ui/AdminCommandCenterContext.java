@@ -8,6 +8,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FreezeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.PlayerWarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeRewardManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.RankupManager;
@@ -16,6 +17,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.WarningEscalationManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.IpBanManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 
@@ -32,6 +34,8 @@ public record AdminCommandCenterContext(
         @Nonnull IpBanManager ipBanManager,
         @Nonnull MuteManager muteManager,
         @Nonnull FreezeManager freezeManager,
+        @Nonnull PlayerWarpManager playerWarpManager,
+        @Nonnull WarningEscalationManager warningEscalationManager,
         @Nullable EconomyManager economyManager,
         @Nullable EconomyHudManager economyHudManager,
         @Nullable EconomyAuditManager economyAuditManager,

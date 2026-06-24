@@ -67,6 +67,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnipBanCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnbanCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnmuteCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.WarnCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.WarnRulesCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.WarningsCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.FreecamCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.FreezeCommand;
@@ -89,6 +90,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.tpa.TpaCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.tpa.TpaDenyCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.tpa.TpaIgnoreCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.warp.DelWarpCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.warp.PlayerWarpCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.warp.SetWarpCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.warp.WarpCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.warp.WarpsCommand;
@@ -150,6 +152,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.IgnoreManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MessageManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MailManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.PlayerWarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PaycheckManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.RespawnInvulnerabilityManager;
@@ -166,6 +169,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.StatsManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WarpManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.WarningEscalationManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.WorldBorderManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.hologram.HologramService;
 import xyz.thelegacyvoyage.hyessentialsx.placeholders.HyEssentialsXPlaceholderExpansion;
@@ -207,6 +211,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private InfiniteStaminaManager staminaManager;
     private HomeManager homeManager;
     private WarpManager warpManager;
+    private PlayerWarpManager playerWarpManager;
     private KitManager kitManager;
     private WorldBorderManager worldBorderManager;
     private RespawnInvulnerabilityManager respawnInvulnerabilityManager;
@@ -218,6 +223,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private AfkManager afkManager;
     private MuteManager muteManager;
     private BanManager banManager;
+    private WarningEscalationManager warningEscalationManager;
     private IpBanManager ipBanManager;
     private CombatLogManager combatLogManager;
     private FreecamManager freecamManager;
@@ -365,6 +371,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         staminaManager = new InfiniteStaminaManager();
         homeManager = new HomeManager(storage);
         warpManager = new WarpManager(storage);
+        playerWarpManager = new PlayerWarpManager(storage);
         kitManager = new KitManager(storage);
         worldBorderManager = new WorldBorderManager(configManager);
         respawnInvulnerabilityManager = new RespawnInvulnerabilityManager(configManager);
@@ -376,6 +383,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         afkManager = new AfkManager(configManager);
         muteManager = new MuteManager(storage);
         banManager = new BanManager(storage);
+        warningEscalationManager = new WarningEscalationManager(storage, muteManager, banManager);
         ipBanManager = new IpBanManager(storage);
         combatLogManager = new CombatLogManager(configManager);
         freecamManager = new FreecamManager();
@@ -465,6 +473,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (rankupManager != null) rankupManager.shutdown();
         if (paycheckManager != null) paycheckManager.shutdown();
         if (playtimeRewardManager != null) playtimeRewardManager.shutdown();
+        if (playtimeManager != null) playtimeManager.shutdown();
         if (scoreboardManager != null) scoreboardManager.shutdown();
         if (economyHudManager != null) economyHudManager.shutdown();
         if (economyAuditManager != null) economyAuditManager.shutdown();
@@ -551,6 +560,8 @@ public class HyEssentialsXPlugin extends JavaPlugin {
                 ipBanManager,
                 muteManager,
                 freezeManager,
+                playerWarpManager,
+                warningEscalationManager,
                 economyManager,
                 economyHudManager,
                 economyAuditManager,
@@ -582,6 +593,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             reg.accept(new WarpCommand(warpManager, tpManager, configManager, cooldownManager, backManager));
             reg.accept(new WarpsCommand(warpManager, tpManager, configManager, cooldownManager, backManager));
             reg.accept(new DelWarpCommand(warpManager, configManager));
+        }
+        if (configManager.isPlayerWarpsEnabled()) {
+            reg.accept(new PlayerWarpCommand(playerWarpManager, tpManager, configManager, cooldownManager, backManager, economyManager));
         }
         if (configManager.isKitsEnabled()) {
             reg.accept(new KitCreateCommand(kitManager, configManager));
@@ -698,7 +712,8 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new UnbanCommand(banManager, storage));
         reg.accept(new IpBanCommand(ipBanManager, storage));
         reg.accept(new UnipBanCommand(ipBanManager, storage));
-        reg.accept(new WarnCommand(storage));
+        reg.accept(new WarnCommand(storage, warningEscalationManager));
+        reg.accept(new WarnRulesCommand(warningEscalationManager));
         reg.accept(new WarningsCommand(storage));
         reg.accept(new ClearWarningsCommand(storage));
         if (hologramService != null && configManager != null && configManager.isHologramsEnabled()) {

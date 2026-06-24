@@ -107,8 +107,15 @@ public final class ConfigManager {
     private int tpaWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
 
     private boolean homesEnabled = true;
+    private int homeMaxHomesPerPlayer = -1;
     private boolean warpsEnabled = true;
     private boolean warpsGuiEnabled = true;
+    private boolean playerWarpsEnabled = true;
+    private boolean playerWarpsGuiEnabled = true;
+    private boolean playerWarpAutoApprove = true;
+    private int playerWarpMaxWarpsPerPlayer = 3;
+    private long playerWarpCreateCost = 0L;
+    private long playerWarpVisitCost = 0L;
     private boolean kitsEnabled = true;
     private boolean kitsGuiEnabled = true;
     private boolean kitsRequirePermission = true;
@@ -619,6 +626,7 @@ public final class ConfigManager {
 
         JsonObject homes = new JsonObject();
         homes.addProperty("enabled", true);
+        homes.addProperty("maxHomesPerPlayer", homeMaxHomesPerPlayer);
         homes.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
         homes.addProperty("warmupSeconds", homeWarmupSeconds);
         root.add("homes", homes);
@@ -629,6 +637,15 @@ public final class ConfigManager {
         warps.addProperty("warmupSeconds", warpWarmupSeconds);
         warps.addProperty("gui", true);
         root.add("warps", warps);
+
+        JsonObject playerWarps = new JsonObject();
+        playerWarps.addProperty("enabled", playerWarpsEnabled);
+        playerWarps.addProperty("gui", playerWarpsGuiEnabled);
+        playerWarps.addProperty("autoApprove", playerWarpAutoApprove);
+        playerWarps.addProperty("maxWarpsPerPlayer", playerWarpMaxWarpsPerPlayer);
+        playerWarps.addProperty("createCost", formatMoneyConfig(playerWarpCreateCost));
+        playerWarps.addProperty("visitCost", formatMoneyConfig(playerWarpVisitCost));
+        root.add("playerWarps", playerWarps);
 
         JsonObject back = new JsonObject();
         back.addProperty("cooldownSeconds", DEFAULT_COMMAND_COOLDOWN_SECONDS);
@@ -926,9 +943,17 @@ public final class ConfigManager {
 
             JsonObject homesSection = obj(root, "homes");
             homeWarmupSeconds = intVal(homesSection, "warmupSeconds", homeWarmupSeconds);
+            homeMaxHomesPerPlayer = Math.max(-1, intVal(homesSection, "maxHomesPerPlayer", homeMaxHomesPerPlayer));
             JsonObject warpsSection = obj(root, "warps");
             warpWarmupSeconds = intVal(warpsSection, "warmupSeconds", warpWarmupSeconds);
             warpsGuiEnabled = bool(warpsSection, "gui", true);
+            JsonObject playerWarpsSection = obj(root, "playerWarps");
+            playerWarpsEnabled = bool(playerWarpsSection, "enabled", playerWarpsEnabled);
+            playerWarpsGuiEnabled = bool(playerWarpsSection, "gui", playerWarpsGuiEnabled);
+            playerWarpAutoApprove = bool(playerWarpsSection, "autoApprove", playerWarpAutoApprove);
+            playerWarpMaxWarpsPerPlayer = Math.max(0, intVal(playerWarpsSection, "maxWarpsPerPlayer", playerWarpMaxWarpsPerPlayer));
+            playerWarpCreateCost = Math.max(0L, moneyVal(playerWarpsSection, "createCost", playerWarpCreateCost));
+            playerWarpVisitCost = Math.max(0L, moneyVal(playerWarpsSection, "visitCost", playerWarpVisitCost));
             JsonObject backSection = obj(root, "back");
             backWarmupSeconds = intVal(backSection, "warmupSeconds", backWarmupSeconds);
 
@@ -1371,6 +1396,22 @@ public final class ConfigManager {
         return rtpMinDistance;
     }
 
+    public void setRtpEnabled(boolean enabled) {
+        rtpEnabled = enabled;
+        save();
+    }
+
+    public void setRtpDistanceRange(int minDistance, int maxDistance) {
+        rtpMinDistance = Math.max(0, minDistance);
+        rtpMaxDistance = Math.max(rtpMinDistance, maxDistance);
+        save();
+    }
+
+    public void setRtpWarmupSeconds(int seconds) {
+        rtpWarmupSeconds = Math.max(0, seconds);
+        save();
+    }
+
     @Nullable
     public String getRtpWorldOverride(@Nonnull String worldName) {
         if (rtpWorldOverrides.isEmpty()) return null;
@@ -1382,8 +1423,17 @@ public final class ConfigManager {
         return value != null ? value : DEFAULT_COMMAND_COOLDOWN_SECONDS;
     }
 
+    public void setCooldownSeconds(@Nonnull String key, int seconds) {
+        commandCooldowns.put(key, Math.max(0, seconds));
+        save();
+    }
+
     public int getHomeWarmupSeconds() {
         return Math.max(0, homeWarmupSeconds);
+    }
+
+    public int getHomeMaxHomesPerPlayer() {
+        return Math.max(-1, homeMaxHomesPerPlayer);
     }
 
     public int getWarpWarmupSeconds() {
@@ -1421,6 +1471,11 @@ public final class ConfigManager {
 
     public boolean isCombatLogBlockCommands() {
         return combatLogBlockCommands;
+    }
+
+    public void setCombatLogBlockCommands(boolean blockCommands) {
+        combatLogBlockCommands = blockCommands;
+        save();
     }
 
     @Nonnull
@@ -1491,12 +1546,81 @@ public final class ConfigManager {
         return homesEnabled;
     }
 
+    public void setHomesEnabled(boolean enabled) {
+        homesEnabled = enabled;
+        save();
+    }
+
+    public void setHomeWarmupSeconds(int seconds) {
+        homeWarmupSeconds = Math.max(0, seconds);
+        save();
+    }
+
+    public void setHomeMaxHomesPerPlayer(int maxHomesPerPlayer) {
+        homeMaxHomesPerPlayer = Math.max(-1, maxHomesPerPlayer);
+        save();
+    }
+
     public boolean isWarpsEnabled() {
         return warpsEnabled;
     }
 
     public boolean isWarpsGuiEnabled() {
         return warpsGuiEnabled;
+    }
+
+    public boolean isPlayerWarpsEnabled() {
+        return playerWarpsEnabled;
+    }
+
+    public void setPlayerWarpsEnabled(boolean enabled) {
+        playerWarpsEnabled = enabled;
+        save();
+    }
+
+    public boolean isPlayerWarpsGuiEnabled() {
+        return playerWarpsGuiEnabled;
+    }
+
+    public void setPlayerWarpsGuiEnabled(boolean enabled) {
+        playerWarpsGuiEnabled = enabled;
+        save();
+    }
+
+    public boolean isPlayerWarpAutoApprove() {
+        return playerWarpAutoApprove;
+    }
+
+    public void setPlayerWarpAutoApprove(boolean autoApprove) {
+        playerWarpAutoApprove = autoApprove;
+        save();
+    }
+
+    public int getPlayerWarpMaxWarpsPerPlayer() {
+        return Math.max(0, playerWarpMaxWarpsPerPlayer);
+    }
+
+    public void setPlayerWarpMaxWarpsPerPlayer(int maxWarpsPerPlayer) {
+        playerWarpMaxWarpsPerPlayer = Math.max(0, maxWarpsPerPlayer);
+        save();
+    }
+
+    public long getPlayerWarpCreateCost() {
+        return Math.max(0L, playerWarpCreateCost);
+    }
+
+    public void setPlayerWarpCreateCost(long createCost) {
+        playerWarpCreateCost = Math.max(0L, createCost);
+        save();
+    }
+
+    public long getPlayerWarpVisitCost() {
+        return Math.max(0L, playerWarpVisitCost);
+    }
+
+    public void setPlayerWarpVisitCost(long visitCost) {
+        playerWarpVisitCost = Math.max(0L, visitCost);
+        save();
     }
 
     public boolean isKitsEnabled() {
@@ -1559,8 +1683,18 @@ public final class ConfigManager {
         return scoreboardEnabled;
     }
 
+    public void setScoreboardEnabled(boolean enabled) {
+        scoreboardEnabled = enabled;
+        save();
+    }
+
     public int getScoreboardUpdateIntervalMs() {
         return Math.max(250, scoreboardUpdateIntervalMs);
+    }
+
+    public void setScoreboardUpdateIntervalMs(int intervalMs) {
+        scoreboardUpdateIntervalMs = Math.max(250, intervalMs);
+        save();
     }
 
     @Nonnull
@@ -1579,6 +1713,11 @@ public final class ConfigManager {
     public void setScoreboardOffsets(int offsetX, int offsetY) {
         scoreboardOffsetX = Math.max(0, offsetX);
         scoreboardOffsetY = Math.max(0, offsetY);
+        save();
+    }
+
+    public void setScoreboardAnchor(@Nonnull String anchor) {
+        scoreboardAnchor = normalizeScoreboardAnchor(anchor);
         save();
     }
 
@@ -1662,6 +1801,17 @@ public final class ConfigManager {
         return scoreboardDefaultHidden;
     }
 
+    public void setScoreboardDefaultHidden(boolean hidden) {
+        scoreboardDefaultHidden = hidden;
+        save();
+    }
+
+    public void setScoreboardSize(int width, int height) {
+        scoreboardWidth = Math.max(0, width);
+        scoreboardHeight = Math.max(0, height);
+        save();
+    }
+
     @Nonnull
     public Map<String, String> getScoreboardPlaceholders() {
         return Collections.unmodifiableMap(scoreboardPlaceholders);
@@ -1728,12 +1878,22 @@ public final class ConfigManager {
         return sleepChatEnabled;
     }
 
+    public void setSleepChatEnabled(boolean enabled) {
+        sleepChatEnabled = enabled;
+        save();
+    }
+
     public boolean isRtpEnabled() {
         return rtpEnabled;
     }
 
     public boolean isBroadcastEnabled() {
         return broadcastEnabled;
+    }
+
+    public void setBroadcastEnabled(boolean enabled) {
+        broadcastEnabled = enabled;
+        save();
     }
 
     public boolean isSpawnEnabled() {
@@ -1746,6 +1906,11 @@ public final class ConfigManager {
 
     public boolean isAdminChatEnabled() {
         return adminChatEnabled;
+    }
+
+    public void setAdminChatEnabled(boolean enabled) {
+        adminChatEnabled = enabled;
+        save();
     }
 
     public boolean isAfkEnabled() {
@@ -1812,6 +1977,16 @@ public final class ConfigManager {
 
     public boolean isOverrideLuckPermsChatFormat() {
         return chatOverrideLuckPerms;
+    }
+
+    public void setChatEnabled(boolean enabled) {
+        chatEnabled = enabled;
+        save();
+    }
+
+    public void setChatOverrideLuckPerms(boolean overrideLuckPerms) {
+        chatOverrideLuckPerms = overrideLuckPerms;
+        save();
     }
 
     public boolean isSpawnProtectionEnabled() {
@@ -2251,8 +2426,18 @@ public final class ConfigManager {
         return playerShopsEnabled;
     }
 
+    public void setPlayerShopsEnabled(boolean enabled) {
+        playerShopsEnabled = enabled;
+        save();
+    }
+
     public boolean isPlayerShopDirectoryEnabled() {
         return playerShopDirectoryEnabled;
+    }
+
+    public void setPlayerShopDirectoryEnabled(boolean enabled) {
+        playerShopDirectoryEnabled = enabled;
+        save();
     }
 
     public boolean isAdminShopsEnabled() {
@@ -2263,40 +2448,93 @@ public final class ConfigManager {
         return adminShopMaxTradeQuantity;
     }
 
+    public void setAdminShopMaxTradeQuantity(int maxTradeQuantity) {
+        adminShopMaxTradeQuantity = Math.max(1, maxTradeQuantity);
+        save();
+    }
+
     public int getPlayerShopMaxShopsPerPlayer() {
         return playerShopMaxShopsPerPlayer;
+    }
+
+    public void setPlayerShopMaxShopsPerPlayer(int maxShopsPerPlayer) {
+        playerShopMaxShopsPerPlayer = Math.max(0, maxShopsPerPlayer);
+        save();
     }
 
     public long getPlayerShopCreationCost() {
         return playerShopCreationCost;
     }
 
+    public void setPlayerShopCreationCost(long creationCost) {
+        playerShopCreationCost = Math.max(0L, creationCost);
+        save();
+    }
+
     public int getPlayerShopChestLinkRadius() {
         return playerShopChestLinkRadius;
+    }
+
+    public void setPlayerShopChestLinkRadius(int chestLinkRadius) {
+        playerShopChestLinkRadius = Math.max(0, chestLinkRadius);
+        save();
     }
 
     public int getPlayerShopMaxTradeQuantity() {
         return playerShopMaxTradeQuantity;
     }
 
+    public void setPlayerShopMaxTradeQuantity(int maxTradeQuantity) {
+        playerShopMaxTradeQuantity = Math.max(1, maxTradeQuantity);
+        save();
+    }
+
     public boolean isAuctionHouseEnabled() {
         return auctionHouseEnabled;
+    }
+
+    public void setAuctionHouseEnabled(boolean enabled) {
+        auctionHouseEnabled = enabled;
+        save();
     }
 
     public long getAuctionHouseMaxListingSeconds() {
         return auctionHouseMaxListingSeconds;
     }
 
+    public void setAuctionHouseMaxListingSeconds(long maxListingSeconds) {
+        auctionHouseMaxListingSeconds = Math.max(60L, maxListingSeconds);
+        if (auctionHouseDefaultListingSeconds > auctionHouseMaxListingSeconds) {
+            auctionHouseDefaultListingSeconds = auctionHouseMaxListingSeconds;
+        }
+        save();
+    }
+
     public long getAuctionHouseDefaultListingSeconds() {
         return auctionHouseDefaultListingSeconds;
+    }
+
+    public void setAuctionHouseDefaultListingSeconds(long defaultListingSeconds) {
+        auctionHouseDefaultListingSeconds = Math.max(60L, Math.min(defaultListingSeconds, auctionHouseMaxListingSeconds));
+        save();
     }
 
     public int getAuctionHouseMaxListingsPerPlayer() {
         return auctionHouseMaxListingsPerPlayer;
     }
 
+    public void setAuctionHouseMaxListingsPerPlayer(int maxListingsPerPlayer) {
+        auctionHouseMaxListingsPerPlayer = Math.max(0, maxListingsPerPlayer);
+        save();
+    }
+
     public long getAuctionHouseListingCost() {
         return auctionHouseListingCost;
+    }
+
+    public void setAuctionHouseListingCost(long listingCost) {
+        auctionHouseListingCost = Math.max(0L, listingCost);
+        save();
     }
 
     @Nonnull
@@ -2853,6 +3091,7 @@ public final class ConfigManager {
 
         JsonObject homes = obj(root, "homes");
         homes.addProperty("enabled", homesEnabled);
+        homes.addProperty("maxHomesPerPlayer", homeMaxHomesPerPlayer);
         homes.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.HOME));
         homes.addProperty("warmupSeconds", homeWarmupSeconds);
 
@@ -2861,6 +3100,14 @@ public final class ConfigManager {
         warps.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.WARP));
         warps.addProperty("warmupSeconds", warpWarmupSeconds);
         warps.addProperty("gui", warpsGuiEnabled);
+
+        JsonObject playerWarps = obj(root, "playerWarps");
+        playerWarps.addProperty("enabled", playerWarpsEnabled);
+        playerWarps.addProperty("gui", playerWarpsGuiEnabled);
+        playerWarps.addProperty("autoApprove", playerWarpAutoApprove);
+        playerWarps.addProperty("maxWarpsPerPlayer", playerWarpMaxWarpsPerPlayer);
+        playerWarps.addProperty("createCost", formatMoneyConfig(playerWarpCreateCost));
+        playerWarps.addProperty("visitCost", formatMoneyConfig(playerWarpVisitCost));
 
         JsonObject back = obj(root, "back");
         back.addProperty("cooldownSeconds", getCooldownSeconds(CooldownKeys.BACK));

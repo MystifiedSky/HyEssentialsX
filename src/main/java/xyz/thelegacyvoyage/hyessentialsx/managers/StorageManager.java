@@ -6,12 +6,14 @@ import xyz.thelegacyvoyage.hyessentialsx.models.AuctionHouseDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpBanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.PlayerWarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.StaffCaseModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.StaffActivityEntryModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.StaffActivityLogDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.StaffNoteModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarpModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.WarningEscalationRuleModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.WarningModel;
 import xyz.thelegacyvoyage.hyessentialsx.storage.JsonStorageBackend;
 import xyz.thelegacyvoyage.hyessentialsx.storage.MongoStorageBackend;
@@ -44,6 +46,7 @@ public final class StorageManager {
     private final Gson snapshotGson;
 
     private final ConcurrentHashMap<UUID, PlayerDataModel> playerCache = new ConcurrentHashMap<>();
+    private final Set<UUID> playerLoadFailures = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<String, UUID> nameIndex = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, WarpModel> warps = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, KitModel> kits = new ConcurrentHashMap<>();
@@ -168,7 +171,7 @@ public final class StorageManager {
 
     @Nonnull
     public PlayerDataModel getPlayerData(@Nonnull UUID uuid) {
-        return playerCache.computeIfAbsent(uuid, id -> sanitizePlayerData(backend.loadPlayerData(id)));
+        return playerCache.computeIfAbsent(uuid, this::loadPlayerDataSafely);
     }
 
     public void savePlayerData(@Nonnull UUID uuid) {
@@ -178,6 +181,10 @@ public final class StorageManager {
     }
 
     public void savePlayerDataAsync(@Nonnull UUID uuid, @Nonnull PlayerDataModel data) {
+        if (playerLoadFailures.contains(uuid)) {
+            Log.warn("Skipping save for " + uuid + " because player data failed to load. Fix or remove the stored record, then reload.");
+            return;
+        }
         PlayerDataModel snapshot = snapshotPlayerData(data);
         submitIoTask(() -> backend.savePlayerData(uuid, snapshot));
     }
@@ -407,6 +414,79 @@ public final class StorageManager {
         return count;
     }
 
+    @Nonnull
+    public Map<String, PlayerWarpModel> getPlayerWarps(@Nonnull UUID ownerId) {
+        PlayerDataModel data = getPlayerData(ownerId);
+        data.sanitizeForStorage();
+        return Map.copyOf(data.getPlayerWarps());
+    }
+
+    @Nullable
+    public PlayerWarpModel getPlayerWarp(@Nonnull UUID ownerId, @Nonnull String name) {
+        return getPlayerWarps(ownerId).get(PlayerWarpModel.normalizeName(name));
+    }
+
+    public void setPlayerWarp(@Nonnull UUID ownerId, @Nonnull PlayerWarpModel warp) {
+        PlayerDataModel data = getPlayerData(ownerId);
+        warp.sanitize();
+        data.getPlayerWarps().put(warp.getName(), warp);
+        data.sanitizeForStorage();
+        savePlayerDataAsync(ownerId, data);
+    }
+
+    public boolean deletePlayerWarp(@Nonnull UUID ownerId, @Nonnull String name) {
+        PlayerDataModel data = getPlayerData(ownerId);
+        PlayerWarpModel removed = data.getPlayerWarps().remove(PlayerWarpModel.normalizeName(name));
+        if (removed != null) {
+            savePlayerDataAsync(ownerId, data);
+            return true;
+        }
+        return false;
+    }
+
+    @Nonnull
+    public java.util.List<PlayerWarpModel> listPlayerWarps() {
+        java.util.List<PlayerWarpModel> result = new java.util.ArrayList<>();
+        for (UUID id : listPlayerIds()) {
+            PlayerDataModel data = getPlayerData(id);
+            data.sanitizeForStorage();
+            result.addAll(data.getPlayerWarps().values());
+        }
+        result.sort(java.util.Comparator.comparing(PlayerWarpModel::getName));
+        return java.util.List.copyOf(result);
+    }
+
+    @Nonnull
+    public synchronized java.util.List<WarningEscalationRuleModel> getWarningEscalationRules() {
+        StaffActivityLogDataModel snapshot = getStaffActivityLog();
+        return java.util.List.copyOf(snapshot.getWarningEscalationRules());
+    }
+
+    public synchronized void saveWarningEscalationRules(@Nonnull java.util.List<WarningEscalationRuleModel> rules) {
+        staffActivityLog.setWarningEscalationRules(new java.util.ArrayList<>(rules));
+        staffActivityLog.sanitize(MAX_STAFF_ACTIVITY_ENTRIES);
+        StaffActivityLogDataModel snapshot = getStaffActivityLog();
+        submitIoTask(() -> backend.saveStaffActivityLog(snapshot));
+    }
+
+    public synchronized void setWarningEscalationRule(@Nonnull WarningEscalationRuleModel rule) {
+        java.util.List<WarningEscalationRuleModel> rules = new java.util.ArrayList<>(staffActivityLog.getWarningEscalationRules());
+        String id = rule.getId();
+        boolean replaced = false;
+        for (int i = 0; i < rules.size(); i++) {
+            WarningEscalationRuleModel existing = rules.get(i);
+            if (existing != null && existing.getId().equalsIgnoreCase(id)) {
+                rules.set(i, rule);
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) {
+            rules.add(rule);
+        }
+        saveWarningEscalationRules(rules);
+    }
+
     public void addStaffCase(@Nonnull UUID uuid, @Nonnull StaffCaseModel staffCase) {
         PlayerDataModel data = getPlayerData(uuid);
         data.getStaffCases().add(staffCase);
@@ -505,6 +585,10 @@ public final class StorageManager {
             backend.saveAuctionHouseData(getAuctionHouseData());
             backend.saveStaffActivityLog(getStaffActivityLog());
             for (Map.Entry<UUID, PlayerDataModel> entry : playerCache.entrySet()) {
+                if (playerLoadFailures.contains(entry.getKey())) {
+                    Log.warn("Skipping shutdown save for " + entry.getKey() + " because player data failed to load.");
+                    continue;
+                }
                 backend.savePlayerData(entry.getKey(), snapshotPlayerData(entry.getValue()));
             }
         } catch (Exception e) {
@@ -541,6 +625,18 @@ public final class StorageManager {
         PlayerDataModel safe = data != null ? data : new PlayerDataModel();
         safe.sanitizeForStorage();
         return safe;
+    }
+
+    @Nonnull
+    private PlayerDataModel loadPlayerDataSafely(@Nonnull UUID uuid) {
+        PlayerDataModel loaded = backend.loadPlayerData(uuid);
+        if (loaded == null) {
+            playerLoadFailures.add(uuid);
+            Log.error("Player data for " + uuid + " could not be loaded. Using temporary blank data and blocking saves for this UUID to avoid overwriting existing data.");
+            return new PlayerDataModel();
+        }
+        playerLoadFailures.remove(uuid);
+        return sanitizePlayerData(loaded);
     }
 
     @Nonnull

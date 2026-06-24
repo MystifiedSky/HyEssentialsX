@@ -86,6 +86,7 @@ public final class SqliteStorageBackend implements StorageBackend {
             }
         } catch (Exception e) {
             Log.warn("Failed to load player data from SQLite: " + e.getMessage());
+            return null;
         }
         return new PlayerDataModel();
     }

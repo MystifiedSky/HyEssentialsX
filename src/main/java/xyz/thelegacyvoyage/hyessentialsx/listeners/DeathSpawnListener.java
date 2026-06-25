@@ -68,13 +68,13 @@ public final class DeathSpawnListener {
                 @Nonnull World world
         ) {
             String worldName = world.getName();
-            for (String source : configManager.getSpawnRespawnPriority()) {
+            for (String source : configManager.getSpawnRouteOrder("death")) {
                 switch (source) {
                     case "bed" -> {
                         if (tryTeleportToBed(ref, store, buffer, worldName)) return;
                     }
-                    case "setspawn" -> {
-                        SpawnModel spawn = spawnManager.getConfiguredSpawnForPlayer(player);
+                    default -> {
+                        SpawnModel spawn = spawnManager.getSpawnForRouteSource(world, player, source);
                         if (spawn == null) break;
                         if (!worldName.equalsIgnoreCase(spawn.getWorldName())) {
                             if (Universe.get().getWorld(spawn.getWorldName()) == null) {
@@ -90,19 +90,6 @@ public final class DeathSpawnListener {
                             break;
                         }
                         return;
-                    }
-                    case "world" -> {
-                        if (!configManager.isUseWorldDefaultSpawnIfUnset()) break;
-                        SpawnModel spawn = spawnManager.getWorldDefaultSpawn(world, player.getUuid());
-                        if (spawn == null) break;
-                        String err = TeleportationUtil.teleportToSpawn(store, ref, spawn, buffer);
-                        if (err != null) {
-                            Log.warn("Respawn teleport failed: " + err);
-                            break;
-                        }
-                        return;
-                    }
-                    default -> {
                     }
                 }
             }

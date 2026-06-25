@@ -11,18 +11,23 @@ import com.hypixel.hytale.server.core.universe.world.spawn.GlobalSpawnProvider;
 import com.hypixel.hytale.server.core.universe.world.spawn.ISpawnProvider;
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import xyz.thelegacyvoyage.hyessentialsx.models.SpawnRouteGroupModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
 
 public final class SpawnManager {
@@ -103,14 +108,56 @@ public final class SpawnManager {
 
     @Nullable
     public SpawnModel getSpawnForPlayer(@Nonnull World world, @Nonnull UUID playerId) {
-        SpawnModel configuredSpawn = getConfiguredSpawnForPlayer(playerId);
-        if (configuredSpawn != null) {
-            return configuredSpawn;
+        return getRoutedSpawn(world, playerId, null, "command");
+    }
+
+    @Nullable
+    public SpawnModel getRoutedSpawn(@Nonnull World world, @Nonnull PlayerRef player, @Nonnull String route) {
+        return getRoutedSpawn(world, player.getUuid(), player, route);
+    }
+
+    @Nullable
+    public SpawnModel getRoutedSpawn(@Nonnull World world,
+                                     @Nonnull UUID playerId,
+                                     @Nullable PlayerRef player,
+                                     @Nonnull String route) {
+        List<String> order = config.getSpawnRouteOrder(route);
+        if (order.isEmpty()) return null;
+        for (String source : order) {
+            if ("bed".equals(source)) {
+                continue;
+            }
+            SpawnModel spawn = getSpawnForRouteSource(world, playerId, player, source);
+            if (spawn != null) {
+                return spawn;
+            }
         }
-        if (!config.isUseWorldDefaultSpawnIfUnset()) {
-            return null;
-        }
-        return getWorldDefaultSpawn(world, playerId);
+        return null;
+    }
+
+    @Nullable
+    public SpawnModel getSpawnForRouteSource(@Nonnull World world,
+                                             @Nonnull PlayerRef player,
+                                             @Nonnull String source) {
+        return getSpawnForRouteSource(world, player.getUuid(), player, source);
+    }
+
+    @Nullable
+    public SpawnModel getSpawnForRouteSource(@Nonnull World world,
+                                             @Nonnull UUID playerId,
+                                             @Nullable PlayerRef player,
+                                             @Nonnull String source) {
+        return switch (normalizeRouteSource(source)) {
+            case "firstjoin" -> selectNamedSpawn(List.of(config.getFirstJoinSpawnName()), world, playerId, player);
+            case "death" -> selectNamedSpawn(List.of(config.getDeathSpawnName()), world, playerId, player);
+            case "group" -> getGroupRouteSpawn(world, playerId, player);
+            case "world" -> selectNamedSpawn(config.getWorldSpawnRoute(world.getName()), world, playerId, player);
+            case "permission" -> getPermissionSpawn(playerId);
+            case "main" -> getSpawn();
+            case "setspawn" -> getConfiguredSpawnForPlayer(playerId);
+            case "worlddefault" -> config.isUseWorldDefaultSpawnIfUnset() ? getWorldDefaultSpawn(world, playerId) : null;
+            default -> null;
+        };
     }
 
     public void queueRespawnTeleport(@Nonnull UUID playerId, @Nonnull SpawnModel spawn) {
@@ -237,6 +284,89 @@ public final class SpawnManager {
             }
         }
         return null;
+    }
+
+    @Nullable
+    private SpawnModel getGroupRouteSpawn(@Nonnull World world,
+                                          @Nonnull UUID playerId,
+                                          @Nullable PlayerRef player) {
+        List<SpawnRouteGroupModel> groups = new ArrayList<>(config.getGroupSpawnRoutes());
+        groups.sort(Comparator.comparingInt(SpawnRouteGroupModel::getPriority).reversed()
+                .thenComparing(SpawnRouteGroupModel::getId));
+        for (SpawnRouteGroupModel group : groups) {
+            if (group.getPermission().isBlank()) continue;
+            if (!PermissionsModule.get().hasPermission(playerId, group.getPermission())) continue;
+            SpawnModel spawn = selectNamedSpawn(group.getSpawns(), world, playerId, player);
+            if (spawn != null) {
+                return spawn;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private SpawnModel selectNamedSpawn(@Nonnull List<String> names,
+                                        @Nonnull World world,
+                                        @Nonnull UUID playerId,
+                                        @Nullable PlayerRef player) {
+        List<SpawnModel> candidates = new ArrayList<>();
+        for (String name : names) {
+            if (name == null || name.isBlank()) continue;
+            SpawnModel spawn = getNamedSpawn(name);
+            if (spawn != null) {
+                candidates.add(spawn);
+            }
+        }
+        if (candidates.isEmpty()) return null;
+        if (candidates.size() == 1) return candidates.get(0);
+
+        String mode = config.getSpawnRouteSelectionMode();
+        if ("random".equals(mode)) {
+            return candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+        }
+        if ("nearest".equals(mode)) {
+            SpawnModel nearest = nearestSpawn(candidates, world, player);
+            if (nearest != null) return nearest;
+        }
+        return candidates.get(0);
+    }
+
+    @Nullable
+    private SpawnModel nearestSpawn(@Nonnull List<SpawnModel> candidates,
+                                    @Nonnull World world,
+                                    @Nullable PlayerRef player) {
+        if (player == null || player.getTransform() == null || player.getTransform().getPosition() == null) {
+            return null;
+        }
+        Vector3d pos = player.getTransform().getPosition();
+        SpawnModel best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (SpawnModel spawn : candidates) {
+            double distance = distanceSquared(pos, world.getName(), spawn);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = spawn;
+            }
+        }
+        return best;
+    }
+
+    private double distanceSquared(@Nonnull Vector3d pos, @Nonnull String worldName, @Nonnull SpawnModel spawn) {
+        double penalty = worldName.equalsIgnoreCase(spawn.getWorldName()) ? 0.0D : 1.0E18D;
+        double dx = pos.x() - spawn.getX();
+        double dy = pos.y() - spawn.getY();
+        double dz = pos.z() - spawn.getZ();
+        return penalty + (dx * dx) + (dy * dy) + (dz * dz);
+    }
+
+    @Nonnull
+    private String normalizeRouteSource(@Nullable String source) {
+        if (source == null) return "";
+        String key = source.trim().toLowerCase(Locale.ROOT).replace("-", "").replace("_", "");
+        if ("spawn".equals(key) || "set".equals(key)) return "setspawn";
+        if ("worldfallback".equals(key) || "defaultworld".equals(key)) return "worlddefault";
+        if ("first".equals(key) || "firstjoinspawn".equals(key)) return "firstjoin";
+        return key;
     }
 
     @Nullable

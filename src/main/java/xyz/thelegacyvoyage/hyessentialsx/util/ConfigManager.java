@@ -10,6 +10,7 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import xyz.thelegacyvoyage.hyessentialsx.models.AnnouncementPresetModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlaytimeRewardModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.SpawnRouteGroupModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.RankupTier;
 import xyz.thelegacyvoyage.hyessentialsx.util.PluginInfoUtil;
@@ -40,6 +41,11 @@ public final class ConfigManager {
     private static final int DEFAULT_COMMAND_COOLDOWN_SECONDS = 30;
     private static final int DEFAULT_TELEPORT_WARMUP_SECONDS = 5;
     private static final List<String> DEFAULT_SPAWN_RESPAWN_PRIORITY = List.of("bed", "setspawn", "world");
+    private static final List<String> DEFAULT_SPAWN_COMMAND_ROUTE = List.of("permission", "main", "worlddefault");
+    private static final List<String> DEFAULT_SPAWN_FIRST_JOIN_ROUTE = List.of("firstjoin", "group", "world", "permission", "main", "worlddefault");
+    private static final List<String> DEFAULT_SPAWN_JOIN_ROUTE = List.of();
+    private static final List<String> DEFAULT_SPAWN_RESPAWN_ROUTE = List.of("bed", "death", "setspawn", "worlddefault");
+    private static final List<String> DEFAULT_SPAWN_DEATH_ROUTE = List.of("bed", "death", "group", "world", "setspawn", "worlddefault");
     private static final List<String> DEFAULT_SPAWN_PROTECTION_WORLDS = List.of("default");
     private static final List<String> DEFAULT_COMBAT_BLOCKED_COMMANDS = List.of("home", "spawn", "tpa", "tp", "warp");
     private static final int DEFAULT_SCOREBOARD_MAX_LINES = 30;
@@ -162,6 +168,12 @@ public final class ConfigManager {
     private int respawnInvulnerabilityWorldSeconds = 5;
     private boolean respawnInvulnerabilityCancelOnAttack = true;
     private List<String> spawnRespawnPriority = DEFAULT_SPAWN_RESPAWN_PRIORITY;
+    private String spawnRouteSelectionMode = "first";
+    private List<String> spawnRouteCommandOrder = DEFAULT_SPAWN_COMMAND_ROUTE;
+    private List<String> spawnRouteFirstJoinOrder = DEFAULT_SPAWN_FIRST_JOIN_ROUTE;
+    private List<String> spawnRouteJoinOrder = DEFAULT_SPAWN_JOIN_ROUTE;
+    private List<String> spawnRouteRespawnOrder = DEFAULT_SPAWN_RESPAWN_ROUTE;
+    private List<String> spawnRouteDeathOrder = DEFAULT_SPAWN_DEATH_ROUTE;
     private boolean combatLogEnabled = false;
     private boolean combatLogOnlyPlayerDamage = true;
     private int combatLogTimeSeconds = 30;
@@ -334,6 +346,10 @@ public final class ConfigManager {
     private float spawnYaw = 0f;
     private float spawnPitch = 0f;
     private final Map<String, SpawnModel> namedSpawns = new LinkedHashMap<>();
+    private String firstJoinSpawnName = "";
+    private String deathSpawnName = "";
+    private final Map<String, List<String>> worldSpawnRoutes = new LinkedHashMap<>();
+    private final Map<String, SpawnRouteGroupModel> groupSpawnRoutes = new LinkedHashMap<>();
 
     private String storageType = "sqlite";
     private String sqliteFile = "hyessentialsx.db";
@@ -716,6 +732,7 @@ public final class ConfigManager {
         spawn.addProperty("warmupSeconds", spawnWarmupSeconds);
         spawn.add("respawnPriority", toArray(spawnRespawnPriority));
         spawn.add("named", toSpawnMapObject(namedSpawns));
+        spawn.add("routing", toSpawnRoutingObject());
         root.add("spawn", spawn);
 
         JsonObject combatLog = new JsonObject();
@@ -1270,6 +1287,9 @@ public final class ConfigManager {
             spawnPitch = (float) dbl(spawn, "pitch", 0.0);
             spawnWarmupSeconds = intVal(spawn, "warmupSeconds", spawnWarmupSeconds);
             spawnRespawnPriority = normalizeRespawnPriority(list(spawn, "respawnPriority", spawnRespawnPriority));
+            if (readSpawnRouting(spawn)) {
+                changed = true;
+            }
             namedSpawns.clear();
             JsonObject namedSpawnObject = getObjectOrNull(spawn, "named");
             if (namedSpawnObject == null) {
@@ -2931,6 +2951,135 @@ public final class ConfigManager {
     }
 
     @Nonnull
+    public String getSpawnRouteSelectionMode() {
+        return spawnRouteSelectionMode;
+    }
+
+    public void setSpawnRouteSelectionMode(@Nonnull String mode) {
+        spawnRouteSelectionMode = normalizeSpawnSelectionMode(mode);
+        save();
+    }
+
+    @Nonnull
+    public List<String> getSpawnRouteOrder(@Nonnull String route) {
+        return switch (normalizeSpawnRouteName(route)) {
+            case "firstjoin" -> Collections.unmodifiableList(spawnRouteFirstJoinOrder);
+            case "join" -> Collections.unmodifiableList(spawnRouteJoinOrder);
+            case "respawn" -> Collections.unmodifiableList(spawnRouteRespawnOrder);
+            case "death" -> Collections.unmodifiableList(spawnRouteDeathOrder);
+            default -> Collections.unmodifiableList(spawnRouteCommandOrder);
+        };
+    }
+
+    public void setSpawnRouteOrder(@Nonnull String route, @Nonnull List<String> order) {
+        List<String> normalized = normalizeSpawnRouteOrder(order, defaultSpawnRouteOrder(route));
+        switch (normalizeSpawnRouteName(route)) {
+            case "firstjoin" -> spawnRouteFirstJoinOrder = normalized;
+            case "join" -> spawnRouteJoinOrder = normalized;
+            case "respawn" -> {
+                spawnRouteRespawnOrder = normalized;
+                spawnRespawnPriority = normalizeRespawnPriority(normalized);
+            }
+            case "death" -> spawnRouteDeathOrder = normalized;
+            default -> spawnRouteCommandOrder = normalized;
+        }
+        save();
+    }
+
+    @Nonnull
+    public String getFirstJoinSpawnName() {
+        return firstJoinSpawnName;
+    }
+
+    public void setFirstJoinSpawnName(@Nullable String name) {
+        firstJoinSpawnName = normalizeOptionalSpawnRouteName(name);
+        save();
+    }
+
+    @Nonnull
+    public String getDeathSpawnName() {
+        return deathSpawnName;
+    }
+
+    public void setDeathSpawnName(@Nullable String name) {
+        deathSpawnName = normalizeOptionalSpawnRouteName(name);
+        save();
+    }
+
+    @Nonnull
+    public List<String> getWorldSpawnRoute(@Nullable String worldName) {
+        String key = normalizeRouteKey(worldName);
+        if (key == null) return List.of();
+        List<String> spawns = worldSpawnRoutes.get(key);
+        return spawns == null ? List.of() : List.copyOf(spawns);
+    }
+
+    @Nonnull
+    public Map<String, List<String>> getWorldSpawnRoutes() {
+        Map<String, List<String>> out = new LinkedHashMap<>();
+        for (Map.Entry<String, List<String>> entry : worldSpawnRoutes.entrySet()) {
+            out.put(entry.getKey(), List.copyOf(entry.getValue()));
+        }
+        return Collections.unmodifiableMap(out);
+    }
+
+    public void setWorldSpawnRoute(@Nonnull String worldName, @Nonnull List<String> spawns) {
+        String key = normalizeRouteKey(worldName);
+        if (key == null) {
+            throw new IllegalArgumentException("Invalid world route: " + worldName);
+        }
+        List<String> normalized = normalizeSpawnNameList(spawns);
+        if (normalized.isEmpty()) {
+            worldSpawnRoutes.remove(key);
+        } else {
+            worldSpawnRoutes.put(key, normalized);
+        }
+        save();
+    }
+
+    @Nonnull
+    public List<SpawnRouteGroupModel> getGroupSpawnRoutes() {
+        List<SpawnRouteGroupModel> out = new ArrayList<>();
+        for (SpawnRouteGroupModel group : groupSpawnRoutes.values()) {
+            out.add(copySpawnRouteGroup(group));
+        }
+        out.sort(Comparator.comparingInt(SpawnRouteGroupModel::getPriority).reversed()
+                .thenComparing(SpawnRouteGroupModel::getId));
+        return Collections.unmodifiableList(out);
+    }
+
+    @Nullable
+    public SpawnRouteGroupModel getGroupSpawnRoute(@Nullable String id) {
+        String key = normalizeRouteKey(id);
+        if (key == null) return null;
+        SpawnRouteGroupModel group = groupSpawnRoutes.get(key);
+        return group == null ? null : copySpawnRouteGroup(group);
+    }
+
+    public void setGroupSpawnRoute(@Nonnull SpawnRouteGroupModel group) {
+        String key = normalizeRouteKey(group.getId());
+        if (key == null) {
+            throw new IllegalArgumentException("Invalid group route: " + group.getId());
+        }
+        groupSpawnRoutes.put(key, copySpawnRouteGroup(new SpawnRouteGroupModel(
+                key,
+                group.getPermission(),
+                group.getPriority(),
+                normalizeSpawnNameList(group.getSpawns())
+        )));
+        save();
+    }
+
+    public boolean clearGroupSpawnRoute(@Nullable String id) {
+        String key = normalizeRouteKey(id);
+        if (key == null) return false;
+        SpawnRouteGroupModel removed = groupSpawnRoutes.remove(key);
+        if (removed == null) return false;
+        save();
+        return true;
+    }
+
+    @Nonnull
     public String getStorageType() {
         return storageType;
     }
@@ -3279,6 +3428,7 @@ public final class ConfigManager {
         spawn.addProperty("warmupSeconds", spawnWarmupSeconds);
         spawn.add("respawnPriority", toArray(spawnRespawnPriority));
         spawn.add("named", toSpawnMapObject(namedSpawns));
+        spawn.add("routing", toSpawnRoutingObject());
 
         JsonObject combatLog = obj(root, "combatLog");
         combatLog.addProperty("enabled", combatLogEnabled);
@@ -4036,6 +4186,57 @@ public final class ConfigManager {
         );
     }
 
+    private boolean readSpawnRouting(@Nonnull JsonObject spawn) {
+        boolean changed = false;
+        JsonObject routing = obj(spawn, "routing");
+        spawnRouteSelectionMode = normalizeSpawnSelectionMode(str(routing, "selectionMode", spawnRouteSelectionMode));
+        firstJoinSpawnName = normalizeOptionalSpawnRouteName(str(routing, "firstJoinSpawn", firstJoinSpawnName));
+        deathSpawnName = normalizeOptionalSpawnRouteName(str(routing, "deathSpawn", deathSpawnName));
+
+        JsonObject orders = obj(routing, "orders");
+        spawnRouteCommandOrder = normalizeSpawnRouteOrder(list(orders, "command", spawnRouteCommandOrder), DEFAULT_SPAWN_COMMAND_ROUTE);
+        spawnRouteFirstJoinOrder = normalizeSpawnRouteOrder(list(orders, "firstJoin", spawnRouteFirstJoinOrder), DEFAULT_SPAWN_FIRST_JOIN_ROUTE);
+        spawnRouteJoinOrder = normalizeSpawnRouteOrder(listAllowEmpty(orders, "join", spawnRouteJoinOrder), DEFAULT_SPAWN_JOIN_ROUTE);
+        List<String> respawnDefault = spawnRespawnPriority.isEmpty() ? DEFAULT_SPAWN_RESPAWN_ROUTE : spawnRespawnPriority;
+        spawnRouteRespawnOrder = normalizeSpawnRouteOrder(list(orders, "respawn", respawnDefault), DEFAULT_SPAWN_RESPAWN_ROUTE);
+        spawnRouteDeathOrder = normalizeSpawnRouteOrder(list(orders, "death", spawnRouteDeathOrder), DEFAULT_SPAWN_DEATH_ROUTE);
+
+        worldSpawnRoutes.clear();
+        JsonObject worlds = getObjectOrNull(routing, "worlds");
+        if (worlds != null) {
+            for (Map.Entry<String, JsonElement> entry : worlds.entrySet()) {
+                String key = normalizeRouteKey(entry.getKey());
+                List<String> names = normalizeSpawnNameList(readRouteSpawnList(entry.getValue()));
+                if (key != null && !names.isEmpty()) {
+                    worldSpawnRoutes.put(key, names);
+                }
+            }
+        }
+
+        groupSpawnRoutes.clear();
+        JsonElement groupsElement = routing.get("groups");
+        if (groupsElement != null && groupsElement.isJsonArray()) {
+            for (JsonElement element : groupsElement.getAsJsonArray()) {
+                SpawnRouteGroupModel group = readSpawnRouteGroup(element);
+                if (group != null) {
+                    groupSpawnRoutes.put(group.getId(), group);
+                }
+            }
+        } else if (groupsElement != null && groupsElement.isJsonObject()) {
+            for (Map.Entry<String, JsonElement> entry : groupsElement.getAsJsonObject().entrySet()) {
+                SpawnRouteGroupModel group = readSpawnRouteGroup(entry.getValue());
+                if (group == null) continue;
+                if (group.getId().isBlank()) {
+                    group.setId(normalizeRouteKey(entry.getKey()));
+                }
+                if (!group.getId().isBlank()) {
+                    groupSpawnRoutes.put(group.getId(), group);
+                }
+            }
+        }
+        return changed;
+    }
+
     @Nullable
     private String normalizeSpawnName(@Nullable String rawName) {
         if (rawName == null) return null;
@@ -4047,6 +4248,133 @@ public final class ConfigManager {
     }
 
     @Nonnull
+    private String normalizeOptionalSpawnRouteName(@Nullable String rawName) {
+        String key = normalizeSpawnName(rawName);
+        return key == null ? "" : key;
+    }
+
+    @Nullable
+    private String normalizeRouteKey(@Nullable String rawName) {
+        if (rawName == null) return null;
+        String value = rawName.trim().toLowerCase(Locale.ROOT);
+        if (!NAMED_SPAWN_PATTERN.matcher(value).matches()) {
+            return null;
+        }
+        return value;
+    }
+
+    @Nonnull
+    private String normalizeSpawnSelectionMode(@Nullable String rawMode) {
+        if (rawMode == null) return "first";
+        String mode = rawMode.trim().toLowerCase(Locale.ROOT);
+        return switch (mode) {
+            case "random", "nearest" -> mode;
+            default -> "first";
+        };
+    }
+
+    @Nonnull
+    private String normalizeSpawnRouteName(@Nullable String rawRoute) {
+        if (rawRoute == null) return "command";
+        String route = rawRoute.trim().toLowerCase(Locale.ROOT).replace("-", "").replace("_", "");
+        return switch (route) {
+            case "first", "firstjoin", "firstlogin" -> "firstjoin";
+            case "login", "normaljoin", "join" -> "join";
+            case "respawn" -> "respawn";
+            case "death" -> "death";
+            default -> "command";
+        };
+    }
+
+    @Nonnull
+    private List<String> defaultSpawnRouteOrder(@Nonnull String route) {
+        return switch (normalizeSpawnRouteName(route)) {
+            case "firstjoin" -> DEFAULT_SPAWN_FIRST_JOIN_ROUTE;
+            case "join" -> DEFAULT_SPAWN_JOIN_ROUTE;
+            case "respawn" -> DEFAULT_SPAWN_RESPAWN_ROUTE;
+            case "death" -> DEFAULT_SPAWN_DEATH_ROUTE;
+            default -> DEFAULT_SPAWN_COMMAND_ROUTE;
+        };
+    }
+
+    @Nonnull
+    private List<String> normalizeSpawnRouteOrder(@Nonnull List<String> input, @Nonnull List<String> fallback) {
+        if (input.isEmpty()) return fallback;
+        List<String> out = new ArrayList<>();
+        for (String raw : input) {
+            if (raw == null) continue;
+            String key = raw.trim().toLowerCase(Locale.ROOT).replace("-", "").replace("_", "");
+            if (key.isBlank()) continue;
+            if ("spawn".equals(key) || "set".equals(key)) key = "setspawn";
+            if ("worlddefault".equals(key) || "defaultworld".equals(key) || "worldfallback".equals(key)) key = "worlddefault";
+            if ("first".equals(key) || "firstjoinspawn".equals(key)) key = "firstjoin";
+            if (!List.of("bed", "firstjoin", "death", "group", "world", "permission", "main", "setspawn", "worlddefault").contains(key)) {
+                continue;
+            }
+            if (!out.contains(key)) {
+                out.add(key);
+            }
+        }
+        return out.isEmpty() ? fallback : out;
+    }
+
+    @Nonnull
+    private List<String> normalizeSpawnNameList(@Nonnull List<String> input) {
+        List<String> out = new ArrayList<>();
+        for (String raw : input) {
+            String key = normalizeSpawnName(raw);
+            if (key != null && !out.contains(key)) {
+                out.add(key);
+            }
+        }
+        return out;
+    }
+
+    @Nonnull
+    private List<String> readRouteSpawnList(@Nullable JsonElement element) {
+        if (element == null) return List.of();
+        if (element.isJsonArray()) {
+            List<String> out = new ArrayList<>();
+            for (JsonElement item : element.getAsJsonArray()) {
+                if (item != null && item.isJsonPrimitive()) {
+                    out.add(item.getAsString());
+                }
+            }
+            return out;
+        }
+        if (element.isJsonPrimitive()) {
+            return splitRouteNames(element.getAsString());
+        }
+        return List.of();
+    }
+
+    @Nonnull
+    private List<String> splitRouteNames(@Nullable String raw) {
+        if (raw == null || raw.isBlank()) return List.of();
+        List<String> out = new ArrayList<>();
+        for (String part : raw.split(",")) {
+            String value = part.trim();
+            if (!value.isBlank()) {
+                out.add(value);
+            }
+        }
+        return out;
+    }
+
+    @Nullable
+    private SpawnRouteGroupModel readSpawnRouteGroup(@Nullable JsonElement element) {
+        if (element == null || !element.isJsonObject()) return null;
+        JsonObject obj = element.getAsJsonObject();
+        String id = normalizeRouteKey(str(obj, "id", ""));
+        String permission = str(obj, "permission", "").trim();
+        List<String> spawns = normalizeSpawnNameList(readRouteSpawnList(obj.get("spawns")));
+        if (id == null || id.isBlank() || permission.isBlank() || spawns.isEmpty()) {
+            return null;
+        }
+        return new SpawnRouteGroupModel(id, permission, intVal(obj, "priority", 0), spawns);
+    }
+
+    @Nonnull
     private SpawnModel copySpawnModel(@Nonnull SpawnModel spawn) {
         return new SpawnModel(
                 spawn.getWorldName(),
@@ -4055,6 +4383,16 @@ public final class ConfigManager {
                 spawn.getZ(),
                 spawn.getYaw(),
                 spawn.getPitch()
+        );
+    }
+
+    @Nonnull
+    private SpawnRouteGroupModel copySpawnRouteGroup(@Nonnull SpawnRouteGroupModel group) {
+        return new SpawnRouteGroupModel(
+                group.getId(),
+                group.getPermission(),
+                group.getPriority(),
+                group.getSpawns()
         );
     }
 
@@ -4338,6 +4676,40 @@ public final class ConfigManager {
             obj.add(entry.getKey(), spawnObj);
         }
         return obj;
+    }
+
+    @Nonnull
+    private JsonObject toSpawnRoutingObject() {
+        JsonObject routing = new JsonObject();
+        routing.addProperty("selectionMode", spawnRouteSelectionMode);
+        routing.addProperty("firstJoinSpawn", firstJoinSpawnName);
+        routing.addProperty("deathSpawn", deathSpawnName);
+
+        JsonObject orders = new JsonObject();
+        orders.add("command", toArray(spawnRouteCommandOrder));
+        orders.add("firstJoin", toArray(spawnRouteFirstJoinOrder));
+        orders.add("join", toArray(spawnRouteJoinOrder));
+        orders.add("respawn", toArray(spawnRouteRespawnOrder));
+        orders.add("death", toArray(spawnRouteDeathOrder));
+        routing.add("orders", orders);
+
+        JsonObject worlds = new JsonObject();
+        for (Map.Entry<String, List<String>> entry : worldSpawnRoutes.entrySet()) {
+            worlds.add(entry.getKey(), toArray(entry.getValue()));
+        }
+        routing.add("worlds", worlds);
+
+        JsonArray groups = new JsonArray();
+        for (SpawnRouteGroupModel group : getGroupSpawnRoutes()) {
+            JsonObject obj = new JsonObject();
+            obj.addProperty("id", group.getId());
+            obj.addProperty("permission", group.getPermission());
+            obj.addProperty("priority", group.getPriority());
+            obj.add("spawns", toArray(group.getSpawns()));
+            groups.add(obj);
+        }
+        routing.add("groups", groups);
+        return routing;
     }
 
     @Nonnull

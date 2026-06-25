@@ -77,6 +77,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.VanishCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.spawn.DelSpawnCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.spawn.SetSpawnCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.spawn.SpawnCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.spawn.SpawnRouteCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.cheat.InfiniteStaminaCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.teleport.JumpToCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.teleport.RtpCommand;
@@ -583,6 +584,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             reg.accept(new SpawnCommand(spawnManager, backManager, tpManager, configManager, cooldownManager));
             reg.accept(new SetSpawnCommand(spawnManager, configManager));
             reg.accept(new DelSpawnCommand(spawnManager, configManager));
+            reg.accept(new SpawnRouteCommand(spawnManager, configManager));
         }
         if (configManager.isHomesEnabled()) {
             reg.accept(new SetHomeCommand(homeManager, configManager));
@@ -732,7 +734,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
 
     private void registerListeners() {
         EventRegistry bus = getEventRegistry();
-        new PlayerListener(configManager, storage, vanishManager, mailManager).register(bus);
+        new PlayerListener(configManager, storage, vanishManager, mailManager, spawnManager).register(bus);
         new PlayerDataListener(
                 storage,
                 banManager,

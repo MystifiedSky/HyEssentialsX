@@ -13,15 +13,22 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MailManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 /**
@@ -38,15 +45,19 @@ public class PlayerListener {
     private final StorageManager storage;
     private final VanishManager vanishManager;
     private final MailManager mailManager;
+    private final SpawnManager spawnManager;
+    private final Set<UUID> pendingFirstJoinRoutes = ConcurrentHashMap.newKeySet();
 
     public PlayerListener(@Nonnull ConfigManager config,
                           @Nonnull StorageManager storage,
                           @Nonnull VanishManager vanishManager,
-                          @Nonnull MailManager mailManager) {
+                          @Nonnull MailManager mailManager,
+                          @Nonnull SpawnManager spawnManager) {
         this.config = config;
         this.storage = storage;
         this.vanishManager = vanishManager;
         this.mailManager = mailManager;
+        this.spawnManager = spawnManager;
     }
 
     /**
@@ -97,6 +108,9 @@ public class PlayerListener {
         if (player == null) return;
 
         boolean firstJoin = isFirstJoin(player);
+        if (firstJoin) {
+            pendingFirstJoinRoutes.add(player.getUuid());
+        }
         if (firstJoin && config.isWelcomeEnabled()) {
             sendWelcome(player, playerName);
         }
@@ -136,6 +150,7 @@ public class PlayerListener {
             Store<com.hypixel.hytale.server.core.universe.world.storage.EntityStore> store = ref.getStore();
             PlayerRef player = store.getComponent(ref, PlayerRef.getComponentType());
             if (player == null) return;
+            applyJoinRoute(store, ref, player, world);
             HiddenPlayersManager hidden = player.getHiddenPlayersManager();
             if (hidden == null) return;
             for (var vanishedId : vanishManager.getVanishedPlayers()) {
@@ -152,11 +167,29 @@ public class PlayerListener {
      */
     private void onPlayerDisconnect(PlayerDisconnectEvent event) {
         String playerName = event.getPlayerRef() != null ? event.getPlayerRef().getUsername() : "Unknown";
+        if (event.getPlayerRef() != null) {
+            pendingFirstJoinRoutes.remove(event.getPlayerRef().getUuid());
+        }
 
         LOGGER.at(Level.INFO).log("[HyEssentialsX] Player %s disconnected", playerName);
 
         if (config.isJoinQuitEnabled()) {
             broadcastLines(config.getQuitMessages(), playerName, event.getPlayerRef(), false);
+        }
+    }
+
+    private void applyJoinRoute(@Nonnull Store<com.hypixel.hytale.server.core.universe.world.storage.EntityStore> store,
+                                @Nonnull Ref<com.hypixel.hytale.server.core.universe.world.storage.EntityStore> ref,
+                                @Nonnull PlayerRef player,
+                                @Nonnull com.hypixel.hytale.server.core.universe.world.World world) {
+        if (!config.isSpawnEnabled()) return;
+        boolean firstJoin = pendingFirstJoinRoutes.remove(player.getUuid());
+        String route = firstJoin ? "firstjoin" : "join";
+        SpawnModel spawn = spawnManager.getRoutedSpawn(world, player, route);
+        if (spawn == null) return;
+        String err = TeleportationUtil.teleportToSpawn(store, ref, spawn);
+        if (err != null) {
+            Log.warn("Join spawn routing failed for " + player.getUsername() + ": " + err);
         }
     }
 

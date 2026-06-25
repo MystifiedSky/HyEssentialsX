@@ -5,7 +5,7 @@ $C.@PageOverlay {
 
   $C.@DecoratedContainer {
     @CloseButton = true;
-    Anchor: (Width: 720, Height: 560);
+    Anchor: (Width: 900, Height: 640);
 
     #Title {
       Group {
@@ -49,6 +49,31 @@ $C.@PageOverlay {
             Anchor: (Height: 24);
             Style: (FontSize: 17, TextColor: #ffd166, RenderBold: true, VerticalAlignment: Center);
           }
+        }
+      }
+
+      Group #WarpControls {
+        Anchor: (Height: 52, Bottom: 10);
+        LayoutMode: Left;
+        Padding: (Left: 12, Right: 12, Top: 7, Bottom: 7);
+        Background: (Color: #141617(0.84));
+        OutlineColor: #3a3425;
+        OutlineSize: 1;
+
+        $C.@TextField #WarpSearchInput {
+          FlexWeight: 1;
+          Anchor: (Height: 36, Right: 10, Vertical: 0);
+          PlaceholderText: "Search player warps...";
+        }
+
+        $C.@SecondaryTextButton #ClearWarpSearchButton {
+          Anchor: (Width: 132, Height: 36, Right: 10, Vertical: 0);
+          Text: "Clear";
+        }
+
+        $C.@SecondaryTextButton #WarpSortButton {
+          Anchor: (Width: 220, Height: 36, Vertical: 0);
+          Text: "Sort: Popular";
         }
       }
 

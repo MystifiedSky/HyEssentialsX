@@ -180,6 +180,10 @@ public final class PlayerShopBrowseUI extends InteractiveCustomUIPage<PlayerShop
         cmd.set("#FilterBuyButton.Disabled", filter.equals("buy"));
         cmd.set("#FilterSellButton.Disabled", filter.equals("sell"));
         cmd.set("#BackToParentButton.Visible", backTarget != null);
+        cmd.set("#LinkedWarpLabel.Visible", !shop.getPlayerWarpName().isBlank());
+        cmd.set("#LinkedWarpLabel.Text", shop.getPlayerWarpName().isBlank()
+                ? ""
+                : "Destination: /pwarp " + shop.getPlayerWarpName());
         updateFundsLabel(cmd);
         buildTradeList(ref, store, cmd, evt);
 

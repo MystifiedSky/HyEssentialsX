@@ -223,7 +223,8 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
         cmd.set(selector + " #ShopName.Text", shop.getDisplayName());
         cmd.set(selector + " #ShopMeta.Text", (shop.isPlayerShop() ? "Player shop" : "Admin shop")
                 + " - " + shop.getTrades().size() + " trade" + (shop.getTrades().size() == 1 ? "" : "s")
-                + (shop.isOpen() ? " - Open" : " - Closed"));
+                + (shop.isOpen() ? " - Open" : " - Closed")
+                + linkedWarpText(shop));
         cmd.set(selector + " #ShopItems.Text", previewText(items));
 
         cmd.clear(selector + " #PreviewItems");
@@ -238,6 +239,14 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
 
         evt.addEventBinding(CustomUIEventBindingType.Activating, selector + " #OpenButton",
                 EventData.of("Action", "open").append("Shop", shop.getName()), false);
+    }
+
+    @Nonnull
+    private String linkedWarpText(@Nonnull ShopModel shop) {
+        if (!shop.isPlayerShop() || shop.getPlayerWarpName().isBlank()) {
+            return "";
+        }
+        return " - Warp: " + shop.getPlayerWarpName();
     }
 
     @Nonnull

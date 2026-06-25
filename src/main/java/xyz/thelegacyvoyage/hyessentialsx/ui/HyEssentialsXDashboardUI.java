@@ -77,6 +77,7 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
     private String playerSearch = "";
     private int playerPage;
     private String actionReasonInput = "";
+    private String warningExpiryInput = "";
     private boolean actionsOpen = true;
     private String configRuleIdInput = "";
     private String configRuleNameInput = "";
@@ -182,6 +183,10 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         }
         if (data.actionReason != null) {
             actionReasonInput = data.actionReason;
+            return;
+        }
+        if (data.warningExpiry != null) {
+            warningExpiryInput = data.warningExpiry.trim();
             return;
         }
         if (data.action == null) {
@@ -298,6 +303,8 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 EventData.of("Action", "ResetBalance"), false);
         evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#BanReasonInput",
                 EventData.of("@ActionReason", "#BanReasonInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#WarnExpiryInput",
+                EventData.of("@WarningExpiry", "#WarnExpiryInput.Value"), false);
 
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#OpenEconomyButton",
                 EventData.of("Action", "OpenEconomy"), false);
@@ -472,6 +479,7 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
             return;
         }
         cmd.set("#BanReasonInput.Value", actionReasonInput);
+        cmd.set("#WarnExpiryInput.Value", warningExpiryInput);
         PlayerDataModel data = context.storage().getPlayerData(selected);
         String name = selectedPlayerName == null || selectedPlayerName.isBlank() ? resolveDisplayName(selected) : selectedPlayerName;
         String online = Universe.get().getPlayer(selected) != null ? "Online" : "Offline";
@@ -597,7 +605,8 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 String issuer = warning.getIssuer() == null || warning.getIssuer().isBlank() ? "Unknown" : warning.getIssuer();
                 String status = warning.isActive() ? "Active" : "Inactive";
                 String created = warning.getCreatedAt() <= 0L ? "unknown date" : formatDate(warning.getCreatedAt());
-                appendModuleRow(cmd, status, reason + " | " + issuer + " | " + created);
+                String expiry = warning.getExpiresAt() <= 0L ? "permanent" : "expires " + TimeUtil.formatRemaining(warning.getExpiresAt());
+                appendModuleRow(cmd, status, reason + " | " + issuer + " | " + created + " | " + expiry);
                 shown++;
                 if (shown >= 8) break;
             }
@@ -1656,8 +1665,13 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         if (reason.isBlank()) {
             reason = "Warned from admin command center.";
         }
+        long expiresAt = warningExpiresAt();
+        if (expiresAt < 0L) {
+            status("Warning expiry must be 0, none, permanent, or a duration like 30m, 2h, 7d, 1w.", "#ff7d7d");
+            return;
+        }
         WarningModel warning = new WarningModel(UUID.randomUUID().toString(), name, playerRef.getUsername(), reason,
-                System.currentTimeMillis(), 0L);
+                System.currentTimeMillis(), expiresAt);
         context.storage().addWarning(id, warning);
         WarningEscalationRuleModel escalated = context.warningEscalationManager().evaluate(id, name, playerRef.getUsername());
         PlayerRef target = Universe.get().getPlayer(id);
@@ -1666,6 +1680,15 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         }
         logActivity("warn", id, name, reason);
         status(escalated == null ? "Warned " + name + "." : "Warned " + name + " and applied " + escalated.getAction() + ".", "#55d98b");
+    }
+
+    private long warningExpiresAt() {
+        String raw = warningExpiryInput == null ? "" : warningExpiryInput.trim();
+        if (raw.isBlank() || "0".equals(raw) || "none".equalsIgnoreCase(raw) || "permanent".equalsIgnoreCase(raw)) {
+            return 0L;
+        }
+        long seconds = TimeUtil.parseDurationSeconds(raw);
+        return seconds < 0L ? -1L : System.currentTimeMillis() + seconds * 1000L;
     }
 
     private void addNoteSelected() {
@@ -1926,6 +1949,7 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         UUID returnSelectedId = selectedPlayerId;
         String returnSelectedName = selectedPlayerName;
         String returnActionReason = actionReasonInput;
+        String returnWarningExpiry = warningExpiryInput;
         boolean returnActionsOpen = actionsOpen;
         String returnPendingAction = pendingAction;
         return (player, ref, store) -> {
@@ -1939,6 +1963,7 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
             page.selectedPlayerId = returnSelectedId;
             page.selectedPlayerName = returnSelectedName;
             page.actionReasonInput = returnActionReason;
+            page.warningExpiryInput = returnWarningExpiry;
             page.actionsOpen = returnActionsOpen;
             page.pendingAction = returnPendingAction;
             page.open(player, ref, store);
@@ -2707,6 +2732,7 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 .append(new KeyedCodec<>("ConfigRuleId", Codec.STRING), (d, v) -> d.configRuleId = v, d -> d.configRuleId).add()
                 .append(new KeyedCodec<>("@PlayerSearch", Codec.STRING), (d, v) -> d.playerSearch = v, d -> d.playerSearch).add()
                 .append(new KeyedCodec<>("@ActionReason", Codec.STRING), (d, v) -> d.actionReason = v, d -> d.actionReason).add()
+                .append(new KeyedCodec<>("@WarningExpiry", Codec.STRING), (d, v) -> d.warningExpiry = v, d -> d.warningExpiry).add()
                 .append(new KeyedCodec<>("@ConfigRuleIdInput", Codec.STRING), (d, v) -> d.configRuleIdInput = v, d -> d.configRuleIdInput).add()
                 .append(new KeyedCodec<>("@ConfigRuleNameInput", Codec.STRING), (d, v) -> d.configRuleNameInput = v, d -> d.configRuleNameInput).add()
                 .append(new KeyedCodec<>("@ConfigThresholdInput", Codec.STRING), (d, v) -> d.configThresholdInput = v, d -> d.configThresholdInput).add()
@@ -2731,6 +2757,7 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         private String configRuleId;
         private String playerSearch;
         private String actionReason;
+        private String warningExpiry;
         private String configRuleIdInput;
         private String configRuleNameInput;
         private String configThresholdInput;

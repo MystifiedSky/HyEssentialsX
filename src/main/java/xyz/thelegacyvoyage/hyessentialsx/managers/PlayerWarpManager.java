@@ -54,6 +54,20 @@ public final class PlayerWarpManager {
         return storage.deletePlayerWarp(ownerId, name);
     }
 
+    public boolean renameWarp(@Nonnull UUID ownerId, @Nonnull String oldName, @Nonnull String newName) {
+        String oldNormalized = PlayerWarpModel.normalizeName(oldName);
+        String newNormalized = PlayerWarpModel.normalizeName(newName);
+        if (oldNormalized.isBlank() || newNormalized.isBlank()) return false;
+        PlayerWarpModel warp = storage.getPlayerWarp(ownerId, oldNormalized);
+        if (warp == null) return false;
+        if (!oldNormalized.equals(newNormalized) && findAnyWarp(newNormalized) != null) return false;
+        storage.deletePlayerWarp(ownerId, oldNormalized);
+        warp.setName(newNormalized);
+        storage.setPlayerWarp(ownerId, warp);
+        updateLinkedPlayerShops(ownerId, oldNormalized, newNormalized);
+        return true;
+    }
+
     @Nonnull
     public List<PlayerWarpModel> listVisibleWarps(@Nullable UUID viewerId, boolean admin, @Nonnull String search) {
         String normalized = search.trim().toLowerCase(Locale.ROOT);
@@ -88,5 +102,18 @@ public final class PlayerWarpManager {
         if (!warp.isEnabled() || !warp.isApproved()) return false;
         if (warp.isPublicWarp()) return true;
         return viewerId != null && warp.getOwnerUuid().equals(viewerId.toString());
+    }
+
+    private void updateLinkedPlayerShops(@Nonnull UUID ownerId,
+                                         @Nonnull String oldName,
+                                         @Nonnull String newName) {
+        String owner = ownerId.toString();
+        for (xyz.thelegacyvoyage.hyessentialsx.models.ShopModel shop : storage.getShops().values()) {
+            if (shop == null || !shop.isPlayerShop()) continue;
+            if (!owner.equalsIgnoreCase(shop.getOwnerUuid())) continue;
+            if (!oldName.equalsIgnoreCase(shop.getPlayerWarpName())) continue;
+            shop.setPlayerWarpName(newName);
+            storage.setShop(shop.getName(), shop);
+        }
     }
 }

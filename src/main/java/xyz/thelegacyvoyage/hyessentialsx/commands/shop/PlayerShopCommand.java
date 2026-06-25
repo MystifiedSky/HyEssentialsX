@@ -24,12 +24,14 @@ import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import com.hypixel.hytale.protocol.InteractionType;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AuctionHouseManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.PlayerWarpManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopNpcInteractionRegistry;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.PlayerWarpModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.PlayerShopBrowseUI;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopAdminUI;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopDirectoryUI;
@@ -55,6 +57,7 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
 
     private final ShopManager shopManager;
     private final EconomyManager economy;
+    private final PlayerWarpManager playerWarpManager;
     private final ShopAdminDraftCache draftCache;
     private final ConfigManager config;
     private final StorageManager storage;
@@ -62,6 +65,7 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
 
     public PlayerShopCommand(@Nonnull ShopManager shopManager,
                              @Nonnull EconomyManager economy,
+                             @Nonnull PlayerWarpManager playerWarpManager,
                              @Nonnull ShopAdminDraftCache draftCache,
                              @Nonnull ConfigManager config,
                              @Nonnull StorageManager storage,
@@ -69,6 +73,7 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         super("shop", "Open or manage player shops");
         this.shopManager = shopManager;
         this.economy = economy;
+        this.playerWarpManager = playerWarpManager;
         this.draftCache = draftCache;
         this.config = config;
         this.storage = storage;
@@ -82,6 +87,7 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         this.addSubCommand(new EditSubCommand());
         this.addSubCommand(new MoveSubCommand());
         this.addSubCommand(new LinkSubCommand());
+        this.addSubCommand(new WarpSubCommand());
     }
 
     @Override
@@ -316,6 +322,33 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         }
     }
 
+    private final class WarpSubCommand extends AbstractPlayerCommand {
+        private final RequiredArg<String> shopArg;
+        private final RequiredArg<String> warpArg;
+
+        private WarpSubCommand() {
+            super("warp", "Expose one of your player warps from a player shop");
+            this.shopArg = withRequiredArg("shop", "Shop name", ArgTypes.STRING);
+            this.warpArg = withRequiredArg("warp", "Player warp name, or none", ArgTypes.STRING);
+            this.addAliases(new String[]{"destination", "pwarp"});
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!ensurePlayerShopsEnabled(context)) return;
+            linkPlayerWarp(context, playerRef, context.get(shopArg), context.get(warpArg));
+        }
+    }
+
     private void listShops(@Nonnull CommandContext context, @Nonnull PlayerRef playerRef) {
         boolean isAdmin = hasNodePermission(context.sender(), playerRef, ADMIN_PERMISSION);
         List<String> names = shopManager.listPlayerShops();
@@ -351,6 +384,46 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             }
         }
         Messages.sendKey(context, "shop.player.list", java.util.Map.of("shops", String.join(", ", display)));
+    }
+
+    private void linkPlayerWarp(@Nonnull CommandContext context,
+                                @Nonnull PlayerRef playerRef,
+                                @Nonnull String shopName,
+                                @Nonnull String warpName) {
+        ShopModel shop = shopManager.getShop(shopName);
+        if (shop == null || !shop.isPlayerShop()) {
+            Messages.sendKey(context, "shop.player.not_found", java.util.Map.of());
+            return;
+        }
+        if (!hasEditAccess(context, playerRef, shop)) {
+            Messages.noPerm(context, "/shop warp " + shopName);
+            return;
+        }
+        String normalized = PlayerWarpModel.normalizeName(warpName);
+        if (normalized.equals("none") || normalized.equals("clear") || normalized.equals("off")) {
+            shop.setPlayerWarpName("");
+            shopManager.saveShop(shop);
+            Messages.sendKey(context, "shop.player.warp_cleared", java.util.Map.of("shop", shop.getDisplayName()));
+            return;
+        }
+        PlayerWarpModel warp = playerWarpManager.findAnyWarp(normalized);
+        if (warp == null) {
+            Messages.sendKey(context, "playerwarp.not_found", java.util.Map.of());
+            return;
+        }
+        boolean isAdmin = hasNodePermission(context.sender(), playerRef, ADMIN_PERMISSION);
+        if (!isAdmin && !shop.getOwnerUuid().equalsIgnoreCase(warp.getOwnerUuid())) {
+            Messages.sendKey(context, "shop.player.warp_not_owned", java.util.Map.of());
+            return;
+        }
+        if (!warp.isPublicWarp() || !warp.isApproved() || !warp.isEnabled()) {
+            Messages.sendKey(context, "shop.player.warp_not_public", java.util.Map.of());
+            return;
+        }
+        shop.setPlayerWarpName(warp.getName());
+        shopManager.saveShop(shop);
+        Messages.sendKey(context, "shop.player.warp_linked",
+                java.util.Map.of("shop", shop.getDisplayName(), "warp", warp.getName()));
     }
 
     private void openDirectory(@Nonnull CommandContext context,

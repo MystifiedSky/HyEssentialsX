@@ -28,7 +28,9 @@ import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -45,6 +47,8 @@ public final class PlayerWarpsUI extends InteractiveCustomUIPage<PlayerWarpsUI.U
     private final BackManager backManager;
     @Nullable
     private final EconomyManager economy;
+    private String search = "";
+    private String sort = "popular";
 
     public PlayerWarpsUI(@Nonnull PlayerRef playerRef,
                          @Nonnull PlayerWarpManager playerWarps,
@@ -69,8 +73,16 @@ public final class PlayerWarpsUI extends InteractiveCustomUIPage<PlayerWarpsUI.U
                       @Nonnull UIEventBuilder evt,
                       @Nonnull Store<EntityStore> store) {
         cmd.append(LAYOUT);
-        List<PlayerWarpModel> warps = playerWarps.listVisibleWarps(playerRef.getUuid(),
-                CommandPermissionUtil.hasPermission(playerRef, "hyessentialsx.playerwarp.admin"), "");
+        rebuild(cmd, evt);
+    }
+
+    private void rebuild(@Nonnull UICommandBuilder cmd,
+                         @Nonnull UIEventBuilder evt) {
+        List<PlayerWarpModel> warps = sortedWarps(playerWarps.listVisibleWarps(playerRef.getUuid(),
+                CommandPermissionUtil.hasPermission(playerRef, "hyessentialsx.playerwarp.admin"), search));
+        cmd.set("#WarpSearchInput.Value", search);
+        cmd.set("#WarpSortButton.Text", "Sort: " + sortLabel());
+        cmd.set("#ClearWarpSearchButton.Disabled", search.isBlank());
         cmd.set("#WarpCount.Text", warps.size() + " Player Warps");
         cmd.clear("#WarpList");
         if (warps.isEmpty()) {
@@ -90,6 +102,12 @@ public final class PlayerWarpsUI extends InteractiveCustomUIPage<PlayerWarpsUI.U
             }
         }
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#CloseButton", EventData.of("Action", "Close"), false);
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#WarpSearchInput",
+                EventData.of("Action", "Search").append("@Search", "#WarpSearchInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ClearWarpSearchButton",
+                EventData.of("Action", "ClearSearch"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#WarpSortButton",
+                EventData.of("Action", "CycleSort"), false);
     }
 
     @Override
@@ -98,6 +116,26 @@ public final class PlayerWarpsUI extends InteractiveCustomUIPage<PlayerWarpsUI.U
                                 @Nonnull UIEventData data) {
         if ("Close".equals(data.action)) {
             close();
+            return;
+        }
+        if ("Search".equals(data.action)) {
+            search = data.search == null ? "" : data.search.trim();
+            refresh(ref, store);
+            return;
+        }
+        if ("ClearSearch".equals(data.action)) {
+            search = "";
+            refresh(ref, store);
+            return;
+        }
+        if ("CycleSort".equals(data.action)) {
+            sort = switch (sort) {
+                case "name" -> "owner";
+                case "owner" -> "newest";
+                case "newest" -> "popular";
+                default -> "name";
+            };
+            refresh(ref, store);
             return;
         }
         if ("Warp".equals(data.action) && data.warp != null) {
@@ -149,14 +187,47 @@ public final class PlayerWarpsUI extends InteractiveCustomUIPage<PlayerWarpsUI.U
                 Map.of("warp", warp.getName(), "owner", warp.getOwnerName()));
     }
 
+    private void refresh(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
+        UICommandBuilder cmd = new UICommandBuilder();
+        UIEventBuilder evt = new UIEventBuilder();
+        rebuild(cmd, evt);
+        sendUpdate(cmd, evt, false);
+    }
+
+    @Nonnull
+    private List<PlayerWarpModel> sortedWarps(@Nonnull List<PlayerWarpModel> warps) {
+        java.util.ArrayList<PlayerWarpModel> out = new java.util.ArrayList<>(warps);
+        Comparator<PlayerWarpModel> comparator = switch (sort) {
+            case "name" -> Comparator.comparing(PlayerWarpModel::getName);
+            case "owner" -> Comparator.comparing(w -> w.getOwnerName().toLowerCase(Locale.ROOT));
+            case "newest" -> Comparator.comparingLong(PlayerWarpModel::getCreatedAt).reversed();
+            default -> Comparator.comparingLong(PlayerWarpModel::getVisits).reversed()
+                    .thenComparing(PlayerWarpModel::getName);
+        };
+        out.sort(comparator.thenComparing(PlayerWarpModel::getName));
+        return List.copyOf(out);
+    }
+
+    @Nonnull
+    private String sortLabel() {
+        return switch (sort) {
+            case "name" -> "Name";
+            case "owner" -> "Owner";
+            case "newest" -> "Newest";
+            default -> "Popular";
+        };
+    }
+
     public static final class UIEventData {
         public static final BuilderCodec<UIEventData> CODEC = BuilderCodec
                 .builder(UIEventData.class, UIEventData::new)
                 .append(new KeyedCodec<>("Action", Codec.STRING), (d, v) -> d.action = v, d -> d.action).add()
                 .append(new KeyedCodec<>("Warp", Codec.STRING), (d, v) -> d.warp = v, d -> d.warp).add()
+                .append(new KeyedCodec<>("@Search", Codec.STRING), (d, v) -> d.search = v, d -> d.search).add()
                 .build();
 
         private String action;
         private String warp;
+        private String search;
     }
 }

@@ -160,6 +160,7 @@ public final class ShopBrowseUI extends InteractiveCustomUIPage<ShopBrowseUI.UIE
         cmd.set("#ShopTitle.Text", shop.getDisplayName());
         cmd.set("#WalletBalance.Text", economy.isEnabled() ? economy.formatAmount(economy.getBalance(playerRef.getUuid())) : "Disabled");
         cmd.set("#ShopSearchInput.Value", search);
+        cmd.set("#LinkedWarpLabel.Visible", false);
         cmd.set("#FilterAllButton.Disabled", filter.equals("all"));
         cmd.set("#FilterBuyButton.Disabled", filter.equals("buy"));
         cmd.set("#FilterSellButton.Disabled", filter.equals("sell"));

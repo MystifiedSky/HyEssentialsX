@@ -693,7 +693,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             reg.accept(new ShopCommand(shopManager, economyManager, shopAdminDraftCache));
         }
         if (configManager.isPlayerShopsEnabled() || configManager.isAdminShopsEnabled()) {
-            reg.accept(new PlayerShopCommand(shopManager, economyManager, shopAdminDraftCache, configManager, storage, auctionHouseManager));
+            reg.accept(new PlayerShopCommand(shopManager, economyManager, playerWarpManager, shopAdminDraftCache, configManager, storage, auctionHouseManager));
         }
         reg.accept(new ClearInventoryCommand());
         reg.accept(new InvSeeCommand());

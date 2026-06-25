@@ -74,6 +74,7 @@ public final class WarningsCommand extends CommandBase {
         int index = 1;
         for (WarningModel warning : warnings) {
             String ago = TimeUtil.formatDurationSeconds(Math.max(0L, (System.currentTimeMillis() - warning.getCreatedAt()) / 1000L));
+            String expires = warning.getExpiresAt() <= 0L ? "permanent" : TimeUtil.formatRemaining(warning.getExpiresAt());
             context.sendMessage(Messages.m(Messages.tr(null, "warnings.entry", Map.of(
                     "index", String.valueOf(index),
                     "reason", warning.getReason() == null || warning.getReason().isBlank()
@@ -83,6 +84,7 @@ public final class WarningsCommand extends CommandBase {
                             ? Messages.tr(null, "actor.unknown", Map.of())
                             : warning.getIssuer(),
                     "age", ago,
+                    "expires", expires,
                     "state", warning.isActive() ? "active" : "inactive"
             ))));
             index++;

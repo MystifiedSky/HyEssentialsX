@@ -22,6 +22,7 @@ public final class ShopModel {
     private Integer moneyStockScale;
     private boolean playerShop;
     private String ownerUuid;
+    private String playerWarpName;
     private List<String> editors = new ArrayList<>();
     private List<ShopChestModel> chests = new ArrayList<>();
 
@@ -169,6 +170,15 @@ public final class ShopModel {
 
     public void setOwnerUuid(@Nonnull String ownerUuid) {
         this.ownerUuid = ownerUuid;
+    }
+
+    @Nonnull
+    public String getPlayerWarpName() {
+        return playerWarpName == null ? "" : playerWarpName;
+    }
+
+    public void setPlayerWarpName(@Nullable String playerWarpName) {
+        this.playerWarpName = playerWarpName == null ? "" : playerWarpName.trim().toLowerCase();
     }
 
     @Nonnull

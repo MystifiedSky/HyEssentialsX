@@ -63,6 +63,7 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
         this.addAliases(new String[]{"playerwarp", "playerwarps"});
         this.addUsageVariant(new DirectVisitCommand());
         this.addSubCommand(new CreateSubCommand());
+        this.addSubCommand(new RenameSubCommand());
         this.addSubCommand(new DeleteSubCommand());
         this.addSubCommand(new MoveSubCommand());
         this.addSubCommand(new DescSubCommand());
@@ -251,6 +252,46 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
             }
             playerWarps.deleteWarp(playerRef.getUuid(), warp.getName());
             Messages.sendKey(context, "playerwarp.deleted", Map.of("warp", warp.getName()));
+        }
+    }
+
+    private final class RenameSubCommand extends AbstractPlayerCommand {
+        private final RequiredArg<String> oldNameArg;
+        private final RequiredArg<String> newNameArg;
+
+        private RenameSubCommand() {
+            super("rename", "Rename one of your player warps");
+            this.oldNameArg = withRequiredArg("oldName", "Current warp name", ArgTypes.STRING);
+            this.newNameArg = withRequiredArg("newName", "New warp name", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!enabled(context)) return;
+            String oldName = PlayerWarpModel.normalizeName(context.get(oldNameArg));
+            String newName = PlayerWarpModel.normalizeName(context.get(newNameArg));
+            if (!validName(newName)) {
+                Messages.sendKey(context, "playerwarp.invalid_name", Map.of());
+                return;
+            }
+            if (!oldName.equals(newName) && !playerWarps.isNameAvailable(newName)) {
+                Messages.sendKey(context, "playerwarp.exists", Map.of("warp", newName));
+                return;
+            }
+            if (!playerWarps.renameWarp(playerRef.getUuid(), oldName, newName)) {
+                Messages.sendKey(context, "playerwarp.not_found", Map.of());
+                return;
+            }
+            Messages.sendKey(context, "playerwarp.renamed", Map.of("old", oldName, "warp", newName));
         }
     }
 

@@ -141,6 +141,13 @@ $C.@PageOverlay {
             Anchor: (Horizontal: 0, Height: 30, Bottom: 12);
           }
 
+          Label #LinkedWarpLabel {
+            Anchor: (Horizontal: 0, Height: 36, Bottom: 10);
+            Style: (FontSize: 11, TextColor: #ffd166, Wrap: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Text: "";
+            Visible: false;
+          }
+
           Group {
             Anchor: (Height: 1, Bottom: 10);
             Background: (Color: #93844c(0.25));

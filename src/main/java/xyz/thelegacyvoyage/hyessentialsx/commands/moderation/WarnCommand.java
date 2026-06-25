@@ -16,6 +16,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.WarningModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.StaffActionUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -65,17 +66,34 @@ public final class WarnCommand extends CommandBase {
         String displayName = online != null ? online.getUsername()
                 : data.getLastKnownName() == null || data.getLastKnownName().isBlank() ? name : data.getLastKnownName();
         String reason = Messages.tr(null, "reason.none", Map.of());
+        String actor = StaffActionUtil.resolveActorName(context);
         if (context.provided(reasonArg)) {
             List<String> parts = context.get(reasonArg);
-            String joined = String.join(" ", parts).trim();
+            long expiresAt = parseExpiry(parts);
+            if (expiresAt < 0L) {
+                Messages.errKey(context, "warnrules.invalid_duration", Map.of());
+                return;
+            }
+            String joined = joinReason(parts).trim();
             if (!joined.isBlank()) {
                 reason = joined;
             }
+            addWarning(context, uuid, displayName, actor, reason, expiresAt, online);
+            return;
         }
 
-        String actor = StaffActionUtil.resolveActorName(context);
+        addWarning(context, uuid, displayName, actor, reason, 0L, online);
+    }
+
+    private void addWarning(@Nonnull CommandContext context,
+                            @Nonnull UUID uuid,
+                            @Nonnull String displayName,
+                            @Nonnull String actor,
+                            @Nonnull String reason,
+                            long expiresAt,
+                            PlayerRef online) {
         WarningModel warning = new WarningModel(UUID.randomUUID().toString(), displayName, actor, reason,
-                System.currentTimeMillis(), 0L);
+                System.currentTimeMillis(), expiresAt);
         storage.addWarning(uuid, warning);
         StaffActionUtil.log(storage, actor, "warn", uuid, displayName, reason);
         WarningEscalationRuleModel escalated = escalationManager.evaluate(uuid, displayName, actor);
@@ -94,5 +112,36 @@ public final class WarnCommand extends CommandBase {
         if (online != null) {
             Messages.sendPrefixedKey(online, "warn.target", Map.of("reason", reason));
         }
+    }
+
+    private long parseExpiry(@Nonnull List<String> parts) {
+        if (parts.isEmpty()) return 0L;
+        String first = parts.get(0);
+        String normalized = first.toLowerCase(java.util.Locale.ROOT);
+        if (!normalized.startsWith("expire:") && !normalized.startsWith("expires:")) return 0L;
+        int colon = first.indexOf(':');
+        String raw = colon >= 0 ? first.substring(colon + 1) : "";
+        long seconds = parseDuration(raw);
+        if (seconds < 0L) return -1L;
+        return seconds <= 0L ? 0L : System.currentTimeMillis() + seconds * 1000L;
+    }
+
+    @Nonnull
+    private String joinReason(@Nonnull List<String> parts) {
+        if (parts.isEmpty()) return "";
+        String first = parts.get(0);
+        String normalized = first.toLowerCase(java.util.Locale.ROOT);
+        if ((normalized.startsWith("expire:") || normalized.startsWith("expires:")) && parts.size() > 1) {
+            return String.join(" ", parts.subList(1, parts.size()));
+        }
+        return String.join(" ", parts);
+    }
+
+    private long parseDuration(@Nonnull String raw) {
+        if (raw.isBlank() || "0".equals(raw.trim()) || "none".equalsIgnoreCase(raw.trim())
+                || "permanent".equalsIgnoreCase(raw.trim())) {
+            return 0L;
+        }
+        return TimeUtil.parseDurationSeconds(raw);
     }
 }

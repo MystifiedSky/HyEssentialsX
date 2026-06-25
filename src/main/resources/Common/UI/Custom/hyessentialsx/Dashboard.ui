@@ -366,7 +366,7 @@ Group #CommandCenterRoot {
 
             Group #ActionDrawer {
               LayoutMode: Top;
-              Anchor: (Height: 190);
+              Anchor: (Height: 218);
 
               Label { Text: "Reason Presets"; Anchor: (Height: 14, Bottom: 3); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true); }
               Group { LayoutMode: Left; Anchor: (Height: 24, Bottom: 4);
@@ -381,13 +381,17 @@ Group #CommandCenterRoot {
 
               Group {
                 LayoutMode: Top;
-                Anchor: (Height: 54, Bottom: 5);
+                Anchor: (Height: 78, Bottom: 5);
                 Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4);
                 Background: (Color: #0b1524);
                 OutlineColor: #355986;
                 OutlineSize: 1;
                 Label { Text: "Action Reason / Staff Note"; Anchor: (Height: 14, Bottom: 3); Style: (FontSize: 10, TextColor: #9ab6d9, RenderBold: true); }
                 TextField #BanReasonInput { Anchor: (Height: 28); Style: (FontSize: 12, TextColor: #f0f5ff); }
+                Group { LayoutMode: Left; Anchor: (Height: 22, Top: 4);
+                  Label { Text: "Warn Expires"; Anchor: (Width: 82, Right: 6); Style: (FontSize: 10, TextColor: #9ab6d9, RenderBold: true, VerticalAlignment: Center); }
+                  TextField #WarnExpiryInput { FlexWeight: 1; Anchor: (Height: 22); Style: (FontSize: 11, TextColor: #f0f5ff); }
+                }
               }
 
               Group { LayoutMode: Left; Anchor: (Height: 26, Bottom: 5);

@@ -1,7 +1,6 @@
 package xyz.thelegacyvoyage.hyessentialsx.commands.plugin;
 
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractAsyncCommand;
@@ -32,7 +31,6 @@ public final class MigrateSubCommand extends AbstractAsyncCommand {
     private final MigrationManager migrationManager;
     private final Path dataFolder;
     private final RequiredArg<String> modArg;
-    private final OptionalArg<Boolean> mergeArg;
 
     public MigrateSubCommand(@Nonnull StorageManager storage,
                              @Nonnull SpawnManager spawnManager,
@@ -43,7 +41,7 @@ public final class MigrateSubCommand extends AbstractAsyncCommand {
         this.setPermissionGroups();
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.modArg = withRequiredArg("mod", "Mod to migrate from", ArgTypes.STRING);
-        this.mergeArg = withOptionalArg("merge", "Merge with existing data (default: true)", ArgTypes.BOOLEAN);
+        this.addUsageVariant(new MigrateMergeCommand());
     }
 
     @Override
@@ -62,9 +60,12 @@ public final class MigrateSubCommand extends AbstractAsyncCommand {
             return CompletableFuture.completedFuture(null);
         }
 
-        Boolean mergeValue = context.get(mergeArg);
-        boolean merge = mergeValue == null || mergeValue;
+        return runMigration(context, mod, true);
+    }
 
+    private CompletableFuture<Void> runMigration(@Nonnull CommandContext context,
+                                                 @Nonnull MigrationManager.ModType mod,
+                                                 boolean merge) {
         Path sourceDir = migrationManager.resolveSourceDir(mod);
         if (!Files.exists(sourceDir) || !Files.isDirectory(sourceDir)) {
             Messages.errKey(context, "migrate.source_missing", java.util.Map.of(
@@ -121,6 +122,41 @@ public final class MigrateSubCommand extends AbstractAsyncCommand {
         }
 
         return CompletableFuture.completedFuture(null);
+    }
+
+    private final class MigrateMergeCommand extends AbstractAsyncCommand {
+        private final RequiredArg<String> modArg;
+        private final RequiredArg<Boolean> mergeArg;
+
+        private MigrateMergeCommand() {
+            super("Migrate data from other mods with merge mode");
+            this.modArg = withRequiredArg("mod", "Mod to migrate from", ArgTypes.STRING);
+            this.mergeArg = withRequiredArg("merge", "Merge with existing data", ArgTypes.BOOLEAN);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected CompletableFuture<Void> executeAsync(@Nonnull CommandContext context) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/hyessentialsx migrate");
+                return CompletableFuture.completedFuture(null);
+            }
+
+            String modName = context.get(modArg);
+            MigrationManager.ModType mod = MigrationManager.ModType.fromName(modName);
+            if (mod == null) {
+                Messages.errKey(context, "migrate.invalid_mod", java.util.Map.of(
+                        "mods", MigrationManager.ModType.supportedNames()
+                ));
+                return CompletableFuture.completedFuture(null);
+            }
+            Boolean merge = context.get(mergeArg);
+            return runMigration(context, mod, merge == null || merge);
+        }
     }
 
     private Path createBackup() {

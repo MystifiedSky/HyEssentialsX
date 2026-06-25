@@ -4,7 +4,6 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.Page;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
@@ -36,8 +35,6 @@ public final class KitEditCommand extends AbstractPlayerCommand {
     private final KitManager kitManager;
     private final ConfigManager config;
     private final RequiredArg<String> nameArg;
-    private final OptionalArg<String> cooldownArg;
-    private final OptionalArg<Integer> maxUsesArg;
 
     public KitEditCommand(@Nonnull KitManager kitManager, @Nonnull ConfigManager config) {
         super("kitedit", "Edits an existing kit");
@@ -46,8 +43,8 @@ public final class KitEditCommand extends AbstractPlayerCommand {
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
-        this.cooldownArg = withOptionalArg("cooldown", "Cooldown (e.g. 30d)", ArgTypes.STRING);
-        this.maxUsesArg = withOptionalArg("maxUses", "Max amount of claims (0 = unlimited)", ArgTypes.INTEGER);
+        this.addUsageVariant(new KitEditCooldownCommand());
+        this.addUsageVariant(new KitEditCooldownUsesCommand());
     }
 
     @Override
@@ -83,12 +80,13 @@ public final class KitEditCommand extends AbstractPlayerCommand {
             return;
         }
 
-        String rawCooldown = context.provided(cooldownArg) ? context.get(cooldownArg) : null;
-        if ((rawCooldown == null || rawCooldown.isBlank()) && !context.provided(maxUsesArg)) {
-            openKitEditor(context, store, ref, playerRef, existing);
-            return;
-        }
+        openKitEditor(context, store, ref, playerRef, existing);
+    }
 
+    private void updateKitSettings(@Nonnull CommandContext context,
+                                   @Nonnull KitModel existing,
+                                   String rawCooldown,
+                                   Integer maxUsesInput) {
         int cooldownSeconds = existing.getCooldownSeconds();
         if (rawCooldown != null && !rawCooldown.isBlank()) {
             long secs = TimeUtil.parseDurationSeconds(rawCooldown);
@@ -100,7 +98,6 @@ public final class KitEditCommand extends AbstractPlayerCommand {
         }
 
         int maxUses = existing.getMaxUses();
-        Integer maxUsesInput = context.provided(maxUsesArg) ? context.get(maxUsesArg) : null;
         if (maxUsesInput != null) {
             if (maxUsesInput < 0) {
                 Messages.errKey(context, "kit.max_uses_invalid", Map.of());
@@ -113,6 +110,93 @@ public final class KitEditCommand extends AbstractPlayerCommand {
         kitManager.setKit(updated);
 
         Messages.okKey(context, "kit.edited", Map.of("kit", existing.getName()));
+    }
+
+    private KitModel resolveKit(@Nonnull CommandContext context, String name) {
+        if (name == null || name.isBlank()) {
+            Messages.errKey(context, "kit.not_found", Map.of());
+            return null;
+        }
+        KitModel existing = kitManager.getKit(name.trim());
+        if (existing == null) {
+            Messages.errKey(context, "kit.not_found", Map.of());
+            return null;
+        }
+        return existing;
+    }
+
+    private final class KitEditCooldownCommand extends AbstractPlayerCommand {
+        private final RequiredArg<String> nameArg;
+        private final RequiredArg<String> cooldownArg;
+
+        private KitEditCooldownCommand() {
+            super("Edits a kit cooldown");
+            this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
+            this.cooldownArg = withRequiredArg("cooldown", "Cooldown (e.g. 30d)", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/kitedit");
+                return;
+            }
+            if (!config.isKitsEnabled()) {
+                Messages.errKey(context, "kit.disabled", Map.of());
+                return;
+            }
+            KitModel existing = resolveKit(context, context.get(nameArg));
+            if (existing != null) {
+                updateKitSettings(context, existing, context.get(cooldownArg), null);
+            }
+        }
+    }
+
+    private final class KitEditCooldownUsesCommand extends AbstractPlayerCommand {
+        private final RequiredArg<String> nameArg;
+        private final RequiredArg<String> cooldownArg;
+        private final RequiredArg<Integer> maxUsesArg;
+
+        private KitEditCooldownUsesCommand() {
+            super("Edits a kit cooldown and max uses");
+            this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
+            this.cooldownArg = withRequiredArg("cooldown", "Cooldown (e.g. 30d)", ArgTypes.STRING);
+            this.maxUsesArg = withRequiredArg("maxUses", "Max amount of claims (0 = unlimited)", ArgTypes.INTEGER);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/kitedit");
+                return;
+            }
+            if (!config.isKitsEnabled()) {
+                Messages.errKey(context, "kit.disabled", Map.of());
+                return;
+            }
+            KitModel existing = resolveKit(context, context.get(nameArg));
+            if (existing != null) {
+                updateKitSettings(context, existing, context.get(cooldownArg), context.get(maxUsesArg));
+            }
+        }
     }
 
     private void openKitEditor(@Nonnull CommandContext context,

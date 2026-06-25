@@ -454,6 +454,7 @@
     "inventory.cleared":  "\u0026aYour inventory was cleared.",
     "inventory.cleared_other":  "\u0026aCleared {player}\u0027s inventory.",
     "inventory.cleared_by":  "\u0026aYour inventory was cleared by {player}.",
+    "invsee.invalid_section":  "\u0026cUsage: /invsee \u003cplayer\u003e backpack",
     "repair.none":  "\u0026eNothing to repair.",
     "repair.self":  "\u0026aRepaired {count} item(s).",
     "repair.other":  "\u0026aRepaired {count} item(s) for {player}.",

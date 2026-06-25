@@ -3,7 +3,6 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.warp;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
@@ -157,12 +156,11 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
 
     private final class CreateSubCommand extends AbstractPlayerCommand {
         private final RequiredArg<String> nameArg;
-        private final OptionalArg<List<String>> descArg;
 
         private CreateSubCommand() {
             super("create", "Create a player warp at your location");
             this.nameArg = withRequiredArg("name", "Warp name", ArgTypes.STRING);
-            this.descArg = withListOptionalArg("description", "Description", ArgTypes.STRING);
+            this.addUsageVariant(new CreateWithDescriptionCommand());
         }
 
         @Override
@@ -176,51 +174,34 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
                                @Nonnull Ref<EntityStore> ref,
                                @Nonnull PlayerRef playerRef,
                                @Nonnull World world) {
-            if (!enabled(context)) return;
-            if (!CommandPermissionUtil.hasPermission(context.sender(), CREATE_PERMISSION)
-                    && !CommandPermissionUtil.hasPermission(context.sender(), ADMIN_PERMISSION)) {
-                Messages.noPerm(context, "/pwarp create");
-                return;
+            createWarp(context, store, ref, playerRef, world, context.get(nameArg), "");
+        }
+
+        private final class CreateWithDescriptionCommand extends AbstractPlayerCommand {
+            private final RequiredArg<String> nameArg;
+            private final RequiredArg<List<String>> descArg;
+
+            private CreateWithDescriptionCommand() {
+                super("Create a player warp with a description");
+                this.nameArg = withRequiredArg("name", "Warp name", ArgTypes.STRING);
+                this.descArg = withListRequiredArg("description", "Description", ArgTypes.STRING);
             }
-            String name = PlayerWarpModel.normalizeName(context.get(nameArg));
-            if (!validName(name)) {
-                Messages.sendKey(context, "playerwarp.invalid_name", Map.of());
-                return;
+
+            @Override
+            protected boolean canGeneratePermission() {
+                return false;
             }
-            if (!playerWarps.isNameAvailable(name)) {
-                Messages.sendKey(context, "playerwarp.exists", Map.of("warp", name));
-                return;
+
+            @Override
+            protected void execute(@Nonnull CommandContext context,
+                                   @Nonnull Store<EntityStore> store,
+                                   @Nonnull Ref<EntityStore> ref,
+                                   @Nonnull PlayerRef playerRef,
+                                   @Nonnull World world) {
+                List<String> parts = context.get(descArg);
+                createWarp(context, store, ref, playerRef, world, context.get(nameArg),
+                        parts == null ? "" : String.join(" ", parts).trim());
             }
-            if (!isAdmin(context) && config.getPlayerWarpMaxWarpsPerPlayer() > 0
-                    && playerWarps.countOwnedWarps(playerRef.getUuid()) >= config.getPlayerWarpMaxWarpsPerPlayer()) {
-                Messages.sendKey(context, "playerwarp.limit", Map.of("limit", String.valueOf(config.getPlayerWarpMaxWarpsPerPlayer())));
-                return;
-            }
-            if (!charge(context, playerRef, config.getPlayerWarpCreateCost())) {
-                return;
-            }
-            TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
-            if (transform == null || transform.getPosition() == null) {
-                Messages.errKey(context, "error.position_unavailable", Map.of());
-                return;
-            }
-            com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
-            String description = context.provided(descArg) ? String.join(" ", context.get(descArg)).trim() : "";
-            PlayerWarpModel warp = new PlayerWarpModel(
-                    name,
-                    playerRef.getUuid().toString(),
-                    playerRef.getUsername(),
-                    description,
-                    null,
-                    world.getName(),
-                    transform.getPosition().x(), transform.getPosition().y(), transform.getPosition().z(),
-                    rot == null ? 0F : rot.y(),
-                    rot == null ? 0F : rot.x(),
-                    System.currentTimeMillis()
-            );
-            warp.setApproved(config.isPlayerWarpAutoApprove());
-            playerWarps.setWarp(playerRef.getUuid(), warp);
-            Messages.sendKey(context, "playerwarp.created", Map.of("warp", name));
         }
     }
 
@@ -335,12 +316,11 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
 
     private final class DescSubCommand extends AbstractPlayerCommand {
         private final RequiredArg<String> nameArg;
-        private final OptionalArg<List<String>> descArg;
 
         private DescSubCommand() {
             super("desc", "Set a player warp description");
             this.nameArg = withRequiredArg("name", "Warp name", ArgTypes.STRING);
-            this.descArg = withListOptionalArg("description", "Description", ArgTypes.STRING);
+            this.addUsageVariant(new DescWithTextCommand());
         }
 
         @Override
@@ -354,15 +334,34 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
                                @Nonnull Ref<EntityStore> ref,
                                @Nonnull PlayerRef playerRef,
                                @Nonnull World world) {
-            PlayerWarpModel warp = playerWarps.getOwnedWarp(playerRef.getUuid(), context.get(nameArg));
-            if (warp == null) {
-                Messages.sendKey(context, "playerwarp.not_found", Map.of());
-                return;
+            updateDescription(context, playerRef, context.get(nameArg), "");
+        }
+
+        private final class DescWithTextCommand extends AbstractPlayerCommand {
+            private final RequiredArg<String> nameArg;
+            private final RequiredArg<List<String>> descArg;
+
+            private DescWithTextCommand() {
+                super("Set a player warp description");
+                this.nameArg = withRequiredArg("name", "Warp name", ArgTypes.STRING);
+                this.descArg = withListRequiredArg("description", "Description", ArgTypes.STRING);
             }
-            String description = context.provided(descArg) ? String.join(" ", context.get(descArg)).trim() : "";
-            warp.setDescription(description);
-            playerWarps.setWarp(playerRef.getUuid(), warp);
-            Messages.sendKey(context, "playerwarp.updated", Map.of("warp", warp.getName()));
+
+            @Override
+            protected boolean canGeneratePermission() {
+                return false;
+            }
+
+            @Override
+            protected void execute(@Nonnull CommandContext context,
+                                   @Nonnull Store<EntityStore> store,
+                                   @Nonnull Ref<EntityStore> ref,
+                                   @Nonnull PlayerRef playerRef,
+                                   @Nonnull World world) {
+                List<String> parts = context.get(descArg);
+                updateDescription(context, playerRef, context.get(nameArg),
+                        parts == null ? "" : String.join(" ", parts).trim());
+            }
         }
     }
 
@@ -475,6 +474,73 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
         warp.setPublicWarp(visible);
         playerWarps.setWarp(playerRef.getUuid(), warp);
         Messages.sendKey(context, visible ? "playerwarp.public" : "playerwarp.private", Map.of("warp", warp.getName()));
+    }
+
+    private void createWarp(@Nonnull CommandContext context,
+                            @Nonnull Store<EntityStore> store,
+                            @Nonnull Ref<EntityStore> ref,
+                            @Nonnull PlayerRef playerRef,
+                            @Nonnull World world,
+                            @Nonnull String rawName,
+                            @Nonnull String description) {
+        if (!enabled(context)) return;
+        if (!CommandPermissionUtil.hasPermission(context.sender(), CREATE_PERMISSION)
+                && !CommandPermissionUtil.hasPermission(context.sender(), ADMIN_PERMISSION)) {
+            Messages.noPerm(context, "/pwarp create");
+            return;
+        }
+        String name = PlayerWarpModel.normalizeName(rawName);
+        if (!validName(name)) {
+            Messages.sendKey(context, "playerwarp.invalid_name", Map.of());
+            return;
+        }
+        if (!playerWarps.isNameAvailable(name)) {
+            Messages.sendKey(context, "playerwarp.exists", Map.of("warp", name));
+            return;
+        }
+        if (!isAdmin(context) && config.getPlayerWarpMaxWarpsPerPlayer() > 0
+                && playerWarps.countOwnedWarps(playerRef.getUuid()) >= config.getPlayerWarpMaxWarpsPerPlayer()) {
+            Messages.sendKey(context, "playerwarp.limit", Map.of("limit", String.valueOf(config.getPlayerWarpMaxWarpsPerPlayer())));
+            return;
+        }
+        if (!charge(context, playerRef, config.getPlayerWarpCreateCost())) {
+            return;
+        }
+        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+        if (transform == null || transform.getPosition() == null) {
+            Messages.errKey(context, "error.position_unavailable", Map.of());
+            return;
+        }
+        com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
+        PlayerWarpModel warp = new PlayerWarpModel(
+                name,
+                playerRef.getUuid().toString(),
+                playerRef.getUsername(),
+                description,
+                null,
+                world.getName(),
+                transform.getPosition().x(), transform.getPosition().y(), transform.getPosition().z(),
+                rot == null ? 0F : rot.y(),
+                rot == null ? 0F : rot.x(),
+                System.currentTimeMillis()
+        );
+        warp.setApproved(config.isPlayerWarpAutoApprove());
+        playerWarps.setWarp(playerRef.getUuid(), warp);
+        Messages.sendKey(context, "playerwarp.created", Map.of("warp", name));
+    }
+
+    private void updateDescription(@Nonnull CommandContext context,
+                                   @Nonnull PlayerRef playerRef,
+                                   @Nonnull String name,
+                                   @Nonnull String description) {
+        PlayerWarpModel warp = playerWarps.getOwnedWarp(playerRef.getUuid(), name);
+        if (warp == null) {
+            Messages.sendKey(context, "playerwarp.not_found", Map.of());
+            return;
+        }
+        warp.setDescription(description);
+        playerWarps.setWarp(playerRef.getUuid(), warp);
+        Messages.sendKey(context, "playerwarp.updated", Map.of("warp", warp.getName()));
     }
 
     private void visit(@Nonnull CommandContext context,

@@ -2,7 +2,6 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.chat;
 
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
@@ -133,11 +132,9 @@ public final class MailCommand extends CommandBase {
     }
 
     private final class ListSubCommand extends CommandBase {
-        private final OptionalArg<List<String>> optionsArg;
-
         private ListSubCommand() {
             super("list", "List mail messages");
-            this.optionsArg = withListOptionalArg("options", "Filter/page: inbox, sent, read, unread, page <n>", ArgTypes.STRING);
+            this.addUsageVariant(new ListOptionsVariant());
         }
 
         @Override
@@ -150,8 +147,30 @@ public final class MailCommand extends CommandBase {
             if (!checkBaseAccess(context)) {
                 return;
             }
-            List<String> options = context.provided(optionsArg) ? context.get(optionsArg) : List.of();
-            handleList(context, options);
+            handleList(context, List.of());
+        }
+
+        private final class ListOptionsVariant extends CommandBase {
+            private final RequiredArg<List<String>> optionsArg;
+
+            private ListOptionsVariant() {
+                super("List mail messages with filters or page options");
+                this.optionsArg = withListRequiredArg("options", "Filter/page: inbox, sent, read, unread, page <n>", ArgTypes.STRING);
+            }
+
+            @Override
+            protected boolean canGeneratePermission() {
+                return false;
+            }
+
+            @Override
+            protected void executeSync(@Nonnull CommandContext context) {
+                if (!checkBaseAccess(context)) {
+                    return;
+                }
+                List<String> options = context.get(optionsArg);
+                handleList(context, options == null ? List.of() : options);
+            }
         }
     }
 

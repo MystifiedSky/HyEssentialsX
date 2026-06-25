@@ -4,7 +4,6 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.Page;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
@@ -30,13 +29,12 @@ public final class InvSeeCommand extends AbstractPlayerCommand {
     private static final String PERMISSION_EDIT = "hyessentialsx.invsee.edit";
 
     private final RequiredArg<PlayerRef> targetArg;
-    private final OptionalArg<String> sectionArg;
 
     public InvSeeCommand() {
         super("invsee", "View a player's inventory");
         this.setPermissionGroups();
         this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
-        this.sectionArg = withOptionalArg("section", "Inventory section", ArgTypes.STRING);
+        this.addUsageVariant(new InvSeeSectionCommand());
     }
 
     @Override
@@ -72,13 +70,25 @@ public final class InvSeeCommand extends AbstractPlayerCommand {
             return;
         }
 
-        boolean viewBackpack = context.provided(sectionArg) && isBackpackSection(context.get(sectionArg));
-        final boolean finalViewBackpack = viewBackpack;
+        openTargetInventory(context, store, ref, viewer, target, canEdit, false);
+    }
 
+    private static void openTargetInventory(@Nonnull CommandContext context,
+                                            @Nonnull Store<EntityStore> store,
+                                            @Nonnull Ref<EntityStore> ref,
+                                            @Nonnull Player viewer,
+                                            @Nonnull PlayerRef target,
+                                            boolean canEdit,
+                                            boolean viewBackpack) {
+        Ref<EntityStore> targetRef = target.getReference();
+        if (!targetRef.isValid()) {
+            Messages.errKey(context, "player.not_found", Map.of());
+            return;
+        }
         Store<EntityStore> targetStore = targetRef.getStore();
         EntityStore targetEntityStore = (EntityStore) targetStore.getExternalData();
         World targetWorld = targetEntityStore.getWorld();
-        targetWorld.execute(() -> openInventory(context, viewer, ref, store, targetStore, targetRef, canEdit, finalViewBackpack));
+        targetWorld.execute(() -> openInventory(context, viewer, ref, store, targetStore, targetRef, canEdit, viewBackpack));
     }
 
     private static void openInventory(
@@ -138,5 +148,54 @@ public final class InvSeeCommand extends AbstractPlayerCommand {
             normalized = normalized.substring("section=".length());
         }
         return normalized.equals("backpack") || normalized.equals("bp") || normalized.equals("bag");
+    }
+
+    private final class InvSeeSectionCommand extends AbstractPlayerCommand {
+        private final RequiredArg<PlayerRef> targetArg;
+        private final RequiredArg<String> sectionArg;
+
+        private InvSeeSectionCommand() {
+            super("View a player's inventory section");
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+            this.sectionArg = withRequiredArg("section", "Inventory section", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            boolean canEdit = xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_EDIT);
+            boolean canView = canEdit || xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_VIEW);
+            if (!canView) {
+                Messages.noPerm(context, "/invsee");
+                return;
+            }
+
+            Player viewer = store.getComponent(ref, Player.getComponentType());
+            if (viewer == null) {
+                Messages.errKey(context, "error.inventory_access", Map.of());
+                return;
+            }
+
+            PlayerRef target = context.get(targetArg);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", Map.of());
+                return;
+            }
+
+            String section = context.get(sectionArg);
+            if (!isBackpackSection(section)) {
+                Messages.errKey(context, "invsee.invalid_section", Map.of());
+                return;
+            }
+            openTargetInventory(context, store, ref, viewer, target, canEdit, true);
+        }
     }
 }

@@ -3,7 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.misc;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -28,8 +28,6 @@ public final class LeaderboardCommand extends CommandBase {
     private static final int MAX_LIMIT = 25;
 
     private final StatsManager stats;
-    private final OptionalArg<String> statArg;
-    private final OptionalArg<Integer> limitArg;
 
     public LeaderboardCommand(@Nonnull StatsManager stats) {
         super("leaderboard", "Shows stat leaderboards");
@@ -37,9 +35,8 @@ public final class LeaderboardCommand extends CommandBase {
         this.setPermissionGroups();
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"leaderboards", "lb"});
-        this.statArg = withOptionalArg("stat", "Stat to rank", ArgTypes.STRING);
-        this.limitArg = withOptionalArg("limit", "Number of players to show", ArgTypes.INTEGER);
-        this.statArg.suggest(this::suggestStats);
+        this.addUsageVariant(new LeaderboardStatCommand());
+        this.addUsageVariant(new LeaderboardStatLimitCommand());
     }
 
     @Override
@@ -58,8 +55,10 @@ public final class LeaderboardCommand extends CommandBase {
             return;
         }
 
-        String statInput = context.provided(statArg) ? context.get(statArg) : null;
-        Integer requestedLimit = context.provided(limitArg) ? context.get(limitArg) : null;
+        showLeaderboard(context, null, null);
+    }
+
+    private void showLeaderboard(@Nonnull CommandContext context, String statInput, Integer requestedLimit) {
         if (statInput != null && statInput.matches("\\d+")) {
             requestedLimit = parsePositive(statInput);
             statInput = null;
@@ -100,6 +99,64 @@ public final class LeaderboardCommand extends CommandBase {
                     "player", entry.playerName(),
                     "value", formatValue(selection, entry.value())
             ));
+        }
+    }
+
+    private final class LeaderboardStatCommand extends CommandBase {
+        private final RequiredArg<String> statArg;
+
+        private LeaderboardStatCommand() {
+            super("Shows a stat leaderboard");
+            this.statArg = withRequiredArg("stat", "Stat to rank", ArgTypes.STRING);
+            this.statArg.suggest(LeaderboardCommand.this::suggestStats);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/leaderboard");
+                return;
+            }
+            if (!stats.isEnabled()) {
+                Messages.errKey(context, "stats.disabled", Map.of());
+                return;
+            }
+            showLeaderboard(context, context.get(statArg), null);
+        }
+    }
+
+    private final class LeaderboardStatLimitCommand extends CommandBase {
+        private final RequiredArg<String> statArg;
+        private final RequiredArg<Integer> limitArg;
+
+        private LeaderboardStatLimitCommand() {
+            super("Shows a stat leaderboard with a custom limit");
+            this.statArg = withRequiredArg("stat", "Stat to rank", ArgTypes.STRING);
+            this.limitArg = withRequiredArg("limit", "Number of players to show", ArgTypes.INTEGER);
+            this.statArg.suggest(LeaderboardCommand.this::suggestStats);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/leaderboard");
+                return;
+            }
+            if (!stats.isEnabled()) {
+                Messages.errKey(context, "stats.disabled", Map.of());
+                return;
+            }
+            showLeaderboard(context, context.get(statArg), context.get(limitArg));
         }
     }
 

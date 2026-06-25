@@ -3,7 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.teleport;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -33,7 +33,6 @@ public final class BackCommand extends CommandBase {
     private final TPManager tpManager;
     private final CommandCooldownManager cooldowns;
     private final ConfigManager config;
-    private final OptionalArg<PlayerRef> targetArg;
 
     public BackCommand(@Nonnull BackManager backManager,
                        @Nonnull TPManager tpManager,
@@ -46,7 +45,7 @@ public final class BackCommand extends CommandBase {
         this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
-        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
+        this.addUsageVariant(new BackOtherCommand());
     }
 
     @Override
@@ -61,23 +60,14 @@ public final class BackCommand extends CommandBase {
             return;
         }
         PlayerRef senderPlayer = CommandSenderUtil.resolvePlayer(context);
-        PlayerRef target = senderPlayer;
-        if (context.provided(targetArg)) {
-            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
-                Messages.noPerm(context, "/back <player>");
-                return;
-            }
-            target = context.get(targetArg);
-            if (target == null) {
-                Messages.errKey(context, "player.not_found", Map.of());
-                return;
-            }
-        }
-        if (target == null) {
+        if (senderPlayer == null) {
             Messages.errKey(context, "player.not_found", Map.of());
             return;
         }
+        teleportBack(context, senderPlayer);
+    }
 
+    private void teleportBack(@Nonnull CommandContext context, @Nonnull PlayerRef target) {
         if (!cooldowns.canUse(context, target, CooldownKeys.BACK, "/back", BYPASS_PERMISSION)) {
             return;
         }
@@ -157,6 +147,38 @@ public final class BackCommand extends CommandBase {
         backManager.consume(target.getUuid());
         cooldowns.apply(target, CooldownKeys.BACK);
         Messages.okKey(context, "teleport.success.back", Map.of());
+    }
+
+    private final class BackOtherCommand extends CommandBase {
+        private final RequiredArg<PlayerRef> targetArg;
+
+        private BackOtherCommand() {
+            super("Return another player to their last teleport or death location");
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/back");
+                return;
+            }
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
+                Messages.noPerm(context, "/back <player>");
+                return;
+            }
+            PlayerRef target = context.get(targetArg);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", Map.of());
+                return;
+            }
+            teleportBack(context, target);
+        }
     }
 }
 

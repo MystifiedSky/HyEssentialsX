@@ -4,7 +4,6 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
@@ -173,13 +172,12 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
 
     private final class CreateSubCommand extends CommandBase {
         private final RequiredArg<String> nameArg;
-        private final OptionalArg<List<String>> messageArg;
 
         private CreateSubCommand() {
             super("create", "Create an announcement preset");
             this.addAliases(new String[]{"add"});
             this.nameArg = withRequiredArg("name", "Preset name", ArgTypes.STRING);
-            this.messageArg = withListOptionalArg("message", "Initial chat message", ArgTypes.STRING);
+            this.addUsageVariant(new CreateMessageVariant());
         }
 
         @Override
@@ -190,10 +188,34 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
         @Override
         protected void executeSync(@Nonnull CommandContext context) {
             if (!canManage(context, "/announcement create")) return;
-            AnnouncementPresetModel preset = new AnnouncementPresetModel(context.get(nameArg));
-            String message = context.provided(messageArg)
-                    ? String.join(" ", context.get(messageArg))
-                    : "<#38BDF8>[Announcement]</#38BDF8> <#E2E8F0>Edit me.</#E2E8F0>";
+            createPreset(context, context.get(nameArg), "<#38BDF8>[Announcement]</#38BDF8> <#E2E8F0>Edit me.</#E2E8F0>");
+        }
+
+        private final class CreateMessageVariant extends CommandBase {
+            private final RequiredArg<String> nameArg;
+            private final RequiredArg<List<String>> messageArg;
+
+            private CreateMessageVariant() {
+                super("Create an announcement preset with an initial chat message");
+                this.nameArg = withRequiredArg("name", "Preset name", ArgTypes.STRING);
+                this.messageArg = withListRequiredArg("message", "Initial chat message", ArgTypes.STRING);
+            }
+
+            @Override
+            protected boolean canGeneratePermission() {
+                return false;
+            }
+
+            @Override
+            protected void executeSync(@Nonnull CommandContext context) {
+                if (!canManage(context, "/announcement create")) return;
+                List<String> parts = context.get(messageArg);
+                createPreset(context, context.get(nameArg), parts == null ? "" : String.join(" ", parts));
+            }
+        }
+
+        private void createPreset(@Nonnull CommandContext context, @Nonnull String name, @Nonnull String message) {
+            AnnouncementPresetModel preset = new AnnouncementPresetModel(name);
             preset.setChatMessages(List.of(message));
             manager.savePreset(preset);
             context.sendMessage(Message.raw("Created announcement preset '" + preset.getName() + "'."));

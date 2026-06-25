@@ -3,7 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.cheat;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -22,7 +22,6 @@ public final class FlyCommand extends AbstractPlayerCommand {
 
     private final FlyManager flyManager;
     private final StorageManager storage;
-    private final OptionalArg<PlayerRef> targetArg;
 
     public FlyCommand(@Nonnull FlyManager flyManager, @Nonnull StorageManager storage) {
         super("fly", "Toggle flight");
@@ -30,7 +29,7 @@ public final class FlyCommand extends AbstractPlayerCommand {
         this.storage = storage;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
-        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
+        this.addUsageVariant(new FlyOtherCommand());
     }
 
     @Override
@@ -51,7 +50,10 @@ public final class FlyCommand extends AbstractPlayerCommand {
             return;
         }
 
-        PlayerRef target = context.provided(targetArg) ? context.get(targetArg) : playerRef;
+        toggleFly(context, playerRef, playerRef);
+    }
+
+    private void toggleFly(@Nonnull CommandContext context, @Nonnull PlayerRef playerRef, @Nonnull PlayerRef target) {
         if (!playerRef.getUuid().equals(target.getUuid())
                 && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
             Messages.noPerm(context, "/fly");
@@ -84,6 +86,38 @@ public final class FlyCommand extends AbstractPlayerCommand {
             Messages.sendPrefixedKey(target,
                     enabled ? "fly.enabled_by" : "fly.disabled_by",
                     java.util.Map.of("player", playerRef.getUsername()));
+        }
+    }
+
+    private final class FlyOtherCommand extends AbstractPlayerCommand {
+        private final RequiredArg<PlayerRef> targetArg;
+
+        private FlyOtherCommand() {
+            super("Toggle another player's flight");
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/fly");
+                return;
+            }
+            PlayerRef target = context.get(targetArg);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", java.util.Map.of());
+                return;
+            }
+            toggleFly(context, playerRef, target);
         }
     }
 }

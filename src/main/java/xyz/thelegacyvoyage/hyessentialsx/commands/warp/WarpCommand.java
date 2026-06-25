@@ -3,7 +3,6 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.warp;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
@@ -57,6 +56,7 @@ public final class WarpCommand extends CommandBase {
         this.backManager = backManager;
         this.setPermissionGroups();
         this.addUsageVariant(new WarpToCommand());
+        this.addUsageVariant(new WarpOtherCommand());
         this.addSubCommand(new ListSubCommand());
     }
 
@@ -242,12 +242,10 @@ public final class WarpCommand extends CommandBase {
     }
 
     private final class WarpToCommand extends CommandBase {
-        private final OptionalArg<PlayerRef> targetArg;
         private final RequiredArg<String> warpArg;
 
         private WarpToCommand() {
             super("Teleports to a warp");
-            this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
             this.warpArg = withRequiredArg("warp", "Warp name", ArgTypes.STRING);
             this.warpArg.suggest(WarpCommand.this::suggestWarps);
         }
@@ -263,13 +261,36 @@ public final class WarpCommand extends CommandBase {
                 Messages.errKey(context, "warp.disabled", Map.of());
                 return;
             }
-            PlayerRef target = null;
-            if (context.provided(targetArg)) {
-                target = context.get(targetArg);
-                if (target == null) {
-                    Messages.errKey(context, "player.not_found", Map.of());
-                    return;
-                }
+            handleWarp(context, context.get(warpArg), null);
+        }
+    }
+
+    private final class WarpOtherCommand extends CommandBase {
+        private final RequiredArg<String> warpArg;
+        private final RequiredArg<PlayerRef> targetArg;
+
+        private WarpOtherCommand() {
+            super("Teleports another player to a warp");
+            this.warpArg = withRequiredArg("warp", "Warp name", ArgTypes.STRING);
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+            this.warpArg.suggest(WarpCommand.this::suggestWarps);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!config.isWarpsEnabled()) {
+                Messages.errKey(context, "warp.disabled", Map.of());
+                return;
+            }
+            PlayerRef target = context.get(targetArg);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", Map.of());
+                return;
             }
             handleWarp(context, context.get(warpArg), target);
         }

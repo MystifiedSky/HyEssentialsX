@@ -3,7 +3,6 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.kit;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
@@ -31,8 +30,6 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
     private final KitManager kitManager;
     private final ConfigManager config;
     private final RequiredArg<String> nameArg;
-    private final OptionalArg<String> cooldownArg;
-    private final OptionalArg<Integer> maxUsesArg;
 
     public KitCreateCommand(@Nonnull KitManager kitManager, @Nonnull ConfigManager config) {
         super("kitcreate", "Creates a kit");
@@ -41,8 +38,8 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
-        this.cooldownArg = withOptionalArg("cooldown", "Cooldown (e.g. 30d)", ArgTypes.STRING);
-        this.maxUsesArg = withOptionalArg("maxUses", "Max amount of claims (0 = unlimited)", ArgTypes.INTEGER);
+        this.addUsageVariant(new KitCreateCooldownCommand());
+        this.addUsageVariant(new KitCreateCooldownUsesCommand());
     }
 
     @Override
@@ -73,8 +70,20 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
             return;
         }
 
+        createKit(context, store, ref, name, null, null);
+    }
+
+    private void createKit(@Nonnull CommandContext context,
+                           @Nonnull Store<EntityStore> store,
+                           @Nonnull Ref<EntityStore> ref,
+                           String name,
+                           String raw,
+                           Integer maxUsesInput) {
+        if (name == null || name.isBlank()) {
+            Messages.errKey(context, "kit.name_required", java.util.Map.of());
+            return;
+        }
         int cooldownSeconds = 0;
-        String raw = context.provided(cooldownArg) ? context.get(cooldownArg) : null;
         if (raw != null && !raw.isBlank()) {
             long secs = TimeUtil.parseDurationSeconds(raw);
             if (secs < 0) {
@@ -84,7 +93,6 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
             cooldownSeconds = (int) Math.min(Integer.MAX_VALUE, secs);
         }
         int maxUses = 0;
-        Integer maxUsesInput = context.provided(maxUsesArg) ? context.get(maxUsesArg) : null;
         if (maxUsesInput != null) {
             if (maxUsesInput < 0) {
                 Messages.errKey(context, "kit.max_uses_invalid", java.util.Map.of());
@@ -111,6 +119,74 @@ public final class KitCreateCommand extends AbstractPlayerCommand {
         kitManager.setKit(new KitModel(name, cooldownSeconds, maxUses, sortOrder, items));
 
         Messages.okKey(context, "kit.created", java.util.Map.of("kit", name));
+    }
+
+    private final class KitCreateCooldownCommand extends AbstractPlayerCommand {
+        private final RequiredArg<String> nameArg;
+        private final RequiredArg<String> cooldownArg;
+
+        private KitCreateCooldownCommand() {
+            super("Creates a kit with a cooldown");
+            this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
+            this.cooldownArg = withRequiredArg("cooldown", "Cooldown (e.g. 30d)", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/kitcreate");
+                return;
+            }
+            if (!config.isKitsEnabled()) {
+                Messages.errKey(context, "kit.disabled", java.util.Map.of());
+                return;
+            }
+            createKit(context, store, ref, context.get(nameArg), context.get(cooldownArg), null);
+        }
+    }
+
+    private final class KitCreateCooldownUsesCommand extends AbstractPlayerCommand {
+        private final RequiredArg<String> nameArg;
+        private final RequiredArg<String> cooldownArg;
+        private final RequiredArg<Integer> maxUsesArg;
+
+        private KitCreateCooldownUsesCommand() {
+            super("Creates a kit with cooldown and max uses");
+            this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
+            this.cooldownArg = withRequiredArg("cooldown", "Cooldown (e.g. 30d)", ArgTypes.STRING);
+            this.maxUsesArg = withRequiredArg("maxUses", "Max amount of claims (0 = unlimited)", ArgTypes.INTEGER);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/kitcreate");
+                return;
+            }
+            if (!config.isKitsEnabled()) {
+                Messages.errKey(context, "kit.disabled", java.util.Map.of());
+                return;
+            }
+            createKit(context, store, ref, context.get(nameArg), context.get(cooldownArg), context.get(maxUsesArg));
+        }
     }
 }
 

@@ -3,7 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.kit;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -32,7 +32,6 @@ public final class KitCommand extends AbstractPlayerCommand {
 
     private final KitManager kitManager;
     private final ConfigManager config;
-    private final OptionalArg<String> nameArg;
 
     public KitCommand(@Nonnull KitManager kitManager,
                       @Nonnull ConfigManager config) {
@@ -40,8 +39,8 @@ public final class KitCommand extends AbstractPlayerCommand {
         this.kitManager = kitManager;
         this.config = config;
         this.setPermissionGroups();
-        this.nameArg = withOptionalArg("name", "Kit name", ArgTypes.STRING);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        this.addUsageVariant(new ClaimKitCommand());
     }
 
     @Override
@@ -66,29 +65,31 @@ public final class KitCommand extends AbstractPlayerCommand {
             return;
         }
 
-        if (!context.provided(nameArg)) {
-            List<String> kits = kitManager.listKits();
-            if (kits.isEmpty()) {
-                Messages.warnKey(context, "kit.none_available", java.util.Map.of());
-                return;
-            }
-            if (config.isKitsGuiEnabled()) {
-                Player player = store.getComponent(ref, Player.getComponentType());
-                if (player == null) {
-                    Messages.errKey(context, "kit.ui_failed", java.util.Map.of());
-                    return;
-                }
-                KitsUI page = new KitsUI(playerRef, kitManager, config);
-                page.open(player, ref, store);
-                return;
-            }
-            Messages.send(context, Messages.tr(null, "kit.list", java.util.Map.of(
-                    "kits", String.join(", ", kits)
-            )));
+        List<String> kits = kitManager.listKits();
+        if (kits.isEmpty()) {
+            Messages.warnKey(context, "kit.none_available", java.util.Map.of());
             return;
         }
+        if (config.isKitsGuiEnabled()) {
+            Player player = store.getComponent(ref, Player.getComponentType());
+            if (player == null) {
+                Messages.errKey(context, "kit.ui_failed", java.util.Map.of());
+                return;
+            }
+            KitsUI page = new KitsUI(playerRef, kitManager, config);
+            page.open(player, ref, store);
+            return;
+        }
+        Messages.send(context, Messages.tr(null, "kit.list", java.util.Map.of(
+                "kits", String.join(", ", kits)
+        )));
+    }
 
-        String name = context.get(nameArg);
+    private void claimKit(@Nonnull CommandContext context,
+                          @Nonnull Store<EntityStore> store,
+                          @Nonnull Ref<EntityStore> ref,
+                          @Nonnull PlayerRef playerRef,
+                          String name) {
         if (name == null || name.trim().isEmpty()) {
             Messages.errKey(context, "kit.not_found", java.util.Map.of());
             return;
@@ -144,6 +145,37 @@ public final class KitCommand extends AbstractPlayerCommand {
         kitManager.markUsed(playerRef.getUuid(), kit);
 
         Messages.okKey(context, "kit.claimed", java.util.Map.of("kit", kit.getName()));
+    }
+
+    private final class ClaimKitCommand extends AbstractPlayerCommand {
+        private final RequiredArg<String> nameArg;
+
+        private ClaimKitCommand() {
+            super("Claims a named kit");
+            this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/kit");
+                return;
+            }
+            if (!config.isKitsEnabled()) {
+                Messages.errKey(context, "kit.disabled", java.util.Map.of());
+                return;
+            }
+            claimKit(context, store, ref, playerRef, context.get(nameArg));
+        }
     }
 
     private void dropOverflow(@Nonnull PlayerRef playerRef, @Nonnull Player player, @Nonnull List<ItemStack> overflow) {

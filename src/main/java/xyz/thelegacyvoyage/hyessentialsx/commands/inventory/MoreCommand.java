@@ -4,7 +4,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.asset.type.item.config.Item;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -23,13 +23,12 @@ public final class MoreCommand extends AbstractPlayerCommand {
     private static final String PERMISSION_NODE = "hyessentialsx.more";
     private static final String LEGACY_PERMISSION = "hyessentailsx.more";
     private static final String OTHERS_PERMISSION = "hyessentialsx.more.other";
-    private final OptionalArg<PlayerRef> targetArg;
 
     public MoreCommand() {
         super("more", "Set held item to max stack size");
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
-        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
+        this.addUsageVariant(new MoreOtherCommand());
     }
 
     @Override
@@ -48,18 +47,13 @@ public final class MoreCommand extends AbstractPlayerCommand {
             return;
         }
 
-        PlayerRef target = playerRef;
-        if (context.provided(targetArg)) {
-            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
-                Messages.noPerm(context, "/more");
-                return;
-            }
-            target = context.get(targetArg);
-            if (target == null) {
-                Messages.errKey(context, "player.not_found", java.util.Map.of());
-                return;
-            }
-        }
+        maximizeStack(context, store, playerRef, playerRef);
+    }
+
+    private void maximizeStack(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull PlayerRef target) {
         boolean isSelf = playerRef.getUuid().equals(target.getUuid());
 
         if (!isSelf && playerRef.getWorldUuid() != null && target.getWorldUuid() != null
@@ -136,6 +130,42 @@ public final class MoreCommand extends AbstractPlayerCommand {
                 stack.getMaxDurability(),
                 stack.getMetadata()
         );
+    }
+
+    private final class MoreOtherCommand extends AbstractPlayerCommand {
+        private final RequiredArg<PlayerRef> targetArg;
+
+        private MoreOtherCommand() {
+            super("Set another player's held item to max stack size");
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE) && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), LEGACY_PERMISSION)) {
+                Messages.noPerm(context, "/more");
+                return;
+            }
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
+                Messages.noPerm(context, "/more");
+                return;
+            }
+            PlayerRef target = context.get(targetArg);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", java.util.Map.of());
+                return;
+            }
+            maximizeStack(context, store, playerRef, target);
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 package xyz.thelegacyvoyage.hyessentialsx.commands.economy;
 
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -26,8 +26,6 @@ public final class PayCommand extends AbstractPlayerCommand {
     private final EconomyManager economy;
     @Nullable
     private final EconomyAuditManager audit;
-    private final OptionalArg<PlayerRef> targetArg;
-    private final OptionalArg<String> amountArg;
 
     public PayCommand(@Nonnull EconomyManager economy) {
         this(economy, null);
@@ -40,8 +38,7 @@ public final class PayCommand extends AbstractPlayerCommand {
         this.audit = audit;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
-        this.targetArg = withOptionalArg("player", "Player to pay", ArgTypes.PLAYER_REF);
-        this.amountArg = withOptionalArg("amount", "Amount to pay", ArgTypes.STRING);
+        this.addUsageVariant(new PayPlayerCommand());
     }
 
     @Override
@@ -66,23 +63,19 @@ public final class PayCommand extends AbstractPlayerCommand {
             return;
         }
 
-        if (!context.provided(targetArg) && !context.provided(amountArg)) {
-            Player player = store.getComponent(ref, Player.getComponentType());
-            if (player == null || audit == null) {
-                Messages.errKey(context, "economy.pay.usage", Map.of());
-                return;
-            }
-            PayUI ui = new PayUI(playerRef, economy, audit);
-            ui.open(player, ref, store);
-            return;
-        }
-        if (!context.provided(targetArg) || !context.provided(amountArg)) {
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null || audit == null) {
             Messages.errKey(context, "economy.pay.usage", Map.of());
             return;
         }
+        PayUI ui = new PayUI(playerRef, economy, audit);
+        ui.open(player, ref, store);
+    }
 
-        PlayerRef target = context.get(targetArg);
-        String amountRaw = context.get(amountArg);
+    private void pay(@Nonnull CommandContext context,
+                     @Nonnull PlayerRef playerRef,
+                     @Nullable PlayerRef target,
+                     @Nonnull String amountRaw) {
         long amount = economy.parseAmount(amountRaw);
         if (amount <= 0L) {
             Messages.errKey(context, "economy.invalid_amount", Map.of());
@@ -129,6 +122,39 @@ public final class PayCommand extends AbstractPlayerCommand {
                     economy.getBalance(playerRef.getUuid()),
                     "command"
             );
+        }
+    }
+
+    private final class PayPlayerCommand extends AbstractPlayerCommand {
+        private final RequiredArg<PlayerRef> targetArg;
+        private final RequiredArg<String> amountArg;
+
+        private PayPlayerCommand() {
+            super("Pays another player");
+            this.targetArg = withRequiredArg("player", "Player to pay", ArgTypes.PLAYER_REF);
+            this.amountArg = withRequiredArg("amount", "Amount to pay", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/pay");
+                return;
+            }
+            if (!economy.isEnabled()) {
+                Messages.errKey(context, "economy.disabled", Map.of());
+                return;
+            }
+            pay(context, playerRef, context.get(targetArg), context.get(amountArg));
         }
     }
 

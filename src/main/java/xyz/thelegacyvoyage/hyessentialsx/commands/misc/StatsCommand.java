@@ -4,7 +4,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -37,8 +37,6 @@ public final class StatsCommand extends CommandBase {
     private final StatsManager stats;
     private final PlaytimeManager playtime;
     private final StorageManager storage;
-    private final OptionalArg<String> firstArg;
-    private final OptionalArg<String> secondArg;
 
     public StatsCommand(@Nonnull StatsManager stats,
                         @Nonnull PlaytimeManager playtime,
@@ -50,10 +48,8 @@ public final class StatsCommand extends CommandBase {
         this.setPermissionGroups();
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"statistics"});
-        this.firstArg = withOptionalArg("player_or_category", "Player name or category", ArgTypes.STRING);
-        this.secondArg = withOptionalArg("category", "Category", ArgTypes.STRING);
-        this.firstArg.suggest(this::suggestCategories);
-        this.secondArg.suggest(this::suggestCategories);
+        this.addUsageVariant(new StatsFirstCommand());
+        this.addUsageVariant(new StatsPlayerCategoryCommand());
     }
 
     @Override
@@ -73,9 +69,13 @@ public final class StatsCommand extends CommandBase {
         }
 
         PlayerRef sender = CommandSenderUtil.resolvePlayer(context);
-        String first = context.provided(firstArg) ? context.get(firstArg) : null;
-        String second = context.provided(secondArg) ? context.get(secondArg) : null;
+        showStats(context, sender, null, null);
+    }
 
+    private void showStats(@Nonnull CommandContext context,
+                           PlayerRef sender,
+                           String first,
+                           String second) {
         UUID targetId;
         String targetName;
         String category = null;
@@ -124,6 +124,64 @@ public final class StatsCommand extends CommandBase {
             return;
         }
         sendSummary(context, targetId, targetName);
+    }
+
+    private final class StatsFirstCommand extends CommandBase {
+        private final RequiredArg<String> firstArg;
+
+        private StatsFirstCommand() {
+            super("View a player or category statistics page");
+            this.firstArg = withRequiredArg("player_or_category", "Player name or category", ArgTypes.STRING);
+            this.firstArg.suggest(StatsCommand.this::suggestCategories);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/stats");
+                return;
+            }
+            if (!stats.isEnabled()) {
+                Messages.errKey(context, "stats.disabled", Map.of());
+                return;
+            }
+            showStats(context, CommandSenderUtil.resolvePlayer(context), context.get(firstArg), null);
+        }
+    }
+
+    private final class StatsPlayerCategoryCommand extends CommandBase {
+        private final RequiredArg<String> playerArg;
+        private final RequiredArg<String> categoryArg;
+
+        private StatsPlayerCategoryCommand() {
+            super("View a player's category statistics");
+            this.playerArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
+            this.categoryArg = withRequiredArg("category", "Category", ArgTypes.STRING);
+            this.categoryArg.suggest(StatsCommand.this::suggestCategories);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/stats");
+                return;
+            }
+            if (!stats.isEnabled()) {
+                Messages.errKey(context, "stats.disabled", Map.of());
+                return;
+            }
+            showStats(context, CommandSenderUtil.resolvePlayer(context), context.get(playerArg), context.get(categoryArg));
+        }
     }
 
     private void sendSummary(@Nonnull CommandContext context, @Nonnull UUID targetId, @Nonnull String targetName) {

@@ -3,7 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.economy;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -34,7 +34,6 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
     private final EconomyManager economy;
     private final StorageManager storage;
     private final ConfigManager config;
-    private final OptionalArg<Integer> limitArg;
 
     public BalanceTopCommand(@Nonnull EconomyManager economy, @Nonnull StorageManager storage, @Nonnull ConfigManager config) {
         super("baltop", "Shows the top balances");
@@ -42,8 +41,8 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
         this.storage = storage;
         this.config = config;
         this.setPermissionGroups();
-        this.limitArg = withOptionalArg("limit", "Number of balances to show", ArgTypes.INTEGER);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        this.addUsageVariant(new LimitedBalanceTopCommand());
         this.addAliases(new String[]{"balancetop"});
     }
 
@@ -78,6 +77,10 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
             }
         }
 
+        renderTop(context, DEFAULT_LIMIT);
+    }
+
+    private void renderTop(@Nonnull CommandContext context, int requestedLimit) {
         List<BalanceEntry> entries = new ArrayList<>();
         for (UUID uuid : storage.listPlayerIds()) {
             if (isExempt(uuid)) {
@@ -105,7 +108,7 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
                 .thenComparing(entry -> entry.name.toLowerCase()));
 
         context.sendMessage(Messages.m(Messages.tr(null, "economy.baltop.header", Map.of())));
-        int limit = resolveLimit(context, entries.size());
+        int limit = Math.min(Math.max(1, requestedLimit), entries.size());
         for (int i = 0; i < limit; i++) {
             BalanceEntry entry = entries.get(i);
             String line = Messages.tr(null, "economy.baltop.entry", Map.of(
@@ -117,18 +120,40 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
         }
     }
 
-    private int resolveLimit(@Nonnull CommandContext context, int max) {
-        if (context.provided(limitArg)) {
-            Integer value = context.get(limitArg);
-            if (value != null && value > 0) {
-                return Math.min(value, max);
-            }
-        }
-        return Math.min(DEFAULT_LIMIT, max);
-    }
-
     private boolean isExempt(@Nonnull UUID uuid) {
         return ExplicitPermissionUtil.hasExplicitPermission(uuid, BalTopUI.EXEMPT_PERMISSION);
+    }
+
+    private final class LimitedBalanceTopCommand extends AbstractPlayerCommand {
+        private final RequiredArg<Integer> limitArg;
+
+        private LimitedBalanceTopCommand() {
+            super("Shows a custom number of top balances");
+            this.limitArg = withRequiredArg("limit", "Number of balances to show", ArgTypes.INTEGER);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/baltop");
+                return;
+            }
+            if (!economy.isEnabled()) {
+                Messages.errKey(context, "economy.disabled", Map.of());
+                return;
+            }
+            Integer limit = context.get(limitArg);
+            renderTop(context, limit == null ? DEFAULT_LIMIT : limit);
+        }
     }
 
     private static final class BalanceEntry {

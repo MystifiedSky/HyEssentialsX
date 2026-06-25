@@ -3,7 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.cheat;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -25,8 +25,6 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
     private final FlyManager flyManager;
     private final StorageManager storage;
     private final ConfigManager config;
-    private final OptionalArg<Float> speedArg;
-    private final OptionalArg<PlayerRef> targetArg;
 
     public FlySpeedCommand(@Nonnull FlyManager flyManager,
                            @Nonnull StorageManager storage,
@@ -36,9 +34,9 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
         this.storage = storage;
         this.config = config;
         this.setPermissionGroups();
-        this.speedArg = withOptionalArg("speed", "Fly speed multiplier", ArgTypes.FLOAT);
-        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        this.addUsageVariant(new FlySpeedSelfCommand());
+        this.addUsageVariant(new FlySpeedOtherCommand());
     }
 
     @Override
@@ -57,13 +55,14 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
             return;
         }
 
-        if (!context.provided(speedArg)) {
-            float current = flyManager.getFlySpeedMultiplier(playerRef.getUuid());
-            Messages.sendKey(context, "flyspeed.current", Map.of("speed", formatSpeed(current)));
-            return;
-        }
+        float current = flyManager.getFlySpeedMultiplier(playerRef.getUuid());
+        Messages.sendKey(context, "flyspeed.current", Map.of("speed", formatSpeed(current)));
+    }
 
-        Float speed = context.get(speedArg);
+    private void setSpeed(@Nonnull CommandContext context,
+                          @Nonnull PlayerRef playerRef,
+                          @Nonnull PlayerRef target,
+                          @Nonnull Float speed) {
         if (speed == null || !Float.isFinite(speed)) {
             Messages.errKey(context, "flyspeed.invalid", Map.of());
             return;
@@ -78,19 +77,6 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
                     "max", formatSpeed(max)
             ));
             return;
-        }
-
-        PlayerRef target = playerRef;
-        if (context.provided(targetArg)) {
-            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
-                Messages.noPerm(context, "/flyspeed <speed> <player>");
-                return;
-            }
-            target = context.get(targetArg);
-            if (target == null) {
-                Messages.errKey(context, "player.not_found", Map.of());
-                return;
-            }
         }
 
         flyManager.setFlySpeedMultiplier(target.getUuid(), requested);
@@ -121,5 +107,70 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
     @Nonnull
     private static String formatSpeed(float value) {
         return String.format(java.util.Locale.ROOT, "%.2f", value);
+    }
+
+    private final class FlySpeedSelfCommand extends AbstractPlayerCommand {
+        private final RequiredArg<Float> speedArg;
+
+        private FlySpeedSelfCommand() {
+            super("Set your fly speed multiplier");
+            this.speedArg = withRequiredArg("speed", "Fly speed multiplier", ArgTypes.FLOAT);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/flyspeed");
+                return;
+            }
+            setSpeed(context, playerRef, playerRef, context.get(speedArg));
+        }
+    }
+
+    private final class FlySpeedOtherCommand extends AbstractPlayerCommand {
+        private final RequiredArg<Float> speedArg;
+        private final RequiredArg<PlayerRef> targetArg;
+
+        private FlySpeedOtherCommand() {
+            super("Set another player's fly speed multiplier");
+            this.speedArg = withRequiredArg("speed", "Fly speed multiplier", ArgTypes.FLOAT);
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/flyspeed");
+                return;
+            }
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
+                Messages.noPerm(context, "/flyspeed <speed> <player>");
+                return;
+            }
+            PlayerRef target = context.get(targetArg);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", Map.of());
+                return;
+            }
+            setSpeed(context, playerRef, target, context.get(speedArg));
+        }
     }
 }

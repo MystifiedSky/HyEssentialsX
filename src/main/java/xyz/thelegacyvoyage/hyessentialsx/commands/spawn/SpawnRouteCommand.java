@@ -1,7 +1,6 @@
 package xyz.thelegacyvoyage.hyessentialsx.commands.spawn;
 
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
@@ -240,12 +239,11 @@ public final class SpawnRouteCommand extends CommandBase {
 
     private final class OrderSubCommand extends CommandBase {
         private final RequiredArg<String> routeArg;
-        private final OptionalArg<List<String>> orderArg;
 
         private OrderSubCommand() {
             super("order", "Set a route resolution order");
             this.routeArg = withRequiredArg("route", "command, firstjoin, join, respawn, or death", ArgTypes.STRING);
-            this.orderArg = withListOptionalArg("sources", "Sources: bed, firstjoin, death, group, world, permission, main, setspawn, worlddefault", ArgTypes.STRING);
+            this.addUsageVariant(new OrderSetVariant());
         }
 
         @Override
@@ -257,22 +255,41 @@ public final class SpawnRouteCommand extends CommandBase {
         protected void executeSync(@Nonnull CommandContext context) {
             if (!canManage(context, "/spawnroute order")) return;
             String route = context.get(routeArg);
-            if (!context.provided(orderArg)) {
-                Messages.sendKey(context, "spawnroute.order_entry", Map.of(
-                        "route", route,
-                        "order", String.join(", ", config.getSpawnRouteOrder(route))
-                ));
-                return;
-            }
-            List<String> order = new ArrayList<>();
-            for (String raw : context.get(orderArg)) {
-                order.addAll(parseSpawnList(raw));
-            }
-            config.setSpawnRouteOrder(route, order);
-            Messages.okKey(context, "spawnroute.order_set", Map.of(
+            Messages.sendKey(context, "spawnroute.order_entry", Map.of(
                     "route", route,
                     "order", String.join(", ", config.getSpawnRouteOrder(route))
             ));
+        }
+
+        private final class OrderSetVariant extends CommandBase {
+            private final RequiredArg<String> routeArg;
+            private final RequiredArg<List<String>> orderArg;
+
+            private OrderSetVariant() {
+                super("Set a route resolution order");
+                this.routeArg = withRequiredArg("route", "command, firstjoin, join, respawn, or death", ArgTypes.STRING);
+                this.orderArg = withListRequiredArg("sources", "Sources: bed, firstjoin, death, group, world, permission, main, setspawn, worlddefault", ArgTypes.STRING);
+            }
+
+            @Override
+            protected boolean canGeneratePermission() {
+                return false;
+            }
+
+            @Override
+            protected void executeSync(@Nonnull CommandContext context) {
+                if (!canManage(context, "/spawnroute order")) return;
+                String route = context.get(routeArg);
+                List<String> order = new ArrayList<>();
+                for (String raw : context.get(orderArg)) {
+                    order.addAll(parseSpawnList(raw));
+                }
+                config.setSpawnRouteOrder(route, order);
+                Messages.okKey(context, "spawnroute.order_set", Map.of(
+                        "route", route,
+                        "order", String.join(", ", config.getSpawnRouteOrder(route))
+                ));
+            }
         }
     }
 

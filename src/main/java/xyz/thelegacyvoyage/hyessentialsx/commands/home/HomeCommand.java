@@ -4,7 +4,6 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
@@ -392,13 +391,12 @@ public final class HomeCommand extends AbstractPlayerCommand {
     private final class PlayerHomesCommand extends AbstractPlayerCommand {
 
         private final RequiredArg<String> playerArg;
-        private final OptionalArg<List<String>> otherHomeArg;
 
         private PlayerHomesCommand() {
             super("player", "View or use another player's homes");
             this.setPermissionGroups();
             this.playerArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
-            this.otherHomeArg = withListOptionalArg("home", "Home name", ArgTypes.STRING);
+            this.addUsageVariant(new PlayerHomeTeleportCommand());
         }
 
         @Override
@@ -414,10 +412,37 @@ public final class HomeCommand extends AbstractPlayerCommand {
                 @Nonnull PlayerRef playerRef,
                 @Nonnull World world
         ) {
-            String requestedHomeName = context.provided(otherHomeArg)
-                    ? String.join(" ", context.get(otherHomeArg))
-                    : null;
-            handlePlayerHomes(context, store, ref, playerRef, world, context.get(playerArg), requestedHomeName);
+            handlePlayerHomes(context, store, ref, playerRef, world, context.get(playerArg), null);
+        }
+
+        private final class PlayerHomeTeleportCommand extends AbstractPlayerCommand {
+            private final RequiredArg<String> playerArg;
+            private final RequiredArg<List<String>> otherHomeArg;
+
+            private PlayerHomeTeleportCommand() {
+                super("Use another player's named home");
+                this.setPermissionGroups();
+                this.playerArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
+                this.otherHomeArg = withListRequiredArg("home", "Home name", ArgTypes.STRING);
+            }
+
+            @Override
+            protected boolean canGeneratePermission() {
+                return false;
+            }
+
+            @Override
+            protected void execute(
+                    @Nonnull CommandContext context,
+                    @Nonnull Store<EntityStore> store,
+                    @Nonnull Ref<EntityStore> ref,
+                    @Nonnull PlayerRef playerRef,
+                    @Nonnull World world
+            ) {
+                List<String> parts = context.get(otherHomeArg);
+                handlePlayerHomes(context, store, ref, playerRef, world, context.get(playerArg),
+                        parts == null ? null : String.join(" ", parts));
+            }
         }
     }
 }

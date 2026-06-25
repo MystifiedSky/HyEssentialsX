@@ -1,7 +1,6 @@
 package xyz.thelegacyvoyage.hyessentialsx.commands.moderation;
 
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
@@ -67,7 +66,6 @@ public final class WarnRulesCommand extends CommandBase {
         private final RequiredArg<String> actionArg;
         private final RequiredArg<String> durationArg;
         private final RequiredArg<String> windowArg;
-        private final OptionalArg<List<String>> reasonArg;
 
         private SetSubCommand() {
             super("set", "Create or update a warning escalation rule");
@@ -76,7 +74,7 @@ public final class WarnRulesCommand extends CommandBase {
             this.actionArg = withRequiredArg("action", "MUTE, TEMPBAN, BAN, or COMMAND", ArgTypes.STRING);
             this.durationArg = withRequiredArg("duration", "Punishment duration, or 0 for permanent/none", ArgTypes.STRING);
             this.windowArg = withRequiredArg("window", "Warning window, or 0 for all active warnings", ArgTypes.STRING);
-            this.reasonArg = withListOptionalArg("reason", "Reason or command text", ArgTypes.STRING);
+            this.addUsageVariant(new SetDetailVariant());
         }
 
         @Override
@@ -110,7 +108,16 @@ public final class WarnRulesCommand extends CommandBase {
                 return;
             }
 
-            String detail = context.provided(reasonArg) ? String.join(" ", context.get(reasonArg)).trim() : "";
+            saveRule(context, id, threshold, action, duration, window, "");
+        }
+
+        private void saveRule(@Nonnull CommandContext context,
+                              @Nonnull String id,
+                              int threshold,
+                              @Nonnull String action,
+                              long duration,
+                              long window,
+                              @Nonnull String detail) {
             WarningEscalationRuleModel existing = escalationManager.getRule(id);
             WarningEscalationRuleModel rule = existing == null
                     ? new WarningEscalationRuleModel(id, id, threshold, action, duration, window, detail, "COMMAND".equals(action) ? detail : "")
@@ -129,6 +136,59 @@ public final class WarnRulesCommand extends CommandBase {
             rule.setEnabled(true);
             escalationManager.saveRule(rule);
             Messages.okKey(context, "warnrules.saved", Map.of("id", rule.getId()));
+        }
+
+        private final class SetDetailVariant extends CommandBase {
+            private final RequiredArg<String> idArg;
+            private final RequiredArg<Integer> thresholdArg;
+            private final RequiredArg<String> actionArg;
+            private final RequiredArg<String> durationArg;
+            private final RequiredArg<String> windowArg;
+            private final RequiredArg<List<String>> detailArg;
+
+            private SetDetailVariant() {
+                super("Create or update a warning escalation rule with detail");
+                this.idArg = withRequiredArg("id", "Rule ID", ArgTypes.STRING);
+                this.thresholdArg = withRequiredArg("warnings", "Warning threshold", ArgTypes.INTEGER);
+                this.actionArg = withRequiredArg("action", "MUTE, TEMPBAN, BAN, or COMMAND", ArgTypes.STRING);
+                this.durationArg = withRequiredArg("duration", "Punishment duration, or 0 for permanent/none", ArgTypes.STRING);
+                this.windowArg = withRequiredArg("window", "Warning window, or 0 for all active warnings", ArgTypes.STRING);
+                this.detailArg = withListRequiredArg("detail", "Reason or command text", ArgTypes.STRING);
+            }
+
+            @Override
+            protected boolean canGeneratePermission() {
+                return false;
+            }
+
+            @Override
+            protected void executeSync(@Nonnull CommandContext context) {
+                if (!canManage(context, "/warnrules set")) return;
+
+                String id = context.get(idArg).trim();
+                int threshold = context.get(thresholdArg);
+                String action = context.get(actionArg).trim().toUpperCase(Locale.ROOT);
+                long duration = parseDuration(context.get(durationArg));
+                long window = parseDuration(context.get(windowArg));
+                if (id.isBlank() || !id.matches("[a-zA-Z0-9_-]{2,48}")) {
+                    Messages.errKey(context, "warnrules.invalid_id", Map.of());
+                    return;
+                }
+                if (threshold <= 0) {
+                    Messages.errKey(context, "warnrules.invalid_threshold", Map.of());
+                    return;
+                }
+                if (!isAction(action)) {
+                    Messages.errKey(context, "warnrules.invalid_action", Map.of());
+                    return;
+                }
+                if (duration < 0L || window < 0L) {
+                    Messages.errKey(context, "warnrules.invalid_duration", Map.of());
+                    return;
+                }
+                List<String> parts = context.get(detailArg);
+                saveRule(context, id, threshold, action, duration, window, parts == null ? "" : String.join(" ", parts).trim());
+            }
         }
     }
 

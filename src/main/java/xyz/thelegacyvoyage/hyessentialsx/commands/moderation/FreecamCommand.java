@@ -4,7 +4,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.camera.SetFlyCameraMode;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -23,14 +23,13 @@ public final class FreecamCommand extends AbstractPlayerCommand {
     private static final String OTHER_PERMISSION = "hyessentialsx.freecam.other";
 
     private final FreecamManager freecamManager;
-    private final OptionalArg<PlayerRef> targetArg;
 
     public FreecamCommand(@Nonnull FreecamManager freecamManager) {
         super("freecam", "Toggles free camera");
         this.freecamManager = freecamManager;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
-        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
+        this.addUsageVariant(new FreecamOtherCommand());
     }
 
     @Override
@@ -51,12 +50,10 @@ public final class FreecamCommand extends AbstractPlayerCommand {
             return;
         }
 
-        PlayerRef target = context.provided(targetArg) ? context.get(targetArg) : playerRef;
-        if (target == null) {
-            Messages.errKey(context, "player.not_found", Map.of());
-            return;
-        }
+        toggleFreecam(context, playerRef, playerRef);
+    }
 
+    private void toggleFreecam(@Nonnull CommandContext context, @Nonnull PlayerRef playerRef, @Nonnull PlayerRef target) {
         boolean isSelf = playerRef.getUuid().equals(target.getUuid());
         if (!isSelf && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
             Messages.noPerm(context, "/freecam " + target.getUsername());
@@ -78,6 +75,38 @@ public final class FreecamCommand extends AbstractPlayerCommand {
             Messages.sendPrefixedKey(target,
                     activate ? "freecam.enabled_by" : "freecam.disabled_by",
                     Map.of("player", playerRef.getUsername()));
+        }
+    }
+
+    private final class FreecamOtherCommand extends AbstractPlayerCommand {
+        private final RequiredArg<PlayerRef> targetArg;
+
+        private FreecamOtherCommand() {
+            super("Toggle free camera for another player");
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/freecam");
+                return;
+            }
+            PlayerRef target = context.get(targetArg);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", Map.of());
+                return;
+            }
+            toggleFreecam(context, playerRef, target);
         }
     }
 }

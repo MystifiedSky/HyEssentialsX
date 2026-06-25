@@ -2,7 +2,6 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.moderation;
 
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
@@ -28,7 +27,6 @@ public final class TempBanCommand extends CommandBase {
     private final StorageManager storage;
     private final RequiredArg<String> nameArg;
     private final RequiredArg<String> timeArg;
-    private final OptionalArg<List<String>> reasonArg;
 
     public TempBanCommand(@Nonnull BanManager banManager, @Nonnull StorageManager storage) {
         super("tempban", "Temporarily bans a player");
@@ -38,7 +36,7 @@ public final class TempBanCommand extends CommandBase {
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.nameArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
         this.timeArg = withRequiredArg("time", "Duration (e.g. 30d)", ArgTypes.STRING);
-        this.reasonArg = withListOptionalArg("reason", "Reason", ArgTypes.STRING);
+        this.addUsageVariant(new TempBanReasonCommand());
     }
 
     @Override
@@ -67,12 +65,15 @@ public final class TempBanCommand extends CommandBase {
             return;
         }
 
-        String reason = null;
-        if (context.provided(reasonArg)) {
-            List<String> parts = context.get(reasonArg);
-            reason = String.join(" ", parts).trim();
-        }
+        tempBanPlayer(context, name, seconds, uuid, online, null);
+    }
 
+    private void tempBanPlayer(@Nonnull CommandContext context,
+                               @Nonnull String name,
+                               long seconds,
+                               @Nonnull UUID uuid,
+                               PlayerRef online,
+                               String reason) {
         long expiresAt = System.currentTimeMillis() + (seconds * 1000L);
         String actor = resolveActorName(context);
         String finalReason = (reason == null || reason.isBlank())
@@ -102,6 +103,48 @@ public final class TempBanCommand extends CommandBase {
                 "player", name,
                 "time", TimeUtil.formatDurationSeconds(seconds)
         ));
+    }
+
+    private final class TempBanReasonCommand extends CommandBase {
+        private final RequiredArg<String> nameArg;
+        private final RequiredArg<String> timeArg;
+        private final RequiredArg<List<String>> reasonArg;
+
+        private TempBanReasonCommand() {
+            super("Temporarily bans a player with a reason");
+            this.nameArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
+            this.timeArg = withRequiredArg("time", "Duration (e.g. 30d)", ArgTypes.STRING);
+            this.reasonArg = withListRequiredArg("reason", "Reason", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/tempban");
+                return;
+            }
+
+            String name = context.get(nameArg);
+            long seconds = TimeUtil.parseDurationSeconds(context.get(timeArg));
+            if (seconds <= 0) {
+                Messages.errKey(context, "ban.time_invalid", java.util.Map.of());
+                return;
+            }
+
+            PlayerRef online = Universe.get().getPlayerByUsername(name, NameMatching.EXACT_IGNORE_CASE);
+            UUID uuid = online != null ? online.getUuid() : storage.resolvePlayerIdByName(name);
+            if (uuid == null) {
+                Messages.errKey(context, "player.not_found", java.util.Map.of());
+                return;
+            }
+            List<String> parts = context.get(reasonArg);
+            tempBanPlayer(context, name, seconds, uuid, online, parts == null ? "" : String.join(" ", parts).trim());
+        }
     }
 
     private static String resolveActorName(@Nonnull CommandContext context) {

@@ -3,7 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.inventory;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -23,14 +23,12 @@ public final class ClearInventoryCommand extends AbstractPlayerCommand {
     private static final String PERMISSION_NODE = "hyessentialsx.clearinventory";
     private static final String OTHER_PERMISSION = "hyessentialsx.clearinventory.other";
 
-    private final OptionalArg<PlayerRef> targetArg;
-
     public ClearInventoryCommand() {
         super("clearinventory", "Clears inventory");
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"ci"});
-        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
+        this.addUsageVariant(new ClearOtherInventoryCommand());
     }
 
     @Override
@@ -51,19 +49,13 @@ public final class ClearInventoryCommand extends AbstractPlayerCommand {
             return;
         }
 
-        PlayerRef target = playerRef;
-        if (context.provided(targetArg)) {
-            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
-                Messages.noPerm(context, "/clearinventory <player>");
-                return;
-            }
-            target = context.get(targetArg);
-            if (target == null) {
-                Messages.errKey(context, "player.not_found", Map.of());
-                return;
-            }
-        }
+        clearInventory(context, store, playerRef, playerRef);
+    }
 
+    private void clearInventory(@Nonnull CommandContext context,
+                                @Nonnull Store<EntityStore> store,
+                                @Nonnull PlayerRef playerRef,
+                                @Nonnull PlayerRef target) {
         boolean isSelf = playerRef.getUuid().equals(target.getUuid());
         if (!isSelf && playerRef.getWorldUuid() != null && target.getWorldUuid() != null
                 && !playerRef.getWorldUuid().equals(target.getWorldUuid())) {
@@ -90,6 +82,42 @@ public final class ClearInventoryCommand extends AbstractPlayerCommand {
         } else {
             Messages.okKey(context, "inventory.cleared_other", Map.of("player", target.getUsername()));
             Messages.sendPrefixedKey(target, "inventory.cleared_by", Map.of("player", playerRef.getUsername()));
+        }
+    }
+
+    private final class ClearOtherInventoryCommand extends AbstractPlayerCommand {
+        private final RequiredArg<PlayerRef> targetArg;
+
+        private ClearOtherInventoryCommand() {
+            super("Clears another player's inventory");
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/clearinventory");
+                return;
+            }
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
+                Messages.noPerm(context, "/clearinventory <player>");
+                return;
+            }
+            PlayerRef target = context.get(targetArg);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", Map.of());
+                return;
+            }
+            clearInventory(context, store, playerRef, target);
         }
     }
 }

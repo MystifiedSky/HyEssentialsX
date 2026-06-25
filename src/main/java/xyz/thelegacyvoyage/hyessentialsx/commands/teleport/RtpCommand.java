@@ -7,7 +7,7 @@ import com.hypixel.hytale.math.vector.Transform;
 import org.joml.Vector3d;
 import com.hypixel.hytale.protocol.BlockMaterial;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
@@ -48,8 +48,6 @@ public final class RtpCommand extends CommandBase {
     private final TPManager tpManager;
     private final BackManager backManager;
     private final Random random = new Random();
-    private final OptionalArg<PlayerRef> targetArg;
-    private final OptionalArg<String> worldArg;
 
     public RtpCommand(@Nonnull ConfigManager config,
                       @Nonnull CommandCooldownManager cooldowns,
@@ -61,9 +59,9 @@ public final class RtpCommand extends CommandBase {
         this.tpManager = tpManager;
         this.backManager = backManager;
         this.setPermissionGroups();
-        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
-        this.worldArg = withOptionalArg("world", "Target world", ArgTypes.STRING);
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        this.addUsageVariant(new RtpOtherCommand());
+        this.addUsageVariant(new RtpOtherWorldCommand());
         this.addAliases(new String[]{"randomtp", "wild"});
     }
 
@@ -83,25 +81,17 @@ public final class RtpCommand extends CommandBase {
             return;
         }
         PlayerRef senderPlayer = CommandSenderUtil.resolvePlayer(context);
-        PlayerRef target = senderPlayer;
-        String requestedWorld = null;
-        if (!context.provided(targetArg)) {
-            if (senderPlayer == null) {
-                Messages.errKey(context, "rtp.usage", Map.of());
-                return;
-            }
-        } else {
-            target = context.get(targetArg);
-            if (target == null) {
-                Messages.errKey(context, "player.not_found", Map.of());
-                return;
-            }
-            requestedWorld = context.provided(worldArg) ? context.get(worldArg) : null;
-        }
-        if (target == null) {
-            Messages.errKey(context, "player.not_found", Map.of());
+        if (senderPlayer == null) {
+            Messages.errKey(context, "rtp.usage", Map.of());
             return;
         }
+        startRtp(context, senderPlayer, senderPlayer, null);
+    }
+
+    private void startRtp(@Nonnull CommandContext context,
+                          @Nullable PlayerRef senderPlayer,
+                          @Nonnull PlayerRef target,
+                          @Nullable String requestedWorld) {
         boolean isOther = senderPlayer == null || !target.getUuid().equals(senderPlayer.getUuid());
         if (isOther && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
             Messages.noPerm(context, "/rtp <player>");
@@ -307,6 +297,72 @@ public final class RtpCommand extends CommandBase {
                 Messages.okKey(context, "teleport.success.rtp", Map.of());
             }
         });
+    }
+
+    private final class RtpOtherCommand extends CommandBase {
+        private final RequiredArg<PlayerRef> targetArg;
+
+        private RtpOtherCommand() {
+            super("Random teleport another player");
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/rtp");
+                return;
+            }
+            if (!config.isRtpEnabled()) {
+                Messages.errKey(context, "rtp.disabled", Map.of());
+                return;
+            }
+            PlayerRef target = context.get(targetArg);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", Map.of());
+                return;
+            }
+            startRtp(context, CommandSenderUtil.resolvePlayer(context), target, null);
+        }
+    }
+
+    private final class RtpOtherWorldCommand extends CommandBase {
+        private final RequiredArg<PlayerRef> targetArg;
+        private final RequiredArg<String> worldArg;
+
+        private RtpOtherWorldCommand() {
+            super("Random teleport another player in a target world");
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+            this.worldArg = withRequiredArg("world", "Target world", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/rtp");
+                return;
+            }
+            if (!config.isRtpEnabled()) {
+                Messages.errKey(context, "rtp.disabled", Map.of());
+                return;
+            }
+            PlayerRef target = context.get(targetArg);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", Map.of());
+                return;
+            }
+            startRtp(context, CommandSenderUtil.resolvePlayer(context), target, context.get(worldArg));
+        }
     }
 
     @Nullable

@@ -1,7 +1,6 @@
 package xyz.thelegacyvoyage.hyessentialsx.commands.moderation;
 
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
@@ -24,8 +23,6 @@ public final class MuteCommand extends CommandBase {
     private final MuteManager muteManager;
     private final StorageManager storage;
     private final RequiredArg<PlayerRef> targetArg;
-    private final OptionalArg<String> timeArg;
-    private final OptionalArg<List<String>> reasonArg;
 
     public MuteCommand(@Nonnull MuteManager muteManager, @Nonnull StorageManager storage) {
         super("mute", "Mutes a player");
@@ -35,8 +32,8 @@ public final class MuteCommand extends CommandBase {
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"silence"});
         this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
-        this.timeArg = withOptionalArg("time", "Duration (e.g. 30d)", ArgTypes.STRING);
-        this.reasonArg = withListOptionalArg("reason", "Reason", ArgTypes.STRING);
+        this.addUsageVariant(new MuteTimedCommand());
+        this.addUsageVariant(new MuteTimedReasonCommand());
     }
 
     @Override
@@ -57,10 +54,15 @@ public final class MuteCommand extends CommandBase {
             return;
         }
 
+        mutePlayer(context, target, null, List.of());
+    }
+
+    private void mutePlayer(@Nonnull CommandContext context,
+                            @Nonnull PlayerRef target,
+                            String timeToken,
+                            @Nonnull List<String> reasonParts) {
         long expiresAt = 0L;
         String reason = null;
-
-        String timeToken = context.provided(timeArg) ? context.get(timeArg) : null;
         if (timeToken != null && !timeToken.isBlank()) {
             long seconds = TimeUtil.parseDurationSeconds(timeToken);
             if (seconds >= 0) {
@@ -70,12 +72,9 @@ public final class MuteCommand extends CommandBase {
             }
         }
 
-        if (context.provided(reasonArg)) {
-            List<String> parts = context.get(reasonArg);
-            String tail = String.join(" ", parts).trim();
-            if (!tail.isBlank()) {
-                reason = (reason == null || reason.isBlank()) ? tail : (reason + " " + tail);
-            }
+        String tail = String.join(" ", reasonParts).trim();
+        if (!tail.isBlank()) {
+            reason = (reason == null || reason.isBlank()) ? tail : (reason + " " + tail);
         }
 
         String actor = resolveActorName(context);
@@ -93,6 +92,69 @@ public final class MuteCommand extends CommandBase {
                 (reason == null || reason.isBlank()) ? Messages.tr(null, "reason.none", java.util.Map.of()) : reason);
 
         Messages.okKey(context, "mute.success", java.util.Map.of("player", target.getUsername()));
+    }
+
+    private final class MuteTimedCommand extends CommandBase {
+        private final RequiredArg<PlayerRef> targetArg;
+        private final RequiredArg<String> timeArg;
+
+        private MuteTimedCommand() {
+            super("Mutes a player with a duration or reason token");
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+            this.timeArg = withRequiredArg("time", "Duration (e.g. 30d) or reason", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/mute");
+                return;
+            }
+            PlayerRef target = context.get(targetArg);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", java.util.Map.of());
+                return;
+            }
+            mutePlayer(context, target, context.get(timeArg), List.of());
+        }
+    }
+
+    private final class MuteTimedReasonCommand extends CommandBase {
+        private final RequiredArg<PlayerRef> targetArg;
+        private final RequiredArg<String> timeArg;
+        private final RequiredArg<List<String>> reasonArg;
+
+        private MuteTimedReasonCommand() {
+            super("Mutes a player with a duration and reason");
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+            this.timeArg = withRequiredArg("time", "Duration (e.g. 30d)", ArgTypes.STRING);
+            this.reasonArg = withListRequiredArg("reason", "Reason", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/mute");
+                return;
+            }
+            PlayerRef target = context.get(targetArg);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", java.util.Map.of());
+                return;
+            }
+            List<String> parts = context.get(reasonArg);
+            mutePlayer(context, target, context.get(timeArg), parts == null ? List.of() : parts);
+        }
     }
 
     private static String resolveActorName(@Nonnull CommandContext context) {

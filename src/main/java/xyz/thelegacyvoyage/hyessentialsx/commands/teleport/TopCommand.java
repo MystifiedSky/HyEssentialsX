@@ -6,7 +6,7 @@ import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Transform;
 import org.joml.Vector3d;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -27,14 +27,13 @@ public final class TopCommand extends AbstractPlayerCommand {
     private static final String OTHER_PERMISSION = "hyessentialsx.top.other";
 
     private final BackManager backManager;
-    private final OptionalArg<PlayerRef> targetArg;
 
     public TopCommand(@Nonnull BackManager backManager) {
         super("top", "Teleports to highest block");
         this.backManager = backManager;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
-        this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
+        this.addUsageVariant(new TopOtherCommand());
     }
 
     @Override
@@ -55,12 +54,13 @@ public final class TopCommand extends AbstractPlayerCommand {
             return;
         }
 
-        PlayerRef target = context.provided(targetArg) ? context.get(targetArg) : playerRef;
-        if (target == null) {
-            Messages.errKey(context, "player.not_found", Map.of());
-            return;
-        }
+        teleportTop(context, world, playerRef, playerRef);
+    }
 
+    private void teleportTop(@Nonnull CommandContext context,
+                             @Nonnull World world,
+                             @Nonnull PlayerRef playerRef,
+                             @Nonnull PlayerRef target) {
         boolean isSelf = playerRef.getUuid().equals(target.getUuid());
         if (!isSelf && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
             Messages.noPerm(context, "/top " + target.getUsername());
@@ -149,6 +149,38 @@ public final class TopCommand extends AbstractPlayerCommand {
             if (byUuid != null) return byUuid;
         }
         return fallback;
+    }
+
+    private final class TopOtherCommand extends AbstractPlayerCommand {
+        private final RequiredArg<PlayerRef> targetArg;
+
+        private TopOtherCommand() {
+            super("Teleport another player to the highest block");
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/top");
+                return;
+            }
+            PlayerRef target = context.get(targetArg);
+            if (target == null) {
+                Messages.errKey(context, "player.not_found", Map.of());
+                return;
+            }
+            teleportTop(context, world, playerRef, target);
+        }
     }
 }
 

@@ -3,7 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.plugin;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import xyz.thelegacyvoyage.hyessentialsx.managers.LanguageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -20,13 +20,12 @@ public class LanguageSubCommand extends CommandBase {
     private static final String PERMISSION_NODE = "hyessentialsx.language";
 
     private final LanguageManager languageManager;
-    private final OptionalArg<String> codeArg;
 
     public LanguageSubCommand(@Nonnull LanguageManager languageManager) {
         super("language", "Set your HyEssentialsX language");
         this.languageManager = languageManager;
         this.setPermissionGroups();
-        this.codeArg = withOptionalArg("code", "Language code (e.g. en-us)", ArgTypes.STRING);
+        this.addUsageVariant(new SetLanguageCommand());
     }
 
     @Override
@@ -47,7 +46,13 @@ public class LanguageSubCommand extends CommandBase {
             return;
         }
 
-        String code = context.get(codeArg);
+        String current = languageManager.getPlayerLanguage(player.getUuid());
+        if (current == null) current = languageManager.getDefaultLanguage();
+        Messages.sendKey(context, "language.current",
+                Map.of("language", current, "available", String.join(", ", languageManager.getAvailableLanguages())));
+    }
+
+    private void setLanguage(@Nonnull CommandContext context, @Nonnull PlayerRef player, String code) {
         if (code == null || code.isBlank()) {
             String current = languageManager.getPlayerLanguage(player.getUuid());
             if (current == null) current = languageManager.getDefaultLanguage();
@@ -55,7 +60,6 @@ public class LanguageSubCommand extends CommandBase {
                     Map.of("language", current, "available", String.join(", ", languageManager.getAvailableLanguages())));
             return;
         }
-
         String normalized = code.trim().toLowerCase();
         if (!languageManager.hasLanguage(normalized)) {
             Messages.errKey(context, "language.not_found",
@@ -81,6 +85,35 @@ public class LanguageSubCommand extends CommandBase {
         } catch (Exception ignored) {
         }
         return null;
+    }
+
+    private final class SetLanguageCommand extends CommandBase {
+        private final RequiredArg<String> codeArg;
+
+        private SetLanguageCommand() {
+            super("Set your HyEssentialsX language");
+            this.codeArg = withRequiredArg("code", "Language code (e.g. en-us)", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/hyessentialsx language");
+                return;
+            }
+
+            PlayerRef player = resolvePlayer(context);
+            if (player == null) {
+                Messages.errKey(context, "error.player_only", Map.of());
+                return;
+            }
+            setLanguage(context, player, context.get(codeArg));
+        }
     }
 }
 

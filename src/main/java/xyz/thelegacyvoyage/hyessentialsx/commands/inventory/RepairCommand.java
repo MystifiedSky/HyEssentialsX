@@ -3,7 +3,6 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.inventory;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
@@ -150,11 +149,9 @@ public final class RepairCommand extends AbstractPlayerCommand {
     }
 
     private final class RepairAllCommand extends AbstractPlayerCommand {
-        private final OptionalArg<PlayerRef> targetArg;
-
         private RepairAllCommand() {
             super("all", "Repairs all items");
-            this.targetArg = withOptionalArg("player", "Target player", ArgTypes.PLAYER_REF);
+            this.addUsageVariant(new RepairAllOtherCommand());
         }
 
         @Override
@@ -175,8 +172,37 @@ public final class RepairCommand extends AbstractPlayerCommand {
             if (!cooldowns.canUse(context, playerRef, CooldownKeys.REPAIR, "/repair", BYPASS_PERMISSION)) {
                 return;
             }
-            PlayerRef target = context.provided(targetArg) ? context.get(targetArg) : playerRef;
-            repair(context, store, playerRef, target, true);
+            repair(context, store, playerRef, playerRef, true);
+        }
+    }
+
+    private final class RepairAllOtherCommand extends AbstractPlayerCommand {
+        private final RequiredArg<PlayerRef> targetArg;
+
+        private RepairAllOtherCommand() {
+            super("Repairs all items for another player");
+            this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
+                Messages.noPerm(context, "/repair");
+                return;
+            }
+            if (!cooldowns.canUse(context, playerRef, CooldownKeys.REPAIR, "/repair", BYPASS_PERMISSION)) {
+                return;
+            }
+            repair(context, store, playerRef, context.get(targetArg), true);
         }
     }
 }

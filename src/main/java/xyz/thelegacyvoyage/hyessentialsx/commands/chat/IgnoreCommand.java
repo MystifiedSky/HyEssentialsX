@@ -9,7 +9,9 @@ import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayer
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.IgnoreManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -18,13 +20,17 @@ import java.util.Map;
 public final class IgnoreCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.ignore";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.ignore.bypass";
 
     private final IgnoreManager ignoreManager;
+    private final CommandCooldownManager cooldowns;
     private final RequiredArg<PlayerRef> targetArg;
 
-    public IgnoreCommand(@Nonnull IgnoreManager ignoreManager) {
+    public IgnoreCommand(@Nonnull IgnoreManager ignoreManager,
+                         @Nonnull CommandCooldownManager cooldowns) {
         super("ignore", "Toggle ignoring private messages from a player");
         this.ignoreManager = ignoreManager;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
@@ -45,6 +51,9 @@ public final class IgnoreCommand extends AbstractPlayerCommand {
             Messages.noPerm(context, "/ignore");
             return;
         }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.IGNORE, "/ignore", BYPASS_PERMISSION, world)) {
+            return;
+        }
 
         PlayerRef target = context.get(targetArg);
         if (target == null) {
@@ -53,6 +62,9 @@ public final class IgnoreCommand extends AbstractPlayerCommand {
         }
         if (playerRef.getUuid().equals(target.getUuid())) {
             Messages.errKey(context, "ignore.self", Map.of());
+            return;
+        }
+        if (!cooldowns.apply(playerRef, CooldownKeys.IGNORE)) {
             return;
         }
 

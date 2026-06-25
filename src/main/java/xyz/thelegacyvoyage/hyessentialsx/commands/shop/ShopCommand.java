@@ -15,7 +15,6 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.nameplate.Nameplate;
 import com.hypixel.hytale.server.core.modules.interaction.Interactions;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
-import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
@@ -376,8 +375,8 @@ public final class ShopCommand extends AbstractPlayerCommand {
                                   @Nonnull PlayerRef playerRef,
                                   @Nonnull String permission) {
         boolean senderHas = xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(sender, permission);
-        boolean moduleHas = PermissionsModule.get().hasPermission(playerRef.getUuid(), permission, false);
-        return senderHas || moduleHas;
+        boolean playerHas = xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(playerRef, permission);
+        return senderHas || playerHas;
     }
 
     private void spawnShopNpc(@Nonnull CommandContext context,

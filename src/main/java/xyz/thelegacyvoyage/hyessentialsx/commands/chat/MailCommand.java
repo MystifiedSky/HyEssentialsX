@@ -9,10 +9,12 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MailManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.MailMessageModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -27,18 +29,22 @@ public final class MailCommand extends CommandBase {
 
     private static final String PERMISSION_NODE = "hyessentialsx.mail";
     private static final String SENDALL_PERMISSION = "hyessentialsx.mail.sendall";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.mail.bypass";
 
     private final MailManager mail;
     private final StorageManager storage;
     private final ConfigManager config;
+    private final CommandCooldownManager cooldowns;
 
     public MailCommand(@Nonnull MailManager mail,
                        @Nonnull StorageManager storage,
-                       @Nonnull ConfigManager config) {
+                       @Nonnull ConfigManager config,
+                       @Nonnull CommandCooldownManager cooldowns) {
         super("mail", "Open your mailbox");
         this.mail = mail;
         this.storage = storage;
         this.config = config;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addSubCommand(new SendSubCommand());
@@ -248,7 +254,15 @@ public final class MailCommand extends CommandBase {
             Messages.noPerm(context, "/mail");
             return false;
         }
+        PlayerRef player = CommandSenderUtil.resolvePlayer(context);
+        if (player != null && !cooldowns.canUse(context, player, CooldownKeys.MAIL, "/mail", BYPASS_PERMISSION)) {
+            return false;
+        }
         return true;
+    }
+
+    private boolean applyMailRule(@Nonnull PlayerRef player) {
+        return cooldowns.apply(player, CooldownKeys.MAIL);
     }
 
     private void handleSend(@Nonnull CommandContext context,
@@ -272,6 +286,9 @@ public final class MailCommand extends CommandBase {
         String message = join(messageParts);
         if (message.isBlank()) {
             Messages.errKey(context, "mail.message_required", Map.of());
+            return;
+        }
+        if (!applyMailRule(sender)) {
             return;
         }
 
@@ -299,6 +316,9 @@ public final class MailCommand extends CommandBase {
         }
 
         PlayerRef sender = CommandSenderUtil.resolvePlayer(context);
+        if (sender != null && !applyMailRule(sender)) {
+            return;
+        }
         UUID senderId = sender != null ? sender.getUuid() : new UUID(0L, 0L);
         String senderName = sender != null ? sender.getUsername() : resolveActorName(context);
 
@@ -335,6 +355,9 @@ public final class MailCommand extends CommandBase {
             Messages.errKey(context, "mail.read.not_found", Map.of());
             return;
         }
+        if (!applyMailRule(player)) {
+            return;
+        }
 
         String sender = entry.getSenderName() != null ? entry.getSenderName() : "Unknown";
         Messages.sendPrefixedKey(player, "mail.read.header", Map.of(
@@ -368,6 +391,9 @@ public final class MailCommand extends CommandBase {
 
         if (filtered.isEmpty()) {
             Messages.sendPrefixedKey(player, "mail.none", Map.of());
+            return;
+        }
+        if (!applyMailRule(player)) {
             return;
         }
 
@@ -428,6 +454,9 @@ public final class MailCommand extends CommandBase {
         }
 
         if (raw.equalsIgnoreCase("all")) {
+            if (!applyMailRule(player)) {
+                return;
+            }
             int cleared = mail.clearInbox(player.getUuid());
             Messages.okKey(context, "mail.deleted_all", Map.of("count", String.valueOf(cleared)));
             return;
@@ -439,6 +468,9 @@ public final class MailCommand extends CommandBase {
             return;
         }
 
+        if (!applyMailRule(player)) {
+            return;
+        }
         if (mail.deleteInbox(player.getUuid(), id)) {
             Messages.okKey(context, "mail.deleted", Map.of());
         } else {
@@ -450,6 +482,9 @@ public final class MailCommand extends CommandBase {
         PlayerRef player = requirePlayer(context);
         if (player == null) return;
 
+        if (!applyMailRule(player)) {
+            return;
+        }
         int cleared = mail.clearInbox(player.getUuid());
         Messages.okKey(context, "mail.cleared", Map.of("count", String.valueOf(cleared)));
     }
@@ -480,6 +515,9 @@ public final class MailCommand extends CommandBase {
         String message = join(messageParts);
         if (message.isBlank()) {
             Messages.errKey(context, "mail.message_required", Map.of());
+            return;
+        }
+        if (!applyMailRule(player)) {
             return;
         }
 

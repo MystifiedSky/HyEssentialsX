@@ -20,7 +20,6 @@ import com.hypixel.hytale.server.core.modules.entity.component.TransformComponen
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Interaction;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.RootInteraction;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.server.OpenCustomUIInteraction;
-import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
@@ -32,6 +31,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.ShopAdminDraftCache;
 import xyz.thelegacyvoyage.hyessentialsx.ui.PlayerShopBrowseUI;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopBrowseUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
@@ -315,7 +315,7 @@ public final class ShopNpcInteractionRegistry {
                                          @Nonnull Ref<EntityStore> playerEntityRef,
                                          @Nonnull PlayerRef playerRef,
                                          @Nonnull String permission) {
-        return PermissionsModule.get().hasPermission(playerRef.getUuid(), permission, false);
+        return CommandPermissionUtil.hasPermission(playerRef, permission);
     }
 
     private static boolean checkCooldown(@Nonnull UUID playerId) {

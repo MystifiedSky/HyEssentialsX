@@ -54,6 +54,30 @@ public final class CommandBypassUtil {
         return CommandPermissionUtil.hasPermission(principal, "hyessentialsx.warmup.bypass." + normalizedKey);
     }
 
+    public static boolean hasPriceBypass(@Nullable Object principal,
+                                         @Nonnull String key,
+                                         @Nonnull String commandBypassPermission) {
+        // Legacy compatibility: hyessentialsx.<command>.bypass
+        if (CommandPermissionUtil.hasPermission(principal, commandBypassPermission)) {
+            return true;
+        }
+        String commandRoot = resolveCommandRoot(commandBypassPermission);
+        if (commandRoot != null
+                && CommandPermissionUtil.hasPermission(principal, commandRoot + ".price.bypass")) {
+            return true;
+        }
+        if (CommandPermissionUtil.hasPermission(principal, "hyessentialsx.price.bypass")
+                || CommandPermissionUtil.hasPermission(principal, "hyessentialsx.cost.bypass")) {
+            return true;
+        }
+        String normalizedKey = normalizeKey(key);
+        if (normalizedKey.isEmpty()) {
+            return false;
+        }
+        return CommandPermissionUtil.hasPermission(principal, "hyessentialsx.price.bypass." + normalizedKey)
+                || CommandPermissionUtil.hasPermission(principal, "hyessentialsx.cost.bypass." + normalizedKey);
+    }
+
     @Nullable
     private static String resolveCommandRoot(@Nonnull String commandBypassPermission) {
         String normalized = commandBypassPermission.trim().toLowerCase(Locale.ROOT);

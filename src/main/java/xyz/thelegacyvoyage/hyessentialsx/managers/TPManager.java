@@ -63,7 +63,15 @@ public final class TPManager {
                       @Nonnull Vector3d startPos,
                       float delaySeconds,
                       @Nonnull TeleportAction executeTeleport) {
-        pending.put(playerId, new PendingTeleport(new org.joml.Vector3d(startPos), delaySeconds, executeTeleport));
+        queue(playerId, startPos, delaySeconds, true, executeTeleport);
+    }
+
+    public void queue(@Nonnull UUID playerId,
+                      @Nonnull Vector3d startPos,
+                      float delaySeconds,
+                      boolean cancelOnMove,
+                      @Nonnull TeleportAction executeTeleport) {
+        pending.put(playerId, new PendingTeleport(new org.joml.Vector3d(startPos), delaySeconds, cancelOnMove, executeTeleport));
     }
 
     public static final class TickResult {
@@ -121,7 +129,7 @@ public final class TPManager {
         if (p == null) return TickResult.none();
 
         double maxSq = CANCEL_DISTANCE * CANCEL_DISTANCE;
-        if (p.startPos.distanceSquared(currentPos) > maxSq) {
+        if (p.cancelOnMove && p.startPos.distanceSquared(currentPos) > maxSq) {
             pending.remove(playerId);
             return TickResult.cancelled();
         }
@@ -252,12 +260,14 @@ public final class TPManager {
     private static final class PendingTeleport {
         final Vector3d startPos;
         final float delay;
+        final boolean cancelOnMove;
         float elapsed;
         final TeleportAction execute;
 
-        PendingTeleport(Vector3d startPos, float delay, TeleportAction execute) {
+        PendingTeleport(Vector3d startPos, float delay, boolean cancelOnMove, TeleportAction execute) {
             this.startPos = startPos;
             this.delay = Math.max(0f, delay);
+            this.cancelOnMove = cancelOnMove;
             this.execute = execute;
         }
     }

@@ -16,11 +16,13 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeRewardManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.RankupManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlaytimeRewardModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.PlaytimeAdminUI;
 import xyz.thelegacyvoyage.hyessentialsx.ui.PlaytimeUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
@@ -39,6 +41,7 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
     private static final String PERMISSION_NODE = "hyessentialsx.playtime";
     private static final String OTHERS_PERMISSION = "hyessentialsx.playtime.other";
     private static final String ADMIN_PERMISSION = "hyessentialsx.playtime.admin";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.playtime.bypass";
     private static final int CHAT_TOP_LIMIT = 10;
 
     private final PlaytimeManager playtime;
@@ -46,18 +49,21 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
     private final RankupManager rankups;
     private final StorageManager storage;
     private final ConfigManager config;
+    private final CommandCooldownManager cooldowns;
 
     public PlaytimeCommand(@Nonnull PlaytimeManager playtime,
                            @Nonnull PlaytimeRewardManager rewards,
                            @Nonnull RankupManager rankups,
                            @Nonnull StorageManager storage,
-                           @Nonnull ConfigManager config) {
+                           @Nonnull ConfigManager config,
+                           @Nonnull CommandCooldownManager cooldowns) {
         super("playtime", "Shows your playtime");
         this.playtime = playtime;
         this.rewards = rewards;
         this.rankups = rankups;
         this.storage = storage;
         this.config = config;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"pt"});
@@ -83,6 +89,9 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
             Messages.noPerm(context, "/playtime");
             return;
         }
+        if (!applyPlaytimeRule(context, playerRef, world, "/playtime")) {
+            return;
+        }
 
         if (tryOpenPlaytimeUi(playerRef, store, ref, PlaytimeUI.Tab.OVERVIEW)) {
             return;
@@ -103,6 +112,7 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
         @Override
         protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
             if (!ensurePlaytimePermission(context, "/playtime rewards")) return;
+            if (!applyPlaytimeRule(context, playerRef, world, "/playtime rewards")) return;
             if (tryOpenPlaytimeUi(playerRef, store, ref, PlaytimeUI.Tab.REWARDS)) {
                 return;
             }
@@ -123,6 +133,7 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
         @Override
         protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
             if (!ensurePlaytimePermission(context, "/playtime top")) return;
+            if (!applyPlaytimeRule(context, playerRef, world, "/playtime top")) return;
             if (tryOpenPlaytimeUi(playerRef, store, ref, PlaytimeUI.Tab.TOP)) {
                 return;
             }
@@ -160,6 +171,7 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
         @Override
         protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
             if (!ensurePlaytimePermission(context, "/playtime help")) return;
+            if (!applyPlaytimeRule(context, playerRef, world, "/playtime help")) return;
             Messages.sendKey(context, "playtime.usage", Map.of());
         }
     }
@@ -181,6 +193,7 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
         @Override
         protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
             if (!ensurePlaytimePermission(context, "/playtime player")) return;
+            if (!applyPlaytimeRule(context, playerRef, world, "/playtime player")) return;
             sendOtherPlaytime(context, context.get(playerArg));
         }
     }
@@ -191,6 +204,14 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
         }
         Messages.noPerm(context, command);
         return false;
+    }
+
+    private boolean applyPlaytimeRule(@Nonnull CommandContext context,
+                                      @Nonnull PlayerRef playerRef,
+                                      @Nonnull World world,
+                                      @Nonnull String command) {
+        return cooldowns.canUse(context, playerRef, CooldownKeys.PLAYTIME, command, BYPASS_PERMISSION, world)
+                && cooldowns.apply(playerRef, CooldownKeys.PLAYTIME);
     }
 
     private boolean tryOpenPlaytimeUi(@Nonnull PlayerRef playerRef,

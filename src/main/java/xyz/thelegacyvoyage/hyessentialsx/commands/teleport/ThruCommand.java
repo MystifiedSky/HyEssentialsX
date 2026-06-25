@@ -18,6 +18,8 @@ import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
 import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
@@ -30,14 +32,18 @@ import java.util.Set;
 public final class ThruCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.thru";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.thru.bypass";
     private static final int MAX_DISTANCE = 100;
     private static final double STEP_SIZE = 0.05;
 
     private final BackManager backManager;
+    private final CommandCooldownManager cooldowns;
 
-    public ThruCommand(@Nonnull BackManager backManager) {
+    public ThruCommand(@Nonnull BackManager backManager,
+                       @Nonnull CommandCooldownManager cooldowns) {
         super("thru", "Teleport through the wall you're looking at");
         this.backManager = backManager;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"through", "wallthrough"});
@@ -56,6 +62,9 @@ public final class ThruCommand extends AbstractPlayerCommand {
                            @Nonnull World world) {
         if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/thru");
+            return;
+        }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.THRU, "/thru", BYPASS_PERMISSION, world)) {
             return;
         }
 
@@ -78,6 +87,9 @@ public final class ThruCommand extends AbstractPlayerCommand {
         Vector3d destination = findDestinationBeyondWall(world, eyePosition, direction);
         if (destination == null) {
             Messages.errKey(context, "thru.no_safe_spot", Map.of());
+            return;
+        }
+        if (!cooldowns.apply(playerRef, CooldownKeys.THRU)) {
             return;
         }
 

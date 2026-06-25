@@ -11,6 +11,8 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -19,14 +21,19 @@ public final class FlyCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.fly";
     private static final String OTHERS_PERMISSION = "hyessentialsx.fly.others";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.fly.bypass";
 
     private final FlyManager flyManager;
     private final StorageManager storage;
+    private final CommandCooldownManager cooldowns;
 
-    public FlyCommand(@Nonnull FlyManager flyManager, @Nonnull StorageManager storage) {
+    public FlyCommand(@Nonnull FlyManager flyManager,
+                      @Nonnull StorageManager storage,
+                      @Nonnull CommandCooldownManager cooldowns) {
         super("fly", "Toggle flight");
         this.flyManager = flyManager;
         this.storage = storage;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addUsageVariant(new FlyOtherCommand());
@@ -49,6 +56,9 @@ public final class FlyCommand extends AbstractPlayerCommand {
             Messages.noPerm(context, "/fly");
             return;
         }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.FLY, "/fly", BYPASS_PERMISSION, world)) {
+            return;
+        }
 
         toggleFly(context, playerRef, playerRef);
     }
@@ -65,6 +75,9 @@ public final class FlyCommand extends AbstractPlayerCommand {
                 && target.getWorldUuid() != null
                 && !playerRef.getWorldUuid().equals(target.getWorldUuid())) {
             Messages.errKey(context, "error.target_world", java.util.Map.of());
+            return;
+        }
+        if (!cooldowns.apply(playerRef, CooldownKeys.FLY)) {
             return;
         }
 
@@ -115,6 +128,9 @@ public final class FlyCommand extends AbstractPlayerCommand {
             PlayerRef target = context.get(targetArg);
             if (target == null) {
                 Messages.errKey(context, "player.not_found", java.util.Map.of());
+                return;
+            }
+            if (!cooldowns.canUse(context, playerRef, CooldownKeys.FLY, "/fly", BYPASS_PERMISSION, world)) {
                 return;
             }
             toggleFly(context, playerRef, target);

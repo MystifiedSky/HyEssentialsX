@@ -10,6 +10,8 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
@@ -19,13 +21,17 @@ import java.util.Map;
 public final class TphereCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.tphere";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.tphere.bypass";
 
     private final RequiredArg<PlayerRef> targetArg;
     private final BackManager backManager;
+    private final CommandCooldownManager cooldowns;
 
-    public TphereCommand(@Nonnull BackManager backManager) {
+    public TphereCommand(@Nonnull BackManager backManager,
+                         @Nonnull CommandCooldownManager cooldowns) {
         super("tphere", "Teleports a player to you");
         this.backManager = backManager;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.targetArg = withRequiredArg("player", "Player to teleport", ArgTypes.PLAYER_REF);
@@ -48,6 +54,9 @@ public final class TphereCommand extends AbstractPlayerCommand {
             Messages.noPerm(context, "/tphere");
             return;
         }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.TPHERE, "/tphere", BYPASS_PERMISSION, world)) {
+            return;
+        }
 
         PlayerRef target = context.get(targetArg);
         if (target == null) {
@@ -62,6 +71,9 @@ public final class TphereCommand extends AbstractPlayerCommand {
 
         Ref<EntityStore> targetRef = target.getReference();
         Store<EntityStore> targetStore = targetRef.getStore();
+        if (!cooldowns.apply(playerRef, CooldownKeys.TPHERE)) {
+            return;
+        }
 
         com.hypixel.hytale.math.vector.Transform targetTransform = target.getTransform();
         if (targetTransform != null && targetTransform.getPosition() != null) {

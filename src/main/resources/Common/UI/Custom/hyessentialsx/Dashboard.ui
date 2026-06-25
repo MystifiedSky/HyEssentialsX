@@ -518,11 +518,34 @@ Group #CommandCenterRoot {
         FlexWeight: 1;
         Visible: false;
 
+        Group #ConfigCategoryPanel {
+          LayoutMode: Top;
+          Anchor: (Height: 74, Bottom: 10);
+          Padding: (Top: 8, Bottom: 8, Left: 10, Right: 10);
+          Background: (Color: #0b1524);
+          OutlineColor: #355986;
+          OutlineSize: 1;
+          Group { LayoutMode: Left; Anchor: (Height: 26, Bottom: 6);
+            TextButton #ConfigSectionWarningsButton { Text: "Warning Rules"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+            TextButton #ConfigSectionWarpsButton { Text: "Warps"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+            TextButton #ConfigSectionEconomyButton { Text: "Economy"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+            TextButton #ConfigSectionPlaytimeButton { Text: "Playtime"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+            TextButton #ConfigSectionShopsButton { Text: "Shops"; Style: @CommandButton; FlexWeight: 1; }
+          }
+          Group { LayoutMode: Left; Anchor: (Height: 26);
+            TextButton #ConfigSectionTravelButton { Text: "RTP"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+            TextButton #ConfigSectionHomesButton { Text: "Homes"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+            TextButton #ConfigSectionChatButton { Text: "Chat"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+            TextButton #ConfigSectionScoreboardButton { Text: "Board"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+            TextButton #ConfigSectionCommandsButton { Text: "Cmd Rules"; Style: @CommandButton; FlexWeight: 1; }
+          }
+        }
+
         Group {
           LayoutMode: Left;
           FlexWeight: 1;
 
-          Group {
+          Group #ConfigWarningListPanel {
             LayoutMode: Top;
             Background: (Color: #111f34);
             Anchor: (Width: 430, Right: 10);
@@ -590,10 +613,14 @@ Group #CommandCenterRoot {
             OutlineColor: #2f4a72;
             OutlineSize: 1;
 
-            Label { Text: "Rule Editor"; Anchor: (Height: 24, Bottom: 6); Style: (FontSize: 14, TextColor: #d7e7ff, RenderBold: true); }
-            Label #ConfigEditorHint { Text: ""; Anchor: (Height: 34, Bottom: 8); Style: (FontSize: 11, TextColor: #a7c2e6, Wrap: true); }
+            Group #ConfigWarningEditorPanel {
+              LayoutMode: Top;
+              FlexWeight: 1;
 
-            Group { LayoutMode: Left; Anchor: (Height: 54, Bottom: 8);
+              Label { Text: "Rule Editor"; Anchor: (Height: 24, Bottom: 6); Style: (FontSize: 14, TextColor: #d7e7ff, RenderBold: true); }
+              Label #ConfigEditorHint { Text: ""; Anchor: (Height: 34, Bottom: 8); Style: (FontSize: 11, TextColor: #a7c2e6, Wrap: true); }
+
+              Group { LayoutMode: Left; Anchor: (Height: 54, Bottom: 8);
               Group { LayoutMode: Top; FlexWeight: 1; Anchor: (Right: 8);
                 Label { Text: "Rule ID"; Anchor: (Height: 16, Bottom: 3); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true); }
                 Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4); Anchor: (Height: 30); OutlineColor: #355986; OutlineSize: 1;
@@ -608,7 +635,7 @@ Group #CommandCenterRoot {
               }
             }
 
-            Group { LayoutMode: Left; Anchor: (Height: 54, Bottom: 8);
+              Group { LayoutMode: Left; Anchor: (Height: 54, Bottom: 8);
               Group { LayoutMode: Top; Anchor: (Width: 120, Right: 8);
                 Label { Text: "Warnings"; Anchor: (Height: 16, Bottom: 3); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true); }
                 Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4); Anchor: (Height: 30); OutlineColor: #355986; OutlineSize: 1;
@@ -633,7 +660,7 @@ Group #CommandCenterRoot {
               }
             }
 
-            Group {
+              Group {
               LayoutMode: Top;
               Anchor: (Height: 72, Bottom: 8);
               Label #ConfigDetailLabel { Text: "Reason / Command"; Anchor: (Height: 16, Bottom: 3); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true); }
@@ -642,11 +669,12 @@ Group #CommandCenterRoot {
               }
             }
 
-            Group { LayoutMode: Left; Anchor: (Height: 34, Bottom: 10);
+              Group { LayoutMode: Left; Anchor: (Height: 34, Bottom: 10);
               TextButton #SaveConfigRuleButton { Text: "Save Rule"; Style: @CommandButtonGreen; Anchor: (Width: 130, Right: 8); }
               TextButton #ToggleConfigRuleButton { Text: "Enable"; Style: @CommandButtonGold; Anchor: (Width: 120, Right: 8); }
               TextButton #DeleteConfigRuleButton { Text: "Delete"; Style: @CommandButtonRed; Anchor: (Width: 110); }
               Label { Text: ""; FlexWeight: 1; }
+              }
             }
 
             Group #ConfigIdeasPanel {
@@ -657,19 +685,84 @@ Group #CommandCenterRoot {
               OutlineColor: #355986;
               OutlineSize: 1;
               Label #ConfigPanelTitle { Text: "Player Warps"; Anchor: (Height: 20, Bottom: 6); Style: (FontSize: 12, TextColor: #d7e7ff, RenderBold: true); }
-              Group { LayoutMode: Left; Anchor: (Height: 30, Bottom: 6);
-                TextButton #ConfigSectionWarpsButton { Text: "Warps"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
-                TextButton #ConfigSectionEconomyButton { Text: "Economy"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
-                TextButton #ConfigSectionPlaytimeButton { Text: "Playtime"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
-                TextButton #ConfigSectionShopsButton { Text: "Shops"; Style: @CommandButton; FlexWeight: 1; }
+              Group { LayoutMode: Left; Anchor: (Height: 30, Bottom: 6); Visible: false;
+                TextButton #LegacyConfigSectionWarpsButton { Text: "Warps"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #LegacyConfigSectionEconomyButton { Text: "Economy"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #LegacyConfigSectionPlaytimeButton { Text: "Playtime"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #LegacyConfigSectionShopsButton { Text: "Shops"; Style: @CommandButton; FlexWeight: 1; }
               }
-              Group { LayoutMode: Left; Anchor: (Height: 30, Bottom: 6);
-                TextButton #ConfigSectionTravelButton { Text: "RTP"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
-                TextButton #ConfigSectionHomesButton { Text: "Homes"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
-                TextButton #ConfigSectionChatButton { Text: "Chat"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
-                TextButton #ConfigSectionScoreboardButton { Text: "Board"; Style: @CommandButton; FlexWeight: 1; }
+              Group { LayoutMode: Left; Anchor: (Height: 30, Bottom: 6); Visible: false;
+                TextButton #LegacyConfigSectionTravelButton { Text: "RTP"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #LegacyConfigSectionHomesButton { Text: "Homes"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #LegacyConfigSectionChatButton { Text: "Chat"; Style: @CommandButton; FlexWeight: 1; Anchor: (Right: 5); }
+                TextButton #LegacyConfigSectionScoreboardButton { Text: "Board"; Style: @CommandButton; FlexWeight: 1; }
+              }
+              Group { LayoutMode: Left; Anchor: (Height: 30, Bottom: 6); Visible: false;
+                TextButton #LegacyConfigSectionCommandsButton { Text: "Cmd Rules"; Style: @CommandButton; FlexWeight: 1; }
               }
               Label #ConfigPanelSummary { Text: ""; Anchor: (Height: 34, Bottom: 6); Style: (FontSize: 10, TextColor: #a7c2e6, Wrap: true); }
+              Group #CommandRulePickerPanel {
+                LayoutMode: Top;
+                Anchor: (Height: 292, Bottom: 8);
+                Visible: false;
+                Background: (Color: #101c2f);
+                Padding: (Top: 8, Bottom: 8, Left: 8, Right: 8);
+                OutlineColor: #2f4a72;
+                OutlineSize: 1;
+                Group { LayoutMode: Left; Anchor: (Height: 28, Bottom: 6);
+                  Label { Text: "Selected"; Anchor: (Width: 74, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true); }
+                  Label #CommandRuleSelectedValue { Text: "/home"; FlexWeight: 1; Anchor: (Vertical: 0, Right: 8); Style: (FontSize: 12, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 8); }
+                  Group { Background: (Color: #111f34); Padding: (Left: 7, Right: 7, Top: 3, Bottom: 3); Anchor: (Width: 220); OutlineColor: #2f4a72; OutlineSize: 1;
+                    TextField #CommandRuleSearchInput { Anchor: (Height: 22); Style: (FontSize: 11, TextColor: #f0f5ff); }
+                  }
+                }
+                Label #CommandRulePickerEmptyLabel { Text: "No commands match that search."; Anchor: (Height: 22, Bottom: 4); Visible: false; Style: (FontSize: 10, TextColor: #ffb36b); }
+                Group { LayoutMode: Left; Anchor: (Height: 24, Bottom: 5);
+                  TextButton #CommandRulePickerPrevButton { Text: "< Prev"; Style: @CommandButton; Anchor: (Width: 78, Right: 8); }
+                  Label #CommandRulePickerPageLabel { Text: "Page 1 / 1"; FlexWeight: 1; Anchor: (Vertical: 0, Right: 8); Style: (FontSize: 10, TextColor: #a7c2e6, RenderBold: true); }
+                  TextButton #CommandRulePickerNextButton { Text: "Next >"; Style: @CommandButton; Anchor: (Width: 78); }
+                }
+                Group #CommandRulePickerRow0 { LayoutMode: Left; Anchor: (Height: 19, Bottom: 3); Background: (Color: #151d2a); Padding: (Left: 6, Right: 6, Top: 2, Bottom: 2);
+                  Label #CommandRulePicker0Name { Text: ""; Anchor: (Width: 116, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  Label #CommandRulePicker0Meta { Text: ""; FlexWeight: 1; Anchor: (Vertical: 0, Right: 6); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  TextButton #CommandRulePicker0Button { Text: "Select"; Style: @CommandButton; Anchor: (Width: 72); }
+                }
+                Group #CommandRulePickerRow1 { LayoutMode: Left; Anchor: (Height: 19, Bottom: 3); Background: (Color: #151d2a); Padding: (Left: 6, Right: 6, Top: 2, Bottom: 2);
+                  Label #CommandRulePicker1Name { Text: ""; Anchor: (Width: 116, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  Label #CommandRulePicker1Meta { Text: ""; FlexWeight: 1; Anchor: (Vertical: 0, Right: 6); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  TextButton #CommandRulePicker1Button { Text: "Select"; Style: @CommandButton; Anchor: (Width: 72); }
+                }
+                Group #CommandRulePickerRow2 { LayoutMode: Left; Anchor: (Height: 19, Bottom: 3); Background: (Color: #151d2a); Padding: (Left: 6, Right: 6, Top: 2, Bottom: 2);
+                  Label #CommandRulePicker2Name { Text: ""; Anchor: (Width: 116, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  Label #CommandRulePicker2Meta { Text: ""; FlexWeight: 1; Anchor: (Vertical: 0, Right: 6); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  TextButton #CommandRulePicker2Button { Text: "Select"; Style: @CommandButton; Anchor: (Width: 72); }
+                }
+                Group #CommandRulePickerRow3 { LayoutMode: Left; Anchor: (Height: 19, Bottom: 3); Background: (Color: #151d2a); Padding: (Left: 6, Right: 6, Top: 2, Bottom: 2);
+                  Label #CommandRulePicker3Name { Text: ""; Anchor: (Width: 116, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  Label #CommandRulePicker3Meta { Text: ""; FlexWeight: 1; Anchor: (Vertical: 0, Right: 6); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  TextButton #CommandRulePicker3Button { Text: "Select"; Style: @CommandButton; Anchor: (Width: 72); }
+                }
+                Group #CommandRulePickerRow4 { LayoutMode: Left; Anchor: (Height: 19, Bottom: 3); Background: (Color: #151d2a); Padding: (Left: 6, Right: 6, Top: 2, Bottom: 2);
+                  Label #CommandRulePicker4Name { Text: ""; Anchor: (Width: 116, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  Label #CommandRulePicker4Meta { Text: ""; FlexWeight: 1; Anchor: (Vertical: 0, Right: 6); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  TextButton #CommandRulePicker4Button { Text: "Select"; Style: @CommandButton; Anchor: (Width: 72); }
+                }
+                Group #CommandRulePickerRow5 { LayoutMode: Left; Anchor: (Height: 19, Bottom: 3); Background: (Color: #151d2a); Padding: (Left: 6, Right: 6, Top: 2, Bottom: 2);
+                  Label #CommandRulePicker5Name { Text: ""; Anchor: (Width: 116, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  Label #CommandRulePicker5Meta { Text: ""; FlexWeight: 1; Anchor: (Vertical: 0, Right: 6); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  TextButton #CommandRulePicker5Button { Text: "Select"; Style: @CommandButton; Anchor: (Width: 72); }
+                }
+                Group #CommandRulePickerRow6 { LayoutMode: Left; Anchor: (Height: 19, Bottom: 3); Background: (Color: #151d2a); Padding: (Left: 6, Right: 6, Top: 2, Bottom: 2);
+                  Label #CommandRulePicker6Name { Text: ""; Anchor: (Width: 116, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  Label #CommandRulePicker6Meta { Text: ""; FlexWeight: 1; Anchor: (Vertical: 0, Right: 6); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  TextButton #CommandRulePicker6Button { Text: "Select"; Style: @CommandButton; Anchor: (Width: 72); }
+                }
+                Group #CommandRulePickerRow7 { LayoutMode: Left; Anchor: (Height: 19); Background: (Color: #151d2a); Padding: (Left: 6, Right: 6, Top: 2, Bottom: 2);
+                  Label #CommandRulePicker7Name { Text: ""; Anchor: (Width: 116, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #d7e7ff, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  Label #CommandRulePicker7Meta { Text: ""; FlexWeight: 1; Anchor: (Vertical: 0, Right: 6); Style: (FontSize: 9, TextColor: #a7c2e6, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
+                  TextButton #CommandRulePicker7Button { Text: "Select"; Style: @CommandButton; Anchor: (Width: 72); }
+                }
+              }
               Group #ConfigField0Row { LayoutMode: Left; Anchor: (Height: 32, Bottom: 5);
                 Label #ConfigField0Label { Text: ""; Anchor: (Width: 132, Vertical: 0, Right: 6); Style: (FontSize: 10, TextColor: #8fb6e8, RenderBold: true, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 7); }
                 Group { Background: (Color: #111f34); Padding: (Left: 7, Right: 7, Top: 4, Bottom: 4); FlexWeight: 1; Anchor: (Right: 6); OutlineColor: #2f4a72; OutlineSize: 1; TextField #ConfigField0Input { Anchor: (Height: 22); Style: (FontSize: 11, TextColor: #f0f5ff); } }

@@ -8,8 +8,10 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.ui.RulesUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
 
@@ -19,12 +21,16 @@ import java.util.List;
 public final class RulesCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.rules";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.rules.bypass";
 
     private final ConfigManager config;
+    private final CommandCooldownManager cooldowns;
 
-    public RulesCommand(@Nonnull ConfigManager config) {
+    public RulesCommand(@Nonnull ConfigManager config,
+                        @Nonnull CommandCooldownManager cooldowns) {
         super("rules", "Displays server rules");
         this.config = config;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
@@ -50,17 +56,22 @@ public final class RulesCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "rules.disabled", java.util.Map.of());
             return;
         }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.RULES, "/rules", BYPASS_PERMISSION, world)) {
+            return;
+        }
 
         List<String> rules = config.getRules();
         if (rules.isEmpty()) {
             context.sendMessage(Messages.m(Messages.tr(playerRef, "rules.none", java.util.Map.of())));
             return;
         }
-
         if (config.isRulesGuiEnabled()) {
             Player player = store.getComponent(ref, Player.getComponentType());
             if (player == null) {
                 Messages.errKey(context, "rules.ui_failed", java.util.Map.of());
+                return;
+            }
+            if (!cooldowns.apply(playerRef, CooldownKeys.RULES)) {
                 return;
             }
             RulesUI page = new RulesUI(playerRef, config);
@@ -68,6 +79,9 @@ public final class RulesCommand extends AbstractPlayerCommand {
             return;
         }
 
+        if (!cooldowns.apply(playerRef, CooldownKeys.RULES)) {
+            return;
+        }
         context.sendMessage(Messages.m(Messages.tr(playerRef, "rules.header", java.util.Map.of())));
         for (String rule : rules) {
             context.sendMessage(PlaceholderApiUtil.apply(playerRef, rule));

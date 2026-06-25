@@ -118,7 +118,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
                            @Nonnull Ref<EntityStore> ref,
                            @Nonnull PlayerRef playerRef,
                            @Nonnull World world) {
-        if (!cooldowns.canUse(context, playerRef, CooldownKeys.SPAWN, "/spawn", BYPASS_PERMISSION)) {
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.SPAWN, "/spawn", BYPASS_PERMISSION, world)) {
             return;
         }
 
@@ -140,10 +140,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
         }
 
         final SpawnModel finalSpawn = spawn;
-        int warmupSeconds = configManager.getSpawnWarmupSeconds();
-        if (cooldowns.hasWarmupBypass(context, playerRef, CooldownKeys.SPAWN, BYPASS_PERMISSION)) {
-            warmupSeconds = 0;
-        }
+        int warmupSeconds = cooldowns.getEffectiveWarmupSeconds(context.sender(), playerRef, CooldownKeys.SPAWN, BYPASS_PERMISSION);
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(playerRef.getUuid())) {
                 Messages.errKey(context, "teleport.pending", Map.of());
@@ -160,6 +157,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
                     playerRef.getUuid(),
                     finalStartPos,
                     warmupSeconds,
+                    cooldowns.shouldCancelWarmupOnMove(CooldownKeys.SPAWN),
                     buffer -> {
                         String err = TeleportationUtil.teleportToSpawn(buffer, ref, finalSpawn);
                         if (err != null) {
@@ -220,7 +218,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             return SpawnResult.FAILED;
         }
 
-        if (!cooldowns.canUse(target, CooldownKeys.SPAWN, "/spawn", BYPASS_PERMISSION)) {
+        if (!cooldowns.canUse(target, CooldownKeys.SPAWN, "/spawn", BYPASS_PERMISSION, targetWorld)) {
             if (notifySender) {
                 Messages.errKey(context, "error.target_cooldown", Map.of());
             }
@@ -248,10 +246,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
         }
 
         final SpawnModel finalSpawn = spawn;
-        int warmupSeconds = configManager.getSpawnWarmupSeconds();
-        if (cooldowns.hasWarmupBypass(context, target, CooldownKeys.SPAWN, BYPASS_PERMISSION)) {
-            warmupSeconds = 0;
-        }
+        int warmupSeconds = cooldowns.getEffectiveWarmupSeconds(context.sender(), target, CooldownKeys.SPAWN, BYPASS_PERMISSION);
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(target.getUuid())) {
                 if (notifySender) {
@@ -272,6 +267,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
                     target.getUuid(),
                     finalStartPos,
                     warmupSeconds,
+                    cooldowns.shouldCancelWarmupOnMove(CooldownKeys.SPAWN),
                     buffer -> {
                         String err = TeleportationUtil.teleportToSpawn(buffer, targetRef, finalSpawn);
                         if (err != null) {

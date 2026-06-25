@@ -31,6 +31,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.ShopNpcInteractionRegistry;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
@@ -58,7 +59,7 @@ public final class PlayerShopNpcCommand extends AbstractAsyncCommand {
         this.shopManager = shopManager;
         this.economy = economy;
         this.config = config;
-        this.requirePermission(PERMISSION_NODE);
+        CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addSubCommand(new SpawnSubCommand());
         this.addSubCommand(new RemoveSubCommand());
         this.addSubCommand(new ListSubCommand());

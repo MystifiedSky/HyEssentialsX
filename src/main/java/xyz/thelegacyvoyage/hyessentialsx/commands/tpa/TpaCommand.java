@@ -68,8 +68,9 @@ public final class TpaCommand extends AbstractPlayerCommand {
 
     private void sendTpaRequest(@Nonnull CommandContext context,
                                 @Nonnull PlayerRef playerRef,
-                                @Nonnull PlayerRef target) {
-        if (!cooldowns.canUse(context, playerRef, CooldownKeys.TPA, "/tpa", BYPASS_PERMISSION)) {
+                                @Nonnull PlayerRef target,
+                                @Nonnull World world) {
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.TPA, "/tpa", BYPASS_PERMISSION, world)) {
             return;
         }
 
@@ -143,7 +144,7 @@ public final class TpaCommand extends AbstractPlayerCommand {
                 Messages.errKey(context, "player.not_found", java.util.Map.of());
                 return;
             }
-            sendTpaRequest(context, playerRef, target);
+            sendTpaRequest(context, playerRef, target, world);
         }
     }
 

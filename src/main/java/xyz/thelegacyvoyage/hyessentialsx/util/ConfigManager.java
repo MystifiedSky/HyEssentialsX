@@ -9,6 +9,7 @@ import com.hypixel.hytale.server.core.HytaleServer;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import xyz.thelegacyvoyage.hyessentialsx.models.AnnouncementPresetModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.CommandRuleModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlaytimeRewardModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnRouteGroupModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
@@ -66,6 +67,8 @@ public final class ConfigManager {
 
     private boolean debugMode = false;
     private boolean usePermissionsSystem = true;
+    private boolean hideNoPermissionCommands = true;
+    private boolean commandTreeRefreshEnabled = true;
     private boolean useWorldDefaultSpawnIfUnset = true;
     private String languageCode = "en-us";
     private boolean hologramsEnabled = true;
@@ -106,6 +109,7 @@ public final class ConfigManager {
     private int rtpMinDistance = 1000;
     private Map<String, String> rtpWorldOverrides = new LinkedHashMap<>();
     private final Map<String, Integer> commandCooldowns = new HashMap<>(buildDefaultCooldowns());
+    private final Map<String, CommandRuleModel> commandRules = new LinkedHashMap<>();
     private int homeWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
     private int warpWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
     private int backWarmupSeconds = DEFAULT_TELEPORT_WARMUP_SECONDS;
@@ -427,6 +431,8 @@ public final class ConfigManager {
         root.addProperty("version", "1.0.0");
         root.addProperty("debugMode", false);
         root.addProperty("UsePermissionsSystem", true);
+        root.addProperty("HideNoPermissionCommands", true);
+        root.addProperty("CommandTreeRefreshEnabled", true);
 
         JsonObject welcome = new JsonObject();
         welcome.addProperty("enabled", true);
@@ -735,6 +741,8 @@ public final class ConfigManager {
         spawn.add("routing", toSpawnRoutingObject());
         root.add("spawn", spawn);
 
+        root.add("commandRules", buildDefaultCommandRulesObject());
+
         JsonObject combatLog = new JsonObject();
         combatLog.addProperty("enabled", false);
         combatLog.addProperty("onlyPlayerDamageLog", true);
@@ -909,6 +917,10 @@ public final class ConfigManager {
             debugMode = bool(root, "debugMode", debugMode);
             usePermissionsSystem = bool(root, "UsePermissionsSystem",
                     bool(root, "usePermissionsSystem", usePermissionsSystem));
+            hideNoPermissionCommands = bool(root, "HideNoPermissionCommands",
+                    bool(root, "hideNoPermissionCommands", hideNoPermissionCommands));
+            commandTreeRefreshEnabled = bool(root, "CommandTreeRefreshEnabled",
+                    bool(root, "commandTreeRefreshEnabled", commandTreeRefreshEnabled));
             JsonObject general = obj(root, "general");
             useWorldDefaultSpawnIfUnset = bool(general, "spawnFallbackToWorldDefault", true);
             languageCode = str(general, "language", languageCode).toLowerCase();
@@ -1318,6 +1330,8 @@ public final class ConfigManager {
                 }
             }
 
+            loadCommandRules();
+
             JsonObject combatLog = obj(root, "combatLog");
             combatLogEnabled = bool(combatLog, "enabled", combatLogEnabled);
             combatLogOnlyPlayerDamage = bool(combatLog, "onlyPlayerDamageLog", combatLogOnlyPlayerDamage);
@@ -1483,12 +1497,53 @@ public final class ConfigManager {
     }
 
     public int getCooldownSeconds(@Nonnull String key) {
-        Integer value = commandCooldowns.get(key);
-        return value != null ? value : DEFAULT_COMMAND_COOLDOWN_SECONDS;
+        return getCommandRule(key).getCooldownSeconds();
     }
 
     public void setCooldownSeconds(@Nonnull String key, int seconds) {
-        commandCooldowns.put(key, Math.max(0, seconds));
+        String normalized = normalizeCommandRuleKey(key);
+        commandCooldowns.put(normalized, Math.max(0, seconds));
+        CommandRuleModel rule = commandRules.computeIfAbsent(normalized, ignored -> defaultCommandRule(normalized));
+        rule.setCooldownSeconds(seconds);
+        syncLegacyCommandRuleFields(normalized, rule);
+        save();
+    }
+
+    @Nonnull
+    public CommandRuleModel getCommandRule(@Nonnull String key) {
+        String normalized = normalizeCommandRuleKey(key);
+        CommandRuleModel rule = commandRules.get(normalized);
+        if (rule != null) {
+            return rule;
+        }
+        CommandRuleModel fallback = defaultCommandRule(normalized);
+        commandRules.put(normalized, fallback);
+        return fallback;
+    }
+
+    public int getCommandWarmupSeconds(@Nonnull String key, int legacyWarmupSeconds) {
+        CommandRuleModel rule = getCommandRule(key);
+        return Math.max(0, rule.getWarmupSeconds());
+    }
+
+    public long getCommandPrice(@Nonnull String key) {
+        return getCommandRule(key).getPrice();
+    }
+
+    @Nonnull
+    public List<String> getCommandRuleKeys() {
+        List<String> keys = new ArrayList<>(commandRules.keySet());
+        Collections.sort(keys);
+        return keys;
+    }
+
+    public void setCommandRule(@Nonnull String key, @Nonnull CommandRuleModel rule) {
+        String normalized = normalizeCommandRuleKey(key);
+        if (normalized.isBlank()) {
+            return;
+        }
+        commandRules.put(normalized, copyCommandRule(rule));
+        syncLegacyCommandRuleFields(normalized, rule);
         save();
     }
 
@@ -1713,6 +1768,14 @@ public final class ConfigManager {
 
     public boolean isUsePermissionsSystem() {
         return usePermissionsSystem;
+    }
+
+    public boolean isHideNoPermissionCommands() {
+        return hideNoPermissionCommands;
+    }
+
+    public boolean isCommandTreeRefreshEnabled() {
+        return commandTreeRefreshEnabled;
     }
 
     public boolean isHologramsEnabled() {
@@ -3145,6 +3208,10 @@ public final class ConfigManager {
         root.addProperty("version", PluginInfoUtil.getVersion());
         root.addProperty("debugMode", debugMode);
         root.addProperty("UsePermissionsSystem", usePermissionsSystem);
+        root.addProperty("HideNoPermissionCommands", hideNoPermissionCommands);
+        root.addProperty("CommandTreeRefreshEnabled", commandTreeRefreshEnabled);
+        root.remove("CommandTreeRefreshIntervalSeconds");
+        root.remove("commandTreeRefreshIntervalSeconds");
 
         JsonObject general = obj(root, "general");
         general.addProperty("spawnFallbackToWorldDefault", useWorldDefaultSpawnIfUnset);
@@ -3429,6 +3496,8 @@ public final class ConfigManager {
         spawn.add("respawnPriority", toArray(spawnRespawnPriority));
         spawn.add("named", toSpawnMapObject(namedSpawns));
         spawn.add("routing", toSpawnRoutingObject());
+
+        root.add("commandRules", toCommandRulesObject());
 
         JsonObject combatLog = obj(root, "combatLog");
         combatLog.addProperty("enabled", combatLogEnabled);
@@ -3998,11 +4067,258 @@ public final class ConfigManager {
     }
 
     @Nonnull
+    private JsonObject buildDefaultCommandRulesObject() {
+        JsonObject root = new JsonObject();
+        JsonObject commands = new JsonObject();
+        for (String key : buildDefaultCooldowns().keySet()) {
+            commands.add(key, toCommandRuleObject(defaultCommandRule(key)));
+        }
+        root.add("commands", commands);
+        return root;
+    }
+
+    private void loadCommandRules() {
+        commandRules.clear();
+        for (String key : buildDefaultCooldowns().keySet()) {
+            commandRules.put(key, defaultCommandRule(key));
+        }
+
+        JsonObject rulesRoot = obj(root, "commandRules");
+        JsonObject commands = obj(rulesRoot, "commands");
+        List<String> existingKeys = new ArrayList<>(commands.keySet());
+        for (String rawKey : existingKeys) {
+            JsonElement value = commands.get(rawKey);
+            if (value == null || !value.isJsonObject()) {
+                continue;
+            }
+            String key = normalizeCommandRuleKey(rawKey);
+            if (key.isEmpty()) {
+                continue;
+            }
+            commandRules.put(key, readCommandRule(key, value.getAsJsonObject()));
+        }
+        commands.entrySet().clear();
+        for (Map.Entry<String, CommandRuleModel> entry : commandRules.entrySet()) {
+            commands.add(entry.getKey(), toCommandRuleObject(entry.getValue()));
+        }
+    }
+
+    @Nonnull
+    private CommandRuleModel defaultCommandRule(@Nonnull String key) {
+        String normalized = normalizeCommandRuleKey(key);
+        CommandRuleModel rule = new CommandRuleModel();
+        rule.setEnabled(true);
+        rule.setCooldownSeconds(commandCooldowns.getOrDefault(normalized,
+                buildDefaultCooldowns().getOrDefault(normalized, DEFAULT_COMMAND_COOLDOWN_SECONDS)));
+        rule.setWarmupSeconds(defaultWarmupSeconds(normalized));
+        rule.setCancelWarmupOnMove(true);
+        rule.setPrice(0L);
+        rule.setBlacklistedWorlds(List.of());
+        rule.setReductions(List.of(
+                reduction("hyessentialsx." + normalized + ".cooldown.reduction.50", 50, 0, 0),
+                reduction("hyessentialsx." + normalized + ".warmup.reduction.50", 0, 50, 0),
+                reduction("hyessentialsx." + normalized + ".price.reduction.50", 0, 0, 50)
+        ));
+        return rule;
+    }
+
+    @Nonnull
+    private CommandRuleModel readCommandRule(@Nonnull String key, @Nonnull JsonObject obj) {
+        CommandRuleModel def = defaultCommandRule(key);
+        CommandRuleModel rule = new CommandRuleModel();
+        rule.setEnabled(bool(obj, "enabled", def.isEnabled()));
+        rule.setCooldownSeconds(intVal(obj, "cooldownSeconds", def.getCooldownSeconds()));
+        rule.setWarmupSeconds(intVal(obj, "warmupSeconds", def.getWarmupSeconds()));
+        rule.setCancelWarmupOnMove(bool(obj, "cancelWarmupOnMove", def.isCancelWarmupOnMove()));
+        rule.setPrice(Math.max(0L, moneyVal(obj, "price", def.getPrice())));
+        rule.setBlacklistedWorlds(list(obj, "blacklistedWorlds", def.getBlacklistedWorlds()));
+        rule.setReductions(readCommandRuleReductions(obj, def.getReductions()));
+        return rule;
+    }
+
+    @Nonnull
+    private List<CommandRuleModel.Reduction> readCommandRuleReductions(@Nonnull JsonObject obj,
+                                                                        @Nonnull List<CommandRuleModel.Reduction> def) {
+        JsonElement element = obj.get("reductions");
+        if (element == null || !element.isJsonArray()) {
+            return def;
+        }
+        List<CommandRuleModel.Reduction> out = new ArrayList<>();
+        for (JsonElement entry : element.getAsJsonArray()) {
+            if (entry == null || !entry.isJsonObject()) {
+                continue;
+            }
+            JsonObject reductionObj = entry.getAsJsonObject();
+            String permission = str(reductionObj, "permission", "");
+            if (permission.isBlank()) {
+                continue;
+            }
+            CommandRuleModel.Reduction reduction = new CommandRuleModel.Reduction();
+            reduction.setPermission(permission);
+            reduction.setCooldownReductionPercent(intVal(reductionObj, "cooldownReductionPercent", 0));
+            reduction.setWarmupReductionPercent(intVal(reductionObj, "warmupReductionPercent", 0));
+            reduction.setPriceReductionPercent(intVal(reductionObj, "priceReductionPercent", 0));
+            if (reductionObj.has("cooldownSeconds")) {
+                reduction.setCooldownSeconds(intVal(reductionObj, "cooldownSeconds", -1));
+            }
+            if (reductionObj.has("warmupSeconds")) {
+                reduction.setWarmupSeconds(intVal(reductionObj, "warmupSeconds", -1));
+            }
+            if (reductionObj.has("price")) {
+                reduction.setPrice(moneyVal(reductionObj, "price", -1L));
+            }
+            out.add(reduction);
+        }
+        return out;
+    }
+
+    @Nonnull
+    private JsonObject toCommandRulesObject() {
+        JsonObject root = new JsonObject();
+        JsonObject commands = new JsonObject();
+        for (Map.Entry<String, CommandRuleModel> entry : commandRules.entrySet()) {
+            commands.add(entry.getKey(), toCommandRuleObject(entry.getValue()));
+        }
+        root.add("commands", commands);
+        return root;
+    }
+
+    @Nonnull
+    private JsonObject toCommandRuleObject(@Nonnull CommandRuleModel rule) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("enabled", rule.isEnabled());
+        obj.addProperty("cooldownSeconds", rule.getCooldownSeconds());
+        obj.addProperty("warmupSeconds", rule.getWarmupSeconds());
+        obj.addProperty("cancelWarmupOnMove", rule.isCancelWarmupOnMove());
+        obj.addProperty("price", formatMoneyConfig(rule.getPrice()));
+        obj.add("blacklistedWorlds", toArray(rule.getBlacklistedWorlds()));
+        JsonArray reductions = new JsonArray();
+        for (CommandRuleModel.Reduction reduction : rule.getReductions()) {
+            JsonObject reductionObj = new JsonObject();
+            reductionObj.addProperty("permission", reduction.getPermission());
+            reductionObj.addProperty("cooldownReductionPercent", reduction.getCooldownReductionPercent());
+            reductionObj.addProperty("warmupReductionPercent", reduction.getWarmupReductionPercent());
+            reductionObj.addProperty("priceReductionPercent", reduction.getPriceReductionPercent());
+            if (reduction.getCooldownSeconds() >= 0) {
+                reductionObj.addProperty("cooldownSeconds", reduction.getCooldownSeconds());
+            }
+            if (reduction.getWarmupSeconds() >= 0) {
+                reductionObj.addProperty("warmupSeconds", reduction.getWarmupSeconds());
+            }
+            if (reduction.getPrice() >= 0L) {
+                reductionObj.addProperty("price", formatMoneyConfig(reduction.getPrice()));
+            }
+            reductions.add(reductionObj);
+        }
+        obj.add("reductions", reductions);
+        return obj;
+    }
+
+    @Nonnull
+    private CommandRuleModel copyCommandRule(@Nonnull CommandRuleModel source) {
+        CommandRuleModel copy = new CommandRuleModel();
+        copy.setEnabled(source.isEnabled());
+        copy.setCooldownSeconds(source.getCooldownSeconds());
+        copy.setWarmupSeconds(source.getWarmupSeconds());
+        copy.setCancelWarmupOnMove(source.isCancelWarmupOnMove());
+        copy.setPrice(source.getPrice());
+        copy.setBlacklistedWorlds(source.getBlacklistedWorlds());
+        List<CommandRuleModel.Reduction> reductions = new ArrayList<>();
+        for (CommandRuleModel.Reduction sourceReduction : source.getReductions()) {
+            CommandRuleModel.Reduction reduction = new CommandRuleModel.Reduction();
+            reduction.setPermission(sourceReduction.getPermission());
+            reduction.setCooldownReductionPercent(sourceReduction.getCooldownReductionPercent());
+            reduction.setWarmupReductionPercent(sourceReduction.getWarmupReductionPercent());
+            reduction.setPriceReductionPercent(sourceReduction.getPriceReductionPercent());
+            reduction.setCooldownSeconds(sourceReduction.getCooldownSeconds());
+            reduction.setWarmupSeconds(sourceReduction.getWarmupSeconds());
+            reduction.setPrice(sourceReduction.getPrice());
+            reductions.add(reduction);
+        }
+        copy.setReductions(reductions);
+        return copy;
+    }
+
+    private void syncLegacyCommandRuleFields(@Nonnull String key, @Nonnull CommandRuleModel rule) {
+        String normalized = normalizeCommandRuleKey(key);
+        commandCooldowns.put(normalized, rule.getCooldownSeconds());
+        switch (normalized) {
+            case CooldownKeys.HOME -> homeWarmupSeconds = rule.getWarmupSeconds();
+            case CooldownKeys.WARP -> warpWarmupSeconds = rule.getWarmupSeconds();
+            case CooldownKeys.BACK -> backWarmupSeconds = rule.getWarmupSeconds();
+            case CooldownKeys.SPAWN -> spawnWarmupSeconds = rule.getWarmupSeconds();
+            case CooldownKeys.RTP -> rtpWarmupSeconds = rule.getWarmupSeconds();
+            case CooldownKeys.TPA, CooldownKeys.TPAHERE, CooldownKeys.TPAHEREALL ->
+                    tpaWarmupSeconds = rule.getWarmupSeconds();
+            default -> {
+            }
+        }
+    }
+
+    private int defaultWarmupSeconds(@Nonnull String key) {
+        return switch (normalizeCommandRuleKey(key)) {
+            case CooldownKeys.HOME -> homeWarmupSeconds;
+            case CooldownKeys.WARP -> warpWarmupSeconds;
+            case CooldownKeys.BACK -> backWarmupSeconds;
+            case CooldownKeys.SPAWN -> spawnWarmupSeconds;
+            case CooldownKeys.RTP -> rtpWarmupSeconds;
+            case CooldownKeys.TPA, CooldownKeys.TPAHERE, CooldownKeys.TPAHEREALL -> tpaWarmupSeconds;
+            default -> 0;
+        };
+    }
+
+    @Nonnull
+    private static CommandRuleModel.Reduction reduction(@Nonnull String permission,
+                                                        int cooldownReductionPercent,
+                                                        int warmupReductionPercent,
+                                                        int priceReductionPercent) {
+        CommandRuleModel.Reduction reduction = new CommandRuleModel.Reduction();
+        reduction.setPermission(permission);
+        reduction.setCooldownReductionPercent(cooldownReductionPercent);
+        reduction.setWarmupReductionPercent(warmupReductionPercent);
+        reduction.setPriceReductionPercent(priceReductionPercent);
+        return reduction;
+    }
+
+    @Nonnull
+    private static String normalizeCommandRuleKey(@Nonnull String key) {
+        String normalized = key.trim().toLowerCase(Locale.ROOT);
+        while (normalized.startsWith("/")) {
+            normalized = normalized.substring(1);
+        }
+        return normalized;
+    }
+
+    @Nonnull
     private static Map<String, Integer> buildDefaultCooldowns() {
         Map<String, Integer> defaults = new HashMap<>();
         defaults.put(CooldownKeys.BACK, DEFAULT_COMMAND_COOLDOWN_SECONDS);
         defaults.put(CooldownKeys.HEAL, DEFAULT_COMMAND_COOLDOWN_SECONDS);
         defaults.put(CooldownKeys.REPAIR, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.MSG, 0);
+        defaults.put(CooldownKeys.REPLY, 0);
+        defaults.put(CooldownKeys.MAIL, 0);
+        defaults.put(CooldownKeys.IGNORE, 0);
+        defaults.put(CooldownKeys.PAY, 0);
+        defaults.put(CooldownKeys.BALANCE, 0);
+        defaults.put(CooldownKeys.BALTOP, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.RULES, 0);
+        defaults.put(CooldownKeys.MOTD, 0);
+        defaults.put(CooldownKeys.DISCORD, 0);
+        defaults.put(CooldownKeys.LIST, 0);
+        defaults.put(CooldownKeys.PLAYTIME, 0);
+        defaults.put(CooldownKeys.STATS, 0);
+        defaults.put(CooldownKeys.LEADERBOARD, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.RANKUP, 0);
+        defaults.put(CooldownKeys.SETHOME, 0);
+        defaults.put(CooldownKeys.DELHOME, 0);
+        defaults.put(CooldownKeys.FLY, 0);
+        defaults.put(CooldownKeys.GOD, 0);
+        defaults.put(CooldownKeys.FREECAM, 0);
+        defaults.put(CooldownKeys.VANISH, 0);
+        defaults.put(CooldownKeys.TOP, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.THRU, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.TPHERE, DEFAULT_COMMAND_COOLDOWN_SECONDS);
         defaults.put(CooldownKeys.AFK, DEFAULT_COMMAND_COOLDOWN_SECONDS);
         defaults.put(CooldownKeys.NEAR, DEFAULT_COMMAND_COOLDOWN_SECONDS);
         defaults.put(CooldownKeys.TPA, DEFAULT_COMMAND_COOLDOWN_SECONDS);

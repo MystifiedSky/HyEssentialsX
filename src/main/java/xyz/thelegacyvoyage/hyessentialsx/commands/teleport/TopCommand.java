@@ -15,6 +15,8 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 
@@ -25,12 +27,16 @@ public final class TopCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.top";
     private static final String OTHER_PERMISSION = "hyessentialsx.top.other";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.top.bypass";
 
     private final BackManager backManager;
+    private final CommandCooldownManager cooldowns;
 
-    public TopCommand(@Nonnull BackManager backManager) {
+    public TopCommand(@Nonnull BackManager backManager,
+                      @Nonnull CommandCooldownManager cooldowns) {
         super("top", "Teleports to highest block");
         this.backManager = backManager;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addUsageVariant(new TopOtherCommand());
@@ -51,6 +57,9 @@ public final class TopCommand extends AbstractPlayerCommand {
     ) {
         if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), PERMISSION_NODE)) {
             Messages.noPerm(context, "/top");
+            return;
+        }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.TOP, "/top", BYPASS_PERMISSION, world)) {
             return;
         }
 
@@ -112,6 +121,9 @@ public final class TopCommand extends AbstractPlayerCommand {
         Store<EntityStore> targetStore = targetRef != null ? targetRef.getStore() : null;
         if (targetRef == null || targetStore == null) {
             Messages.errKey(context, "error.target_access", Map.of());
+            return;
+        }
+        if (!cooldowns.apply(playerRef, CooldownKeys.TOP)) {
             return;
         }
 
@@ -177,6 +189,9 @@ public final class TopCommand extends AbstractPlayerCommand {
             PlayerRef target = context.get(targetArg);
             if (target == null) {
                 Messages.errKey(context, "player.not_found", Map.of());
+                return;
+            }
+            if (!cooldowns.canUse(context, playerRef, CooldownKeys.TOP, "/top", BYPASS_PERMISSION, world)) {
                 return;
             }
             teleportTop(context, world, playerRef, target);

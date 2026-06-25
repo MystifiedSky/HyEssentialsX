@@ -118,7 +118,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "home.name_required", Map.of());
             return;
         }
-        if (!cooldowns.canUse(context, playerRef, CooldownKeys.HOME, "/home", BYPASS_PERMISSION)) {
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.HOME, "/home", BYPASS_PERMISSION, world)) {
             return;
         }
 
@@ -129,10 +129,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
         }
 
         final String homeName = name.trim();
-        int warmupSeconds = config.getHomeWarmupSeconds();
-        if (cooldowns.hasWarmupBypass(context, playerRef, CooldownKeys.HOME, BYPASS_PERMISSION)) {
-            warmupSeconds = 0;
-        }
+        int warmupSeconds = cooldowns.getEffectiveWarmupSeconds(context.sender(), playerRef, CooldownKeys.HOME, BYPASS_PERMISSION);
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(playerRef.getUuid())) {
                 Messages.errKey(context, "teleport.pending", Map.of());
@@ -151,6 +148,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
                     playerRef.getUuid(),
                     startPos,
                     warmupSeconds,
+                    cooldowns.shouldCancelWarmupOnMove(CooldownKeys.HOME),
                     buffer -> {
                         String err = TeleportationUtil.teleportToLocation(
                                 buffer,
@@ -281,7 +279,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
             return;
         }
 
-        if (!cooldowns.canUse(context, playerRef, CooldownKeys.HOME, "/home", BYPASS_PERMISSION)) {
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.HOME, "/home", BYPASS_PERMISSION, world)) {
             return;
         }
 
@@ -301,10 +299,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
                                 @Nonnull World world,
                                 @Nonnull String homeName,
                                 @Nonnull HomeModel home) {
-        int warmupSeconds = config.getHomeWarmupSeconds();
-        if (cooldowns.hasWarmupBypass(context, playerRef, CooldownKeys.HOME, BYPASS_PERMISSION)) {
-            warmupSeconds = 0;
-        }
+        int warmupSeconds = cooldowns.getEffectiveWarmupSeconds(context.sender(), playerRef, CooldownKeys.HOME, BYPASS_PERMISSION);
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(playerRef.getUuid())) {
                 Messages.errKey(context, "teleport.pending", Map.of());
@@ -323,6 +318,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
                     playerRef.getUuid(),
                     startPos,
                     warmupSeconds,
+                    cooldowns.shouldCancelWarmupOnMove(CooldownKeys.HOME),
                     buffer -> {
                         String err = TeleportationUtil.teleportToLocation(
                                 buffer,

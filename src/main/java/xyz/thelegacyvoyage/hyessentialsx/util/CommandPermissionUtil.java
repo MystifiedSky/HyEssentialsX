@@ -1,6 +1,7 @@
 package xyz.thelegacyvoyage.hyessentialsx.util;
 
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
+import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import xyz.thelegacyvoyage.hyessentialsx.HyEssentialsXPlugin;
 
@@ -9,8 +10,10 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 public final class CommandPermissionUtil {
+    private static final String HYTALE_ADMIN_GROUP = "hytale:Admin";
 
     private static final List<String> PLAYER_PERMISSION_EXACT = List.of(
             "hyessentialsx.spawn",
@@ -159,7 +162,9 @@ public final class CommandPermissionUtil {
 
     public static void apply(@Nonnull Object command, @Nonnull String permission) {
         if (permission.isBlank()) return;
-        if (!isPermissionsSystemEnabled()) return;
+        if (!shouldHideNoPermissionCommands()) return;
+
+        applyOperatorPermissionGroup(command);
 
         String[] methods = {"requirePermission", "setPermission", "setRequiredPermission", "setPermissionNode"};
         Class<?> type = command.getClass();
@@ -182,7 +187,7 @@ public final class CommandPermissionUtil {
         if (trimmed.isBlank()) return true;
 
         if (isPermissionsSystemEnabled()) {
-            return hasRawPermission(sender, trimmed);
+            return hasRawPermission(sender, trimmed) || isOperator(sender);
         }
         if (isAdminPermission(trimmed)) {
             return isOperator(sender);
@@ -198,7 +203,7 @@ public final class CommandPermissionUtil {
         if (trimmed.isBlank()) return true;
 
         if (isPermissionsSystemEnabled()) {
-            return hasModulePermission(playerRef, trimmed);
+            return hasModulePermission(playerRef, trimmed) || isOperator(playerRef);
         }
         if (isAdminPermission(trimmed)) {
             return isOperator(playerRef);
@@ -218,6 +223,33 @@ public final class CommandPermissionUtil {
             return plugin.getConfigManager().isUsePermissionsSystem();
         } catch (Throwable ignored) {
             return true;
+        }
+    }
+
+    private static void applyOperatorPermissionGroup(@Nonnull Object command) {
+        Class<?> type = command.getClass();
+        while (type != null) {
+            try {
+                Method method = type.getDeclaredMethod("setPermissionGroups", String[].class);
+                method.setAccessible(true);
+                method.invoke(command, (Object) new String[]{HYTALE_ADMIN_GROUP});
+                return;
+            } catch (Exception ignored) {
+            }
+            type = type.getSuperclass();
+        }
+    }
+
+    public static boolean shouldHideNoPermissionCommands() {
+        try {
+            HyEssentialsXPlugin plugin = HyEssentialsXPlugin.getInstance();
+            if (plugin == null || plugin.getConfigManager() == null) {
+                return false;
+            }
+            ConfigManager config = plugin.getConfigManager();
+            return config.isUsePermissionsSystem() && config.isHideNoPermissionCommands();
+        } catch (Throwable ignored) {
+            return false;
         }
     }
 
@@ -252,12 +284,17 @@ public final class CommandPermissionUtil {
         if (sender instanceof PlayerRef ref) {
             return hasModulePermission(ref, "hytale.op")
                     || hasModulePermission(ref, "hytale.operator")
-                    || hasModulePermission(ref, "*");
+                    || hasModulePermission(ref, "*")
+                    || hasHytaleAdminGroup(ref.getUuid());
         }
 
         if (hasRawPermission(sender, "hytale.op")
                 || hasRawPermission(sender, "hytale.operator")
                 || hasRawPermission(sender, "*")) {
+            return true;
+        }
+
+        if (sender instanceof CommandSender commandSender && hasHytaleAdminGroup(commandSender.getUuid())) {
             return true;
         }
 
@@ -288,6 +325,21 @@ public final class CommandPermissionUtil {
         } catch (Exception ignored) {
             return false;
         }
+    }
+
+    private static boolean hasHytaleAdminGroup(@Nullable UUID uuid) {
+        if (uuid == null) {
+            return false;
+        }
+        try {
+            for (String group : PermissionsModule.get().getGroupsForUser(uuid)) {
+                if (group != null && HYTALE_ADMIN_GROUP.equalsIgnoreCase(group.trim())) {
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return false;
     }
 
     private static boolean hasModulePermission(@Nullable PlayerRef playerRef, @Nonnull String permission) {

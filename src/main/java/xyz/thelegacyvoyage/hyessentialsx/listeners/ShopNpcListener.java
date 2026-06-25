@@ -12,7 +12,6 @@ import com.hypixel.hytale.server.core.entity.Entity;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.event.events.player.PlayerMouseButtonEvent;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
-import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
@@ -22,6 +21,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.ShopManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopNpcModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.ShopBrowseUI;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.ServerCompatUtil;
@@ -253,8 +253,8 @@ public final class ShopNpcListener {
     private boolean hasPermission(@Nonnull Player player,
                                   @Nonnull PlayerRef playerRef,
                                   @Nonnull String permission) {
-        boolean moduleHas = PermissionsModule.get().hasPermission(playerRef.getUuid(), permission, false);
-        return moduleHas;
+        return CommandPermissionUtil.hasPermission(player, permission)
+                || CommandPermissionUtil.hasPermission(playerRef, permission);
     }
 }
 

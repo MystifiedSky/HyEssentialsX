@@ -97,17 +97,6 @@ public final class RtpCommand extends CommandBase {
             Messages.noPerm(context, "/rtp <player>");
             return;
         }
-        if (!isOther) {
-            if (!cooldowns.canUse(context, senderPlayer, CooldownKeys.RTP, "/rtp", BYPASS_PERMISSION)) {
-                return;
-            }
-        } else {
-            if (!cooldowns.canUse(target, CooldownKeys.RTP, "/rtp", BYPASS_PERMISSION)) {
-                Messages.errKey(context, "error.target_cooldown", Map.of());
-                return;
-            }
-        }
-
         if (tpManager.hasPending(target.getUuid())) {
             Messages.errKey(context, "teleport.pending", Map.of());
             return;
@@ -141,6 +130,17 @@ public final class RtpCommand extends CommandBase {
         }
         final World targetWorld = chosenWorld;
 
+        if (!isOther) {
+            if (!cooldowns.canUse(context, senderPlayer, CooldownKeys.RTP, "/rtp", BYPASS_PERMISSION, targetWorld)) {
+                return;
+            }
+        } else {
+            if (!cooldowns.canUse(target, CooldownKeys.RTP, "/rtp", BYPASS_PERMISSION, targetWorld)) {
+                Messages.errKey(context, "error.target_cooldown", Map.of());
+                return;
+            }
+        }
+
         Transform transform = target.getTransform();
         if (transform == null) {
             Messages.errKey(context, "teleport.position_unavailable", Map.of());
@@ -158,10 +158,7 @@ public final class RtpCommand extends CommandBase {
             minDist = maxDist;
         }
         Vector3d searchOrigin = new org.joml.Vector3d(pos);
-        int warmupSeconds = config.getRtpWarmupSeconds();
-        if (cooldowns.hasWarmupBypass(context, target, CooldownKeys.RTP, BYPASS_PERMISSION)) {
-            warmupSeconds = 0;
-        }
+        int warmupSeconds = cooldowns.getEffectiveWarmupSeconds(context.sender(), target, CooldownKeys.RTP, BYPASS_PERMISSION);
         final int finalWarmupSeconds = warmupSeconds;
         PlayerRef finalTarget = target;
         boolean finalIsOther = isOther;
@@ -218,6 +215,7 @@ public final class RtpCommand extends CommandBase {
                     target.getUuid(),
                     startPos,
                     warmupSeconds,
+                    cooldowns.shouldCancelWarmupOnMove(CooldownKeys.RTP),
                     buffer -> {
                         String err = TeleportationUtil.teleportToLocation(
                                 buffer,

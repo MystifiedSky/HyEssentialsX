@@ -12,9 +12,11 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.BalTopUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.ExplicitPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
@@ -29,17 +31,23 @@ import java.util.UUID;
 public final class BalanceTopCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.baltop";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.baltop.bypass";
     private static final int DEFAULT_LIMIT = 10;
 
     private final EconomyManager economy;
     private final StorageManager storage;
     private final ConfigManager config;
+    private final CommandCooldownManager cooldowns;
 
-    public BalanceTopCommand(@Nonnull EconomyManager economy, @Nonnull StorageManager storage, @Nonnull ConfigManager config) {
+    public BalanceTopCommand(@Nonnull EconomyManager economy,
+                             @Nonnull StorageManager storage,
+                             @Nonnull ConfigManager config,
+                             @Nonnull CommandCooldownManager cooldowns) {
         super("baltop", "Shows the top balances");
         this.economy = economy;
         this.storage = storage;
         this.config = config;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addUsageVariant(new LimitedBalanceTopCommand());
@@ -67,16 +75,25 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "economy.disabled", Map.of());
             return;
         }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.BALTOP, "/baltop", BYPASS_PERMISSION, world)) {
+            return;
+        }
 
         if (config.isEconomyBaltopGuiEnabled()) {
             Player playerEntity = store.getComponent(ref, Player.getComponentType());
             if (playerEntity != null) {
+                if (!cooldowns.apply(playerRef, CooldownKeys.BALTOP)) {
+                    return;
+                }
                 BalTopUI ui = new BalTopUI(playerRef, economy, storage);
                 ui.open(playerEntity, ref, store);
                 return;
             }
         }
 
+        if (!cooldowns.apply(playerRef, CooldownKeys.BALTOP)) {
+            return;
+        }
         renderTop(context, DEFAULT_LIMIT);
     }
 
@@ -151,7 +168,13 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
                 Messages.errKey(context, "economy.disabled", Map.of());
                 return;
             }
+            if (!cooldowns.canUse(context, playerRef, CooldownKeys.BALTOP, "/baltop", BYPASS_PERMISSION, world)) {
+                return;
+            }
             Integer limit = context.get(limitArg);
+            if (!cooldowns.apply(playerRef, CooldownKeys.BALTOP)) {
+                return;
+            }
             renderTop(context, limit == null ? DEFAULT_LIMIT : limit);
         }
     }

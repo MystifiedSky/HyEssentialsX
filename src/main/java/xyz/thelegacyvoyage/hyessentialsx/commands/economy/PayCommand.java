@@ -12,7 +12,9 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyAuditManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.ui.PayUI;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -22,19 +24,24 @@ import java.util.Map;
 public final class PayCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.pay";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.pay.bypass";
 
     private final EconomyManager economy;
+    private final CommandCooldownManager cooldowns;
     @Nullable
     private final EconomyAuditManager audit;
 
-    public PayCommand(@Nonnull EconomyManager economy) {
-        this(economy, null);
+    public PayCommand(@Nonnull EconomyManager economy,
+                      @Nonnull CommandCooldownManager cooldowns) {
+        this(economy, cooldowns, null);
     }
 
     public PayCommand(@Nonnull EconomyManager economy,
+                      @Nonnull CommandCooldownManager cooldowns,
                       @Nullable EconomyAuditManager audit) {
         super("pay", "Pays another player");
         this.economy = economy;
+        this.cooldowns = cooldowns;
         this.audit = audit;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
@@ -62,10 +69,16 @@ public final class PayCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "economy.disabled", Map.of());
             return;
         }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.PAY, "/pay", BYPASS_PERMISSION, world)) {
+            return;
+        }
 
         Player player = store.getComponent(ref, Player.getComponentType());
         if (player == null || audit == null) {
             Messages.errKey(context, "economy.pay.usage", Map.of());
+            return;
+        }
+        if (!cooldowns.apply(playerRef, CooldownKeys.PAY)) {
             return;
         }
         PayUI ui = new PayUI(playerRef, economy, audit);
@@ -93,11 +106,15 @@ public final class PayCommand extends AbstractPlayerCommand {
         }
 
         long balance = economy.getBalance(playerRef.getUuid());
-        if (balance < amount) {
+        long commandPrice = cooldowns.getEffectivePrice(context.sender(), playerRef, CooldownKeys.PAY, BYPASS_PERMISSION);
+        if (balance < amount + commandPrice) {
             Messages.errKey(context, "economy.insufficient_funds", Map.of());
             return;
         }
 
+        if (!cooldowns.apply(playerRef, CooldownKeys.PAY)) {
+            return;
+        }
         if (!economy.withdraw(playerRef.getUuid(), amount)) {
             Messages.errKey(context, "economy.insufficient_funds", Map.of());
             return;
@@ -152,6 +169,9 @@ public final class PayCommand extends AbstractPlayerCommand {
             }
             if (!economy.isEnabled()) {
                 Messages.errKey(context, "economy.disabled", Map.of());
+                return;
+            }
+            if (!cooldowns.canUse(context, playerRef, CooldownKeys.PAY, "/pay", BYPASS_PERMISSION, world)) {
                 return;
             }
             pay(context, playerRef, context.get(targetArg), context.get(amountArg));

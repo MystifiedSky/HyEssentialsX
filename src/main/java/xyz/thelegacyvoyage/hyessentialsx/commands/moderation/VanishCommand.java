@@ -7,8 +7,10 @@ import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.entity.entities.player.HiddenPlayersManager;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.VanishManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.MapVisibilityUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -18,12 +20,16 @@ public final class VanishCommand extends CommandBase {
 
     private static final String PERMISSION_NODE = "hyessentialsx.vanish";
     private static final String OTHERS_PERMISSION = "hyessentialsx.vanish.others";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.vanish.bypass";
 
     private final VanishManager vanishManager;
+    private final CommandCooldownManager cooldowns;
 
-    public VanishCommand(@Nonnull VanishManager vanishManager) {
+    public VanishCommand(@Nonnull VanishManager vanishManager,
+                         @Nonnull CommandCooldownManager cooldowns) {
         super("vanish", "Toggle vanish");
         this.vanishManager = vanishManager;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"v"});
@@ -47,6 +53,9 @@ public final class VanishCommand extends CommandBase {
             Messages.errKey(context, "error.player_only", java.util.Map.of());
             return;
         }
+        if (!cooldowns.canUse(context, self, CooldownKeys.VANISH, "/vanish", BYPASS_PERMISSION)) {
+            return;
+        }
         toggleVanish(context, self, self);
     }
 
@@ -54,6 +63,9 @@ public final class VanishCommand extends CommandBase {
         boolean isSelf = self != null && self.getUuid().equals(target.getUuid());
         if (!isSelf && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
             Messages.noPerm(context, "/vanish");
+            return;
+        }
+        if (self != null && !cooldowns.apply(self, CooldownKeys.VANISH)) {
             return;
         }
 
@@ -117,7 +129,11 @@ public final class VanishCommand extends CommandBase {
                 Messages.errKey(context, "player.not_found", java.util.Map.of());
                 return;
             }
-            toggleVanish(context, CommandSenderUtil.resolvePlayer(context), target);
+            PlayerRef self = CommandSenderUtil.resolvePlayer(context);
+            if (self != null && !cooldowns.canUse(context, self, CooldownKeys.VANISH, "/vanish", BYPASS_PERMISSION)) {
+                return;
+            }
+            toggleVanish(context, self, target);
         }
     }
 

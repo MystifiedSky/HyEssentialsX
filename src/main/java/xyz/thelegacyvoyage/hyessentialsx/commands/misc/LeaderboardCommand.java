@@ -11,11 +11,13 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.LeaderboardDefinition;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StatsManager;
 import xyz.thelegacyvoyage.hyessentialsx.ui.LeaderboardUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -25,13 +27,17 @@ import java.util.Map;
 public final class LeaderboardCommand extends CommandBase {
 
     private static final String PERMISSION_NODE = "hyessentialsx.leaderboard";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.leaderboard.bypass";
     private static final int MAX_LIMIT = 25;
 
     private final StatsManager stats;
+    private final CommandCooldownManager cooldowns;
 
-    public LeaderboardCommand(@Nonnull StatsManager stats) {
+    public LeaderboardCommand(@Nonnull StatsManager stats,
+                              @Nonnull CommandCooldownManager cooldowns) {
         super("leaderboard", "Shows stat leaderboards");
         this.stats = stats;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"leaderboards", "lb"});
@@ -71,6 +77,14 @@ public final class LeaderboardCommand extends CommandBase {
         }
 
         PlayerRef playerRef = CommandSenderUtil.resolvePlayer(context);
+        if (playerRef != null) {
+            if (!cooldowns.canUse(context, playerRef, CooldownKeys.LEADERBOARD, "/leaderboard", BYPASS_PERMISSION)) {
+                return;
+            }
+            if (!cooldowns.apply(playerRef, CooldownKeys.LEADERBOARD)) {
+                return;
+            }
+        }
         if (playerRef != null && openUi(playerRef, selection)) {
             return;
         }

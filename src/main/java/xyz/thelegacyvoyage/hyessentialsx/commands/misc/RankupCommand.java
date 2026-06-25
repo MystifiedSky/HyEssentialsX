@@ -13,9 +13,11 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeRewardManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.RankupManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.RankupTier;
 import xyz.thelegacyvoyage.hyessentialsx.ui.PlaytimeAdminUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
@@ -27,19 +29,22 @@ public final class RankupCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.rankup";
     private static final String ADMIN_PERMISSION = "hyessentialsx.playtime.admin";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.rankup.bypass";
     private final RankupManager rankups;
     private final EconomyManager economy;
     private final PlaytimeManager playtime;
     private final PlaytimeRewardManager rewards;
     private final StorageManager storage;
     private final ConfigManager config;
+    private final CommandCooldownManager cooldowns;
 
     public RankupCommand(@Nonnull RankupManager rankups,
                          @Nonnull EconomyManager economy,
                          @Nonnull PlaytimeManager playtime,
                          @Nonnull PlaytimeRewardManager rewards,
                          @Nonnull StorageManager storage,
-                         @Nonnull ConfigManager config) {
+                         @Nonnull ConfigManager config,
+                         @Nonnull CommandCooldownManager cooldowns) {
         super("rankup", "Ranks up to the next rank");
         this.addAliases(new String[]{"rewards"});
         this.rankups = rankups;
@@ -48,6 +53,7 @@ public final class RankupCommand extends AbstractPlayerCommand {
         this.rewards = rewards;
         this.storage = storage;
         this.config = config;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         this.addSubCommand(new ConfirmCommand());
         this.addSubCommand(new AdminCommand());
@@ -75,6 +81,9 @@ public final class RankupCommand extends AbstractPlayerCommand {
             Messages.warnKey(context, "rankup.disabled", Map.of());
             return;
         }
+        if (!cooldowns.canUse(context, player, CooldownKeys.RANKUP, "/rankup", BYPASS_PERMISSION, world)) {
+            return;
+        }
 
         RankupTier next = rankups.getNextTier(player.getUuid());
         if (next == null) {
@@ -84,7 +93,9 @@ public final class RankupCommand extends AbstractPlayerCommand {
 
         RankupManager.Eligibility eligibility = rankups.checkEligibility(player, next);
         boolean missingPlaytime = !eligibility.playtimeMet;
-        boolean missingMoney = eligibility.cost > 0L && !eligibility.currencyMet;
+        long commandPrice = cooldowns.getEffectivePrice(context.sender(), player, CooldownKeys.RANKUP, BYPASS_PERMISSION);
+        long balance = economy.getBalance(player.getUuid());
+        boolean missingMoney = eligibility.cost > 0L && balance < eligibility.cost + commandPrice;
         if (missingPlaytime) {
             Messages.warnKey(context, "rankup.playtime_needed", Map.of(
                     "required", formatHours(next.getPlaytimeSeconds()),
@@ -92,13 +103,15 @@ public final class RankupCommand extends AbstractPlayerCommand {
             ));
         }
         if (missingMoney) {
-            long balance = economy.getBalance(player.getUuid());
             Messages.warnKey(context, "rankup.money_needed", Map.of(
                     "cost", economy.formatAmount(eligibility.cost),
                     "balance", economy.formatAmount(balance)
             ));
         }
         if (missingPlaytime || missingMoney) {
+            return;
+        }
+        if (!cooldowns.apply(player, CooldownKeys.RANKUP)) {
             return;
         }
 

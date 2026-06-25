@@ -117,17 +117,6 @@ public final class WarpCommand extends CommandBase {
 
         final String resolvedWarpName = displayWarpName;
 
-        if (isOther) {
-            if (!cooldowns.canUse(target, CooldownKeys.WARP, "/warp", BYPASS_PERMISSION)) {
-                Messages.errKey(context, "error.target_cooldown", Map.of());
-                return;
-            }
-        } else {
-            if (!cooldowns.canUse(context, target, CooldownKeys.WARP, "/warp", BYPASS_PERMISSION)) {
-                return;
-            }
-        }
-
         Ref<EntityStore> targetRef = target.getReference();
         if (targetRef == null || !targetRef.isValid()) {
             Messages.errKey(context, "error.target_access", Map.of());
@@ -144,10 +133,18 @@ public final class WarpCommand extends CommandBase {
             return;
         }
 
-        int warmupSeconds = config.getWarpWarmupSeconds();
-        if (cooldowns.hasWarmupBypass(context, target, CooldownKeys.WARP, BYPASS_PERMISSION)) {
-            warmupSeconds = 0;
+        if (isOther) {
+            if (!cooldowns.canUse(target, CooldownKeys.WARP, "/warp", BYPASS_PERMISSION, targetWorld)) {
+                Messages.errKey(context, "error.target_cooldown", Map.of());
+                return;
+            }
+        } else {
+            if (!cooldowns.canUse(context, target, CooldownKeys.WARP, "/warp", BYPASS_PERMISSION, targetWorld)) {
+                return;
+            }
         }
+
+        int warmupSeconds = cooldowns.getEffectiveWarmupSeconds(context.sender(), target, CooldownKeys.WARP, BYPASS_PERMISSION);
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(target.getUuid())) {
                 if (isOther) {
@@ -178,6 +175,7 @@ public final class WarpCommand extends CommandBase {
                     finalTargetId,
                     startPos,
                     warmupSeconds,
+                    cooldowns.shouldCancelWarmupOnMove(CooldownKeys.WARP),
                     buffer -> {
                         String err = TeleportationUtil.teleportToLocation(
                                 buffer,

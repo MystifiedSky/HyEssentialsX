@@ -57,7 +57,7 @@ public final class TpahereAllCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "tpa.disabled", java.util.Map.of());
             return;
         }
-        if (!cooldowns.canUse(context, playerRef, CooldownKeys.TPAHEREALL, "/tpahereall", BYPASS_PERMISSION)) {
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.TPAHEREALL, "/tpahereall", BYPASS_PERMISSION, world)) {
             return;
         }
 

@@ -20,6 +20,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.util.NotificationUtil;
 import xyz.thelegacyvoyage.hyessentialsx.models.AuctionListingModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.BanModel;
+import xyz.thelegacyvoyage.hyessentialsx.models.CommandRuleModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.HomeModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.IpHistoryModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.MuteModel;
@@ -63,6 +64,7 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
     private static final String PLAYER_ROW_LAYOUT = "hyessentialsx/DashboardPlayerRow.ui";
     private static final int PLAYER_PAGE_SIZE = 13;
     private static final int CONFIG_RULE_ROW_COUNT = 8;
+    private static final int COMMAND_RULE_PICKER_ROW_COUNT = 8;
     private static final int CONFIG_PANEL_FIELD_COUNT = 6;
     private static final int MODERATION_RULE_BUTTON_COUNT = 3;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT);
@@ -86,9 +88,13 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
     private String configDurationInput = "1h";
     private String configWindowInput = "7d";
     private String configDetailInput = "Automatic warning escalation.";
-    private ConfigSection configSection = ConfigSection.PLAYER_WARPS;
+    private ConfigSection configSection = ConfigSection.WARNING_RULES;
     private ConfigSection loadedConfigSection;
     private final String[] configPanelInputs = new String[CONFIG_PANEL_FIELD_COUNT];
+    private String commandRuleSearch = "";
+    private int commandRulePage;
+    @Nullable
+    private String selectedCommandRuleKey;
     @Nullable
     private String selectedConfigRuleId;
     @Nullable
@@ -174,6 +180,20 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         }
         if (data.configDetailInput != null) {
             configDetailInput = data.configDetailInput.trim();
+        }
+        if (data.commandRuleSearch != null) {
+            String normalized = data.commandRuleSearch.trim().toLowerCase(Locale.ROOT);
+            if (!commandRuleSearch.equals(normalized)) {
+                commandRulePage = 0;
+            }
+            commandRuleSearch = normalized;
+            refresh();
+            return;
+        }
+        if ("SelectCommandRule".equals(data.commandRuleAction) && data.commandRuleKey != null) {
+            selectCommandRule(data.commandRuleKey);
+            refresh();
+            return;
         }
         for (int i = 0; i < CONFIG_PANEL_FIELD_COUNT; i++) {
             String value = data.configPanelInput(i);
@@ -346,6 +366,8 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 EventData.of("Action", "DeleteConfigRule"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#ResetConfigRulesButton",
                 EventData.of("Action", "ResetEscalations"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigSectionWarningsButton",
+                EventData.of("Action", "ConfigSectionWarningRules"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigSectionWarpsButton",
                 EventData.of("Action", "ConfigSectionPlayerWarps"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigSectionEconomyButton",
@@ -362,8 +384,16 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 EventData.of("Action", "ConfigSectionChat"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigSectionScoreboardButton",
                 EventData.of("Action", "ConfigSectionScoreboard"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#ConfigSectionCommandsButton",
+                EventData.of("Action", "ConfigSectionCommandRules"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#SaveConfigPanelButton",
                 EventData.of("Action", "SaveConfigPanel"), false);
+        evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#CommandRuleSearchInput",
+                EventData.of("@CommandRuleSearch", "#CommandRuleSearchInput.Value"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#CommandRulePickerPrevButton",
+                EventData.of("Action", "CommandRulePrev"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#CommandRulePickerNextButton",
+                EventData.of("Action", "CommandRuleNext"), false);
         for (int i = 0; i < CONFIG_PANEL_FIELD_COUNT; i++) {
             evt.addEventBinding(CustomUIEventBindingType.ValueChanged, "#ConfigField" + i + "Input",
                     EventData.of("@ConfigPanelInput" + i, "#ConfigField" + i + "Input.Value"), false);
@@ -789,6 +819,16 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
     }
 
     private void buildConfig(@Nonnull UICommandBuilder cmd, @Nonnull UIEventBuilder evt) {
+        buildConfigCategories(cmd);
+        boolean warningSection = configSection == ConfigSection.WARNING_RULES;
+        cmd.set("#ConfigWarningListPanel.Visible", warningSection);
+        cmd.set("#ConfigWarningEditorPanel.Visible", warningSection);
+        cmd.set("#ConfigIdeasPanel.Visible", !warningSection);
+        if (!warningSection) {
+            buildConfigPanel(cmd, evt);
+            return;
+        }
+
         List<WarningEscalationRuleModel> rules = sortedWarningRules();
 
         if ((selectedConfigRuleId == null || context.warningEscalationManager().getRule(selectedConfigRuleId) == null)
@@ -844,17 +884,24 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         cmd.set("#NewConfigRuleButton.Disabled", !canEdit);
         cmd.set("#ResetConfigRulesButton.Disabled", !canEdit);
         cmd.set("#ConfigActionButton.Disabled", !canEdit);
-        buildConfigPanel(cmd);
     }
 
-    private void buildConfigPanel(@Nonnull UICommandBuilder cmd) {
-        ensureConfigPanelLoaded();
-        cmd.set("#ConfigPanelTitle.Text", configSection.label());
-        cmd.set("#ConfigPanelSummary.Text", configSection.summary());
+    private void buildConfigCategories(@Nonnull UICommandBuilder cmd) {
         for (ConfigSection section : ConfigSection.values()) {
             cmd.set(section.buttonSelector() + ".Text", section == configSection
                     ? configSectionButtonText(section) + " *"
                     : configSectionButtonText(section));
+        }
+    }
+
+    private void buildConfigPanel(@Nonnull UICommandBuilder cmd, @Nonnull UIEventBuilder evt) {
+        ensureConfigPanelLoaded();
+        boolean commandRules = configSection == ConfigSection.COMMAND_RULES;
+        cmd.set("#ConfigPanelTitle.Text", configSection.label());
+        cmd.set("#ConfigPanelSummary.Text", configSection.summary());
+        cmd.set("#CommandRulePickerPanel.Visible", commandRules);
+        if (commandRules) {
+            buildCommandRulePicker(cmd, evt);
         }
         String[] labels = configSection.fieldLabels();
         boolean[] toggles = configSection.toggleFields();
@@ -878,6 +925,79 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 ? "Edits save to config files and survive restarts."
                 : "Missing permission: hyessentialsx.admin.");
         cmd.set("#ConfigPanelStatus.Style.TextColor", canManageConfig() ? "#8fb6e8" : "#ff7d7d");
+    }
+
+    private void buildCommandRulePicker(@Nonnull UICommandBuilder cmd, @Nonnull UIEventBuilder evt) {
+        String selected = selectedCommandRuleKey();
+        cmd.set("#CommandRuleSearchInput.Value", commandRuleSearch);
+        cmd.set("#CommandRuleSelectedValue.Text", "/" + selected);
+
+        List<String> keys = filteredCommandRuleKeys();
+        int maxPage = maxCommandRulePage(keys.size());
+        if (commandRulePage > maxPage) {
+            commandRulePage = maxPage;
+        }
+        int fromIndex = Math.min(commandRulePage * COMMAND_RULE_PICKER_ROW_COUNT, keys.size());
+        int toIndex = Math.min(fromIndex + COMMAND_RULE_PICKER_ROW_COUNT, keys.size());
+        List<String> visibleKeys = keys.subList(fromIndex, toIndex);
+        cmd.set("#CommandRulePickerPageLabel.Text", keys.isEmpty()
+                ? "0 / 0"
+                : "Page " + (commandRulePage + 1) + " / " + (maxPage + 1));
+        cmd.set("#CommandRulePickerPrevButton.Disabled", commandRulePage <= 0);
+        cmd.set("#CommandRulePickerNextButton.Disabled", commandRulePage >= maxPage);
+        cmd.set("#CommandRulePickerEmptyLabel.Visible", keys.isEmpty());
+        for (int i = 0; i < COMMAND_RULE_PICKER_ROW_COUNT; i++) {
+            String row = "#CommandRulePickerRow" + i;
+            if (i >= visibleKeys.size()) {
+                cmd.set(row + ".Visible", false);
+                continue;
+            }
+
+            String key = visibleKeys.get(i);
+            CommandRuleModel rule = context.config().getCommandRule(key);
+            boolean active = key.equalsIgnoreCase(selected);
+            String meta = (rule.isEnabled() ? "enabled" : "disabled")
+                    + " | cooldown " + rule.getCooldownSeconds() + "s"
+                    + " | warmup " + rule.getWarmupSeconds() + "s"
+                    + " | price " + moneyText(rule.getPrice());
+            cmd.set(row + ".Visible", true);
+            cmd.set(row + ".Background.Color", active ? "#173055" : "#151d2a");
+            cmd.set("#CommandRulePicker" + i + "Name.Text", "/" + key);
+            cmd.set("#CommandRulePicker" + i + "Name.Style.TextColor", rule.isEnabled() ? "#d7e7ff" : "#74849b");
+            cmd.set("#CommandRulePicker" + i + "Meta.Text", meta);
+            cmd.set("#CommandRulePicker" + i + "Button.Text", active ? "Selected" : "Select");
+            cmd.set("#CommandRulePicker" + i + "Button.Disabled", active);
+            evt.addEventBinding(CustomUIEventBindingType.Activating,
+                    "#CommandRulePicker" + i + "Button",
+                    EventData.of("CommandRuleAction", "SelectCommandRule").append("CommandRuleKey", key), false);
+        }
+    }
+
+    @Nonnull
+    private List<String> filteredCommandRuleKeys() {
+        String filter = commandRuleSearch.trim().toLowerCase(Locale.ROOT);
+        List<String> keys = new ArrayList<>(context.config().getCommandRuleKeys());
+        keys.sort(String.CASE_INSENSITIVE_ORDER);
+        if (!filter.isBlank()) {
+            keys.removeIf(key -> !key.toLowerCase(Locale.ROOT).contains(filter));
+        }
+        String selected = selectedCommandRuleKey();
+        boolean selectedMatches = filter.isBlank() || selected.toLowerCase(Locale.ROOT).contains(filter);
+        if (selectedMatches && keys.removeIf(key -> key.equalsIgnoreCase(selected))) {
+            keys.add(0, selected);
+        }
+        return keys;
+    }
+
+    private int maxCommandRulePage() {
+        return maxCommandRulePage(filteredCommandRuleKeys().size());
+    }
+
+    private int maxCommandRulePage(int size) {
+        if (size <= 0) {
+            return 0;
+        }
+        return (size - 1) / COMMAND_RULE_PICKER_ROW_COUNT;
     }
 
     private void buildSystems(@Nonnull UICommandBuilder cmd) {
@@ -1051,6 +1171,7 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 deleteSelectedConfigRule();
                 refresh();
             }
+            case "ConfigSectionWarningRules" -> switchConfigSection(ConfigSection.WARNING_RULES);
             case "ConfigSectionPlayerWarps" -> switchConfigSection(ConfigSection.PLAYER_WARPS);
             case "ConfigSectionEconomy" -> switchConfigSection(ConfigSection.ECONOMY);
             case "ConfigSectionPlaytime" -> switchConfigSection(ConfigSection.PLAYTIME);
@@ -1059,6 +1180,20 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
             case "ConfigSectionHomes" -> switchConfigSection(ConfigSection.HOMES);
             case "ConfigSectionChat" -> switchConfigSection(ConfigSection.CHAT);
             case "ConfigSectionScoreboard" -> switchConfigSection(ConfigSection.SCOREBOARD);
+            case "ConfigSectionCommandRules" -> switchConfigSection(ConfigSection.COMMAND_RULES);
+            case "CommandRulePrev" -> {
+                if (commandRulePage > 0) {
+                    commandRulePage--;
+                }
+                refresh();
+            }
+            case "CommandRuleNext" -> {
+                int maxPage = maxCommandRulePage();
+                if (commandRulePage < maxPage) {
+                    commandRulePage++;
+                }
+                refresh();
+            }
             case "SaveConfigPanel" -> {
                 saveConfigPanel();
                 refresh();
@@ -1096,7 +1231,9 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
     private void switchConfigSection(@Nonnull ConfigSection section) {
         configSection = section;
         loadedConfigSection = null;
-        ensureConfigPanelLoaded();
+        if (section != ConfigSection.WARNING_RULES) {
+            ensureConfigPanelLoaded();
+        }
         status("Configuration section: " + section.label() + ".", "#8fb6e8");
         refresh();
     }
@@ -1144,6 +1281,10 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         ensureConfigPanelLoaded();
         try {
             switch (configSection) {
+                case WARNING_RULES -> {
+                    status("Warning rules use the rule editor actions.", "#8fb6e8");
+                    return;
+                }
                 case PLAYER_WARPS -> {
                     context.config().setPlayerWarpsEnabled(parseBooleanStrict(input(0), "Player warps enabled"));
                     context.config().setPlayerWarpsGuiEnabled(parseBooleanStrict(input(1), "Player warps UI"));
@@ -1206,6 +1347,19 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                     context.config().setScoreboardAnchor(input(3));
                     context.config().setScoreboardSize(parseInt(input(4), "Width", 120, 2000), context.config().getScoreboardHeight());
                     context.config().setScoreboardOffsets(parseInt(input(5), "Offset X", 0, 2000), context.config().getScoreboardOffsetY());
+                }
+                case COMMAND_RULES -> {
+                    String key = selectedCommandRuleKey();
+                    if (key.isBlank()) {
+                        throw new IllegalArgumentException("Command key cannot be empty.");
+                    }
+                    CommandRuleModel rule = context.config().getCommandRule(key);
+                    rule.setEnabled(parseBooleanStrict(input(0), "Command enabled"));
+                    rule.setCooldownSeconds(parseInt(input(1), "Cooldown seconds", 0, 86400));
+                    rule.setWarmupSeconds(parseInt(input(2), "Warmup seconds", 0, 3600));
+                    rule.setCancelWarmupOnMove(parseBooleanStrict(input(3), "Cancel on move"));
+                    rule.setPrice(parseMoney(input(4), "Command price"));
+                    context.config().setCommandRule(key, rule);
                 }
             }
             loadedConfigSection = null;
@@ -1289,6 +1443,7 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
     @Nonnull
     private String configSectionButtonText(@Nonnull ConfigSection section) {
         return switch (section) {
+            case WARNING_RULES -> "Warning Rules";
             case PLAYER_WARPS -> "Warps";
             case ECONOMY -> "Economy";
             case PLAYTIME -> "Playtime";
@@ -1297,7 +1452,56 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
             case HOMES -> "Homes";
             case CHAT -> "Chat";
             case SCOREBOARD -> "Board";
+            case COMMAND_RULES -> "Cmd Rules";
         };
+    }
+
+    @Nonnull
+    private String selectedCommandRuleKey() {
+        List<String> keys = context.config().getCommandRuleKeys();
+        if (keys.isEmpty()) {
+            selectedCommandRuleKey = CooldownKeys.HOME;
+            return selectedCommandRuleKey;
+        }
+        String selected = selectedCommandRuleKey == null ? "" : normalizeCommandRuleInput(selectedCommandRuleKey);
+        if (!selected.isBlank()) {
+            for (String key : keys) {
+                if (key.equalsIgnoreCase(selected)) {
+                    selectedCommandRuleKey = key;
+                    return key;
+                }
+            }
+        }
+        selectedCommandRuleKey = keys.contains(CooldownKeys.HOME) ? CooldownKeys.HOME : keys.get(0);
+        return selectedCommandRuleKey;
+    }
+
+    private void selectCommandRule(@Nonnull String key) {
+        String normalized = normalizeCommandRuleInput(key);
+        String matched = "";
+        for (String commandKey : context.config().getCommandRuleKeys()) {
+            if (commandKey.equalsIgnoreCase(normalized)) {
+                matched = commandKey;
+                break;
+            }
+        }
+        if (matched.isBlank()) {
+            status("Unknown command rule: /" + normalized + ".", "#ff7d7d");
+            return;
+        }
+        selectedCommandRuleKey = matched;
+        loadedConfigSection = null;
+        ensureConfigPanelLoaded();
+        status("Command rule selected: /" + matched + ".", "#8fb6e8");
+    }
+
+    @Nonnull
+    private String normalizeCommandRuleInput(@Nonnull String key) {
+        String normalized = key.trim().toLowerCase(Locale.ROOT);
+        while (normalized.startsWith("/")) {
+            normalized = normalized.substring(1);
+        }
+        return normalized;
     }
 
     @Nonnull
@@ -2465,6 +2669,15 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
     }
 
     private enum ConfigSection {
+        WARNING_RULES("Warning Rules", "#ConfigSectionWarningsButton",
+                "Warning escalation rules are edited in the dedicated rule editor.",
+                new String[0],
+                new boolean[0]) {
+            @Override
+            String[] currentValues(HyEssentialsXDashboardUI ui) {
+                return new String[0];
+            }
+        },
         PLAYER_WARPS("Player Warps", "#ConfigSectionWarpsButton",
                 "Limits, approval behavior, and economy costs for player-created warps.",
                 new String[]{"Enabled", "GUI Enabled", "Auto Approve", "Max Warps", "Create Cost", "Visit Cost"},
@@ -2588,6 +2801,23 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                         ui.context.config().getScoreboardAnchor(),
                         String.valueOf(ui.context.config().getScoreboardWidth()),
                         String.valueOf(ui.context.config().getScoreboardOffsetX())
+                };
+            }
+        },
+        COMMAND_RULES("Command Rules", "#ConfigSectionCommandsButton",
+                "Shared command tuning inspired by EssentialsPlus and EliteEssentials, with HyEssentialsX reductions and bypasses.",
+                new String[]{"Enabled", "Cooldown Sec", "Warmup Sec", "Cancel Move", "Price"},
+                new boolean[]{true, false, false, true, false}) {
+            @Override
+            String[] currentValues(HyEssentialsXDashboardUI ui) {
+                String key = ui.selectedCommandRuleKey();
+                CommandRuleModel rule = ui.context.config().getCommandRule(key);
+                return new String[]{
+                        String.valueOf(rule.isEnabled()),
+                        String.valueOf(rule.getCooldownSeconds()),
+                        String.valueOf(rule.getWarmupSeconds()),
+                        String.valueOf(rule.isCancelWarmupOnMove()),
+                        ui.moneyText(rule.getPrice())
                 };
             }
         };
@@ -2748,6 +2978,8 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 .append(new KeyedCodec<>("PlayerName", Codec.STRING), (d, v) -> d.playerName = v, d -> d.playerName).add()
                 .append(new KeyedCodec<>("ConfigRuleAction", Codec.STRING), (d, v) -> d.configRuleAction = v, d -> d.configRuleAction).add()
                 .append(new KeyedCodec<>("ConfigRuleId", Codec.STRING), (d, v) -> d.configRuleId = v, d -> d.configRuleId).add()
+                .append(new KeyedCodec<>("CommandRuleAction", Codec.STRING), (d, v) -> d.commandRuleAction = v, d -> d.commandRuleAction).add()
+                .append(new KeyedCodec<>("CommandRuleKey", Codec.STRING), (d, v) -> d.commandRuleKey = v, d -> d.commandRuleKey).add()
                 .append(new KeyedCodec<>("@PlayerSearch", Codec.STRING), (d, v) -> d.playerSearch = v, d -> d.playerSearch).add()
                 .append(new KeyedCodec<>("@ActionReason", Codec.STRING), (d, v) -> d.actionReason = v, d -> d.actionReason).add()
                 .append(new KeyedCodec<>("@WarningExpiry", Codec.STRING), (d, v) -> d.warningExpiry = v, d -> d.warningExpiry).add()
@@ -2757,6 +2989,7 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 .append(new KeyedCodec<>("@ConfigDurationInput", Codec.STRING), (d, v) -> d.configDurationInput = v, d -> d.configDurationInput).add()
                 .append(new KeyedCodec<>("@ConfigWindowInput", Codec.STRING), (d, v) -> d.configWindowInput = v, d -> d.configWindowInput).add()
                 .append(new KeyedCodec<>("@ConfigDetailInput", Codec.STRING), (d, v) -> d.configDetailInput = v, d -> d.configDetailInput).add()
+                .append(new KeyedCodec<>("@CommandRuleSearch", Codec.STRING), (d, v) -> d.commandRuleSearch = v, d -> d.commandRuleSearch).add()
                 .append(new KeyedCodec<>("@ConfigPanelInput0", Codec.STRING), (d, v) -> d.configPanelInput0 = v, d -> d.configPanelInput0).add()
                 .append(new KeyedCodec<>("@ConfigPanelInput1", Codec.STRING), (d, v) -> d.configPanelInput1 = v, d -> d.configPanelInput1).add()
                 .append(new KeyedCodec<>("@ConfigPanelInput2", Codec.STRING), (d, v) -> d.configPanelInput2 = v, d -> d.configPanelInput2).add()
@@ -2773,6 +3006,8 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         private String playerName;
         private String configRuleAction;
         private String configRuleId;
+        private String commandRuleAction;
+        private String commandRuleKey;
         private String playerSearch;
         private String actionReason;
         private String warningExpiry;
@@ -2782,6 +3017,7 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         private String configDurationInput;
         private String configWindowInput;
         private String configDetailInput;
+        private String commandRuleSearch;
         private String configPanelInput0;
         private String configPanelInput1;
         private String configPanelInput2;

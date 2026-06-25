@@ -68,10 +68,6 @@ public final class BackCommand extends CommandBase {
     }
 
     private void teleportBack(@Nonnull CommandContext context, @Nonnull PlayerRef target) {
-        if (!cooldowns.canUse(context, target, CooldownKeys.BACK, "/back", BYPASS_PERMISSION)) {
-            return;
-        }
-
         BackManager.BackPoint back = backManager.peek(target.getUuid());
         if (back == null) {
             Messages.errKey(context, "back.none", Map.of());
@@ -83,6 +79,9 @@ public final class BackCommand extends CommandBase {
             Messages.errKey(context, "error.world_not_loaded", Map.of());
             return;
         }
+        if (!cooldowns.canUse(context, target, CooldownKeys.BACK, "/back", BYPASS_PERMISSION, targetWorld)) {
+            return;
+        }
         Store<EntityStore> targetStore = targetWorld.getEntityStore().getStore();
         Ref<EntityStore> targetRef = targetWorld.getEntityStore().getRefFromUUID(target.getUuid());
         if (targetRef == null) {
@@ -90,10 +89,7 @@ public final class BackCommand extends CommandBase {
             return;
         }
 
-        int warmupSeconds = config.getBackWarmupSeconds();
-        if (cooldowns.hasWarmupBypass(context, target, CooldownKeys.BACK, BYPASS_PERMISSION)) {
-            warmupSeconds = 0;
-        }
+        int warmupSeconds = cooldowns.getEffectiveWarmupSeconds(context.sender(), target, CooldownKeys.BACK, BYPASS_PERMISSION);
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(target.getUuid())) {
                 Messages.errKey(context, "teleport.pending", Map.of());
@@ -110,6 +106,7 @@ public final class BackCommand extends CommandBase {
                     finalTargetId,
                     new org.joml.Vector3d(transform.getPosition()),
                     warmupSeconds,
+                    cooldowns.shouldCancelWarmupOnMove(CooldownKeys.BACK),
                     buffer -> {
                         String err = TeleportationUtil.teleportToLocation(
                                 buffer,

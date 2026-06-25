@@ -154,10 +154,7 @@ public final class WarpsUI extends InteractiveCustomUIPage<WarpsUI.UIEventData> 
 
         close();
 
-        int warmupSeconds = config.getWarpWarmupSeconds();
-        if (cooldowns.hasWarmupBypass(playerRef, CooldownKeys.WARP, BYPASS_PERMISSION)) {
-            warmupSeconds = 0;
-        }
+        int warmupSeconds = cooldowns.getEffectiveWarmupSeconds(playerRef, playerRef, CooldownKeys.WARP, BYPASS_PERMISSION);
         if (warmupSeconds > 0) {
             if (tpManager.hasPending(playerRef.getUuid())) {
                 Messages.sendPrefixedKey(playerRef, "teleport.pending", Map.of());
@@ -177,6 +174,7 @@ public final class WarpsUI extends InteractiveCustomUIPage<WarpsUI.UIEventData> 
                     playerRef.getUuid(),
                     startPos,
                     warmupSeconds,
+                    cooldowns.shouldCancelWarmupOnMove(CooldownKeys.WARP),
                     buffer -> {
                         String err = TeleportationUtil.teleportToLocation(
                                 buffer,

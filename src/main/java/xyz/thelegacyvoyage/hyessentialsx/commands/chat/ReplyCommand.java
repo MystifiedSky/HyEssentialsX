@@ -13,7 +13,9 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MessageManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.IgnoreManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SocialSpyManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -24,22 +26,26 @@ import java.util.UUID;
 public final class ReplyCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.msg";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.reply.bypass";
 
     private final MessageManager messages;
     private final IgnoreManager ignoreManager;
     private final SocialSpyManager socialSpyManager;
     private final ConfigManager config;
+    private final CommandCooldownManager cooldowns;
     private final RequiredArg<List<String>> messageArg;
 
     public ReplyCommand(@Nonnull MessageManager messages,
                         @Nonnull IgnoreManager ignoreManager,
                         @Nonnull SocialSpyManager socialSpyManager,
-                        @Nonnull ConfigManager config) {
+                        @Nonnull ConfigManager config,
+                        @Nonnull CommandCooldownManager cooldowns) {
         super("r", "Replies to last message");
         this.messages = messages;
         this.ignoreManager = ignoreManager;
         this.socialSpyManager = socialSpyManager;
         this.config = config;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"reply"});
@@ -67,6 +73,9 @@ public final class ReplyCommand extends AbstractPlayerCommand {
             Messages.errKey(context, "msg.disabled", Map.of());
             return;
         }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.REPLY, "/reply", BYPASS_PERMISSION, world)) {
+            return;
+        }
 
         UUID last = messages.getLastPartner(playerRef.getUuid());
         if (last == null) {
@@ -88,6 +97,9 @@ public final class ReplyCommand extends AbstractPlayerCommand {
         if (ignoreManager.isIgnoring(target.getUuid(), playerRef.getUuid())
                 && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), "hyessentialsx.msg.ignore.bypass")) {
             Messages.errKey(context, "msg.target_ignoring", Map.of("player", target.getUsername()));
+            return;
+        }
+        if (!cooldowns.apply(playerRef, CooldownKeys.REPLY)) {
             return;
         }
 

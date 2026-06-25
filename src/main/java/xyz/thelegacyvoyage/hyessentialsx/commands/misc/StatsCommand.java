@@ -15,10 +15,12 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StatsManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.StatsUI;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
@@ -32,19 +34,23 @@ public final class StatsCommand extends CommandBase {
 
     private static final String PERMISSION_NODE = "hyessentialsx.stats";
     private static final String OTHER_PERMISSION = "hyessentialsx.stats.other";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.stats.bypass";
     private static final int CATEGORY_LIMIT = 8;
 
     private final StatsManager stats;
     private final PlaytimeManager playtime;
     private final StorageManager storage;
+    private final CommandCooldownManager cooldowns;
 
     public StatsCommand(@Nonnull StatsManager stats,
                         @Nonnull PlaytimeManager playtime,
-                        @Nonnull StorageManager storage) {
+                        @Nonnull StorageManager storage,
+                        @Nonnull CommandCooldownManager cooldowns) {
         super("stats", "View player statistics");
         this.stats = stats;
         this.playtime = playtime;
         this.storage = storage;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"statistics"});
@@ -115,6 +121,14 @@ public final class StatsCommand extends CommandBase {
             }
         }
 
+        if (sender != null) {
+            if (!cooldowns.canUse(context, sender, CooldownKeys.STATS, "/stats", BYPASS_PERMISSION)) {
+                return;
+            }
+            if (!cooldowns.apply(sender, CooldownKeys.STATS)) {
+                return;
+            }
+        }
         if (sender != null && openStatsUi(sender, targetId, targetName, initialTab)) {
             return;
         }

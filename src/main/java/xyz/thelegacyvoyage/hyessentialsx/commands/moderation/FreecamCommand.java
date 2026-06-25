@@ -10,7 +10,9 @@ import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayer
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FreecamManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.ServerVersion;
 
@@ -21,12 +23,16 @@ public final class FreecamCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.freecam";
     private static final String OTHER_PERMISSION = "hyessentialsx.freecam.other";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.freecam.bypass";
 
     private final FreecamManager freecamManager;
+    private final CommandCooldownManager cooldowns;
 
-    public FreecamCommand(@Nonnull FreecamManager freecamManager) {
+    public FreecamCommand(@Nonnull FreecamManager freecamManager,
+                          @Nonnull CommandCooldownManager cooldowns) {
         super("freecam", "Toggles free camera");
         this.freecamManager = freecamManager;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addUsageVariant(new FreecamOtherCommand());
@@ -49,6 +55,9 @@ public final class FreecamCommand extends AbstractPlayerCommand {
             Messages.noPerm(context, "/freecam");
             return;
         }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.FREECAM, "/freecam", BYPASS_PERMISSION, world)) {
+            return;
+        }
 
         toggleFreecam(context, playerRef, playerRef);
     }
@@ -57,6 +66,9 @@ public final class FreecamCommand extends AbstractPlayerCommand {
         boolean isSelf = playerRef.getUuid().equals(target.getUuid());
         if (!isSelf && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHER_PERMISSION)) {
             Messages.noPerm(context, "/freecam " + target.getUsername());
+            return;
+        }
+        if (!cooldowns.apply(playerRef, CooldownKeys.FREECAM)) {
             return;
         }
 
@@ -104,6 +116,9 @@ public final class FreecamCommand extends AbstractPlayerCommand {
             PlayerRef target = context.get(targetArg);
             if (target == null) {
                 Messages.errKey(context, "player.not_found", Map.of());
+                return;
+            }
+            if (!cooldowns.canUse(context, playerRef, CooldownKeys.FREECAM, "/freecam", BYPASS_PERMISSION, world)) {
                 return;
             }
             toggleFreecam(context, playerRef, target);

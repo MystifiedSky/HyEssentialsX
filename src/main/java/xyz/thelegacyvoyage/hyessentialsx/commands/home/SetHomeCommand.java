@@ -14,8 +14,10 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.HomeManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.HomeModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -23,16 +25,21 @@ import javax.annotation.Nonnull;
 public final class SetHomeCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.sethome";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.sethome.bypass";
     private static final String MAX_PERMISSION_PREFIX = "hyessentialsx.sethome.max.";
     private static final int MAX_PERMISSION_SCAN = 1000;
 
     private final HomeManager homeManager;
     private final ConfigManager config;
+    private final CommandCooldownManager cooldowns;
     private final RequiredArg<String> nameArg;
-    public SetHomeCommand(@Nonnull HomeManager homeManager, @Nonnull ConfigManager config) {
+    public SetHomeCommand(@Nonnull HomeManager homeManager,
+                          @Nonnull ConfigManager config,
+                          @Nonnull CommandCooldownManager cooldowns) {
         super("sethome", "Sets a home location");
         this.homeManager = homeManager;
         this.config = config;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"ecreatehome"});
@@ -58,6 +65,9 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
         }
         if (!config.isHomesEnabled()) {
             Messages.errKey(context, "home.disabled", java.util.Map.of());
+            return;
+        }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.SETHOME, "/sethome", BYPASS_PERMISSION, world)) {
             return;
         }
 
@@ -110,6 +120,9 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
                 || !Float.isFinite(yaw)
                 || !Float.isFinite(pitch)) {
             Messages.errKey(context, "home.position_failed", java.util.Map.of());
+            return;
+        }
+        if (!cooldowns.apply(playerRef, CooldownKeys.SETHOME)) {
             return;
         }
 

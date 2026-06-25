@@ -9,7 +9,6 @@ import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
-import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -292,13 +291,9 @@ public final class ShopDirectoryUI extends InteractiveCustomUIPage<ShopDirectory
             }
         } catch (Exception ignored) {
         }
-        boolean moduleHas = CommandPermissionUtil.hasPermission(playerRef, permission)
-                || PermissionsModule.get().hasPermission(playerRef.getUuid(), permission, false);
+        boolean moduleHas = CommandPermissionUtil.hasPermission(playerRef, permission);
         if (!CommandPermissionUtil.isPermissionsSystemEnabled()) {
             return moduleHas;
-        }
-        if (PermissionsModule.get().getFirstPermissionProvider() == null) {
-            return componentHas != null ? componentHas : moduleHas;
         }
         return moduleHas || Boolean.TRUE.equals(componentHas);
     }

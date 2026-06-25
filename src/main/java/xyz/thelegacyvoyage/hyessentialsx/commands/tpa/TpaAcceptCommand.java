@@ -12,8 +12,8 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
-import xyz.thelegacyvoyage.hyessentialsx.util.CommandBypassUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -32,14 +32,17 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
     private final TPManager tpManager;
     private final BackManager backManager;
     private final ConfigManager config;
+    private final CommandCooldownManager cooldowns;
 
     public TpaAcceptCommand(@Nonnull TPManager tpManager,
                             @Nonnull BackManager backManager,
-                            @Nonnull ConfigManager config) {
+                            @Nonnull ConfigManager config,
+                            @Nonnull CommandCooldownManager cooldowns) {
         super("tpaaccept", "Accept the latest teleport request");
         this.tpManager = tpManager;
         this.backManager = backManager;
         this.config = config;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         this.addAliases(new String[]{"tpaccept"});
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
@@ -91,13 +94,9 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
         Ref<EntityStore> teleportedRef = isHere ? targetRef : requesterRef;
         Store<EntityStore> teleportedStore = isHere ? targetStore : requesterStore;
 
-        int warmupSeconds = config.getTpaWarmupSeconds();
         UUID teleportedId = isHere ? playerRef.getUuid() : requester.getUuid();
         PlayerRef teleportedPlayer = isHere ? playerRef : requester;
-        if (CommandBypassUtil.hasWarmupBypass(context.sender(), CooldownKeys.TPA, BYPASS_PERMISSION)
-                || CommandBypassUtil.hasWarmupBypass(teleportedPlayer, CooldownKeys.TPA, BYPASS_PERMISSION)) {
-            warmupSeconds = 0;
-        }
+        int warmupSeconds = cooldowns.getEffectiveWarmupSeconds(context.sender(), teleportedPlayer, CooldownKeys.TPA, BYPASS_PERMISSION);
         BackSnapshot backSnapshot = captureBackSnapshot(teleportedPlayer, teleportedRef, teleportedStore);
 
         if (warmupSeconds > 0) {
@@ -116,6 +115,7 @@ public final class TpaAcceptCommand extends AbstractPlayerCommand {
                     teleportedId,
                     new org.joml.Vector3d(t.getPosition()),
                     warmupSeconds,
+                    cooldowns.shouldCancelWarmupOnMove(CooldownKeys.TPA),
                     buffer -> {
                         String err = isHere
                                 ? TeleportationUtil.teleportToPlayer(buffer, targetRef, requester)

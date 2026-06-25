@@ -9,8 +9,10 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyAuditManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 
@@ -27,22 +29,28 @@ public final class MoneyCommand extends CommandBase {
     private static final String MONEY_SET_PERMISSION = "hyessentialsx.money.set";
     private static final String MONEY_GIVE_PERMISSION = "hyessentialsx.money.give";
     private static final String BALANCE_OTHERS_PERMISSION = "hyessentialsx.balance.others";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.balance.bypass";
 
     private final EconomyManager economy;
     private final StorageManager storage;
+    private final CommandCooldownManager cooldowns;
     @Nullable
     private final EconomyAuditManager audit;
 
-    public MoneyCommand(@Nonnull EconomyManager economy, @Nonnull StorageManager storage) {
-        this(economy, storage, null);
+    public MoneyCommand(@Nonnull EconomyManager economy,
+                        @Nonnull StorageManager storage,
+                        @Nonnull CommandCooldownManager cooldowns) {
+        this(economy, storage, cooldowns, null);
     }
 
     public MoneyCommand(@Nonnull EconomyManager economy,
                         @Nonnull StorageManager storage,
+                        @Nonnull CommandCooldownManager cooldowns,
                         @Nullable EconomyAuditManager audit) {
         super("money", "Shows your balance or manages money");
         this.economy = economy;
         this.storage = storage;
+        this.cooldowns = cooldowns;
         this.audit = audit;
         this.setPermissionGroups();
         this.addUsageVariant(new BalanceOtherCommand());
@@ -74,6 +82,12 @@ public final class MoneyCommand extends CommandBase {
             Messages.noPerm(context, "/balance");
             return;
         }
+        if (!cooldowns.canUse(context, player, CooldownKeys.BALANCE, "/balance", BYPASS_PERMISSION)) {
+            return;
+        }
+        if (!cooldowns.apply(player, CooldownKeys.BALANCE)) {
+            return;
+        }
         sendBalance(context, player.getUuid(), player.getUsername());
     }
 
@@ -91,6 +105,15 @@ public final class MoneyCommand extends CommandBase {
         if (uuid == null) {
             Messages.errKey(context, "player.not_found", Map.of());
             return;
+        }
+        PlayerRef actor = CommandSenderUtil.resolvePlayer(context);
+        if (actor != null) {
+            if (!cooldowns.canUse(context, actor, CooldownKeys.BALANCE, "/balance", BYPASS_PERMISSION)) {
+                return;
+            }
+            if (!cooldowns.apply(actor, CooldownKeys.BALANCE)) {
+                return;
+            }
         }
         String displayName = resolveDisplayName(online, uuid, targetName);
         long balance = economy.getBalance(uuid);

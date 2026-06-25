@@ -9,7 +9,9 @@ import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayer
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.GodManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -18,12 +20,16 @@ public final class GodCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.god";
     private static final String OTHERS_PERMISSION = "hyessentialsx.god.others";
+    private static final String BYPASS_PERMISSION = "hyessentialsx.god.bypass";
 
     private final GodManager godManager;
+    private final CommandCooldownManager cooldowns;
 
-    public GodCommand(@Nonnull GodManager godManager) {
+    public GodCommand(@Nonnull GodManager godManager,
+                      @Nonnull CommandCooldownManager cooldowns) {
         super("god", "Toggle invulnerability");
         this.godManager = godManager;
+        this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addUsageVariant(new GodOtherCommand());
@@ -46,6 +52,9 @@ public final class GodCommand extends AbstractPlayerCommand {
             Messages.noPerm(context, "/god");
             return;
         }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.GOD, "/god", BYPASS_PERMISSION, world)) {
+            return;
+        }
 
         toggleGod(context, playerRef, playerRef);
     }
@@ -54,6 +63,9 @@ public final class GodCommand extends AbstractPlayerCommand {
         if (!playerRef.getUuid().equals(target.getUuid())
                 && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), OTHERS_PERMISSION)) {
             Messages.noPerm(context, "/god");
+            return;
+        }
+        if (!cooldowns.apply(playerRef, CooldownKeys.GOD)) {
             return;
         }
 
@@ -98,6 +110,9 @@ public final class GodCommand extends AbstractPlayerCommand {
             PlayerRef target = context.get(targetArg);
             if (target == null) {
                 Messages.errKey(context, "player.not_found", java.util.Map.of());
+                return;
+            }
+            if (!cooldowns.canUse(context, playerRef, CooldownKeys.GOD, "/god", BYPASS_PERMISSION, world)) {
                 return;
             }
             toggleGod(context, playerRef, target);

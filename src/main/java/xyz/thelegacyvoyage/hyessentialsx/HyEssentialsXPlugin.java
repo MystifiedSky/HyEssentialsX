@@ -3,6 +3,7 @@ package xyz.thelegacyvoyage.hyessentialsx;
 import com.hypixel.hytale.event.EventRegistry;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.command.system.AbstractCommand;
+import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.world.events.AllWorldsLoadedEvent;
@@ -179,6 +180,7 @@ import xyz.thelegacyvoyage.hyessentialsx.ui.AdminCommandCenterContext;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AutoBroadcastManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandTreeRefreshManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CustomCommandManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.LanguageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
@@ -244,6 +246,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private CustomCommandManager customCommandManager;
     private AutoBroadcastManager autoBroadcastManager;
     private CommandCooldownManager cooldownManager;
+    private CommandTreeRefreshManager commandTreeRefreshManager;
     private LanguageManager languageManager;
     private ShopManager shopManager;
     private AuctionHouseManager auctionHouseManager;
@@ -328,6 +331,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         unregisterHyCommands();
         registerCommands();
+        refreshPermissionVirtualGroups();
         if (combatLogManager != null && configManager != null) {
             combatLogManager.setConfig(configManager);
             if (configManager.isCombatLogEnabled()) {
@@ -338,6 +342,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         if (freezeManager != null) {
             freezeManager.wrapAllCommands(getCommandRegistry());
+        }
+        if (commandTreeRefreshManager != null) {
+            commandTreeRefreshManager.reload();
         }
         if (shopNpcFixTask != null) {
             shopNpcFixTask.start();
@@ -364,7 +371,8 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         languageManager = new LanguageManager(dataDirectory, configManager, storage);
         Messages.setLanguageManager(languageManager);
         Messages.setConfigManager(configManager);
-        cooldownManager = new CommandCooldownManager(configManager, storage);
+        economyManager = new EconomyManager(storage, configManager);
+        cooldownManager = new CommandCooldownManager(configManager, storage, economyManager);
         spawnManager = new SpawnManager(configManager);
         tpManager = new TPManager(configManager.getTpaRequestTimeoutSeconds() * 1000L);
         backManager = new BackManager(storage);
@@ -392,7 +400,6 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         freezeManager = new FreezeManager(storage);
         vanishManager = new VanishManager();
         sleepPercentManager = new SleepPercentManager(configManager);
-        economyManager = new EconomyManager(storage, configManager);
         economyAuditManager = new EconomyAuditManager(dataDirectory);
         economyHudManager = new EconomyHudManager(configManager, storage, economyManager);
         playtimeManager = new PlaytimeManager(storage);
@@ -403,6 +410,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         statsManager = new StatsManager(storage, configManager);
         customCommandManager = new CustomCommandManager(dataDirectory);
         autoBroadcastManager = new AutoBroadcastManager(configManager);
+        commandTreeRefreshManager = new CommandTreeRefreshManager(configManager);
         shopManager = new ShopManager(storage, configManager);
         auctionHouseManager = new AuctionHouseManager(storage, configManager);
         shopNpcFixTask = new ShopNpcFixTask(shopManager);
@@ -427,6 +435,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             hologramService.start();
         }
         registerCommands();
+        refreshPermissionVirtualGroups();
         if (freezeManager != null) {
             freezeManager.wrapAllCommands(getCommandRegistry());
         }
@@ -453,6 +462,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             economyHudManager.start();
             economyHudManager.refreshAll();
         }
+        if (commandTreeRefreshManager != null) {
+            commandTreeRefreshManager.start();
+        }
         registerPlaceholderExpansion();
         VaultUnlockedIntegration.refresh();
 
@@ -478,6 +490,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (playtimeManager != null) playtimeManager.shutdown();
         if (scoreboardManager != null) scoreboardManager.shutdown();
         if (economyHudManager != null) economyHudManager.shutdown();
+        if (commandTreeRefreshManager != null) commandTreeRefreshManager.shutdown();
         if (economyAuditManager != null) economyAuditManager.shutdown();
         if (shopNpcFixTask != null) shopNpcFixTask.stop();
         AuctionHouseNpcInteractionRegistry.unregister();
@@ -587,10 +600,10 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             reg.accept(new SpawnRouteCommand(spawnManager, configManager));
         }
         if (configManager.isHomesEnabled()) {
-            reg.accept(new SetHomeCommand(homeManager, configManager));
+            reg.accept(new SetHomeCommand(homeManager, configManager, cooldownManager));
             reg.accept(new HomeCommand(homeManager, tpManager, configManager, cooldownManager, backManager, storage));
             reg.accept(new HomesCommand(homeManager, tpManager, configManager, cooldownManager, backManager));
-            reg.accept(new DelHomeCommand(homeManager, configManager));
+            reg.accept(new DelHomeCommand(homeManager, configManager, cooldownManager));
         }
         if (configManager.isWarpsEnabled()) {
             reg.accept(new SetWarpCommand(warpManager, configManager));
@@ -611,11 +624,11 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         reg.accept(new WorldBorderCommand(worldBorderManager));
         if (configManager.isMsgEnabled()) {
-            reg.accept(new MsgCommand(messageManager, ignoreManager, socialSpyManager, configManager));
-            reg.accept(new ReplyCommand(messageManager, ignoreManager, socialSpyManager, configManager));
+            reg.accept(new MsgCommand(messageManager, ignoreManager, socialSpyManager, configManager, cooldownManager));
+            reg.accept(new ReplyCommand(messageManager, ignoreManager, socialSpyManager, configManager, cooldownManager));
             reg.accept(new SocialSpyCommand(socialSpyManager));
-            reg.accept(new IgnoreCommand(ignoreManager));
-            reg.accept(new UnignoreCommand(ignoreManager));
+            reg.accept(new IgnoreCommand(ignoreManager, cooldownManager));
+            reg.accept(new UnignoreCommand(ignoreManager, cooldownManager));
         }
         if (configManager.isAdminChatEnabled()) {
             reg.accept(new AdminChatCommand(adminChatManager, configManager));
@@ -625,11 +638,11 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         reg.accept(new AnnouncementCommand(autoBroadcastManager));
         reg.accept(new ClearChatCommand());
-        reg.accept(new MailCommand(mailManager, storage, configManager));
+        reg.accept(new MailCommand(mailManager, storage, configManager, cooldownManager));
         if (configManager.isEconomyEnabled()) {
-            reg.accept(new PayCommand(economyManager, economyAuditManager));
-            reg.accept(new MoneyCommand(economyManager, storage, economyAuditManager));
-            reg.accept(new BalanceTopCommand(economyManager, storage, configManager));
+            reg.accept(new PayCommand(economyManager, cooldownManager, economyAuditManager));
+            reg.accept(new MoneyCommand(economyManager, storage, cooldownManager, economyAuditManager));
+            reg.accept(new BalanceTopCommand(economyManager, storage, configManager, cooldownManager));
             if (economyHudManager != null) {
                 reg.accept(new EcoGuiCommand(economyManager, economyHudManager, configManager));
                 reg.accept(new EcoAdminCommand(economyManager, storage, configManager, economyHudManager, economyAuditManager));
@@ -643,29 +656,29 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         if (configManager.isTpaEnabled()) {
             reg.accept(new TpaCommand(tpManager, configManager, cooldownManager));
-            reg.accept(new TpaAcceptCommand(tpManager, backManager, configManager));
+            reg.accept(new TpaAcceptCommand(tpManager, backManager, configManager, cooldownManager));
             reg.accept(new TpaDenyCommand(tpManager, configManager));
             reg.accept(new TpaCancelCommand(tpManager, configManager));
             reg.accept(new TpaIgnoreCommand(tpManager, configManager));
             reg.accept(new TpahereCommand(tpManager, configManager, cooldownManager));
             reg.accept(new TpahereAllCommand(tpManager, configManager, cooldownManager));
-            reg.accept(new TphereCommand(backManager));
+            reg.accept(new TphereCommand(backManager, cooldownManager));
         }
         reg.accept(new BackCommand(backManager, tpManager, configManager, cooldownManager));
-        reg.accept(new FlyCommand(flyManager, storage));
+        reg.accept(new FlyCommand(flyManager, storage, cooldownManager));
         reg.accept(new FlySpeedCommand(flyManager, storage, configManager));
-        reg.accept(new GodCommand(godManager));
+        reg.accept(new GodCommand(godManager, cooldownManager));
         reg.accept(new HealCommand(cooldownManager));
         reg.accept(new InfiniteStaminaCommand(staminaManager));
-        reg.accept(new ListCommand());
+        reg.accept(new ListCommand(cooldownManager));
         if (configManager.isRulesEnabled()) {
-            reg.accept(new RulesCommand(configManager));
+            reg.accept(new RulesCommand(configManager, cooldownManager));
         }
         if (configManager.isMotdEnabled()) {
-            reg.accept(new MotdCommand(configManager, storage));
+            reg.accept(new MotdCommand(configManager, storage, cooldownManager));
         }
         if (configManager.isDiscordEnabled()) {
-            reg.accept(new DiscordCommand(configManager));
+            reg.accept(new DiscordCommand(configManager, cooldownManager));
         }
         if (configManager.isNearEnabled()) {
             reg.accept(new NearCommand(configManager, cooldownManager));
@@ -676,11 +689,11 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new SleepPercentCommand(configManager));
         reg.accept(new DayCommand());
         reg.accept(new NightCommand());
-        reg.accept(new RankupCommand(rankupManager, economyManager, playtimeManager, playtimeRewardManager, storage, configManager));
-        reg.accept(new PlaytimeCommand(playtimeManager, playtimeRewardManager, rankupManager, storage, configManager));
+        reg.accept(new RankupCommand(rankupManager, economyManager, playtimeManager, playtimeRewardManager, storage, configManager, cooldownManager));
+        reg.accept(new PlaytimeCommand(playtimeManager, playtimeRewardManager, rankupManager, storage, configManager, cooldownManager));
         if (configManager.isStatsEnabled()) {
-            reg.accept(new StatsCommand(statsManager, playtimeManager, storage));
-            reg.accept(new LeaderboardCommand(statsManager));
+            reg.accept(new StatsCommand(statsManager, playtimeManager, storage, cooldownManager));
+            reg.accept(new LeaderboardCommand(statsManager, cooldownManager));
         }
         if (scoreboardManager != null && configManager.isScoreboardEnabled()) {
             reg.accept(new ScoreboardCommand(scoreboardManager, configManager));
@@ -688,9 +701,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new WhoisCommand(storage));
         reg.accept(new IpHistoryCommand(storage));
         reg.accept(new SeenCommand(storage));
-        reg.accept(new TopCommand(backManager));
+        reg.accept(new TopCommand(backManager, cooldownManager));
         reg.accept(new JumpToCommand(cooldownManager, backManager));
-        reg.accept(new ThruCommand(backManager));
+        reg.accept(new ThruCommand(backManager, cooldownManager));
         if (configManager.isRtpEnabled()) {
             reg.accept(new RtpCommand(configManager, cooldownManager, tpManager, backManager));
         }
@@ -705,10 +718,10 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new MoreCommand());
         reg.accept(new RepairCommand(cooldownManager));
         reg.accept(new TrashCommand());
-        reg.accept(new FreecamCommand(freecamManager));
+        reg.accept(new FreecamCommand(freecamManager, cooldownManager));
         reg.accept(new FreezeCommand(freezeManager));
         reg.accept(new UnfreezeCommand(freezeManager));
-        reg.accept(new VanishCommand(vanishManager));
+        reg.accept(new VanishCommand(vanishManager, cooldownManager));
         reg.accept(new MuteCommand(muteManager, storage));
         reg.accept(new UnmuteCommand(muteManager, storage));
         reg.accept(new BanCommand(banManager, storage));
@@ -730,6 +743,14 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             );
         }
         Log.info("[HyEssentialsX] Commands registered");
+    }
+
+    private void refreshPermissionVirtualGroups() {
+        try {
+            PermissionsModule.get().refreshVirtualGroups();
+        } catch (Throwable t) {
+            Log.warn("[HyEssentialsX] Failed to refresh permission virtual groups: " + t.getMessage());
+        }
     }
 
     private void registerListeners() {
@@ -776,6 +797,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         RespawnInvulnerabilityListener respawnInvulnerabilityListener = new RespawnInvulnerabilityListener(respawnInvulnerabilityManager);
         respawnInvulnerabilityListener.register(bus);
         new SleepPercentListener(configManager).register(bus);
+        if (commandTreeRefreshManager != null) {
+            commandTreeRefreshManager.register(bus);
+        }
         Log.info("[HyEssentialsX] Listeners registered");
 
         new DeathBackListener(backManager).register(getEntityStoreRegistry());

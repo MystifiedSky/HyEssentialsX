@@ -15,7 +15,6 @@ import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractAsyncCommand;
 import com.hypixel.hytale.server.core.entity.Frozen;
 import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.modules.entity.component.Interactable;
 import com.hypixel.hytale.server.core.modules.entity.component.Invulnerable;
@@ -345,8 +344,8 @@ public final class ShopNpcCommand extends AbstractAsyncCommand {
                                   @Nonnull PlayerRef playerRef,
                                   @Nonnull String permission) {
         boolean senderHas = xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(sender, permission);
-        boolean moduleHas = PermissionsModule.get().hasPermission(playerRef.getUuid(), permission, false);
-        return senderHas || moduleHas;
+        boolean playerHas = xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(playerRef, permission);
+        return senderHas || playerHas;
     }
 }
 

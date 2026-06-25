@@ -374,6 +374,8 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 EventData.of("Action", "OpenShops"), false);
         evt.addEventBinding(CustomUIEventBindingType.Activating, "#OpenAuctionButton",
                 EventData.of("Action", "OpenAuction"), false);
+        evt.addEventBinding(CustomUIEventBindingType.Activating, "#OpenAnnouncementsButton",
+                EventData.of("Action", "OpenAnnouncements"), false);
     }
 
     private void rebuild(@Nonnull UICommandBuilder cmd, @Nonnull UIEventBuilder evt) {
@@ -905,6 +907,9 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         cmd.set("#AuctionLaunchState.Text", canUse("hyessentialsx.auctionhouse.admin") || canUse("hyessentialsx.auctionhouse.use")
                 ? "Available: auction browser and listing tools."
                 : "Missing auction house permission.");
+        cmd.set("#AnnouncementLaunchState.Text", canUse("hyessentialsx.announcement.admin")
+                ? "Available: scheduled presets, manual sends, targeting, and actions."
+                : "Missing permission: hyessentialsx.announcement.admin");
     }
 
     private void handleAction(@Nonnull Ref<EntityStore> ref,
@@ -1069,6 +1074,7 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
             case "OpenBans" -> openBans(ref, store);
             case "OpenShops" -> openShops(ref, store);
             case "OpenAuction" -> openAuction(ref, store);
+            case "OpenAnnouncements" -> openAnnouncements(ref, store);
             default -> {
             }
         }
@@ -1935,6 +1941,18 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
             player.getPageManager().openCustomPage(ref, store,
                     new AuctionHouseUI(playerRef, context.auctionHouseManager(), context.economyManager(), context.config(),
                             commandCenterBackTarget()));
+        }
+    }
+
+    private void openAnnouncements(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
+        if (!canUse("hyessentialsx.announcement.admin")) {
+            status("Missing permission: hyessentialsx.announcement.admin", "#ff7d7d");
+            refresh();
+            return;
+        }
+        Player player = player(ref, store);
+        if (player != null) {
+            new AnnouncementAdminUI(playerRef, context.autoBroadcastManager()).open(player, ref, store);
         }
     }
 

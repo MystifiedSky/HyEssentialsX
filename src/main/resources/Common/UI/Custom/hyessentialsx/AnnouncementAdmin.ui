@@ -1,0 +1,232 @@
+@AnnouncementLabel = LabelStyle(
+  FontSize: 11,
+  TextColor: #e9f1ff,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@AnnouncementButton = TextButtonStyle(
+  Default: (Background: (Color: #263544), LabelStyle: @AnnouncementLabel),
+  Hovered: (Background: (Color: #34495f), LabelStyle: @AnnouncementLabel),
+  Pressed: (Background: (Color: #1d2a36), LabelStyle: @AnnouncementLabel),
+  Disabled: (Background: (Color: #2a2f3a), LabelStyle: @AnnouncementLabel)
+);
+
+@AnnouncementButtonGreen = TextButtonStyle(
+  Default: (Background: (Color: #1d6f4a), LabelStyle: @AnnouncementLabel),
+  Hovered: (Background: (Color: #29875e), LabelStyle: @AnnouncementLabel),
+  Pressed: (Background: (Color: #16583b), LabelStyle: @AnnouncementLabel),
+  Disabled: (Background: (Color: #2a2f3a), LabelStyle: @AnnouncementLabel)
+);
+
+@AnnouncementButtonGold = TextButtonStyle(
+  Default: (Background: (Color: #7d6b3a), LabelStyle: @AnnouncementLabel),
+  Hovered: (Background: (Color: #9a8549), LabelStyle: @AnnouncementLabel),
+  Pressed: (Background: (Color: #5f512c), LabelStyle: @AnnouncementLabel),
+  Disabled: (Background: (Color: #2a2f3a), LabelStyle: @AnnouncementLabel)
+);
+
+@AnnouncementButtonRed = TextButtonStyle(
+  Default: (Background: (Color: #7c3742), LabelStyle: @AnnouncementLabel),
+  Hovered: (Background: (Color: #a04a59), LabelStyle: @AnnouncementLabel),
+  Pressed: (Background: (Color: #612a33), LabelStyle: @AnnouncementLabel),
+  Disabled: (Background: (Color: #2a2f3a), LabelStyle: @AnnouncementLabel)
+);
+
+Group #AnnouncementRoot {
+  Anchor: (Left: 0, Top: 0, Right: 0, Bottom: 0);
+  LayoutMode: Center;
+
+  Group #AnnouncementShell {
+    Anchor: (Width: 1280, Height: 900);
+    LayoutMode: Top;
+    Background: (Color: #0e1727ef);
+    Padding: (Top: 12, Bottom: 12, Left: 12, Right: 12);
+    OutlineColor: #2f4a72;
+    OutlineSize: 1;
+
+    Group #Header {
+      LayoutMode: Left;
+      Background: (Color: #111f34);
+      Anchor: (Height: 58, Bottom: 10);
+      Padding: (Top: 10, Bottom: 10, Left: 12, Right: 12);
+      OutlineColor: #2f4a72;
+      OutlineSize: 1;
+
+      Label { Text: "Announcement Preset Editor"; Style: (FontSize: 16, TextColor: #f2f7ff, RenderBold: true); Anchor: (Width: 300, Vertical: 0); }
+      Label #StatusText { Text: "Ready."; Style: (FontSize: 12, TextColor: #8fb6e8, ShrinkTextToFit: true, MinShrinkTextToFitFontSize: 8); FlexWeight: 1; Anchor: (Vertical: 0); }
+      TextButton #CloseButton { Text: "Close"; Style: @AnnouncementButtonRed; Anchor: (Width: 110, Height: 34); }
+    }
+
+    Group #Body {
+      LayoutMode: Left;
+      FlexWeight: 1;
+
+      Group #PresetList {
+        LayoutMode: Top;
+        Background: (Color: #111f34);
+        Anchor: (Width: 330, Right: 10);
+        Padding: (Top: 10, Bottom: 10, Left: 10, Right: 10);
+        OutlineColor: #2f4a72;
+        OutlineSize: 1;
+
+        Label { Text: "Preset List"; Style: (FontSize: 13, TextColor: #d7e7ff, RenderBold: true); Anchor: (Height: 26, Bottom: 8); }
+        TextButton #PresetRow0 { Text: "-"; Style: @AnnouncementButton; Anchor: (Height: 36, Bottom: 6); }
+        TextButton #PresetRow1 { Text: "-"; Style: @AnnouncementButton; Anchor: (Height: 36, Bottom: 6); }
+        TextButton #PresetRow2 { Text: "-"; Style: @AnnouncementButton; Anchor: (Height: 36, Bottom: 6); }
+        TextButton #PresetRow3 { Text: "-"; Style: @AnnouncementButton; Anchor: (Height: 36, Bottom: 6); }
+        TextButton #PresetRow4 { Text: "-"; Style: @AnnouncementButton; Anchor: (Height: 36, Bottom: 6); }
+        TextButton #PresetRow5 { Text: "-"; Style: @AnnouncementButton; Anchor: (Height: 36, Bottom: 6); }
+        TextButton #PresetRow6 { Text: "-"; Style: @AnnouncementButton; Anchor: (Height: 36, Bottom: 6); }
+        TextButton #PresetRow7 { Text: "-"; Style: @AnnouncementButton; Anchor: (Height: 36, Bottom: 10); }
+
+        Group { FlexWeight: 1; }
+
+        Label #PageText { Text: "Page 1/1"; Style: (FontSize: 11, TextColor: #8da8cc); Anchor: (Height: 22, Bottom: 6); }
+        Group { LayoutMode: Left; Anchor: (Height: 34, Bottom: 8);
+          TextButton #PrevButton { Text: "Prev"; Style: @AnnouncementButton; FlexWeight: 1; Anchor: (Right: 6); }
+          TextButton #NextButton { Text: "Next"; Style: @AnnouncementButton; FlexWeight: 1; }
+        }
+        Group { LayoutMode: Left; Anchor: (Height: 34);
+          TextButton #RandomButton { Text: "Random"; Style: @AnnouncementButtonGold; FlexWeight: 1; Anchor: (Right: 6); }
+          TextButton #SequentialButton { Text: "Sequential"; Style: @AnnouncementButtonGold; FlexWeight: 1; }
+        }
+      }
+
+      Group #Editor {
+        LayoutMode: Top;
+        Background: (Color: #111f34);
+        FlexWeight: 1;
+        Padding: (Top: 10, Bottom: 10, Left: 10, Right: 10);
+        OutlineColor: #2f4a72;
+        OutlineSize: 1;
+
+        Group #IdentitySection {
+          LayoutMode: Top;
+          Anchor: (Height: 106, Bottom: 8);
+          Padding: (Top: 8, Bottom: 8, Left: 8, Right: 8);
+          Background: (Color: #0d1a2d);
+          OutlineColor: #2f4a72;
+          OutlineSize: 1;
+
+          Label { Text: "Identity and Audience"; Style: (FontSize: 13, TextColor: #d7e7ff, RenderBold: true); Anchor: (Height: 22, Bottom: 6); }
+          Group { LayoutMode: Left; Anchor: (Height: 52);
+            Group { LayoutMode: Top; FlexWeight: 1; Anchor: (Right: 8);
+              Label { Text: "Preset Name"; Style: (FontSize: 10, TextColor: #9ab6d9, RenderBold: true); Anchor: (Height: 18); }
+              Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4); Anchor: (Height: 30); OutlineColor: #355986; OutlineSize: 1; TextField #NameInput { Anchor: (Height: 22); Style: (FontSize: 12, TextColor: #f0f5ff); } }
+            }
+            Group { LayoutMode: Top; FlexWeight: 1;
+              Label { Text: "Audience Permission"; Style: (FontSize: 10, TextColor: #9ab6d9, RenderBold: true); Anchor: (Height: 18); }
+              Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4); Anchor: (Height: 30); OutlineColor: #355986; OutlineSize: 1; TextField #PermissionInput { Anchor: (Height: 22); Style: (FontSize: 12, TextColor: #f0f5ff); PlaceholderText: "blank = everyone"; } }
+            }
+          }
+        }
+
+        Group #MessageSection {
+          LayoutMode: Top;
+          Anchor: (Height: 132, Bottom: 8);
+          Padding: (Top: 8, Bottom: 8, Left: 8, Right: 8);
+          Background: (Color: #0d1a2d);
+          OutlineColor: #2f4a72;
+          OutlineSize: 1;
+
+          Label { Text: "Messages"; Style: (FontSize: 13, TextColor: #d7e7ff, RenderBold: true); Anchor: (Height: 22, Bottom: 6); }
+          Label { Text: "Chat Lines"; Style: (FontSize: 10, TextColor: #9ab6d9, RenderBold: true); Anchor: (Height: 18); }
+          Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 4, Bottom: 4); Anchor: (Height: 34, Bottom: 8); OutlineColor: #355986; OutlineSize: 1;
+            TextField #ChatInput { Anchor: (Height: 26); Style: (FontSize: 12, TextColor: #f0f5ff); PlaceholderText: "Line one | Line two"; }
+          }
+          Group { LayoutMode: Left; Anchor: (Height: 34);
+            Group { LayoutMode: Top; FlexWeight: 1; Anchor: (Right: 8);
+              Label { Text: "Popup Title"; Style: (FontSize: 10, TextColor: #9ab6d9, RenderBold: true); Anchor: (Height: 16); }
+              Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 3, Bottom: 3); Anchor: (Height: 28); OutlineColor: #355986; OutlineSize: 1; TextField #NotifyTitleInput { Anchor: (Height: 22); Style: (FontSize: 12, TextColor: #f0f5ff); } }
+            }
+            Group { LayoutMode: Top; FlexWeight: 1; Anchor: (Right: 8);
+              Label { Text: "Popup Body"; Style: (FontSize: 10, TextColor: #9ab6d9, RenderBold: true); Anchor: (Height: 16); }
+              Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 3, Bottom: 3); Anchor: (Height: 28); OutlineColor: #355986; OutlineSize: 1; TextField #NotifyMessageInput { Anchor: (Height: 22); Style: (FontSize: 12, TextColor: #f0f5ff); } }
+            }
+            Group { LayoutMode: Top; Anchor: (Width: 120);
+              Label { Text: "Popup Style"; Style: (FontSize: 10, TextColor: #9ab6d9, RenderBold: true); Anchor: (Height: 16); }
+              Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 3, Bottom: 3); Anchor: (Height: 28); OutlineColor: #355986; OutlineSize: 1; TextField #NotifyStyleInput { Anchor: (Height: 22); Style: (FontSize: 12, TextColor: #f0f5ff); } }
+            }
+          }
+        }
+
+        Group #TitleSection {
+          LayoutMode: Top;
+          Anchor: (Height: 106, Bottom: 8);
+          Padding: (Top: 8, Bottom: 8, Left: 8, Right: 8);
+          Background: (Color: #0d1a2d);
+          OutlineColor: #2f4a72;
+          OutlineSize: 1;
+
+          Label { Text: "Screen Title"; Style: (FontSize: 13, TextColor: #d7e7ff, RenderBold: true); Anchor: (Height: 22, Bottom: 6); }
+          Group { LayoutMode: Left; Anchor: (Height: 34, Bottom: 8);
+            TextButton #NotifyDefaultButton { Text: "Popup Default"; Style: @AnnouncementButton; FlexWeight: 1; Anchor: (Right: 6); }
+            TextButton #NotifySuccessButton { Text: "Popup Success"; Style: @AnnouncementButtonGreen; FlexWeight: 1; Anchor: (Right: 6); }
+            TextButton #NotifyWarningButton { Text: "Popup Warning"; Style: @AnnouncementButtonGold; FlexWeight: 1; Anchor: (Right: 6); }
+            TextButton #NotifyDangerButton { Text: "Popup Danger"; Style: @AnnouncementButtonRed; FlexWeight: 1; }
+          }
+          Group { LayoutMode: Left; Anchor: (Height: 32);
+            Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 3, Bottom: 3); FlexWeight: 1; Anchor: (Right: 8); OutlineColor: #355986; OutlineSize: 1; TextField #TitlePrimaryInput { Anchor: (Height: 24); Style: (FontSize: 12, TextColor: #f0f5ff); PlaceholderText: "Main screen title"; } }
+            Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 3, Bottom: 3); FlexWeight: 1; OutlineColor: #355986; OutlineSize: 1; TextField #TitleSecondaryInput { Anchor: (Height: 24); Style: (FontSize: 12, TextColor: #f0f5ff); PlaceholderText: "Subtitle"; } }
+          }
+        }
+
+        Group #EffectsSection {
+          LayoutMode: Top;
+          Anchor: (Height: 158, Bottom: 8);
+          Padding: (Top: 8, Bottom: 8, Left: 8, Right: 8);
+          Background: (Color: #0d1a2d);
+          OutlineColor: #2f4a72;
+          OutlineSize: 1;
+
+          Label { Text: "Effects"; Style: (FontSize: 13, TextColor: #d7e7ff, RenderBold: true); Anchor: (Height: 22, Bottom: 6); }
+          Group { LayoutMode: Left; Anchor: (Height: 32, Bottom: 6);
+            TextButton #SoundNoneButton { Text: "No Sound"; Style: @AnnouncementButton; FlexWeight: 1; Anchor: (Right: 6); }
+            TextButton #SoundRewardButton { Text: "Reward"; Style: @AnnouncementButtonGreen; FlexWeight: 1; Anchor: (Right: 6); }
+            TextButton #SoundWelcomeButton { Text: "Welcome"; Style: @AnnouncementButtonGold; FlexWeight: 1; Anchor: (Right: 6); }
+            TextButton #SoundEventButton { Text: "Event"; Style: @AnnouncementButtonRed; FlexWeight: 1; Anchor: (Right: 8); }
+            Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 3, Bottom: 3); Anchor: (Width: 116); OutlineColor: #355986; OutlineSize: 1; TextField #SoundInput { Anchor: (Height: 24); Style: (FontSize: 12, TextColor: #f0f5ff); PlaceholderText: "custom id"; } }
+          }
+          Group { LayoutMode: Left; Anchor: (Height: 32, Bottom: 6);
+            TextButton #ParticleNoneButton { Text: "No Particle"; Style: @AnnouncementButton; FlexWeight: 1; Anchor: (Right: 6); }
+            TextButton #ParticleHealButton { Text: "Heal Aura"; Style: @AnnouncementButtonGreen; FlexWeight: 1; Anchor: (Right: 6); }
+            TextButton #ParticleExplosionButton { Text: "Explosion"; Style: @AnnouncementButtonRed; FlexWeight: 1; Anchor: (Right: 6); }
+            TextButton #ParticleRareButton { Text: "Rare Drop"; Style: @AnnouncementButtonGold; FlexWeight: 1; Anchor: (Right: 6); }
+            TextButton #ParticleSparklesButton { Text: "Sparkles"; Style: @AnnouncementButton; FlexWeight: 1; }
+          }
+          Label { Text: "Particle System"; Style: (FontSize: 10, TextColor: #9ab6d9, RenderBold: true); Anchor: (Height: 16); }
+          Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 3, Bottom: 3); Anchor: (Height: 28); OutlineColor: #355986; OutlineSize: 1;
+            TextField #ParticleInput { Anchor: (Height: 22); Style: (FontSize: 12, TextColor: #f0f5ff); PlaceholderText: "Advanced registry id"; }
+          }
+        }
+
+        Group #CommandSection {
+          LayoutMode: Top;
+          Anchor: (Height: 116, Bottom: 10);
+          Padding: (Top: 8, Bottom: 8, Left: 8, Right: 8);
+          Background: (Color: #0d1a2d);
+          OutlineColor: #2f4a72;
+          OutlineSize: 1;
+
+          Label { Text: "Command Actions"; Style: (FontSize: 13, TextColor: #d7e7ff, RenderBold: true); Anchor: (Height: 22, Bottom: 6); }
+          Label { Text: "Server Commands"; Style: (FontSize: 10, TextColor: #9ab6d9, RenderBold: true); Anchor: (Height: 16); }
+          Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 3, Bottom: 3); Anchor: (Height: 28, Bottom: 6); OutlineColor: #355986; OutlineSize: 1; TextField #ServerCommandInput { Anchor: (Height: 22); Style: (FontSize: 12, TextColor: #f0f5ff); PlaceholderText: "/eco give {player} 10 | /msg {player} Welcome"; } }
+          Label { Text: "Player Commands"; Style: (FontSize: 10, TextColor: #9ab6d9, RenderBold: true); Anchor: (Height: 16); }
+          Group { Background: (Color: #0b1524); Padding: (Left: 8, Right: 8, Top: 3, Bottom: 3); Anchor: (Height: 28); OutlineColor: #355986; OutlineSize: 1; TextField #PlayerCommandInput { Anchor: (Height: 22); Style: (FontSize: 12, TextColor: #f0f5ff); PlaceholderText: "/spawn | /rules"; } }
+        }
+
+        Group { FlexWeight: 1; }
+
+        Group { LayoutMode: Left; Anchor: (Height: 38);
+          TextButton #NewButton { Text: "New"; Style: @AnnouncementButton; FlexWeight: 1; Anchor: (Right: 8); }
+          TextButton #SaveButton { Text: "Save"; Style: @AnnouncementButtonGreen; FlexWeight: 1; Anchor: (Right: 8); }
+          TextButton #SendButton { Text: "Send Now"; Style: @AnnouncementButtonGold; FlexWeight: 1; Anchor: (Right: 8); }
+          TextButton #ToggleButton { Text: "Enable / Disable"; Style: @AnnouncementButton; FlexWeight: 1; Anchor: (Right: 8); }
+          TextButton #DeleteButton { Text: "Delete"; Style: @AnnouncementButtonRed; FlexWeight: 1; }
+        }
+      }
+    }
+  }
+}

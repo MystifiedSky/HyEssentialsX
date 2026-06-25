@@ -8,6 +8,7 @@ import com.google.gson.JsonObject;
 import com.hypixel.hytale.server.core.HytaleServer;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
+import xyz.thelegacyvoyage.hyessentialsx.models.AnnouncementPresetModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlaytimeRewardModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.RankupTier;
@@ -263,6 +264,10 @@ public final class ConfigManager {
             "&c[Broadcast]&f Welcome to the server!",
             "&c[Broadcast]&f Use &e/rules&f to read the rules."
     );
+    private boolean announcementsEnabled = true;
+    private int announcementsIntervalSeconds = 300;
+    private boolean announcementsRandom = false;
+    private List<AnnouncementPresetModel> announcementPresets = defaultAnnouncementPresets();
 
     private boolean welcomeEnabled = true;
     private boolean welcomeBroadcastToAll = true;
@@ -691,6 +696,13 @@ public final class ConfigManager {
         autoBroadcast.add("messages", toArray(autoBroadcastMessages));
         root.add("autoBroadcast", autoBroadcast);
 
+        JsonObject announcements = new JsonObject();
+        announcements.addProperty("enabled", announcementsEnabled);
+        announcements.addProperty("intervalSeconds", announcementsIntervalSeconds);
+        announcements.addProperty("random", announcementsRandom);
+        announcements.add("presets", toAnnouncementArray(announcementPresets));
+        root.add("announcements", announcements);
+
         JsonObject spawn = new JsonObject();
         spawn.addProperty("enabled", true);
         spawn.addProperty("set", false);
@@ -823,6 +835,7 @@ public final class ConfigManager {
             boolean hadRtpEnabled = hasSectionFlag(root, "rtp", "enabled");
             boolean hadSpawnEnabled = hasSectionFlag(root, "spawn", "enabled");
             boolean hadTpaEnabled = hasSectionFlag(root, "tpa", "enabled");
+            boolean hadAnnouncementsSection = root.has("announcements") && root.get("announcements").isJsonObject();
             JsonObject defaults = buildDefaultConfig();
             boolean changed = mergeDefaults(root, defaults);
             if (preservedChat != null) {
@@ -848,6 +861,20 @@ public final class ConfigManager {
             }
             if (!root.has("autoBroadcast") || !root.get("autoBroadcast").isJsonObject()) {
                 root.add("autoBroadcast", defaults.get("autoBroadcast"));
+                changed = true;
+            }
+            if (!hadAnnouncementsSection) {
+                JsonObject legacyAutoBroadcast = obj(root, "autoBroadcast");
+                List<String> legacyMessages = list(legacyAutoBroadcast, "messages", autoBroadcastMessages);
+                JsonObject announcements = new JsonObject();
+                announcements.addProperty("enabled", bool(legacyAutoBroadcast, "enabled", autoBroadcastEnabled));
+                announcements.addProperty("intervalSeconds", intVal(legacyAutoBroadcast, "intervalSeconds", autoBroadcastIntervalSeconds));
+                announcements.addProperty("random", bool(legacyAutoBroadcast, "random", autoBroadcastRandom));
+                List<AnnouncementPresetModel> migratedPresets = presetsFromAutoBroadcast(legacyMessages);
+                announcements.add("presets", toAnnouncementArray(migratedPresets.isEmpty()
+                        ? defaultAnnouncementPresets()
+                        : migratedPresets));
+                root.add("announcements", announcements);
                 changed = true;
             }
             if (changed) {
@@ -969,6 +996,23 @@ public final class ConfigManager {
             autoBroadcastIntervalSeconds = intVal(autoBroadcast, "intervalSeconds", autoBroadcastIntervalSeconds);
             autoBroadcastRandom = bool(autoBroadcast, "random", autoBroadcastRandom);
             autoBroadcastMessages = list(autoBroadcast, "messages", autoBroadcastMessages);
+
+            JsonObject announcements = obj(root, "announcements");
+            announcementsEnabled = bool(announcements, "enabled", autoBroadcastEnabled);
+            announcementsIntervalSeconds = intVal(announcements, "intervalSeconds", autoBroadcastIntervalSeconds);
+            announcementsRandom = bool(announcements, "random", autoBroadcastRandom);
+            List<AnnouncementPresetModel> fallbackPresets = presetsFromAutoBroadcast(autoBroadcastMessages);
+            announcementPresets = readAnnouncementPresets(announcements, hadAnnouncementsSection
+                    ? defaultAnnouncementPresets()
+                    : fallbackPresets);
+            if (!hadAnnouncementsSection) {
+                announcementPresets = fallbackPresets.isEmpty() ? defaultAnnouncementPresets() : fallbackPresets;
+                announcements.addProperty("enabled", announcementsEnabled);
+                announcements.addProperty("intervalSeconds", announcementsIntervalSeconds);
+                announcements.addProperty("random", announcementsRandom);
+                announcements.add("presets", toAnnouncementArray(announcementPresets));
+                changed = true;
+            }
 
             JsonObject features = obj(root, "features");
             msgEnabled = bool(features, "msg", true);
@@ -1944,6 +1988,100 @@ public final class ConfigManager {
     @Nonnull
     public List<String> getAutoBroadcastMessages() {
         return Collections.unmodifiableList(autoBroadcastMessages);
+    }
+
+    public boolean isAnnouncementsEnabled() {
+        return announcementsEnabled;
+    }
+
+    public void setAnnouncementsEnabled(boolean enabled) {
+        announcementsEnabled = enabled;
+        autoBroadcastEnabled = enabled;
+        save();
+    }
+
+    public int getAnnouncementsIntervalSeconds() {
+        return Math.max(30, announcementsIntervalSeconds);
+    }
+
+    public void setAnnouncementsIntervalSeconds(int seconds) {
+        announcementsIntervalSeconds = Math.max(30, seconds);
+        autoBroadcastIntervalSeconds = announcementsIntervalSeconds;
+        save();
+    }
+
+    public boolean isAnnouncementsRandom() {
+        return announcementsRandom;
+    }
+
+    public void setAnnouncementsRandom(boolean random) {
+        announcementsRandom = random;
+        autoBroadcastRandom = random;
+        save();
+    }
+
+    @Nonnull
+    public List<AnnouncementPresetModel> getAnnouncementPresets() {
+        List<AnnouncementPresetModel> copy = new ArrayList<>();
+        for (AnnouncementPresetModel preset : announcementPresets) {
+            if (preset != null) {
+                copy.add(preset.copy());
+            }
+        }
+        return Collections.unmodifiableList(copy);
+    }
+
+    @Nullable
+    public AnnouncementPresetModel getAnnouncementPreset(@Nonnull String name) {
+        String normalized = normalizeAnnouncementName(name);
+        for (AnnouncementPresetModel preset : announcementPresets) {
+            if (preset != null && preset.getName().equalsIgnoreCase(normalized)) {
+                return preset.copy();
+            }
+        }
+        return null;
+    }
+
+    public void saveAnnouncementPreset(@Nonnull AnnouncementPresetModel preset) {
+        AnnouncementPresetModel sanitized = sanitizeAnnouncementPreset(preset);
+        String normalized = sanitized.getName();
+        List<AnnouncementPresetModel> updated = new ArrayList<>();
+        boolean replaced = false;
+        for (AnnouncementPresetModel existing : announcementPresets) {
+            if (existing == null) continue;
+            if (existing.getName().equalsIgnoreCase(normalized)) {
+                updated.add(sanitized);
+                replaced = true;
+            } else {
+                updated.add(sanitizeAnnouncementPreset(existing));
+            }
+        }
+        if (!replaced) {
+            updated.add(sanitized);
+        }
+        announcementPresets = updated;
+        syncAutoBroadcastMessagesFromAnnouncements();
+        save();
+    }
+
+    public boolean deleteAnnouncementPreset(@Nonnull String name) {
+        String normalized = normalizeAnnouncementName(name);
+        boolean removed = false;
+        List<AnnouncementPresetModel> updated = new ArrayList<>();
+        for (AnnouncementPresetModel existing : announcementPresets) {
+            if (existing == null) continue;
+            if (existing.getName().equalsIgnoreCase(normalized)) {
+                removed = true;
+            } else {
+                updated.add(sanitizeAnnouncementPreset(existing));
+            }
+        }
+        if (removed) {
+            announcementPresets = updated.isEmpty() ? defaultAnnouncementPresets() : updated;
+            syncAutoBroadcastMessagesFromAnnouncements();
+            save();
+        }
+        return removed;
     }
 
     public boolean isWelcomeEnabled() {
@@ -2934,6 +3072,12 @@ public final class ConfigManager {
         autoBroadcast.addProperty("intervalSeconds", autoBroadcastIntervalSeconds);
         autoBroadcast.addProperty("random", autoBroadcastRandom);
         autoBroadcast.add("messages", toArray(autoBroadcastMessages));
+
+        JsonObject announcements = obj(root, "announcements");
+        announcements.addProperty("enabled", announcementsEnabled);
+        announcements.addProperty("intervalSeconds", announcementsIntervalSeconds);
+        announcements.addProperty("random", announcementsRandom);
+        announcements.add("presets", toAnnouncementArray(announcementPresets));
 
         JsonObject features = obj(root, "features");
         features.addProperty("msg", msgEnabled);
@@ -4206,6 +4350,197 @@ public final class ConfigManager {
     }
 
     @Nonnull
+    private JsonArray toAnnouncementArray(@Nonnull List<AnnouncementPresetModel> presets) {
+        JsonArray arr = new JsonArray();
+        for (AnnouncementPresetModel preset : presets) {
+            if (preset == null) continue;
+            arr.add(toAnnouncementObject(sanitizeAnnouncementPreset(preset)));
+        }
+        return arr;
+    }
+
+    @Nonnull
+    private JsonObject toAnnouncementObject(@Nonnull AnnouncementPresetModel preset) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("name", preset.getName());
+        obj.addProperty("enabled", preset.isEnabled());
+        obj.addProperty("permission", preset.getPermission());
+        obj.add("chatMessages", toArray(preset.getChatMessages()));
+
+        AnnouncementPresetModel.NotificationAction notification = preset.getNotification();
+        if (notification != null && (!notification.getTitle().isBlank() || !notification.getMessage().isBlank())) {
+            JsonObject notificationObj = new JsonObject();
+            notificationObj.addProperty("title", notification.getTitle());
+            notificationObj.addProperty("message", notification.getMessage());
+            notificationObj.addProperty("icon", notification.getIcon());
+            notificationObj.addProperty("style", notification.getStyle());
+            obj.add("notification", notificationObj);
+        }
+
+        AnnouncementPresetModel.TitleAction title = preset.getTitle();
+        if (title != null && (!title.getPrimary().isBlank() || !title.getSecondary().isBlank())) {
+            JsonObject titleObj = new JsonObject();
+            titleObj.addProperty("primary", title.getPrimary());
+            titleObj.addProperty("secondary", title.getSecondary());
+            titleObj.addProperty("major", title.isMajor());
+            obj.add("title", titleObj);
+        }
+
+        AnnouncementPresetModel.SoundAction sound = preset.getSound();
+        if (sound != null && sound.getSoundEventIndex() >= 0) {
+            JsonObject soundObj = new JsonObject();
+            soundObj.addProperty("soundEventIndex", sound.getSoundEventIndex());
+            soundObj.addProperty("category", sound.getCategory());
+            soundObj.addProperty("volume", sound.getVolume());
+            soundObj.addProperty("pitch", sound.getPitch());
+            obj.add("sound", soundObj);
+        }
+
+        AnnouncementPresetModel.ParticleAction particle = preset.getParticle();
+        if (particle != null && !particle.getParticleSystemId().isBlank()) {
+            JsonObject particleObj = new JsonObject();
+            particleObj.addProperty("particleSystemId", particle.getParticleSystemId());
+            particleObj.addProperty("scale", particle.getScale());
+            particleObj.addProperty("color", particle.getColor());
+            obj.add("particle", particleObj);
+        }
+
+        obj.add("serverCommands", toArray(preset.getServerCommands()));
+        obj.add("playerCommands", toArray(preset.getPlayerCommands()));
+        return obj;
+    }
+
+    @Nonnull
+    private List<AnnouncementPresetModel> readAnnouncementPresets(@Nonnull JsonObject announcements,
+                                                                  @Nonnull List<AnnouncementPresetModel> def) {
+        JsonElement element = announcements.get("presets");
+        if (element == null || !element.isJsonArray()) {
+            element = announcements.get("announcements");
+        }
+        if (element == null || !element.isJsonArray()) {
+            return sanitizeAnnouncementPresets(def);
+        }
+        List<AnnouncementPresetModel> out = new ArrayList<>();
+        for (JsonElement entry : element.getAsJsonArray()) {
+            if (entry == null || !entry.isJsonObject()) continue;
+            AnnouncementPresetModel preset = readAnnouncementPreset(entry.getAsJsonObject());
+            if (preset != null) {
+                out.add(preset);
+            }
+        }
+        return out.isEmpty() ? sanitizeAnnouncementPresets(def) : out;
+    }
+
+    @Nullable
+    private AnnouncementPresetModel readAnnouncementPreset(@Nonnull JsonObject obj) {
+        String name = str(obj, "name", "").trim();
+        if (name.isBlank()) return null;
+        AnnouncementPresetModel preset = new AnnouncementPresetModel(name);
+        preset.setEnabled(bool(obj, "enabled", true));
+        preset.setPermission(str(obj, "permission", ""));
+        preset.setChatMessages(readStringList(obj, "chatMessages", "chatMessage", List.of()));
+
+        JsonObject notificationObj = getObjectOrNull(obj, "notification");
+        if (notificationObj == null) notificationObj = getObjectOrNull(obj, "notifyMessage");
+        if (notificationObj != null) {
+            AnnouncementPresetModel.NotificationAction notification = new AnnouncementPresetModel.NotificationAction();
+            notification.setTitle(str(notificationObj, "title", ""));
+            notification.setMessage(str(notificationObj, "message", ""));
+            notification.setIcon(str(notificationObj, "icon", ""));
+            notification.setStyle(str(notificationObj, "style", "Default"));
+            preset.setNotification(notification);
+        }
+
+        JsonObject titleObj = getObjectOrNull(obj, "title");
+        if (titleObj == null) titleObj = getObjectOrNull(obj, "titleMessage");
+        if (titleObj != null) {
+            AnnouncementPresetModel.TitleAction title = new AnnouncementPresetModel.TitleAction();
+            title.setPrimary(str(titleObj, "primary", ""));
+            title.setSecondary(str(titleObj, "secondary", ""));
+            title.setMajor(bool(titleObj, "major", false));
+            preset.setTitle(title);
+        }
+
+        JsonObject soundObj = getObjectOrNull(obj, "sound");
+        if (soundObj != null) {
+            AnnouncementPresetModel.SoundAction sound = new AnnouncementPresetModel.SoundAction();
+            sound.setSoundEventIndex(intVal(soundObj, "soundEventIndex", -1));
+            sound.setCategory(str(soundObj, "category", "Music"));
+            sound.setVolume((float) dbl(soundObj, "volume", 1.0));
+            sound.setPitch((float) dbl(soundObj, "pitch", 1.0));
+            preset.setSound(sound);
+        }
+
+        JsonObject particleObj = getObjectOrNull(obj, "particle");
+        if (particleObj != null) {
+            AnnouncementPresetModel.ParticleAction particle = new AnnouncementPresetModel.ParticleAction();
+            particle.setParticleSystemId(str(particleObj, "particleSystemId", ""));
+            particle.setScale((float) dbl(particleObj, "scale", 1.0));
+            particle.setColor(str(particleObj, "color", ""));
+            preset.setParticle(particle);
+        }
+
+        preset.setServerCommands(readStringList(obj, "serverCommands", "runCommandAsServer", List.of()));
+        preset.setPlayerCommands(readStringList(obj, "playerCommands", "runCommandAsPlayer", List.of()));
+        return sanitizeAnnouncementPreset(preset);
+    }
+
+    @Nonnull
+    private List<AnnouncementPresetModel> sanitizeAnnouncementPresets(@Nonnull List<AnnouncementPresetModel> presets) {
+        List<AnnouncementPresetModel> out = new ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (AnnouncementPresetModel preset : presets) {
+            if (preset == null) continue;
+            AnnouncementPresetModel sanitized = sanitizeAnnouncementPreset(preset);
+            String key = sanitized.getName().toLowerCase(Locale.ROOT);
+            if (seen.add(key)) {
+                out.add(sanitized);
+            }
+        }
+        return out.isEmpty() ? defaultAnnouncementPresets() : out;
+    }
+
+    @Nonnull
+    private AnnouncementPresetModel sanitizeAnnouncementPreset(@Nonnull AnnouncementPresetModel preset) {
+        AnnouncementPresetModel copy = preset.copy();
+        copy.setName(copy.getName());
+        copy.setPermission(copy.getPermission());
+        copy.setChatMessages(copy.getChatMessages());
+        copy.setServerCommands(copy.getServerCommands());
+        copy.setPlayerCommands(copy.getPlayerCommands());
+        return copy;
+    }
+
+    @Nonnull
+    private List<AnnouncementPresetModel> presetsFromAutoBroadcast(@Nonnull List<String> messages) {
+        List<AnnouncementPresetModel> presets = new ArrayList<>();
+        int index = 1;
+        for (String message : messages) {
+            if (message == null || message.isBlank()) continue;
+            AnnouncementPresetModel preset = new AnnouncementPresetModel("legacy_" + index++);
+            preset.setChatMessages(List.of(message));
+            presets.add(preset);
+        }
+        return presets;
+    }
+
+    private void syncAutoBroadcastMessagesFromAnnouncements() {
+        List<String> messages = new ArrayList<>();
+        for (AnnouncementPresetModel preset : announcementPresets) {
+            if (preset == null || preset.getChatMessages().isEmpty()) continue;
+            messages.add(preset.getChatMessages().get(0));
+        }
+        if (!messages.isEmpty()) {
+            autoBroadcastMessages = messages;
+        }
+    }
+
+    @Nonnull
+    private static String normalizeAnnouncementName(@Nonnull String name) {
+        return new AnnouncementPresetModel(name).getName();
+    }
+
+    @Nonnull
     private JsonObject toChatGroupObject(@Nonnull Map<String, String> groups) {
         JsonObject obj = new JsonObject();
         for (Map.Entry<String, String> entry : groups.entrySet()) {
@@ -4561,6 +4896,46 @@ public final class ConfigManager {
                 "&9Discord: &6{discord}",
                 "&8Website: &6{website}"
         );
+    }
+
+    @Nonnull
+    private static List<AnnouncementPresetModel> defaultAnnouncementPresets() {
+        AnnouncementPresetModel tip = new AnnouncementPresetModel("server_tip");
+        tip.setEnabled(true);
+        tip.setChatMessages(List.of(
+                "<#38BDF8><bold>[Tip]</bold></#38BDF8> <#E2E8F0>Use <#FACC15>/rules</#FACC15>, <#FACC15>/shop</#FACC15>, and <#FACC15>/ah</#FACC15> to explore the server.</#E2E8F0>"
+        ));
+
+        AnnouncementPresetModel event = new AnnouncementPresetModel("event_reminder");
+        event.setEnabled(false);
+        event.setChatMessages(List.of(
+                "<#FACC15><bold>[Event]</bold></#FACC15> <#E2E8F0>A server event is starting soon.</#E2E8F0>"
+        ));
+        AnnouncementPresetModel.TitleAction title = new AnnouncementPresetModel.TitleAction();
+        title.setPrimary("Server Event");
+        title.setSecondary("Starting soon");
+        title.setMajor(true);
+        event.setTitle(title);
+        AnnouncementPresetModel.SoundAction sound = new AnnouncementPresetModel.SoundAction();
+        sound.setSoundEventIndex(24);
+        sound.setCategory("Music");
+        sound.setVolume(1.0f);
+        sound.setPitch(1.0f);
+        event.setSound(sound);
+
+        AnnouncementPresetModel vip = new AnnouncementPresetModel("vip_notice");
+        vip.setEnabled(false);
+        vip.setPermission("hyessentialsx.announcement.vip");
+        vip.setChatMessages(List.of(
+                "<#FDE68A><bold>[VIP]</bold></#FDE68A> <#E2E8F0>Thanks for supporting the server, {player}.</#E2E8F0>"
+        ));
+        AnnouncementPresetModel.NotificationAction notification = new AnnouncementPresetModel.NotificationAction();
+        notification.setTitle("VIP Notice");
+        notification.setMessage("Thanks for supporting the server.");
+        notification.setStyle("Success");
+        vip.setNotification(notification);
+
+        return List.of(tip, event, vip);
     }
 
     @Nonnull

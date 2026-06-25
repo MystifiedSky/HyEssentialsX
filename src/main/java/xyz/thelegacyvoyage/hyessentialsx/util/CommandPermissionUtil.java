@@ -100,6 +100,7 @@ public final class CommandPermissionUtil {
             "hyessentialsx.balance.others",
             "hyessentialsx.adminchat",
             "hyessentialsx.broadcast",
+            "hyessentialsx.announcement.admin",
             "hyessentialsx.clearchat",
             "hyessentialsx.socialspy",
             "hyessentialsx.kitcreate",

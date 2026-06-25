@@ -744,6 +744,10 @@ Group #CommandCenterRoot {
             TextButton #OpenAuctionButton { Text: "Auction House"; Style: @CommandButtonGold; Anchor: (Width: 180, Right: 10); }
             Label #AuctionLaunchState { Text: ""; FlexWeight: 1; Anchor: (Vertical: 0); Style: (FontSize: 11, TextColor: #a7c2e6, Wrap: true); }
           }
+          Group { LayoutMode: Left; Anchor: (Height: 54, Bottom: 8);
+            TextButton #OpenAnnouncementsButton { Text: "Announcements"; Style: @CommandButtonGreen; Anchor: (Width: 180, Right: 10); }
+            Label #AnnouncementLaunchState { Text: ""; FlexWeight: 1; Anchor: (Vertical: 0); Style: (FontSize: 11, TextColor: #a7c2e6, Wrap: true); }
+          }
           Group { FlexWeight: 1; }
         }
       }

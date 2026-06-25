@@ -10,6 +10,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.plugin.HyEssentialsXPluginComm
 import xyz.thelegacyvoyage.hyessentialsx.commands.plugin.AdminCommandCenterCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.teleport.BackCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.AdminChatCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.chat.AnnouncementCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.BroadcastCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.ClearChatCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.IgnoreCommand;
@@ -562,6 +563,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
                 freezeManager,
                 playerWarpManager,
                 warningEscalationManager,
+                autoBroadcastManager,
                 economyManager,
                 economyHudManager,
                 economyAuditManager,
@@ -619,6 +621,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (configManager.isBroadcastEnabled()) {
             reg.accept(new BroadcastCommand(configManager));
         }
+        reg.accept(new AnnouncementCommand(autoBroadcastManager));
         reg.accept(new ClearChatCommand());
         reg.accept(new MailCommand(mailManager, storage, configManager));
         if (configManager.isEconomyEnabled()) {

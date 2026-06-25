@@ -1,6 +1,7 @@
 package xyz.thelegacyvoyage.hyessentialsx.ui;
 
 import xyz.thelegacyvoyage.hyessentialsx.managers.AuctionHouseManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.AutoBroadcastManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyAuditManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyHudManager;
@@ -36,6 +37,7 @@ public record AdminCommandCenterContext(
         @Nonnull FreezeManager freezeManager,
         @Nonnull PlayerWarpManager playerWarpManager,
         @Nonnull WarningEscalationManager warningEscalationManager,
+        @Nonnull AutoBroadcastManager autoBroadcastManager,
         @Nullable EconomyManager economyManager,
         @Nullable EconomyHudManager economyHudManager,
         @Nullable EconomyAuditManager economyAuditManager,

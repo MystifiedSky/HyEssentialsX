@@ -13,12 +13,14 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandSpyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FreecamManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.GodManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.InfiniteStaminaManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MessageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.NicknameManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SocialSpyManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.BanModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.KitModel;
@@ -44,11 +46,13 @@ public final class PlayerDataListener {
     private final BanManager bans;
     private final MessageManager messages;
     private final SocialSpyManager socialSpy;
+    private final CommandSpyManager commandSpy;
     private final AdminChatManager adminChat;
     private final FreecamManager freecam;
     private final GodManager god;
     private final InfiniteStaminaManager stamina;
     private final FlyManager fly;
+    private final NicknameManager nicknames;
     private final xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager economy;
     private final xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager playtime;
     private final ConfigManager config;
@@ -59,11 +63,13 @@ public final class PlayerDataListener {
                               @Nonnull BanManager bans,
                               @Nonnull MessageManager messages,
                               @Nonnull SocialSpyManager socialSpy,
+                              @Nonnull CommandSpyManager commandSpy,
                               @Nonnull AdminChatManager adminChat,
                               @Nonnull FreecamManager freecam,
                               @Nonnull GodManager god,
                               @Nonnull InfiniteStaminaManager stamina,
                               @Nonnull FlyManager fly,
+                              @Nonnull NicknameManager nicknames,
                               @Nonnull xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager economy,
                               @Nonnull xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager playtime,
                               @Nonnull ConfigManager config,
@@ -72,11 +78,13 @@ public final class PlayerDataListener {
         this.bans = bans;
         this.messages = messages;
         this.socialSpy = socialSpy;
+        this.commandSpy = commandSpy;
         this.adminChat = adminChat;
         this.freecam = freecam;
         this.god = god;
         this.stamina = stamina;
         this.fly = fly;
+        this.nicknames = nicknames;
         this.economy = economy;
         this.playtime = playtime;
         this.config = config;
@@ -108,7 +116,11 @@ public final class PlayerDataListener {
             }
             storage.savePlayerDataAsync(player.getUuid(), data);
             fly.setFlySpeedMultiplier(player.getUuid(), data.getFlySpeedMultiplier());
-            if (data.isFlyEnabled()) {
+            if (data.getFlyExpiresAt() > 0L && data.getFlyExpiresAt() <= System.currentTimeMillis()) {
+                data.setFlyEnabled(false);
+                data.setFlyExpiresAt(0L);
+                storage.savePlayerDataAsync(player.getUuid(), data);
+            } else if (data.isFlyEnabled()) {
                 fly.setEnabled(player.getUuid(), true);
                 if (!fly.applyState(player, true)) {
                     fly.queueApply(player.getUuid());
@@ -140,6 +152,7 @@ public final class PlayerDataListener {
             playtime.onQuit(uuid);
             messages.clear(uuid);
             socialSpy.clear(uuid);
+            commandSpy.clear(uuid);
             adminChat.clear(uuid);
             freecam.clear(uuid);
         });
@@ -158,6 +171,7 @@ public final class PlayerDataListener {
             Store<EntityStore> store = ref.getStore();
             PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
             if (playerRef == null) return;
+            nicknames.applyDisplayName(playerRef);
             UUID uuid = playerRef.getUuid();
             if (!pendingStarterKitGrants.contains(uuid)) return;
 

@@ -75,6 +75,7 @@ public final class FreezeCommand extends AbstractPlayerCommand {
         private FreezePlayerCommand() {
             super("Freeze a player");
             this.setPermissionGroups();
+            xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
             this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
         }
 
@@ -100,6 +101,7 @@ public final class FreezeCommand extends AbstractPlayerCommand {
         private FreezeAllCommand() {
             super("all", "Freeze all online players");
             this.setPermissionGroups();
+            xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, ALL_PERMISSION);
         }
 
         @Override

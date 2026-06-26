@@ -10,6 +10,7 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MailManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.NicknameManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.MailMessageModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
@@ -35,16 +36,19 @@ public final class MailCommand extends CommandBase {
     private final StorageManager storage;
     private final ConfigManager config;
     private final CommandCooldownManager cooldowns;
+    private final NicknameManager nicknames;
 
     public MailCommand(@Nonnull MailManager mail,
                        @Nonnull StorageManager storage,
                        @Nonnull ConfigManager config,
-                       @Nonnull CommandCooldownManager cooldowns) {
+                       @Nonnull CommandCooldownManager cooldowns,
+                       @Nonnull NicknameManager nicknames) {
         super("mail", "Open your mailbox");
         this.mail = mail;
         this.storage = storage;
         this.config = config;
         this.cooldowns = cooldowns;
+        this.nicknames = nicknames;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addSubCommand(new SendSubCommand());
@@ -320,7 +324,7 @@ public final class MailCommand extends CommandBase {
             return;
         }
         UUID senderId = sender != null ? sender.getUuid() : new UUID(0L, 0L);
-        String senderName = sender != null ? sender.getUsername() : resolveActorName(context);
+        String senderName = sender != null ? nicknames.displayName(sender) : resolveActorName(context);
 
         int sent = 0;
         for (UUID targetId : storage.listPlayerIds()) {

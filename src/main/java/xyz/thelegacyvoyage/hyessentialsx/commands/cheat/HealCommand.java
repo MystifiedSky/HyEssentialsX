@@ -9,6 +9,7 @@ import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayer
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
@@ -22,6 +23,7 @@ public final class HealCommand extends AbstractPlayerCommand {
     private static final String PERMISSION_NODE = "hyessentialsx.heal";
     private static final String BYPASS_PERMISSION = "hyessentialsx.heal.bypass";
     private static final String OTHERS_PERMISSION = "hyessentialsx.heal.other";
+    private static final String ALL_PERMISSION = "hyessentialsx.heal.all";
     private final CommandCooldownManager cooldowns;
 
     public HealCommand(@Nonnull CommandCooldownManager cooldowns) {
@@ -29,6 +31,7 @@ public final class HealCommand extends AbstractPlayerCommand {
         this.cooldowns = cooldowns;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        this.addSubCommand(new HealAllCommand());
         this.addUsageVariant(new HealOtherCommand());
     }
 
@@ -54,6 +57,46 @@ public final class HealCommand extends AbstractPlayerCommand {
         }
 
         heal(context, playerRef, playerRef);
+    }
+
+    private final class HealAllCommand extends AbstractPlayerCommand {
+        private HealAllCommand() {
+            super("all", "Restore every online player's health and stamina");
+            this.setPermissionGroups();
+            xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, ALL_PERMISSION);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), ALL_PERMISSION)) {
+                Messages.noPerm(context, "/heal all");
+                return;
+            }
+            int count = 0;
+            for (PlayerRef target : Universe.get().getPlayers()) {
+                if (target == null) continue;
+                Ref<EntityStore> targetRef = target.getReference();
+                Store<EntityStore> targetStore = targetRef != null ? targetRef.getStore() : null;
+                if (targetRef == null || targetStore == null) continue;
+                EntityStatMap stats = targetStore.getComponent(targetRef, EntityStatMap.getComponentType());
+                if (stats == null) continue;
+                stats.maximizeStatValue(DefaultEntityStatTypes.getHealth());
+                stats.maximizeStatValue(DefaultEntityStatTypes.getStamina());
+                stats.update();
+                Messages.sendKey(target, "heal.target", java.util.Map.of());
+                count++;
+            }
+            Messages.okKey(context, "heal.all", java.util.Map.of("count", String.valueOf(count)));
+        }
     }
 
     private void heal(@Nonnull CommandContext context, @Nonnull PlayerRef playerRef, @Nonnull PlayerRef target) {
@@ -87,6 +130,8 @@ public final class HealCommand extends AbstractPlayerCommand {
 
         private HealOtherCommand() {
             super("Restore another player's health and stamina");
+            this.setPermissionGroups();
+            xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, OTHERS_PERMISSION);
             this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
         }
 

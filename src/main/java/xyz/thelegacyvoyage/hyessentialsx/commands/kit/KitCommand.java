@@ -10,6 +10,7 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.inventory.Inventory;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
@@ -29,6 +30,7 @@ public final class KitCommand extends AbstractPlayerCommand {
 
     private static final String PERMISSION_NODE = "hyessentialsx.kit";
     private static final String BYPASS_PERMISSION = "hyessentialsx.kit.bypass";
+    private static final String ALL_PERMISSION = "hyessentialsx.kit.all";
 
     private final KitManager kitManager;
     private final ConfigManager config;
@@ -40,6 +42,7 @@ public final class KitCommand extends AbstractPlayerCommand {
         this.config = config;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        this.addSubCommand(new KitAllCommand());
         this.addUsageVariant(new ClaimKitCommand());
     }
 
@@ -83,6 +86,62 @@ public final class KitCommand extends AbstractPlayerCommand {
         Messages.send(context, Messages.tr(null, "kit.list", java.util.Map.of(
                 "kits", String.join(", ", kits)
         )));
+    }
+
+    private final class KitAllCommand extends AbstractPlayerCommand {
+        private final RequiredArg<String> nameArg;
+
+        private KitAllCommand() {
+            super("all", "Give a kit to all online players");
+            this.setPermissionGroups();
+            xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, ALL_PERMISSION);
+            this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            if (!xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), ALL_PERMISSION)) {
+                Messages.noPerm(context, "/kit all");
+                return;
+            }
+            if (!config.isKitsEnabled()) {
+                Messages.errKey(context, "kit.disabled", java.util.Map.of());
+                return;
+            }
+            KitModel kit = kitManager.getKit(context.get(nameArg));
+            if (kit == null) {
+                Messages.errKey(context, "kit.not_found", java.util.Map.of());
+                return;
+            }
+            int count = 0;
+            for (PlayerRef target : Universe.get().getPlayers()) {
+                if (target == null) continue;
+                Ref<EntityStore> targetRef = target.getReference();
+                Store<EntityStore> targetStore = targetRef != null ? targetRef.getStore() : null;
+                if (targetRef == null || targetStore == null) continue;
+                Player targetPlayer = targetStore.getComponent(targetRef, Player.getComponentType());
+                if (targetPlayer == null || targetPlayer.getInventory() == null) continue;
+                List<ItemStack> overflow = InventoryUtil.applyKit(targetPlayer.getInventory(), kit.getItems());
+                if (!overflow.isEmpty()) {
+                    dropOverflow(target, targetPlayer, overflow);
+                }
+                Messages.sendPrefixedKey(target, "kit.claimed", java.util.Map.of("kit", kit.getName()));
+                count++;
+            }
+            Messages.okKey(context, "kit.given_all", java.util.Map.of(
+                    "kit", kit.getName(),
+                    "count", String.valueOf(count)
+            ));
+        }
     }
 
     private void claimKit(@Nonnull CommandContext context,

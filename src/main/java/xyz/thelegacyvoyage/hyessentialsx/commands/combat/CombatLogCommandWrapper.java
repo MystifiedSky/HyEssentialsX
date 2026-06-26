@@ -8,6 +8,7 @@ import com.hypixel.hytale.server.core.command.system.ParserContext;
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CombatLogManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandWrapperUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -29,9 +30,7 @@ public final class CombatLogCommandWrapper extends AbstractCommand {
         this.delegate = delegate;
         this.combatManager = combatManager;
         this.config = config;
-        for (String alias : delegate.getAliases()) {
-            this.addAliases(new String[]{alias});
-        }
+        CommandWrapperUtil.mirrorCommandShape(this, delegate);
     }
 
     @Nullable

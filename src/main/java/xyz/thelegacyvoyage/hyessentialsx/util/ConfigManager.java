@@ -49,6 +49,8 @@ public final class ConfigManager {
     private static final List<String> DEFAULT_SPAWN_DEATH_ROUTE = List.of("bed", "death", "group", "world", "setspawn", "worlddefault");
     private static final List<String> DEFAULT_SPAWN_PROTECTION_WORLDS = List.of("default");
     private static final List<String> DEFAULT_COMBAT_BLOCKED_COMMANDS = List.of("home", "spawn", "tpa", "tp", "warp");
+    private static final List<String> DEFAULT_COMMAND_SPY_IGNORED_COMMANDS = List.of("login", "register", "password", "changepassword", "msg", "tell", "w", "reply", "mail", "commandspy", "cmdspy", "cspy");
+    private static final List<String> DEFAULT_NICKNAME_BLACKLIST = List.of("admin", "owner", "moderator", "mod", "staff", "console", "server");
     private static final int DEFAULT_SCOREBOARD_MAX_LINES = 30;
     private static final int DEFAULT_SCOREBOARD_LINE_MAX_LENGTH = 256;
     private static final Pattern NAMED_SPAWN_PATTERN = Pattern.compile("^[a-z0-9_-]{1,32}$");
@@ -142,6 +144,19 @@ public final class ConfigManager {
     private boolean spawnEnabled = true;
     private double flySpeedMin = 0.1;
     private double flySpeedMax = 10.0;
+    private boolean timedFlightEnabled = false;
+    private boolean timedFlightRequirePermission = true;
+    private long flightCostPerMinute = 0L;
+    private int flightDefaultMinutes = 30;
+    private List<Integer> flightWarningSeconds = new ArrayList<>(List.of(60, 10));
+    private boolean commandSpyEnabled = true;
+    private List<String> commandSpyIgnoredCommands = new ArrayList<>(DEFAULT_COMMAND_SPY_IGNORED_COMMANDS);
+    private boolean commandSpyLogToActivity = true;
+    private boolean nicknamesEnabled = true;
+    private int nicknameMinLength = 3;
+    private int nicknameMaxLength = 16;
+    private boolean nicknamePreventDuplicates = true;
+    private List<String> nicknameBlacklist = new ArrayList<>(DEFAULT_NICKNAME_BLACKLIST);
     private int sleepPercentage = 100;
     private boolean sleepChatEnabled = true;
     private boolean tpaEnabled = true;
@@ -608,7 +623,26 @@ public final class ConfigManager {
         JsonObject fly = new JsonObject();
         fly.addProperty("minSpeed", flySpeedMin);
         fly.addProperty("maxSpeed", flySpeedMax);
+        fly.addProperty("timedEnabled", timedFlightEnabled);
+        fly.addProperty("timedRequirePermission", timedFlightRequirePermission);
+        fly.addProperty("costPerMinute", formatMoneyConfig(flightCostPerMinute));
+        fly.addProperty("defaultMinutes", flightDefaultMinutes);
+        fly.add("expiryWarningSeconds", toIntArray(flightWarningSeconds));
         root.add("fly", fly);
+
+        JsonObject commandSpy = new JsonObject();
+        commandSpy.addProperty("enabled", commandSpyEnabled);
+        commandSpy.add("ignoredCommands", toArray(commandSpyIgnoredCommands));
+        commandSpy.addProperty("logToActivity", commandSpyLogToActivity);
+        root.add("commandSpy", commandSpy);
+
+        JsonObject nicknames = new JsonObject();
+        nicknames.addProperty("enabled", nicknamesEnabled);
+        nicknames.addProperty("minLength", nicknameMinLength);
+        nicknames.addProperty("maxLength", nicknameMaxLength);
+        nicknames.addProperty("preventDuplicates", nicknamePreventDuplicates);
+        nicknames.add("blacklist", toArray(nicknameBlacklist));
+        root.add("nicknames", nicknames);
 
             JsonObject kits = new JsonObject();
             kits.addProperty("enabled", true);
@@ -1019,6 +1053,23 @@ public final class ConfigManager {
             JsonObject fly = obj(root, "fly");
             flySpeedMin = Math.max(0.05, dbl(fly, "minSpeed", flySpeedMin));
             flySpeedMax = Math.max(flySpeedMin, dbl(fly, "maxSpeed", flySpeedMax));
+            timedFlightEnabled = bool(fly, "timedEnabled", timedFlightEnabled);
+            timedFlightRequirePermission = bool(fly, "timedRequirePermission", timedFlightRequirePermission);
+            flightCostPerMinute = Math.max(0L, moneyVal(fly, "costPerMinute", flightCostPerMinute));
+            flightDefaultMinutes = Math.max(1, intVal(fly, "defaultMinutes", flightDefaultMinutes));
+            flightWarningSeconds = sanitizePositiveInts(readIntList(fly, "expiryWarningSeconds", flightWarningSeconds));
+
+            JsonObject commandSpy = obj(root, "commandSpy");
+            commandSpyEnabled = bool(commandSpy, "enabled", commandSpyEnabled);
+            commandSpyIgnoredCommands = sanitizeStringList(list(commandSpy, "ignoredCommands", commandSpyIgnoredCommands));
+            commandSpyLogToActivity = bool(commandSpy, "logToActivity", commandSpyLogToActivity);
+
+            JsonObject nicknames = obj(root, "nicknames");
+            nicknamesEnabled = bool(nicknames, "enabled", nicknamesEnabled);
+            nicknameMinLength = Math.max(1, intVal(nicknames, "minLength", nicknameMinLength));
+            nicknameMaxLength = Math.max(nicknameMinLength, intVal(nicknames, "maxLength", nicknameMaxLength));
+            nicknamePreventDuplicates = bool(nicknames, "preventDuplicates", nicknamePreventDuplicates);
+            nicknameBlacklist = sanitizeStringList(list(nicknames, "blacklist", nicknameBlacklist));
 
             JsonObject autoBroadcast = obj(root, "autoBroadcast");
             autoBroadcastEnabled = bool(autoBroadcast, "enabled", autoBroadcastEnabled);
@@ -1978,6 +2029,61 @@ public final class ConfigManager {
 
     public double getFlySpeedMax() {
         return Math.max(getFlySpeedMin(), flySpeedMax);
+    }
+
+    public boolean isTimedFlightEnabled() {
+        return timedFlightEnabled;
+    }
+
+    public boolean isTimedFlightRequirePermission() {
+        return timedFlightRequirePermission;
+    }
+
+    public long getFlightCostPerMinute() {
+        return Math.max(0L, flightCostPerMinute);
+    }
+
+    public int getFlightDefaultMinutes() {
+        return Math.max(1, flightDefaultMinutes);
+    }
+
+    @Nonnull
+    public List<Integer> getFlightWarningSeconds() {
+        return List.copyOf(flightWarningSeconds);
+    }
+
+    public boolean isCommandSpyEnabled() {
+        return commandSpyEnabled;
+    }
+
+    @Nonnull
+    public List<String> getCommandSpyIgnoredCommands() {
+        return List.copyOf(commandSpyIgnoredCommands);
+    }
+
+    public boolean isCommandSpyLogToActivity() {
+        return commandSpyLogToActivity;
+    }
+
+    public boolean isNicknamesEnabled() {
+        return nicknamesEnabled;
+    }
+
+    public int getNicknameMinLength() {
+        return Math.max(1, nicknameMinLength);
+    }
+
+    public int getNicknameMaxLength() {
+        return Math.max(getNicknameMinLength(), nicknameMaxLength);
+    }
+
+    public boolean isNicknamePreventDuplicates() {
+        return nicknamePreventDuplicates;
+    }
+
+    @Nonnull
+    public List<String> getNicknameBlacklist() {
+        return List.copyOf(nicknameBlacklist);
     }
 
     public boolean isDiscordEnabled() {
@@ -3282,6 +3388,23 @@ public final class ConfigManager {
         JsonObject fly = obj(root, "fly");
         fly.addProperty("minSpeed", flySpeedMin);
         fly.addProperty("maxSpeed", flySpeedMax);
+        fly.addProperty("timedEnabled", timedFlightEnabled);
+        fly.addProperty("timedRequirePermission", timedFlightRequirePermission);
+        fly.addProperty("costPerMinute", formatMoneyConfig(flightCostPerMinute));
+        fly.addProperty("defaultMinutes", flightDefaultMinutes);
+        fly.add("expiryWarningSeconds", toIntArray(flightWarningSeconds));
+
+        JsonObject commandSpy = obj(root, "commandSpy");
+        commandSpy.addProperty("enabled", commandSpyEnabled);
+        commandSpy.add("ignoredCommands", toArray(commandSpyIgnoredCommands));
+        commandSpy.addProperty("logToActivity", commandSpyLogToActivity);
+
+        JsonObject nicknames = obj(root, "nicknames");
+        nicknames.addProperty("enabled", nicknamesEnabled);
+        nicknames.addProperty("minLength", nicknameMinLength);
+        nicknames.addProperty("maxLength", nicknameMaxLength);
+        nicknames.addProperty("preventDuplicates", nicknamePreventDuplicates);
+        nicknames.add("blacklist", toArray(nicknameBlacklist));
 
         JsonObject autoBroadcast = obj(root, "autoBroadcast");
         autoBroadcast.addProperty("enabled", autoBroadcastEnabled);
@@ -4317,6 +4440,7 @@ public final class ConfigManager {
         defaults.put(CooldownKeys.FREECAM, 0);
         defaults.put(CooldownKeys.VANISH, 0);
         defaults.put(CooldownKeys.TOP, DEFAULT_COMMAND_COOLDOWN_SECONDS);
+        defaults.put(CooldownKeys.BOTTOM, DEFAULT_COMMAND_COOLDOWN_SECONDS);
         defaults.put(CooldownKeys.THRU, DEFAULT_COMMAND_COOLDOWN_SECONDS);
         defaults.put(CooldownKeys.TPHERE, DEFAULT_COMMAND_COOLDOWN_SECONDS);
         defaults.put(CooldownKeys.AFK, DEFAULT_COMMAND_COOLDOWN_SECONDS);
@@ -4418,6 +4542,46 @@ public final class ConfigManager {
         List<String> out = new ArrayList<>();
         for (JsonElement entry : el.getAsJsonArray()) {
             if (entry.isJsonPrimitive()) out.add(entry.getAsString());
+        }
+        return out;
+    }
+
+    @Nonnull
+    private List<Integer> readIntList(@Nonnull JsonObject obj, @Nonnull String key, @Nonnull List<Integer> def) {
+        JsonElement el = obj.get(key);
+        if (el == null || !el.isJsonArray()) return def;
+        List<Integer> out = new ArrayList<>();
+        for (JsonElement entry : el.getAsJsonArray()) {
+            if (entry == null || !entry.isJsonPrimitive()) continue;
+            try {
+                out.add(entry.getAsInt());
+            } catch (Exception ignored) {
+            }
+        }
+        return out.isEmpty() ? def : out;
+    }
+
+    @Nonnull
+    private List<Integer> sanitizePositiveInts(@Nonnull List<Integer> values) {
+        List<Integer> out = new ArrayList<>();
+        for (Integer value : values) {
+            if (value == null || value <= 0) continue;
+            if (!out.contains(value)) {
+                out.add(value);
+            }
+        }
+        out.sort(Collections.reverseOrder());
+        return out.isEmpty() ? new ArrayList<>(List.of(60, 10)) : out;
+    }
+
+    @Nonnull
+    private List<String> sanitizeStringList(@Nonnull List<String> values) {
+        List<String> out = new ArrayList<>();
+        for (String value : values) {
+            if (value == null) continue;
+            String cleaned = value.trim().toLowerCase(Locale.ROOT);
+            if (cleaned.isBlank() || out.contains(cleaned)) continue;
+            out.add(cleaned);
         }
         return out;
     }
@@ -4933,6 +5097,17 @@ public final class ConfigManager {
     private JsonArray toArray(@Nonnull List<String> values) {
         JsonArray arr = new JsonArray();
         for (String value : values) arr.add(value);
+        return arr;
+    }
+
+    @Nonnull
+    private JsonArray toIntArray(@Nonnull List<Integer> values) {
+        JsonArray arr = new JsonArray();
+        for (Integer value : values) {
+            if (value != null) {
+                arr.add(value);
+            }
+        }
         return arr;
     }
 

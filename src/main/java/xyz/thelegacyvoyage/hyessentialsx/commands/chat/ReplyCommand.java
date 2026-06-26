@@ -14,6 +14,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.MessageManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.IgnoreManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SocialSpyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.NicknameManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -33,19 +34,22 @@ public final class ReplyCommand extends AbstractPlayerCommand {
     private final SocialSpyManager socialSpyManager;
     private final ConfigManager config;
     private final CommandCooldownManager cooldowns;
+    private final NicknameManager nicknames;
     private final RequiredArg<List<String>> messageArg;
 
     public ReplyCommand(@Nonnull MessageManager messages,
                         @Nonnull IgnoreManager ignoreManager,
                         @Nonnull SocialSpyManager socialSpyManager,
                         @Nonnull ConfigManager config,
-                        @Nonnull CommandCooldownManager cooldowns) {
+                        @Nonnull CommandCooldownManager cooldowns,
+                        @Nonnull NicknameManager nicknames) {
         super("r", "Replies to last message");
         this.messages = messages;
         this.ignoreManager = ignoreManager;
         this.socialSpyManager = socialSpyManager;
         this.config = config;
         this.cooldowns = cooldowns;
+        this.nicknames = nicknames;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"reply"});
@@ -104,9 +108,9 @@ public final class ReplyCommand extends AbstractPlayerCommand {
         }
 
         Messages.send(playerRef, Messages.tr(playerRef, "msg.format_sender",
-                Map.of("player", target.getUsername(), "message", message)));
+                Map.of("player", nicknames.displayName(target), "message", message)));
         Messages.send(target, Messages.tr(target, "msg.format_receiver",
-                Map.of("player", playerRef.getUsername(), "message", message)));
+                Map.of("player", nicknames.displayName(playerRef), "message", message)));
         messages.setLastPartner(playerRef.getUuid(), target.getUuid());
         socialSpyManager.notifyPrivateMessage(playerRef, target, message);
     }

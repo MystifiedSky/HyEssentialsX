@@ -8,6 +8,7 @@ import com.hypixel.hytale.server.core.command.system.ParserContext;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FreezeManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.CommandWrapperUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
 import javax.annotation.Nonnull;
@@ -27,9 +28,7 @@ public final class FreezeCommandWrapper extends AbstractCommand {
         super(delegate.getName(), delegate.getDescription());
         this.delegate = delegate;
         this.freezeManager = freezeManager;
-        for (String alias : delegate.getAliases()) {
-            this.addAliases(new String[]{alias});
-        }
+        CommandWrapperUtil.mirrorCommandShape(this, delegate);
     }
 
     @Nullable

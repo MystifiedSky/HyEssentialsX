@@ -20,6 +20,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.chat.MsgCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.ReplyCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.SocialSpyCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.chat.UnignoreCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.chat.CommandSpyCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.combat.CombatLogCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.cheat.FlyCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.cheat.FlySpeedCommand;
@@ -46,8 +47,10 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.misc.AuctionHouseCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.DiscordCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.MotdCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.NearCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.misc.NickCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.PlaytimeCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.RankupCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.misc.RealNameCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.LeaderboardCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.RulesCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.misc.SeenCommand;
@@ -73,6 +76,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.WarnRulesCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.WarningsCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.FreecamCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.FreezeCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.KickAllCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.UnfreezeCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.moderation.VanishCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.spawn.DelSpawnCommand;
@@ -81,6 +85,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.spawn.SpawnCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.spawn.SpawnRouteCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.cheat.InfiniteStaminaCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.teleport.JumpToCommand;
+import xyz.thelegacyvoyage.hyessentialsx.commands.teleport.BottomCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.teleport.RtpCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.teleport.ThruCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.tpa.TpahereAllCommand;
@@ -108,6 +113,7 @@ import xyz.thelegacyvoyage.hyessentialsx.commands.shop.PlayerShopCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.hologram.HologramCommand;
 import xyz.thelegacyvoyage.hyessentialsx.commands.scoreboard.ScoreboardCommand;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.ChatModerationListener;
+import xyz.thelegacyvoyage.hyessentialsx.listeners.CommandSpyListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.CleanupListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.CombatLogListener;
 import xyz.thelegacyvoyage.hyessentialsx.listeners.DeathBackListener;
@@ -140,6 +146,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.AuctionHouseNpcInteractionRegi
 import xyz.thelegacyvoyage.hyessentialsx.managers.BanManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CombatLogManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.CommandSpyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyAuditManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyHudManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
@@ -153,6 +160,7 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.KitManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.IpBanManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.IgnoreManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MessageManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.NicknameManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MailManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PlayerWarpManager;
@@ -221,6 +229,8 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private RespawnInvulnerabilityManager respawnInvulnerabilityManager;
     private MessageManager messageManager;
     private SocialSpyManager socialSpyManager;
+    private CommandSpyManager commandSpyManager;
+    private NicknameManager nicknameManager;
     private IgnoreManager ignoreManager;
     private AdminChatManager adminChatManager;
     private MailManager mailManager;
@@ -322,6 +332,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (afkManager != null) {
             afkManager.reload();
         }
+        if (flyManager != null && storage != null && configManager != null) {
+            flyManager.configure(storage, configManager);
+        }
         if (scoreboardManager != null) {
             scoreboardManager.reloadConfiguration();
         }
@@ -377,6 +390,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         tpManager = new TPManager(configManager.getTpaRequestTimeoutSeconds() * 1000L);
         backManager = new BackManager(storage);
         flyManager = new FlyManager();
+        flyManager.configure(storage, configManager);
         godManager = new GodManager();
         staminaManager = new InfiniteStaminaManager();
         homeManager = new HomeManager(storage);
@@ -387,6 +401,8 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         respawnInvulnerabilityManager = new RespawnInvulnerabilityManager(configManager);
         messageManager = new MessageManager();
         socialSpyManager = new SocialSpyManager();
+        commandSpyManager = new CommandSpyManager(configManager, storage);
+        nicknameManager = new NicknameManager(storage, configManager);
         ignoreManager = new IgnoreManager(storage);
         adminChatManager = new AdminChatManager();
         mailManager = new MailManager(storage, configManager);
@@ -458,6 +474,9 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             scoreboardManager.start();
             scoreboardManager.refreshAll();
         }
+        if (flyManager != null) {
+            flyManager.start();
+        }
         if (economyHudManager != null) {
             economyHudManager.start();
             economyHudManager.refreshAll();
@@ -491,6 +510,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (scoreboardManager != null) scoreboardManager.shutdown();
         if (economyHudManager != null) economyHudManager.shutdown();
         if (commandTreeRefreshManager != null) commandTreeRefreshManager.shutdown();
+        if (flyManager != null) flyManager.shutdown();
         if (economyAuditManager != null) economyAuditManager.shutdown();
         if (shopNpcFixTask != null) shopNpcFixTask.stop();
         AuctionHouseNpcInteractionRegistry.unregister();
@@ -560,8 +580,11 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         var registry = getCommandRegistry();
         java.util.function.Consumer<AbstractCommand> reg = cmd -> {
             AbstractCommand toRegister = cmd;
+            if (commandSpyManager != null) {
+                toRegister = commandSpyManager.wrap(toRegister);
+            }
             if (combatLogManager != null) {
-                toRegister = combatLogManager.wrapIfBlocked(cmd);
+                toRegister = combatLogManager.wrapIfBlocked(toRegister);
             }
             registry.registerCommand(toRegister);
         };
@@ -624,11 +647,14 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         reg.accept(new WorldBorderCommand(worldBorderManager));
         if (configManager.isMsgEnabled()) {
-            reg.accept(new MsgCommand(messageManager, ignoreManager, socialSpyManager, configManager, cooldownManager));
-            reg.accept(new ReplyCommand(messageManager, ignoreManager, socialSpyManager, configManager, cooldownManager));
+            reg.accept(new MsgCommand(messageManager, ignoreManager, socialSpyManager, configManager, cooldownManager, nicknameManager));
+            reg.accept(new ReplyCommand(messageManager, ignoreManager, socialSpyManager, configManager, cooldownManager, nicknameManager));
             reg.accept(new SocialSpyCommand(socialSpyManager));
             reg.accept(new IgnoreCommand(ignoreManager, cooldownManager));
             reg.accept(new UnignoreCommand(ignoreManager, cooldownManager));
+        }
+        if (configManager.isCommandSpyEnabled()) {
+            reg.accept(new CommandSpyCommand(commandSpyManager));
         }
         if (configManager.isAdminChatEnabled()) {
             reg.accept(new AdminChatCommand(adminChatManager, configManager));
@@ -638,7 +664,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         }
         reg.accept(new AnnouncementCommand(autoBroadcastManager));
         reg.accept(new ClearChatCommand());
-        reg.accept(new MailCommand(mailManager, storage, configManager, cooldownManager));
+        reg.accept(new MailCommand(mailManager, storage, configManager, cooldownManager, nicknameManager));
         if (configManager.isEconomyEnabled()) {
             reg.accept(new PayCommand(economyManager, cooldownManager, economyAuditManager));
             reg.accept(new MoneyCommand(economyManager, storage, cooldownManager, economyAuditManager));
@@ -665,12 +691,12 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             reg.accept(new TphereCommand(backManager, cooldownManager));
         }
         reg.accept(new BackCommand(backManager, tpManager, configManager, cooldownManager));
-        reg.accept(new FlyCommand(flyManager, storage, cooldownManager));
+        reg.accept(new FlyCommand(flyManager, storage, cooldownManager, economyManager, configManager));
         reg.accept(new FlySpeedCommand(flyManager, storage, configManager));
         reg.accept(new GodCommand(godManager, cooldownManager));
         reg.accept(new HealCommand(cooldownManager));
         reg.accept(new InfiniteStaminaCommand(staminaManager));
-        reg.accept(new ListCommand(cooldownManager));
+        reg.accept(new ListCommand(cooldownManager, nicknameManager));
         if (configManager.isRulesEnabled()) {
             reg.accept(new RulesCommand(configManager, cooldownManager));
         }
@@ -698,10 +724,13 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (scoreboardManager != null && configManager.isScoreboardEnabled()) {
             reg.accept(new ScoreboardCommand(scoreboardManager, configManager));
         }
+        reg.accept(new NickCommand(nicknameManager, configManager));
+        reg.accept(new RealNameCommand(nicknameManager));
         reg.accept(new WhoisCommand(storage));
         reg.accept(new IpHistoryCommand(storage));
         reg.accept(new SeenCommand(storage));
         reg.accept(new TopCommand(backManager, cooldownManager));
+        reg.accept(new BottomCommand(backManager, cooldownManager));
         reg.accept(new JumpToCommand(cooldownManager, backManager));
         reg.accept(new ThruCommand(backManager, cooldownManager));
         if (configManager.isRtpEnabled()) {
@@ -720,6 +749,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         reg.accept(new TrashCommand());
         reg.accept(new FreecamCommand(freecamManager, cooldownManager));
         reg.accept(new FreezeCommand(freezeManager));
+        reg.accept(new KickAllCommand());
         reg.accept(new UnfreezeCommand(freezeManager));
         reg.accept(new VanishCommand(vanishManager, cooldownManager));
         reg.accept(new MuteCommand(muteManager, storage));
@@ -761,11 +791,13 @@ public class HyEssentialsXPlugin extends JavaPlugin {
                 banManager,
                 messageManager,
                 socialSpyManager,
+                commandSpyManager,
                 adminChatManager,
                 freecamManager,
                 godManager,
                 staminaManager,
                 flyManager,
+                nicknameManager,
                 economyManager,
                 playtimeManager,
                 configManager,
@@ -780,7 +812,8 @@ public class HyEssentialsXPlugin extends JavaPlugin {
         if (shopManager != null && economyManager != null && shopAdminDraftCache != null) {
             new ShopNpcListener(shopManager, economyManager, shopAdminDraftCache).register(bus);
         }
-        new ChatModerationListener(muteManager, adminChatManager, configManager).register(bus);
+        new ChatModerationListener(muteManager, adminChatManager, configManager, nicknameManager).register(bus);
+        new CommandSpyListener(commandSpyManager).register(bus);
         new IpBanListener(ipBanManager, storage).register(bus);
         new CleanupListener(tpManager, backManager, flyManager, godManager, staminaManager, vanishManager).register(bus);
         new FreezeListener(freezeManager).register(bus);

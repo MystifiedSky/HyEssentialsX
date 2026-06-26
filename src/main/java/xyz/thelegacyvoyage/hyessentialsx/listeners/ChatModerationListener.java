@@ -8,6 +8,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.AdminChatManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MuteManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.NicknameManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.MuteModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
@@ -29,13 +30,16 @@ public final class ChatModerationListener {
     private final MuteManager muteManager;
     private final AdminChatManager adminChatManager;
     private final ConfigManager config;
+    private final NicknameManager nicknames;
 
     public ChatModerationListener(@Nonnull MuteManager muteManager,
                                   @Nonnull AdminChatManager adminChatManager,
-                                  @Nonnull ConfigManager config) {
+                                  @Nonnull ConfigManager config,
+                                  @Nonnull NicknameManager nicknames) {
         this.muteManager = muteManager;
         this.adminChatManager = adminChatManager;
         this.config = config;
+        this.nicknames = nicknames;
     }
 
     public void register(@Nonnull EventRegistry events) {
@@ -90,6 +94,9 @@ public final class ChatModerationListener {
 
             if (config.isChatFormatEnabled()) {
                 if (!config.isOverrideLuckPermsChatFormat()) {
+                    if (applyNicknameOnlyFormat(event, sender)) {
+                        return;
+                    }
                     return;
                 }
                 String formattedBase = buildFormattedBase(sender);
@@ -100,6 +107,10 @@ public final class ChatModerationListener {
                     String resolved = resolvedBase.replace(MESSAGE_TOKEN, content);
                     return Messages.m(resolved);
                 });
+                return;
+            }
+
+            if (applyNicknameOnlyFormat(event, sender)) {
                 return;
             }
 
@@ -139,6 +150,18 @@ public final class ChatModerationListener {
         return text.contains("&") || text.contains("{#") || text.contains("<#");
     }
 
+    private boolean applyNicknameOnlyFormat(@Nonnull PlayerChatEvent event, @Nonnull PlayerRef sender) {
+        if (!nicknames.hasNickname(sender)) {
+            return false;
+        }
+        String displayName = nicknames.displayName(sender);
+        event.setFormatter((playerRef, message) -> {
+            String content = message != null ? message : "";
+            return Messages.m("&f" + displayName + "&7: &f" + content);
+        });
+        return true;
+    }
+
     @Nonnull
     private String buildFormattedBase(@Nonnull PlayerRef sender) {
         String groupName = LuckPermsUtil.getPrimaryGroup(sender.getUuid());
@@ -160,7 +183,8 @@ public final class ChatModerationListener {
                     .replace("{faction}", "");
         }
         return format
-                .replace("{player}", sender.getUsername())
+                .replace("{player}", nicknames.displayName(sender))
+                .replace("{displayname}", nicknames.displayName(sender))
                 .replace("{group}", groupName)
                 .replace("{faction}", faction);
     }

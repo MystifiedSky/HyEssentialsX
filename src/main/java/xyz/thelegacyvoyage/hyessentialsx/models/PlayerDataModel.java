@@ -29,6 +29,8 @@ public final class PlayerDataModel {
     private String rankupTier;
     private boolean flyEnabled;
     private float flySpeedMultiplier = 1.0F;
+    private long flyExpiresAt;
+    private String nickname;
     private long lastPaycheckAt;
     private long lastPaycheckPlaytimeSeconds;
     private boolean frozen;
@@ -226,6 +228,24 @@ public final class PlayerDataModel {
         this.flySpeedMultiplier = Float.isFinite(flySpeedMultiplier) && flySpeedMultiplier > 0.0F
                 ? flySpeedMultiplier
                 : 1.0F;
+    }
+
+    public long getFlyExpiresAt() {
+        return Math.max(0L, flyExpiresAt);
+    }
+
+    public void setFlyExpiresAt(long flyExpiresAt) {
+        this.flyExpiresAt = Math.max(0L, flyExpiresAt);
+    }
+
+    @Nullable
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(@Nullable String nickname) {
+        String cleaned = nickname == null ? null : nickname.trim();
+        this.nickname = cleaned == null || cleaned.isBlank() ? null : cleaned;
     }
 
     public long getLastPaycheckAt() {
@@ -547,6 +567,13 @@ public final class PlayerDataModel {
 
         if (!Float.isFinite(flySpeedMultiplier) || flySpeedMultiplier <= 0.0F) {
             flySpeedMultiplier = 1.0F;
+        }
+        flyExpiresAt = Math.max(0L, flyExpiresAt);
+        if (nickname != null) {
+            nickname = nickname.trim();
+            if (nickname.isBlank()) {
+                nickname = null;
+            }
         }
 
         if (claimedPlaytimeRewards == null) {

@@ -34,6 +34,7 @@ public final class CooldownKeys {
     public static final String FREECAM = "freecam";
     public static final String VANISH = "vanish";
     public static final String TOP = "top";
+    public static final String BOTTOM = "bottom";
     public static final String THRU = "thru";
     public static final String TPHERE = "tphere";
     public static final String AFK = "afk";

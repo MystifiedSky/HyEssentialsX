@@ -28,6 +28,7 @@ public final class CommandPermissionUtil {
             "hyessentialsx.msg",
             "hyessentialsx.ignore",
             "hyessentialsx.mail",
+            "hyessentialsx.nick",
             "hyessentialsx.pay",
             "hyessentialsx.balance",
             "hyessentialsx.baltop",

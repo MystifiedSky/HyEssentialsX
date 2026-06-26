@@ -12,6 +12,8 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.FlyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 
@@ -22,20 +24,28 @@ public final class FlyCommand extends AbstractPlayerCommand {
     private static final String PERMISSION_NODE = "hyessentialsx.fly";
     private static final String OTHERS_PERMISSION = "hyessentialsx.fly.others";
     private static final String BYPASS_PERMISSION = "hyessentialsx.fly.bypass";
+    private static final String TIMED_PERMISSION = "hyessentialsx.fly.time";
 
     private final FlyManager flyManager;
     private final StorageManager storage;
     private final CommandCooldownManager cooldowns;
+    private final EconomyManager economy;
+    private final ConfigManager config;
 
     public FlyCommand(@Nonnull FlyManager flyManager,
                       @Nonnull StorageManager storage,
-                      @Nonnull CommandCooldownManager cooldowns) {
+                      @Nonnull CommandCooldownManager cooldowns,
+                      @Nonnull EconomyManager economy,
+                      @Nonnull ConfigManager config) {
         super("fly", "Toggle flight");
         this.flyManager = flyManager;
         this.storage = storage;
         this.cooldowns = cooldowns;
+        this.economy = economy;
+        this.config = config;
         this.setPermissionGroups();
-        xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
+        this.addSubCommand(new FlyBuyCommand());
+        this.addSubCommand(new FlyTimeCommand());
         this.addUsageVariant(new FlyOtherCommand());
     }
 
@@ -87,6 +97,9 @@ public final class FlyCommand extends AbstractPlayerCommand {
         }
         var data = storage.getPlayerData(target.getUuid());
         data.setFlyEnabled(enabled);
+        if (!enabled) {
+            data.setFlyExpiresAt(0L);
+        }
         storage.savePlayerDataAsync(target.getUuid(), data);
 
         boolean isSelf = playerRef.getUuid().equals(target.getUuid());
@@ -102,11 +115,99 @@ public final class FlyCommand extends AbstractPlayerCommand {
         }
     }
 
+    private void buyTimedFly(@Nonnull CommandContext context,
+                             @Nonnull PlayerRef playerRef,
+                             int minutes) {
+        if (!config.isTimedFlightEnabled()) {
+            Messages.errKey(context, "fly.timed_disabled", java.util.Map.of());
+            return;
+        }
+        if (config.isTimedFlightRequirePermission()
+                && !xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.hasPermission(context.sender(), TIMED_PERMISSION)) {
+            Messages.noPerm(context, "/fly time");
+            return;
+        }
+        int safeMinutes = Math.max(1, minutes);
+        long price = Math.max(0L, config.getFlightCostPerMinute()) * safeMinutes;
+        if (price > 0L) {
+            if (!economy.isEnabled()) {
+                Messages.errKey(context, "economy.disabled", java.util.Map.of());
+                return;
+            }
+            if (!economy.withdraw(playerRef.getUuid(), price)) {
+                Messages.errKey(context, "command.price.insufficient", java.util.Map.of(
+                        "command", "/fly time",
+                        "price", economy.formatAmount(price),
+                        "balance", economy.formatAmount(economy.getBalance(playerRef.getUuid()))
+                ));
+                return;
+            }
+        }
+        flyManager.grantTimed(playerRef, safeMinutes);
+        Messages.okKey(context, "fly.timed_enabled", java.util.Map.of(
+                "time", xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil.formatDurationSeconds((long) safeMinutes * 60L),
+                "price", economy.formatAmount(price)
+        ));
+    }
+
+    private final class FlyBuyCommand extends AbstractPlayerCommand {
+        private FlyBuyCommand() {
+            super("buy", "Buy the configured timed flight package");
+            this.setPermissionGroups();
+            if (config.isTimedFlightRequirePermission()) {
+                xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, TIMED_PERMISSION);
+            }
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            buyTimedFly(context, playerRef, config.getFlightDefaultMinutes());
+        }
+    }
+
+    private final class FlyTimeCommand extends AbstractPlayerCommand {
+        private final RequiredArg<Integer> minutesArg;
+
+        private FlyTimeCommand() {
+            super("time", "Buy timed flight minutes");
+            this.setPermissionGroups();
+            if (config.isTimedFlightRequirePermission()) {
+                xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, TIMED_PERMISSION);
+            }
+            this.minutesArg = withRequiredArg("minutes", "Minutes of flight", ArgTypes.INTEGER);
+        }
+
+        @Override
+        protected boolean canGeneratePermission() {
+            return false;
+        }
+
+        @Override
+        protected void execute(@Nonnull CommandContext context,
+                               @Nonnull Store<EntityStore> store,
+                               @Nonnull Ref<EntityStore> ref,
+                               @Nonnull PlayerRef playerRef,
+                               @Nonnull World world) {
+            buyTimedFly(context, playerRef, context.get(minutesArg));
+        }
+    }
+
     private final class FlyOtherCommand extends AbstractPlayerCommand {
         private final RequiredArg<PlayerRef> targetArg;
 
         private FlyOtherCommand() {
             super("Toggle another player's flight");
+            this.setPermissionGroups();
+            xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, OTHERS_PERMISSION);
             this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
         }
 

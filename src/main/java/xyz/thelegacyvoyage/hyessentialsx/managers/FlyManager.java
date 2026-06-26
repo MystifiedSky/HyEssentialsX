@@ -1,8 +1,12 @@
 package xyz.thelegacyvoyage.hyessentialsx.managers;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.MovementSettings;
@@ -13,7 +17,12 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.movement.MovementManager;
 import com.hypixel.hytale.server.core.modules.physics.component.Velocity;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
 public final class FlyManager {
 
@@ -22,6 +31,35 @@ public final class FlyManager {
     private final ConcurrentHashMap<UUID, Float> flySpeedMultiplier = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, Float> baseHorizontalFlySpeed = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, Float> baseVerticalFlySpeed = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, java.util.Set<Integer>> sentExpiryWarnings = new ConcurrentHashMap<>();
+    private ScheduledExecutorService scheduler;
+    private StorageManager storage;
+    private ConfigManager config;
+
+    public void configure(@Nonnull StorageManager storage, @Nonnull ConfigManager config) {
+        this.storage = storage;
+        this.config = config;
+    }
+
+    public void start() {
+        if (scheduler != null && !scheduler.isShutdown()) {
+            return;
+        }
+        scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "HyEssentialsX-FlyExpiry");
+            t.setDaemon(true);
+            return t;
+        });
+        scheduler.scheduleAtFixedRate(this::tickExpiriesSafe, 1L, 1L, TimeUnit.SECONDS);
+    }
+
+    public void shutdown() {
+        if (scheduler != null) {
+            scheduler.shutdownNow();
+            scheduler = null;
+        }
+        sentExpiryWarnings.clear();
+    }
 
     public boolean isEnabled(@Nonnull UUID playerId) {
         return enabled.containsKey(playerId);
@@ -31,6 +69,7 @@ public final class FlyManager {
         if (value) {
             return enabled.put(playerId, Boolean.TRUE) == null;
         }
+        clearExpiry(playerId);
         return enabled.remove(playerId) != null;
     }
 
@@ -46,6 +85,33 @@ public final class FlyManager {
         flySpeedMultiplier.remove(playerId);
         baseHorizontalFlySpeed.remove(playerId);
         baseVerticalFlySpeed.remove(playerId);
+        clearExpiry(playerId);
+    }
+
+    public void grantTimed(@Nonnull PlayerRef player, int minutes) {
+        long expiresAt = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(Math.max(1, minutes));
+        enabled.put(player.getUuid(), Boolean.TRUE);
+        sentExpiryWarnings.remove(player.getUuid());
+        if (storage != null) {
+            PlayerDataModel data = storage.getPlayerData(player.getUuid());
+            data.setFlyEnabled(true);
+            data.setFlyExpiresAt(expiresAt);
+            storage.savePlayerDataAsync(player.getUuid(), data);
+        }
+        if (!applyState(player, true)) {
+            queueApply(player.getUuid(), true);
+        }
+    }
+
+    public void clearExpiry(@Nonnull UUID playerId) {
+        sentExpiryWarnings.remove(playerId);
+        if (storage != null) {
+            PlayerDataModel data = storage.getPlayerData(playerId);
+            if (data.getFlyExpiresAt() > 0L) {
+                data.setFlyExpiresAt(0L);
+                storage.savePlayerDataAsync(playerId, data);
+            }
+        }
     }
 
     public void queueApply(@Nonnull UUID playerId) {
@@ -187,6 +253,53 @@ public final class FlyManager {
             return value;
         }
         return Float.isFinite(fallback) && fallback > 0.0F ? fallback : 1.0F;
+    }
+
+    private void tickExpiriesSafe() {
+        try {
+            tickExpiries();
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private void tickExpiries() {
+        if (storage == null || config == null || !config.isTimedFlightEnabled()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        for (UUID playerId : storage.listPlayerIds()) {
+            PlayerDataModel data = storage.getPlayerData(playerId);
+            long expiresAt = data.getFlyExpiresAt();
+            if (expiresAt <= 0L || !data.isFlyEnabled()) {
+                continue;
+            }
+            PlayerRef player = Universe.get().getPlayer(playerId);
+            if (expiresAt <= now) {
+                data.setFlyEnabled(false);
+                data.setFlyExpiresAt(0L);
+                storage.savePlayerDataAsync(playerId, data);
+                enabled.remove(playerId);
+                sentExpiryWarnings.remove(playerId);
+                if (player != null) {
+                    applyState(player, false);
+                    Messages.sendPrefixedKey(player, "fly.expired", java.util.Map.of());
+                }
+                continue;
+            }
+            if (player == null) {
+                continue;
+            }
+            long remainingSeconds = Math.max(1L, (expiresAt - now) / 1000L);
+            for (Integer warning : config.getFlightWarningSeconds()) {
+                if (warning == null || warning <= 0 || remainingSeconds > warning) continue;
+                java.util.Set<Integer> sent = sentExpiryWarnings.computeIfAbsent(playerId, ignored -> ConcurrentHashMap.newKeySet());
+                if (sent.add(warning)) {
+                    Messages.sendPrefixedKey(player, "fly.expiring", java.util.Map.of(
+                            "time", TimeUtil.formatDurationSeconds(remainingSeconds)
+                    ));
+                }
+            }
+        }
     }
 }
 

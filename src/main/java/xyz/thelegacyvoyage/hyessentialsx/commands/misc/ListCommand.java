@@ -5,6 +5,7 @@ import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.NicknameManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
@@ -19,10 +20,13 @@ public final class ListCommand extends CommandBase {
     private static final String BYPASS_PERMISSION = "hyessentialsx.list.bypass";
 
     private final CommandCooldownManager cooldowns;
+    private final NicknameManager nicknames;
 
-    public ListCommand(@Nonnull CommandCooldownManager cooldowns) {
+    public ListCommand(@Nonnull CommandCooldownManager cooldowns,
+                       @Nonnull NicknameManager nicknames) {
         super("list", "Shows all online players");
         this.cooldowns = cooldowns;
+        this.nicknames = nicknames;
         this.setPermissionGroups();
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
         this.addAliases(new String[]{"online", "playerlist", "plist", "who"});
@@ -51,7 +55,7 @@ public final class ListCommand extends CommandBase {
 
         List<String> names = new ArrayList<>();
         for (PlayerRef ref : Universe.get().getPlayers()) {
-            names.add(ref.getUsername());
+            names.add(nicknames.displayName(ref));
         }
 
         Messages.send(context, Messages.tr(null, "list.format", java.util.Map.of(

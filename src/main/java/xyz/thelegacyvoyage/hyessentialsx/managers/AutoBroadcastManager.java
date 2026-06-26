@@ -25,8 +25,10 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -39,6 +41,7 @@ public final class AutoBroadcastManager {
     private final ConfigManager config;
     private final ScheduledExecutorService scheduler;
     private final Random random = new Random();
+    private final Map<String, Integer> scheduledChatLineIndexes = new HashMap<>();
     private int nextIndex = 0;
     private ScheduledFuture<?> task;
     private int scheduledIntervalSeconds = -1;
@@ -146,7 +149,7 @@ public final class AutoBroadcastManager {
         if (targets.isEmpty()) {
             return 0;
         }
-        executeChat(preset, targets);
+        executeChat(preset, targets, force);
         executeTitle(preset, targets);
         executeNotification(preset, targets);
         executeSound(preset, targets);
@@ -202,13 +205,48 @@ public final class AutoBroadcastManager {
         return out;
     }
 
-    private void executeChat(@Nonnull AnnouncementPresetModel preset, @Nonnull List<PlayerRef> players) {
-        for (String raw : preset.getChatMessages()) {
+    private void executeChat(@Nonnull AnnouncementPresetModel preset,
+                             @Nonnull List<PlayerRef> players,
+                             boolean force) {
+        List<String> messages = preset.getChatMessages();
+        if (!force && messages.size() > 1) {
+            String raw = selectScheduledChatLine(preset, messages);
+            if (raw == null || raw.isBlank()) {
+                return;
+            }
+            for (PlayerRef player : players) {
+                player.sendMessage(resolveMessage(player, raw));
+            }
+            return;
+        }
+        for (String raw : messages) {
             if (raw == null || raw.isBlank()) continue;
             for (PlayerRef player : players) {
                 player.sendMessage(resolveMessage(player, raw));
             }
         }
+    }
+
+    @Nullable
+    private String selectScheduledChatLine(@Nonnull AnnouncementPresetModel preset,
+                                           @Nonnull List<String> messages) {
+        List<String> usable = new ArrayList<>();
+        for (String message : messages) {
+            if (message != null && !message.isBlank()) {
+                usable.add(message);
+            }
+        }
+        if (usable.isEmpty()) {
+            return null;
+        }
+        if (config.isAnnouncementsRandom()) {
+            return usable.get(random.nextInt(usable.size()));
+        }
+        String key = preset.getName().toLowerCase(Locale.ROOT);
+        int index = scheduledChatLineIndexes.getOrDefault(key, 0);
+        String selected = usable.get(index % usable.size());
+        scheduledChatLineIndexes.put(key, (index + 1) % usable.size());
+        return selected;
     }
 
     private void executeTitle(@Nonnull AnnouncementPresetModel preset, @Nonnull List<PlayerRef> players) {

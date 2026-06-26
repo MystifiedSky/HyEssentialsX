@@ -21,11 +21,16 @@ import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class ChatModerationListener {
 
     private static final String ADMINCHAT_PERMISSION = "hyessentialsx.adminchat";
     private static final String MESSAGE_TOKEN = "__HX_MESSAGE__";
+    private static final Pattern LUCKPERMS_META_PERCENT = Pattern.compile("%luckperms_meta_([A-Za-z0-9_.-]+)%");
+    private static final Pattern LUCKPERMS_META_BRACE = Pattern.compile("\\{luckperms_meta:([A-Za-z0-9_.-]+)}");
 
     private final MuteManager muteManager;
     private final AdminChatManager adminChatManager;
@@ -93,24 +98,7 @@ public final class ChatModerationListener {
             if (raw == null) raw = "";
 
             if (config.isChatFormatEnabled()) {
-                if (!config.isOverrideLuckPermsChatFormat()) {
-                    if (applyNicknameOnlyFormat(event, sender)) {
-                        return;
-                    }
-                    return;
-                }
-                String formattedBase = buildFormattedBase(sender);
-                event.setFormatter((playerRef, message) -> {
-                    String content = message != null ? message : "";
-                    String baseWithToken = formattedBase.replace("{message}", MESSAGE_TOKEN);
-                    String resolvedBase = PlaceholderApiUtil.applyString(sender, baseWithToken);
-                    String resolved = resolvedBase.replace(MESSAGE_TOKEN, content);
-                    return Messages.m(resolved);
-                });
-                return;
-            }
-
-            if (applyNicknameOnlyFormat(event, sender)) {
+                setChatFormatter(event, sender);
                 return;
             }
 
@@ -125,17 +113,21 @@ public final class ChatModerationListener {
 
         events.registerGlobal(EventPriority.LAST, PlayerChatEvent.class, event -> {
             if (event.isCancelled()) return;
-            if (!config.isChatFormatEnabled() || !config.isOverrideLuckPermsChatFormat()) return;
+            if (!config.isChatFormatEnabled()) return;
             PlayerRef sender = event.getSender();
             if (sender == null) return;
-            String formattedBase = buildFormattedBase(sender);
-            event.setFormatter((playerRef, message) -> {
-                String content = message != null ? message : "";
-                String baseWithToken = formattedBase.replace("{message}", MESSAGE_TOKEN);
-                String resolvedBase = PlaceholderApiUtil.applyString(sender, baseWithToken);
-                String resolved = resolvedBase.replace(MESSAGE_TOKEN, content);
-                return Messages.m(resolved);
-            });
+            setChatFormatter(event, sender);
+        });
+    }
+
+    private void setChatFormatter(@Nonnull PlayerChatEvent event, @Nonnull PlayerRef sender) {
+        String formattedBase = buildFormattedBase(sender);
+        event.setFormatter((playerRef, message) -> {
+            String content = message != null ? message : "";
+            String baseWithToken = formattedBase.replace("{message}", MESSAGE_TOKEN);
+            String resolvedBase = PlaceholderApiUtil.applyString(sender, baseWithToken);
+            String resolved = resolvedBase.replace(MESSAGE_TOKEN, content);
+            return Messages.m(resolved);
         });
     }
 
@@ -148,18 +140,6 @@ public final class ChatModerationListener {
 
     private boolean hasColorCodes(@Nonnull String text) {
         return text.contains("&") || text.contains("{#") || text.contains("<#");
-    }
-
-    private boolean applyNicknameOnlyFormat(@Nonnull PlayerChatEvent event, @Nonnull PlayerRef sender) {
-        if (!nicknames.hasNickname(sender)) {
-            return false;
-        }
-        String displayName = nicknames.displayName(sender);
-        event.setFormatter((playerRef, message) -> {
-            String content = message != null ? message : "";
-            return Messages.m("&f" + displayName + "&7: &f" + content);
-        });
-        return true;
     }
 
     @Nonnull
@@ -182,11 +162,49 @@ public final class ChatModerationListener {
                     .replace(" {faction}", "")
                     .replace("{faction}", "");
         }
-        return format
+        UUID uuid = sender.getUuid();
+        String luckPermsPrefix = LuckPermsUtil.getPrefix(uuid);
+        String luckPermsSuffix = LuckPermsUtil.getSuffix(uuid);
+        String localPrefix = config.getChatPrefixForGroup(groupName);
+        String localSuffix = config.getChatSuffixForGroup(groupName);
+        String prefix = luckPermsPrefix.isBlank() ? localPrefix : luckPermsPrefix;
+        String suffix = luckPermsSuffix.isBlank() ? localSuffix : luckPermsSuffix;
+        String resolved = format
                 .replace("{player}", nicknames.displayName(sender))
                 .replace("{displayname}", nicknames.displayName(sender))
+                .replace("{realname}", sender.getUsername())
+                .replace("{username}", sender.getUsername())
+                .replace("%luckperms_prefix%", luckPermsPrefix)
+                .replace("{luckperms_prefix}", luckPermsPrefix)
+                .replace("{local_prefix}", localPrefix)
+                .replace("{prefix}", prefix)
+                .replace("%luckperms_suffix%", luckPermsSuffix)
+                .replace("{luckperms_suffix}", luckPermsSuffix)
+                .replace("{local_suffix}", localSuffix)
+                .replace("{suffix}", suffix)
+                .replace("%luckperms_primary_group%", groupName)
+                .replace("{luckperms_primary_group}", groupName)
                 .replace("{group}", groupName)
                 .replace("{faction}", faction);
+        return replaceLuckPermsMeta(uuid, resolved);
+    }
+
+    @Nonnull
+    private String replaceLuckPermsMeta(@Nonnull UUID uuid, @Nonnull String text) {
+        String resolved = replaceLuckPermsMeta(uuid, text, LUCKPERMS_META_PERCENT);
+        return replaceLuckPermsMeta(uuid, resolved, LUCKPERMS_META_BRACE);
+    }
+
+    @Nonnull
+    private String replaceLuckPermsMeta(@Nonnull UUID uuid, @Nonnull String text, @Nonnull Pattern pattern) {
+        Matcher matcher = pattern.matcher(text);
+        StringBuffer out = new StringBuffer();
+        while (matcher.find()) {
+            String value = LuckPermsUtil.getMetaValue(uuid, matcher.group(1));
+            matcher.appendReplacement(out, Matcher.quoteReplacement(value == null ? "" : value));
+        }
+        matcher.appendTail(out);
+        return out.toString();
     }
 
     private boolean trySetMessage(@Nonnull PlayerChatEvent event, @Nonnull Message message) {

@@ -544,7 +544,8 @@ public class HyEssentialsXPlugin extends JavaPlugin {
                     playtimeManager,
                     storage,
                     homeManager,
-                    mailManager
+                    mailManager,
+                    nicknameManager
             );
             if (expansion.register()) {
                 placeholderExpansion = expansion;
@@ -660,7 +661,7 @@ public class HyEssentialsXPlugin extends JavaPlugin {
             reg.accept(new AdminChatCommand(adminChatManager, configManager));
         }
         if (configManager.isBroadcastEnabled()) {
-            reg.accept(new BroadcastCommand(configManager));
+            reg.accept(new BroadcastCommand(configManager, autoBroadcastManager));
         }
         reg.accept(new AnnouncementCommand(autoBroadcastManager));
         reg.accept(new ClearChatCommand());

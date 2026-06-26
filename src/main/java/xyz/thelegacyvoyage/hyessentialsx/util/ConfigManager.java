@@ -163,8 +163,6 @@ public final class ConfigManager {
     private boolean tpaGuiEnabled = true;
     private boolean adminChatEnabled = true;
     private boolean afkEnabled = true;
-    private boolean chatEnabled = false;
-    private boolean chatOverrideLuckPerms = false;
     private boolean spawnProtectionEnabled = true;
     private int spawnProtectionRadius = 64;
     private boolean spawnProtectionAllowBreak = false;
@@ -323,6 +321,8 @@ public final class ConfigManager {
             "<#FCA5A5><bold>{player}</bold> died {cause}</#FCA5A5>"
     );
     private Map<String, String> chatGroupFormats = defaultChatGroups();
+    private Map<String, String> chatGroupPrefixes = defaultChatGroupPrefixes();
+    private Map<String, String> chatGroupSuffixes = defaultChatGroupSuffixes();
     private Map<String, Integer> chatGroupPriorities = defaultGroupPriorities();
 
     private int afkTimeoutSeconds = 300;
@@ -467,9 +467,9 @@ public final class ConfigManager {
         root.add("deathMessages", death);
 
         JsonObject chat = new JsonObject();
-        chat.addProperty("enabled", false);
-        chat.addProperty("overrideLuckPermsChatFormat", false);
         chat.add("groups", toChatGroupObject(chatGroupFormats));
+        chat.add("groupPrefixes", toStringMapObject(chatGroupPrefixes));
+        chat.add("groupSuffixes", toStringMapObject(chatGroupSuffixes));
         chat.add("groupPriorities", toPriorityObject(chatGroupPriorities));
         root.add("chat", chat);
 
@@ -1151,13 +1151,10 @@ public final class ConfigManager {
             deathMessages = list(death, "messages", deathMessages);
 
             JsonObject chat = obj(root, "chat");
-            chatEnabled = bool(chat, "enabled", chatEnabled);
-            if (chat.has("overrideLuckPermsChatFormat")) {
-                chatOverrideLuckPerms = bool(chat, "overrideLuckPermsChatFormat", chatOverrideLuckPerms);
-            } else {
-                chatOverrideLuckPerms = bool(chat, "overrideLuckPerms", chatOverrideLuckPerms);
-            }
             chatGroupFormats = readChatGroupFormats(chat, chatGroupFormats);
+            chatGroupFormats = migrateStockChatGroupFormats(chatGroupFormats);
+            chatGroupPrefixes = readStringMap(chat, "groupPrefixes", chatGroupPrefixes);
+            chatGroupSuffixes = readStringMap(chat, "groupSuffixes", chatGroupSuffixes);
             String legacyFormat = str(chat, "format", "");
             if (!legacyFormat.isBlank() && !hasGroupFormat(chatGroupFormats, "Default")) {
                 chatGroupFormats.put("Default", legacyFormat);
@@ -2295,24 +2292,14 @@ public final class ConfigManager {
     }
 
     public boolean isChatEnabled() {
-        return chatEnabled;
+        return true;
     }
 
     public boolean isChatFormatEnabled() {
-        return chatEnabled;
-    }
-
-    public boolean isOverrideLuckPermsChatFormat() {
-        return chatOverrideLuckPerms;
+        return true;
     }
 
     public void setChatEnabled(boolean enabled) {
-        chatEnabled = enabled;
-        save();
-    }
-
-    public void setChatOverrideLuckPerms(boolean overrideLuckPerms) {
-        chatOverrideLuckPerms = overrideLuckPerms;
         save();
     }
 
@@ -2953,6 +2940,31 @@ public final class ConfigManager {
     }
 
     @Nonnull
+    public String getChatPrefixForGroup(@Nonnull String groupName) {
+        return getChatGroupText(chatGroupPrefixes, groupName);
+    }
+
+    @Nonnull
+    public String getChatSuffixForGroup(@Nonnull String groupName) {
+        return getChatGroupText(chatGroupSuffixes, groupName);
+    }
+
+    @Nonnull
+    private String getChatGroupText(@Nonnull Map<String, String> values, @Nonnull String groupName) {
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(groupName)) {
+                return entry.getValue();
+            }
+        }
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase("Default")) {
+                return entry.getValue();
+            }
+        }
+        return "";
+    }
+
+    @Nonnull
     public String getHighestPriorityGroup(@Nullable java.util.Set<String> groupNames) {
         if (groupNames == null || groupNames.isEmpty()) return "Default";
         String highestGroup = "Default";
@@ -3438,10 +3450,12 @@ public final class ConfigManager {
         death.add("messages", toArray(deathMessages));
 
         JsonObject chat = obj(root, "chat");
-        chat.addProperty("enabled", chatEnabled);
-        chat.addProperty("overrideLuckPermsChatFormat", chatOverrideLuckPerms);
+        chat.remove("enabled");
+        chat.remove("overrideLuckPermsChatFormat");
         chat.remove("overrideLuckPerms");
         chat.add("groups", toChatGroupObject(chatGroupFormats));
+        chat.add("groupPrefixes", toStringMapObject(chatGroupPrefixes));
+        chat.add("groupSuffixes", toStringMapObject(chatGroupSuffixes));
         chat.add("groupPriorities", toPriorityObject(chatGroupPriorities));
 
         JsonObject spawnProtection = obj(root, "spawnProtection");
@@ -5094,6 +5108,34 @@ public final class ConfigManager {
     }
 
     @Nonnull
+    private Map<String, String> migrateStockChatGroupFormats(@Nonnull Map<String, String> groups) {
+        Map<String, String> out = new LinkedHashMap<>();
+        Map<String, String> legacy = legacyDefaultChatGroups();
+        String modern = "{prefix}&f{player}{suffix}&7: &f{message}";
+        for (Map.Entry<String, String> entry : groups.entrySet()) {
+            String groupName = entry.getKey();
+            String format = entry.getValue();
+            String legacyFormat = getIgnoreCase(legacy, groupName);
+            if (legacyFormat != null && legacyFormat.equals(format)) {
+                out.put(groupName, modern);
+            } else {
+                out.put(groupName, format);
+            }
+        }
+        return out;
+    }
+
+    @Nullable
+    private String getIgnoreCase(@Nonnull Map<String, String> values, @Nonnull String key) {
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(key)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    @Nonnull
     private JsonArray toArray(@Nonnull List<String> values) {
         JsonArray arr = new JsonArray();
         for (String value : values) arr.add(value);
@@ -5712,6 +5754,18 @@ public final class ConfigManager {
     @Nonnull
     private static Map<String, String> defaultChatGroups() {
         Map<String, String> groups = new LinkedHashMap<>();
+        groups.put("Default", "{prefix}&f{player}{suffix}&7: &f{message}");
+        groups.put("Member", "{prefix}&f{player}{suffix}&7: &f{message}");
+        groups.put("VIP", "{prefix}&f{player}{suffix}&7: &f{message}");
+        groups.put("Moderator", "{prefix}&f{player}{suffix}&7: &f{message}");
+        groups.put("Admin", "{prefix}&f{player}{suffix}&7: &f{message}");
+        groups.put("OP", "{prefix}&f{player}{suffix}&7: &f{message}");
+        return groups;
+    }
+
+    @Nonnull
+    private static Map<String, String> legacyDefaultChatGroups() {
+        Map<String, String> groups = new LinkedHashMap<>();
         groups.put("Default", "&7[{group}] &f{player}&7: &f{message}");
         groups.put("Member", "&#5EEAD4[{group}] &f{player}&7: &f{message}");
         groups.put("VIP", "&#FBBF24[{group}] &f{player}&7: &f{message}");
@@ -5719,6 +5773,23 @@ public final class ConfigManager {
         groups.put("Admin", "&#F87171[{group}] &f{player}&7: &f{message}");
         groups.put("OP", "&#FB7185[{group}] &f{player}&7: &f{message}");
         return groups;
+    }
+
+    @Nonnull
+    private static Map<String, String> defaultChatGroupPrefixes() {
+        Map<String, String> prefixes = new LinkedHashMap<>();
+        prefixes.put("Default", "&7[Default] ");
+        prefixes.put("Member", "&#5EEAD4[Member] ");
+        prefixes.put("VIP", "&#FBBF24[VIP] ");
+        prefixes.put("Moderator", "&#34D399[Moderator] ");
+        prefixes.put("Admin", "&#F87171[Admin] ");
+        prefixes.put("OP", "&#FB7185[OP] ");
+        return prefixes;
+    }
+
+    @Nonnull
+    private static Map<String, String> defaultChatGroupSuffixes() {
+        return new LinkedHashMap<>();
     }
 
     @Nonnull

@@ -1028,7 +1028,7 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                 ? "Available: auction browser and listing tools."
                 : "Missing auction house permission.");
         cmd.set("#AnnouncementLaunchState.Text", canUse("hyessentialsx.announcement.admin")
-                ? "Available: scheduled presets, manual sends, targeting, and actions."
+                ? "Available: scheduled presets, manual sends, targeting, and actions. Also opens with /broadcast ui."
                 : "Missing permission: hyessentialsx.announcement.admin");
     }
 
@@ -1333,12 +1333,10 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
                     context.config().setHomeWarmupSeconds(parseInt(input(3), "Home warmup", 0, 3600));
                 }
                 case CHAT -> {
-                    context.config().setChatEnabled(parseBooleanStrict(input(0), "Chat format enabled"));
-                    context.config().setChatOverrideLuckPerms(parseBooleanStrict(input(1), "Override LuckPerms"));
-                    context.config().setAdminChatEnabled(parseBooleanStrict(input(2), "Admin chat enabled"));
-                    context.config().setBroadcastEnabled(parseBooleanStrict(input(3), "Broadcast enabled"));
-                    context.config().setSleepChatEnabled(parseBooleanStrict(input(4), "Sleep chat messages"));
-                    context.config().setCombatLogBlockCommands(parseBooleanStrict(input(5), "Combat command block"));
+                    context.config().setAdminChatEnabled(parseBooleanStrict(input(0), "Admin chat enabled"));
+                    context.config().setBroadcastEnabled(parseBooleanStrict(input(1), "Broadcast enabled"));
+                    context.config().setSleepChatEnabled(parseBooleanStrict(input(2), "Sleep chat messages"));
+                    context.config().setCombatLogBlockCommands(parseBooleanStrict(input(3), "Combat command block"));
                 }
                 case SCOREBOARD -> {
                     context.config().setScoreboardEnabled(parseBooleanStrict(input(0), "Scoreboard enabled"));
@@ -2774,13 +2772,11 @@ public final class HyEssentialsXDashboardUI extends InteractiveCustomUIPage<HyEs
         },
         CHAT("Chat Moderation", "#ConfigSectionChatButton",
                 "Chat format, admin chat, broadcast, sleep chat, and combat command protection.",
-                new String[]{"Chat Format", "Override LP", "Admin Chat", "Broadcast", "Sleep Chat", "Combat Blocks Cmds"},
-                new boolean[]{true, true, true, true, true, true}) {
+                new String[]{"Admin Chat", "Broadcast", "Sleep Chat", "Combat Blocks Cmds"},
+                new boolean[]{true, true, true, true}) {
             @Override
             String[] currentValues(HyEssentialsXDashboardUI ui) {
                 return new String[]{
-                        String.valueOf(ui.context.config().isChatEnabled()),
-                        String.valueOf(ui.context.config().isOverrideLuckPermsChatFormat()),
                         String.valueOf(ui.context.config().isAdminChatEnabled()),
                         String.valueOf(ui.context.config().isBroadcastEnabled()),
                         String.valueOf(ui.context.config().isSleepChatEnabled()),

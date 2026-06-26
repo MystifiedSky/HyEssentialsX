@@ -6,6 +6,7 @@ import xyz.thelegacyvoyage.hyessentialsx.HyEssentialsXPlugin;
 import xyz.thelegacyvoyage.hyessentialsx.managers.EconomyManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.HomeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.MailManager;
+import xyz.thelegacyvoyage.hyessentialsx.managers.NicknameManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
@@ -29,19 +30,22 @@ public final class HyEssentialsXPlaceholderExpansion extends PlaceholderExpansio
     private final StorageManager storage;
     private final HomeManager homes;
     private final MailManager mail;
+    private final NicknameManager nicknames;
 
     public HyEssentialsXPlaceholderExpansion(@Nonnull HyEssentialsXPlugin plugin,
                                              @Nonnull EconomyManager economy,
                                              @Nonnull PlaytimeManager playtime,
                                              @Nonnull StorageManager storage,
                                              @Nonnull HomeManager homes,
-                                             @Nonnull MailManager mail) {
+                                             @Nonnull MailManager mail,
+                                             @Nonnull NicknameManager nicknames) {
         this.plugin = plugin;
         this.economy = economy;
         this.playtime = playtime;
         this.storage = storage;
         this.homes = homes;
         this.mail = mail;
+        this.nicknames = nicknames;
     }
 
     @Override
@@ -90,6 +94,14 @@ public final class HyEssentialsXPlaceholderExpansion extends PlaceholderExpansio
                 "playtime",
                 "playtime_seconds",
                 "rank",
+                "luckperms_prefix",
+                "luckperms_suffix",
+                "luckperms_primary_group",
+                "luckperms_meta_<key>",
+                "nickname",
+                "nickname_plain",
+                "displayname",
+                "realname",
                 "homes",
                 "mail_unread",
                 "mail_inbox",
@@ -111,6 +123,10 @@ public final class HyEssentialsXPlaceholderExpansion extends PlaceholderExpansio
         }
         UUID uuid = player.getUuid();
         PlayerDataModel data = storage.getPlayerData(uuid);
+        if (key.startsWith("luckperms_meta_")) {
+            String value = LuckPermsUtil.getMetaValue(uuid, key.substring("luckperms_meta_".length()));
+            return value == null ? "" : value;
+        }
 
         return switch (key) {
             case "balance" -> formatBalance(resolveBalance(uuid, data));
@@ -119,6 +135,13 @@ public final class HyEssentialsXPlaceholderExpansion extends PlaceholderExpansio
             case "playtime" -> TimeUtil.formatDurationSeconds(playtime.getPlaytimeSeconds(uuid));
             case "playtime_seconds" -> String.valueOf(playtime.getPlaytimeSeconds(uuid));
             case "rank" -> resolveRank(uuid);
+            case "luckperms_prefix" -> LuckPermsUtil.getPrefix(uuid);
+            case "luckperms_suffix" -> LuckPermsUtil.getSuffix(uuid);
+            case "luckperms_primary_group" -> resolveRank(uuid);
+            case "nickname" -> nicknames.hasNickname(player) ? nicknames.displayName(player) : "";
+            case "nickname_plain" -> nicknames.hasNickname(player) ? NicknameManager.plain(nicknames.displayName(player)) : "";
+            case "displayname" -> nicknames.displayName(player);
+            case "realname" -> player.getUsername();
             case "homes" -> String.valueOf(homes.getHomeCount(uuid));
             case "mail_unread" -> String.valueOf(mail.getUnreadCount(uuid));
             case "mail_inbox" -> String.valueOf(data.getMailInbox().size());

@@ -34,7 +34,7 @@ public class HelpSubCommand extends CommandBase {
         context.sendMessage(Message.raw("Homes: /sethome [name], /home [name], /homes, /delhome [name]"));
         context.sendMessage(Message.raw("Warps: /setwarp [name], /warp [name], /warps, /delwarp [name]"));
         context.sendMessage(Message.raw("Kits: /kitcreate [name] [cooldown] [maxUses], /kitedit [name] [cooldown] [maxUses] (no args opens item editor), /kiteditorder [name] [position], /kit [name], /kits, /kitdelete [name]"));
-        context.sendMessage(Message.raw("Chat: /msg <player> <msg>, /r <msg>, /socialspy, /clearchat, /adminchat [msg], /broadcast <msg>"));
+        context.sendMessage(Message.raw("Chat: /msg <player> <msg>, /r <msg>, /socialspy, /clearchat, /adminchat [msg], /broadcast <msg>, /broadcast ui"));
         context.sendMessage(Message.raw("Teleport: /spawn, /back, /tpa <player>, /tpahere <player>, /tpahereall, /top, /jumpto, /thru, /rtp"));
         context.sendMessage(Message.raw("Moderation: /mute <player> [time] [reason], /unmute <player>, /ban <player> [reason], /tempban <player> [time] [reason], /unban <player>, /banlist, /ipbans, /vanish [player], /socialspy"));
         context.sendMessage(Message.raw("Misc: /list, /rules, /motd, /near, /whois <player>, /seen <player>, /clearinventory, /repair, /freecam"));

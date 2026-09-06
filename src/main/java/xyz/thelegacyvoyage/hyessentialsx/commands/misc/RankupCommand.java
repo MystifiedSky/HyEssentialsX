@@ -94,7 +94,8 @@ public final class RankupCommand extends AbstractPlayerCommand {
         boolean missingPlaytime = !eligibility.playtimeMet;
         long commandPrice = cooldowns.getEffectivePrice(context.sender(), player, CooldownKeys.RANKUP, BYPASS_PERMISSION);
         long balance = economy.getBalance(player.getUuid());
-        boolean missingMoney = eligibility.cost > 0L && balance < eligibility.cost + commandPrice;
+        boolean missingMoney = eligibility.cost > 0L
+                && (balance < eligibility.cost || balance - eligibility.cost < commandPrice);
         if (missingPlaytime) {
             Messages.warnKey(context, "rankup.playtime_needed", Map.of(
                     "required", formatHours(next.getPlaytimeSeconds()),

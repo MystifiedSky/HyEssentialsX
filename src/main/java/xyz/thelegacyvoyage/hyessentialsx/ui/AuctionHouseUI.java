@@ -266,8 +266,23 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
             refresh();
             return;
         }
-        if (playerRef.getUuid().toString().equalsIgnoreCase(listing.getSellerUuid())) {
+        UUID sellerId;
+        try {
+            sellerId = UUID.fromString(listing.getSellerUuid());
+        } catch (IllegalArgumentException invalidSeller) {
+            Messages.sendPrefixedKey(playerRef, "auction.buy.unavailable", Map.of());
+            refresh();
+            return;
+        }
+        if (playerRef.getUuid().equals(sellerId)) {
             Messages.sendPrefixedKey(playerRef, "auction.buy.own_listing", Map.of());
+            return;
+        }
+        Player player = store.getComponent(ref, Player.getComponentType());
+        ItemStack stack = toItemStack(listing);
+        if (player == null || player.getInventory() == null || stack == null) {
+            Messages.sendPrefixedKey(playerRef, "auction.buy.unavailable", Map.of());
+            refresh();
             return;
         }
         if (!economy.withdraw(playerRef.getUuid(), listing.getPrice())) {
@@ -280,15 +295,11 @@ public final class AuctionHouseUI extends InteractiveCustomUIPage<AuctionHouseUI
             refresh();
             return;
         }
-        economy.deposit(UUID.fromString(listing.getSellerUuid()), listing.getPrice());
-        Player player = store.getComponent(ref, Player.getComponentType());
-        ItemStack stack = toItemStack(listing);
-        if (player != null && player.getInventory() != null && stack != null) {
-            List<ItemStack> overflow = InventoryUtil.addItemStacksWithOverflow(player.getInventory(), List.of(stack));
-            if (!overflow.isEmpty()) {
-                dropOverflow(player, overflow);
-                Messages.sendPrefixedKey(playerRef, "auction.inventory_full", Map.of());
-            }
+        economy.deposit(sellerId, listing.getPrice());
+        List<ItemStack> overflow = InventoryUtil.addItemStacksWithOverflow(player.getInventory(), List.of(stack));
+        if (!overflow.isEmpty()) {
+            dropOverflow(player, overflow);
+            Messages.sendPrefixedKey(playerRef, "auction.inventory_full", Map.of());
         }
         Messages.sendPrefixedKey(playerRef, "auction.buy.success", Map.of(
                 "item", listing.getItemId(),

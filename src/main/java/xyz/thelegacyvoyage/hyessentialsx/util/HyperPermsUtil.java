@@ -4,8 +4,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 
 public final class HyperPermsUtil {
 
@@ -58,9 +61,9 @@ public final class HyperPermsUtil {
         if (user == null) return Set.of();
         try {
             Object value = user.getClass().getMethod("getInheritedGroups").invoke(user);
-            if (value instanceof Set<?> set) {
+            if (value instanceof Collection<?> groups) {
                 java.util.LinkedHashSet<String> out = new java.util.LinkedHashSet<>();
-                for (Object group : set) {
+                for (Object group : groups) {
                     if (group != null && !group.toString().isBlank()) {
                         out.add(group.toString());
                     }
@@ -94,20 +97,30 @@ public final class HyperPermsUtil {
         try {
             Object userManager = api.getClass().getMethod("getUserManager").invoke(api);
             if (userManager == null) return null;
-            Object user = userManager.getClass().getMethod("getUser", UUID.class).invoke(userManager, uuid);
+            Object user = unwrapUser(
+                    userManager.getClass().getMethod("getUser", UUID.class).invoke(userManager, uuid)
+            );
             if (user != null) {
                 return user;
             }
-            Object future = userManager.getClass().getMethod("loadUser", UUID.class).invoke(userManager, uuid);
-            if (future == null) return null;
-            Object optional = future.getClass().getMethod("join").invoke(future);
-            if (optional == null) return null;
-            Method isPresent = optional.getClass().getMethod("isPresent");
-            if (!Boolean.TRUE.equals(isPresent.invoke(optional))) return null;
-            return optional.getClass().getMethod("get").invoke(optional);
+            return unwrapUser(
+                    userManager.getClass().getMethod("loadUser", UUID.class).invoke(userManager, uuid)
+            );
         } catch (Exception e) {
             return null;
         }
+    }
+
+    @Nullable
+    private static Object unwrapUser(@Nullable Object value) {
+        Object current = value;
+        if (current instanceof CompletionStage<?> stage) {
+            current = stage.toCompletableFuture().join();
+        }
+        if (current instanceof Optional<?> optional) {
+            current = optional.orElse(null);
+        }
+        return current;
     }
 
     @Nullable

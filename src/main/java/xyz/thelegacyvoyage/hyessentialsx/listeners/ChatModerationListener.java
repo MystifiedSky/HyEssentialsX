@@ -21,6 +21,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -167,8 +168,10 @@ public final class ChatModerationListener {
         UUID uuid = sender.getUuid();
         String luckPermsPrefix = LuckPermsUtil.getPrefix(uuid);
         String luckPermsSuffix = LuckPermsUtil.getSuffix(uuid);
+        String luckPermsGroup = valueOrEmpty(LuckPermsUtil.getPrimaryGroup(uuid));
         String hyperPermsPrefix = HyperPermsUtil.getPrefix(uuid);
         String hyperPermsSuffix = HyperPermsUtil.getSuffix(uuid);
+        String hyperPermsGroup = valueOrEmpty(HyperPermsUtil.getPrimaryGroup(uuid));
         String providerPrefix = PermissionProviderUtil.getPrefix(uuid);
         String providerSuffix = PermissionProviderUtil.getSuffix(uuid);
         String localPrefix = config.getChatPrefixForGroup(groupName);
@@ -192,13 +195,18 @@ public final class ChatModerationListener {
                 .replace("{hyperperms_suffix}", hyperPermsSuffix)
                 .replace("{local_suffix}", localSuffix)
                 .replace("{suffix}", suffix)
-                .replace("%luckperms_primary_group%", groupName)
-                .replace("{luckperms_primary_group}", groupName)
-                .replace("%hyperperms_primary_group%", groupName)
-                .replace("{hyperperms_primary_group}", groupName)
+                .replace("%luckperms_primary_group%", luckPermsGroup)
+                .replace("{luckperms_primary_group}", luckPermsGroup)
+                .replace("%hyperperms_primary_group%", hyperPermsGroup)
+                .replace("{hyperperms_primary_group}", hyperPermsGroup)
                 .replace("{group}", groupName)
                 .replace("{faction}", faction);
         return replaceLuckPermsMeta(uuid, resolved);
+    }
+
+    @Nonnull
+    private static String valueOrEmpty(@Nullable String value) {
+        return value == null ? "" : value;
     }
 
     @Nonnull

@@ -142,7 +142,7 @@ public final class HyEssentialsXPlaceholderExpansion extends PlaceholderExpansio
             case "rank" -> resolveRank(uuid);
             case "luckperms_prefix" -> LuckPermsUtil.getPrefix(uuid);
             case "luckperms_suffix" -> LuckPermsUtil.getSuffix(uuid);
-            case "luckperms_primary_group" -> resolveRank(uuid);
+            case "luckperms_primary_group" -> valueOrEmpty(LuckPermsUtil.getPrimaryGroup(uuid));
             case "hyperperms_prefix" -> HyperPermsUtil.getPrefix(uuid);
             case "hyperperms_suffix" -> HyperPermsUtil.getSuffix(uuid);
             case "hyperperms_primary_group" -> {
@@ -190,5 +190,10 @@ public final class HyEssentialsXPlaceholderExpansion extends PlaceholderExpansio
             return groups.iterator().next();
         }
         return "default";
+    }
+
+    @Nonnull
+    private static String valueOrEmpty(@Nullable String value) {
+        return value == null ? "" : value;
     }
 }

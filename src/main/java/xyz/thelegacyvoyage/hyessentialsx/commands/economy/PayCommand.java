@@ -106,7 +106,7 @@ public final class PayCommand extends AbstractPlayerCommand {
 
         long balance = economy.getBalance(playerRef.getUuid());
         long commandPrice = cooldowns.getEffectivePrice(context.sender(), playerRef, CooldownKeys.PAY, BYPASS_PERMISSION);
-        if (balance < amount + commandPrice) {
+        if (balance < amount || balance - amount < commandPrice) {
             Messages.errKey(context, "economy.insufficient_funds", Map.of());
             return;
         }

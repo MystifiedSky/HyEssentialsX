@@ -24,7 +24,7 @@ This project is open source and actively developed by MystifiedSky. Expect activ
 - Kits, kit editor, inventory utilities, repair, trash, clear inventory, invsee, fly, god, heal, freecam, and stamina tools.
 - Moderation tools including mute, unmute, ban, tempban, unban, IP bans, ban lists, freeze, vanish, whois, seen, admin chat, broadcasts, combat log handling, and spawn protection.
 - Storage support for SQLite, JSON, MySQL/MariaDB, and MongoDB.
-- Integrations for PlaceholderAPI, VaultUnlocked, and LuckPerms-aware formatting.
+- Integrations for PlaceholderAPI, VaultUnlocked, and LuckPerms/HyperPerms-aware formatting.
 - Migration tooling for several essentials, economy, homes, warps, and playtime plugins.
 
 ## Screenshots
@@ -60,7 +60,7 @@ Optional runtime integrations:
 
 - PlaceholderAPI for placeholders.
 - VaultUnlocked for economy provider compatibility.
-- LuckPerms-compatible permission/rank data where supported.
+- LuckPerms- or HyperPerms-compatible permission/rank data where supported.
 
 ## Building
 

@@ -154,13 +154,21 @@ public final class PlayerWarpsUI extends InteractiveCustomUIPage<PlayerWarpsUI.U
             Messages.sendPrefixedKey(playerRef, "playerwarp.not_found", Map.of());
             return;
         }
-        if (config.getPlayerWarpVisitCost() > 0L && economy != null && economy.isEnabled()
-                && !CommandPermissionUtil.hasPermission(playerRef, "hyessentialsx.playerwarp.bypasscost")
-                && !economy.withdraw(playerRef.getUuid(), config.getPlayerWarpVisitCost())) {
-            Messages.sendPrefixedKey(playerRef, "economy.insufficient_funds", Map.of());
+        UUID ownerId;
+        try {
+            ownerId = UUID.fromString(warp.getOwnerUuid());
+        } catch (IllegalArgumentException invalidOwner) {
+            Messages.sendPrefixedKey(playerRef, "playerwarp.not_found", Map.of());
             return;
         }
         if (!cooldowns.canUse(playerRef, CooldownKeys.WARP, "/pwarp", "hyessentialsx.playerwarp.bypass")) {
+            return;
+        }
+        long visitCost = config.getPlayerWarpVisitCost();
+        boolean charged = visitCost > 0L && economy != null && economy.isEnabled()
+                && !CommandPermissionUtil.hasPermission(playerRef, "hyessentialsx.playerwarp.bypasscost");
+        if (charged && !economy.withdraw(playerRef.getUuid(), visitCost)) {
+            Messages.sendPrefixedKey(playerRef, "economy.insufficient_funds", Map.of());
             return;
         }
         com.hypixel.hytale.math.vector.Transform transform = playerRef.getTransform();
@@ -174,14 +182,14 @@ public final class PlayerWarpsUI extends InteractiveCustomUIPage<PlayerWarpsUI.U
         String err = TeleportationUtil.teleportToLocation(store, ref, warp.getWorldId(), warp.getWorldName(),
                 warp.getX(), warp.getY(), warp.getZ(), warp.getYaw(), warp.getPitch());
         if (err != null) {
+            if (charged) {
+                economy.deposit(playerRef.getUuid(), visitCost);
+            }
             Messages.sendPrefixed(playerRef, err);
             return;
         }
         warp.incrementVisits();
-        try {
-            playerWarps.setWarp(UUID.fromString(warp.getOwnerUuid()), warp);
-        } catch (IllegalArgumentException ignored) {
-        }
+        playerWarps.setWarp(ownerId, warp);
         cooldowns.apply(playerRef, CooldownKeys.WARP);
         Messages.sendPrefixedKey(playerRef, "playerwarp.visited",
                 Map.of("warp", warp.getName(), "owner", warp.getOwnerName()));

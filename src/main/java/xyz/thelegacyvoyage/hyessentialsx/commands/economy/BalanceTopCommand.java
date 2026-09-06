@@ -111,7 +111,7 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
             if (name == null || name.isBlank()) {
                 name = uuid.toString();
             }
-            long balance = Math.max(0L, data.getBalance());
+            long balance = economy.getBalance(uuid);
             entries.add(new BalanceEntry(name, balance));
         }
 

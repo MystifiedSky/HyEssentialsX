@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 public final class PlayerWarpCommand extends AbstractPlayerCommand {
 
@@ -429,18 +430,25 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
                 Messages.sendKey(context, "playerwarp.not_found", Map.of());
                 return;
             }
+            UUID ownerId;
+            try {
+                ownerId = UUID.fromString(warp.getOwnerUuid());
+            } catch (IllegalArgumentException invalidOwner) {
+                Messages.sendKey(context, "playerwarp.not_found", Map.of());
+                return;
+            }
             String action = context.get(actionArg).toLowerCase(Locale.ROOT);
             if ("delete".equals(action)) {
-                playerWarps.deleteWarp(java.util.UUID.fromString(warp.getOwnerUuid()), warp.getName());
+                playerWarps.deleteWarp(ownerId, warp.getName());
             } else if ("approve".equals(action)) {
                 warp.setApproved(true);
-                playerWarps.setWarp(java.util.UUID.fromString(warp.getOwnerUuid()), warp);
+                playerWarps.setWarp(ownerId, warp);
             } else if ("hide".equals(action)) {
                 warp.setEnabled(false);
-                playerWarps.setWarp(java.util.UUID.fromString(warp.getOwnerUuid()), warp);
+                playerWarps.setWarp(ownerId, warp);
             } else if ("show".equals(action)) {
                 warp.setEnabled(true);
-                playerWarps.setWarp(java.util.UUID.fromString(warp.getOwnerUuid()), warp);
+                playerWarps.setWarp(ownerId, warp);
             } else {
                 Messages.sendKey(context, "playerwarp.moderate_usage", Map.of());
                 return;
@@ -490,12 +498,12 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
             Messages.sendKey(context, "playerwarp.limit", Map.of("limit", String.valueOf(config.getPlayerWarpMaxWarpsPerPlayer())));
             return;
         }
-        if (!charge(context, playerRef, config.getPlayerWarpCreateCost())) {
-            return;
-        }
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null || transform.getPosition() == null) {
             Messages.errKey(context, "error.position_unavailable", Map.of());
+            return;
+        }
+        if (!charge(context, playerRef, config.getPlayerWarpCreateCost())) {
             return;
         }
         com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
@@ -546,10 +554,18 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
             Messages.sendKey(context, "playerwarp.not_found", Map.of());
             return;
         }
-        if (!charge(context, playerRef, config.getPlayerWarpVisitCost())) {
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.WARP, "/pwarp", "hyessentialsx.playerwarp.bypass")) {
             return;
         }
-        if (!cooldowns.canUse(context, playerRef, CooldownKeys.WARP, "/pwarp", "hyessentialsx.playerwarp.bypass")) {
+        UUID ownerId;
+        try {
+            ownerId = UUID.fromString(warp.getOwnerUuid());
+        } catch (IllegalArgumentException invalidOwner) {
+            Messages.sendKey(context, "playerwarp.not_found", Map.of());
+            return;
+        }
+        long visitCost = config.getPlayerWarpVisitCost();
+        if (!charge(context, playerRef, visitCost)) {
             return;
         }
         com.hypixel.hytale.math.vector.Transform transform = playerRef.getTransform();
@@ -562,11 +578,12 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
         String err = TeleportationUtil.teleportToLocation(store, ref, warp.getWorldId(), warp.getWorldName(),
                 warp.getX(), warp.getY(), warp.getZ(), warp.getYaw(), warp.getPitch());
         if (err != null) {
+            refund(context, playerRef, visitCost);
             Messages.err(context, err);
             return;
         }
         warp.incrementVisits();
-        playerWarps.setWarp(java.util.UUID.fromString(warp.getOwnerUuid()), warp);
+        playerWarps.setWarp(ownerId, warp);
         cooldowns.apply(playerRef, CooldownKeys.WARP);
         Messages.sendKey(context, "playerwarp.visited", Map.of("warp", warp.getName(), "owner", warp.getOwnerName()));
     }
@@ -581,6 +598,13 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
             return false;
         }
         return true;
+    }
+
+    private void refund(@Nonnull CommandContext context, @Nonnull PlayerRef playerRef, long amount) {
+        if (amount > 0L && economy != null && economy.isEnabled()
+                && !CommandPermissionUtil.hasPermission(context.sender(), BYPASS_COST_PERMISSION)) {
+            economy.deposit(playerRef.getUuid(), amount);
+        }
     }
 
     private boolean enabled(@Nonnull CommandContext context) {

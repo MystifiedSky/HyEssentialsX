@@ -78,25 +78,29 @@ public final class EconomyManager {
 
     public long getBalance(@Nonnull UUID uuid) {
         PlayerDataModel data = storage.getPlayerData(uuid);
-        normalizeBalanceScale(uuid, data);
-        long balance = data.getBalance();
-        if (balance < 0L) {
-            data.setBalance(0L);
-            data.setBalanceScale(getDecimalPlaces());
-            storage.savePlayerDataAsync(uuid, data);
-            return 0L;
+        synchronized (data) {
+            normalizeBalanceScale(uuid, data);
+            long balance = data.getBalance();
+            if (balance < 0L) {
+                data.setBalance(0L);
+                data.setBalanceScale(getDecimalPlaces());
+                storage.savePlayerDataAsync(uuid, data);
+                return 0L;
+            }
+            return balance;
         }
-        return balance;
     }
 
     public long setBalance(@Nonnull UUID uuid, long amount) {
         PlayerDataModel data = storage.getPlayerData(uuid);
-        normalizeBalanceScale(uuid, data);
-        long clamped = Math.max(0L, amount);
-        data.setBalance(clamped);
-        data.setBalanceScale(getDecimalPlaces());
-        storage.savePlayerDataAsync(uuid, data);
-        return clamped;
+        synchronized (data) {
+            normalizeBalanceScale(uuid, data);
+            long clamped = Math.max(0L, amount);
+            data.setBalance(clamped);
+            data.setBalanceScale(getDecimalPlaces());
+            storage.savePlayerDataAsync(uuid, data);
+            return clamped;
+        }
     }
 
     public long deposit(@Nonnull UUID uuid, long amount) {
@@ -104,18 +108,20 @@ public final class EconomyManager {
             return getBalance(uuid);
         }
         PlayerDataModel data = storage.getPlayerData(uuid);
-        normalizeBalanceScale(uuid, data);
-        long balance = Math.max(0L, data.getBalance());
-        long updated;
-        try {
-            updated = Math.addExact(balance, amount);
-        } catch (ArithmeticException overflow) {
-            updated = Long.MAX_VALUE;
+        synchronized (data) {
+            normalizeBalanceScale(uuid, data);
+            long balance = Math.max(0L, data.getBalance());
+            long updated;
+            try {
+                updated = Math.addExact(balance, amount);
+            } catch (ArithmeticException overflow) {
+                updated = Long.MAX_VALUE;
+            }
+            data.setBalance(updated);
+            data.setBalanceScale(getDecimalPlaces());
+            storage.savePlayerDataAsync(uuid, data);
+            return updated;
         }
-        data.setBalance(updated);
-        data.setBalanceScale(getDecimalPlaces());
-        storage.savePlayerDataAsync(uuid, data);
-        return updated;
     }
 
     public boolean withdraw(@Nonnull UUID uuid, long amount) {
@@ -123,15 +129,17 @@ public final class EconomyManager {
             return false;
         }
         PlayerDataModel data = storage.getPlayerData(uuid);
-        normalizeBalanceScale(uuid, data);
-        long balance = Math.max(0L, data.getBalance());
-        if (balance < amount) {
-            return false;
+        synchronized (data) {
+            normalizeBalanceScale(uuid, data);
+            long balance = Math.max(0L, data.getBalance());
+            if (balance < amount) {
+                return false;
+            }
+            data.setBalance(balance - amount);
+            data.setBalanceScale(getDecimalPlaces());
+            storage.savePlayerDataAsync(uuid, data);
+            return true;
         }
-        data.setBalance(balance - amount);
-        data.setBalanceScale(getDecimalPlaces());
-        storage.savePlayerDataAsync(uuid, data);
-        return true;
     }
 
     public void ensureStartingBalance(@Nonnull UUID uuid) {
@@ -143,13 +151,15 @@ public final class EconomyManager {
             return;
         }
         PlayerDataModel data = storage.getPlayerData(uuid);
-        normalizeBalanceScale(uuid, data);
-        String lastKnownName = data.getLastKnownName();
-        boolean firstJoin = data.getLastSeenAt() == 0L && (lastKnownName == null || lastKnownName.isBlank());
-        if (firstJoin && data.getBalance() <= 0L) {
-            data.setBalance(starting);
-            data.setBalanceScale(getDecimalPlaces());
-            storage.savePlayerDataAsync(uuid, data);
+        synchronized (data) {
+            normalizeBalanceScale(uuid, data);
+            String lastKnownName = data.getLastKnownName();
+            boolean firstJoin = data.getLastSeenAt() == 0L && (lastKnownName == null || lastKnownName.isBlank());
+            if (firstJoin && data.getBalance() <= 0L) {
+                data.setBalance(starting);
+                data.setBalanceScale(getDecimalPlaces());
+                storage.savePlayerDataAsync(uuid, data);
+            }
         }
     }
 
@@ -208,6 +218,12 @@ public final class EconomyManager {
     }
 
     private static long pow10(int exponent) {
+        if (exponent <= 0) {
+            return 1L;
+        }
+        if (exponent > 18) {
+            return Long.MAX_VALUE;
+        }
         long value = 1L;
         for (int i = 0; i < exponent; i++) {
             value *= 10L;

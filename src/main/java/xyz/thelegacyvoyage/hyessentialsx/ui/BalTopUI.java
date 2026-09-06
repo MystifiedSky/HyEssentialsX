@@ -109,7 +109,7 @@ public final class BalTopUI extends InteractiveCustomUIPage<BalTopUI.UIEventData
             if (name == null || name.isBlank()) {
                 name = uuid.toString();
             }
-            long balance = Math.max(0L, data.getBalance());
+            long balance = economy.getBalance(uuid);
             entries.add(new BalanceEntry(name, balance));
         }
         entries.sort(Comparator.comparingLong((BalanceEntry entry) -> entry.balance).reversed()

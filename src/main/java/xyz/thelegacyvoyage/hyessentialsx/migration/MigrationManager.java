@@ -270,12 +270,7 @@ public final class MigrationManager {
             }
             Long balance = entry.getBalance();
             if (balance != null) {
-                if (merge) {
-                    long next = data.getBalance() + balance;
-                    data.setBalance(next);
-                } else {
-                    data.setBalance(balance);
-                }
+                applyImportedBalance(data, balance, merge);
             }
             Long lastSeen = entry.getLastSeenAt();
             if (lastSeen != null && lastSeen > 0) {
@@ -299,6 +294,45 @@ public final class MigrationManager {
             storage.savePlayerDataAsync(entry.getKey(), entry.getValue());
         }
         Log.info("[HyEssentialsX] Applied users: " + added + " added, " + updated + " updated");
+    }
+
+    static void applyImportedBalance(@Nonnull PlayerDataModel data, long importedBalance, boolean merge) {
+        long incoming = Math.max(0L, importedBalance);
+        if (!merge) {
+            // Migration adapters expose whole currency units. Clearing the scale lets
+            // EconomyManager convert them to the server's configured minor-unit scale.
+            data.setBalance(incoming);
+            data.setBalanceScale(null);
+            return;
+        }
+
+        Integer storedScale = data.getBalanceScale();
+        long scaledIncoming = storedScale == null
+                ? incoming
+                : scaleWholeUnits(incoming, Math.max(0, storedScale));
+        try {
+            data.setBalance(Math.addExact(Math.max(0L, data.getBalance()), scaledIncoming));
+        } catch (ArithmeticException overflow) {
+            data.setBalance(Long.MAX_VALUE);
+        }
+    }
+
+    private static long scaleWholeUnits(long value, int scale) {
+        if (value == 0L || scale == 0) {
+            return value;
+        }
+        if (scale > 18) {
+            return Long.MAX_VALUE;
+        }
+        long scaled = value;
+        try {
+            for (int i = 0; i < scale; i++) {
+                scaled = Math.multiplyExact(scaled, 10L);
+            }
+            return scaled;
+        } catch (ArithmeticException overflow) {
+            return Long.MAX_VALUE;
+        }
     }
 
     public enum ModType {

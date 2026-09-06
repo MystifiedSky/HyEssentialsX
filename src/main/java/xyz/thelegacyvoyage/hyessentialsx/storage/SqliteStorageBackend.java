@@ -249,7 +249,7 @@ public final class SqliteStorageBackend implements StorageBackend {
 
     @Override
     public void saveShops(@Nonnull Map<String, ShopModel> shops) {
-        if (!available) return;
+        if (!available || readOnly) return;
         try (Connection conn = open()) {
             conn.setAutoCommit(false);
             try (Statement st = conn.createStatement()) {
@@ -265,6 +265,7 @@ public final class SqliteStorageBackend implements StorageBackend {
             }
             conn.commit();
         } catch (Exception e) {
+            if (handleWriteException(e)) return;
             Log.warn("Failed to save shops to SQLite: " + e.getMessage());
         }
     }

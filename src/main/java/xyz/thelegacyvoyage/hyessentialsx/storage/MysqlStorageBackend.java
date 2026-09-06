@@ -157,24 +157,7 @@ public final class MysqlStorageBackend implements StorageBackend {
 
     @Override
     public void saveWarps(@Nonnull Map<String, WarpModel> warps) {
-        if (!available) return;
-        try (Connection conn = open()) {
-            conn.setAutoCommit(false);
-            try (Statement st = conn.createStatement()) {
-                st.executeUpdate("TRUNCATE TABLE hex_warps");
-            }
-            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO hex_warps (name, json) VALUES (?, ?)")) {
-                for (Map.Entry<String, WarpModel> entry : warps.entrySet()) {
-                    ps.setString(1, entry.getKey());
-                    ps.setString(2, gson.toJson(entry.getValue()));
-                    ps.addBatch();
-                }
-                ps.executeBatch();
-            }
-            conn.commit();
-        } catch (Exception e) {
-            Log.warn("Failed to save warps to MySQL: " + e.getMessage());
-        }
+        replaceMap("hex_warps", "name", warps, "warps");
     }
 
     @Override
@@ -200,24 +183,7 @@ public final class MysqlStorageBackend implements StorageBackend {
 
     @Override
     public void saveKits(@Nonnull Map<String, KitModel> kits) {
-        if (!available) return;
-        try (Connection conn = open()) {
-            conn.setAutoCommit(false);
-            try (Statement st = conn.createStatement()) {
-                st.executeUpdate("TRUNCATE TABLE hex_kits");
-            }
-            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO hex_kits (name, json) VALUES (?, ?)")) {
-                for (Map.Entry<String, KitModel> entry : kits.entrySet()) {
-                    ps.setString(1, entry.getKey());
-                    ps.setString(2, gson.toJson(entry.getValue()));
-                    ps.addBatch();
-                }
-                ps.executeBatch();
-            }
-            conn.commit();
-        } catch (Exception e) {
-            Log.warn("Failed to save kits to MySQL: " + e.getMessage());
-        }
+        replaceMap("hex_kits", "name", kits, "kits");
     }
 
     @Override
@@ -243,24 +209,7 @@ public final class MysqlStorageBackend implements StorageBackend {
 
     @Override
     public void saveShops(@Nonnull Map<String, ShopModel> shops) {
-        if (!available) return;
-        try (Connection conn = open()) {
-            conn.setAutoCommit(false);
-            try (Statement st = conn.createStatement()) {
-                st.executeUpdate("TRUNCATE TABLE hex_shops");
-            }
-            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO hex_shops (name, json) VALUES (?, ?)")) {
-                for (Map.Entry<String, ShopModel> entry : shops.entrySet()) {
-                    ps.setString(1, entry.getKey());
-                    ps.setString(2, gson.toJson(entry.getValue()));
-                    ps.addBatch();
-                }
-                ps.executeBatch();
-            }
-            conn.commit();
-        } catch (Exception e) {
-            Log.warn("Failed to save shops to MySQL: " + e.getMessage());
-        }
+        replaceMap("hex_shops", "name", shops, "shops");
     }
 
     @Override
@@ -286,23 +235,40 @@ public final class MysqlStorageBackend implements StorageBackend {
 
     @Override
     public void saveIpBans(@Nonnull Map<String, IpBanModel> bans) {
+        replaceMap("hex_ipbans", "ip", bans, "ip bans");
+    }
+
+    private <T> void replaceMap(@Nonnull String table,
+                                @Nonnull String keyColumn,
+                                @Nonnull Map<String, T> values,
+                                @Nonnull String label) {
         if (!available) return;
         try (Connection conn = open()) {
             conn.setAutoCommit(false);
-            try (Statement st = conn.createStatement()) {
-                st.executeUpdate("TRUNCATE TABLE hex_ipbans");
-            }
-            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO hex_ipbans (ip, json) VALUES (?, ?)")) {
-                for (Map.Entry<String, IpBanModel> entry : bans.entrySet()) {
-                    ps.setString(1, entry.getKey());
-                    ps.setString(2, gson.toJson(entry.getValue()));
-                    ps.addBatch();
+            try {
+                try (Statement st = conn.createStatement()) {
+                    st.executeUpdate("DELETE FROM " + table);
                 }
-                ps.executeBatch();
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "INSERT INTO " + table + " (" + keyColumn + ", json) VALUES (?, ?)")) {
+                    for (Map.Entry<String, T> entry : values.entrySet()) {
+                        ps.setString(1, entry.getKey());
+                        ps.setString(2, gson.toJson(entry.getValue()));
+                        ps.addBatch();
+                    }
+                    ps.executeBatch();
+                }
+                conn.commit();
+            } catch (Exception e) {
+                try {
+                    conn.rollback();
+                } catch (Exception rollbackError) {
+                    e.addSuppressed(rollbackError);
+                }
+                throw e;
             }
-            conn.commit();
         } catch (Exception e) {
-            Log.warn("Failed to save ip bans to MySQL: " + e.getMessage());
+            Log.warn("Failed to save " + label + " to MySQL: " + e.getMessage());
         }
     }
 

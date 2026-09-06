@@ -45,9 +45,8 @@ public final class JumpToCommand extends AbstractPlayerCommand {
         this.addAliases(new String[]{"junp", "j", "jump"});
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

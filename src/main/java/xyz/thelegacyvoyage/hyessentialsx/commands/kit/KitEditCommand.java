@@ -47,9 +47,8 @@ public final class KitEditCommand extends AbstractPlayerCommand {
         this.addUsageVariant(new KitEditCooldownUsesCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -135,9 +134,8 @@ public final class KitEditCommand extends AbstractPlayerCommand {
             this.cooldownArg = withRequiredArg("cooldown", "Cooldown (e.g. 30d)", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -173,9 +171,8 @@ public final class KitEditCommand extends AbstractPlayerCommand {
             this.maxUsesArg = withRequiredArg("maxUses", "Max amount of claims (0 = unlimited)", ArgTypes.INTEGER);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

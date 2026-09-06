@@ -36,9 +36,8 @@ public final class TpahereAllCommand extends AbstractPlayerCommand {
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

@@ -28,9 +28,8 @@ public final class TrashCommand extends AbstractPlayerCommand {
         this.addAliases(new String[]{"disposal"});
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

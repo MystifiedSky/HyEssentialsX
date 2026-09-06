@@ -74,9 +74,8 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
         this.addSubCommand(new PlayerSubCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -104,9 +103,8 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
             super("rewards", "Show playtime rewards");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -125,9 +123,8 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
             super("top", "Show the playtime leaderboard");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -146,9 +143,8 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
             super("admin", "Open playtime admin settings");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -163,9 +159,8 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
             super("help", "Show playtime help");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -185,9 +180,8 @@ public final class PlaytimeCommand extends AbstractPlayerCommand {
             this.addAliases(new String[]{"other"});
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

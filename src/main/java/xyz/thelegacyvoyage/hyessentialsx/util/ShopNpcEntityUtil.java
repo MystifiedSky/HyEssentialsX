@@ -707,10 +707,6 @@ public final class ShopNpcEntityUtil {
         if (transform != null) {
             transform.setPosition(position);
             transform.setRotation(rotation);
-            try {
-                transform.markChunkDirty(store);
-            } catch (Exception ignored) {
-            }
         }
         npc.setLeashPoint(new Vector3d(basePos.x() + 0.5D, basePos.y(), basePos.z() + 0.5D));
         npc.setLeashHeading(rotation.y());

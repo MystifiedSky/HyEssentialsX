@@ -29,9 +29,8 @@ public final class WorldBorderCommand extends CommandBase {
         this.addSubCommand(new CenterCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -64,9 +63,8 @@ public final class WorldBorderCommand extends CommandBase {
             super("status", "Show the world border status");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -84,9 +82,8 @@ public final class WorldBorderCommand extends CommandBase {
             this.addAliases(new String[]{"enable"});
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -106,9 +103,8 @@ public final class WorldBorderCommand extends CommandBase {
             this.addAliases(new String[]{"disable"});
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -131,9 +127,8 @@ public final class WorldBorderCommand extends CommandBase {
             this.radiusArg = withRequiredArg("radius", "Border radius in blocks", ArgTypes.INTEGER);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -161,9 +156,8 @@ public final class WorldBorderCommand extends CommandBase {
             this.zArg = withRequiredArg("z", "Center Z coordinate", ArgTypes.INTEGER);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

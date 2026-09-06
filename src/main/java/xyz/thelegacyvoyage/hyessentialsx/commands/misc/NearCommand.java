@@ -36,9 +36,8 @@ public final class NearCommand extends AbstractPlayerCommand {
         this.addAliases(new String[]{"nearby"});
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

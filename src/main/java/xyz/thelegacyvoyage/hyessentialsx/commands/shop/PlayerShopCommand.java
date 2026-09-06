@@ -89,9 +89,8 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
         this.addSubCommand(new WarpSubCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -129,9 +128,8 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             super("list", "List player shops");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -157,9 +155,8 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             this.addAliases(new String[]{"shop"});
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -181,9 +178,8 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Shop name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -230,9 +226,8 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             this.addAliases(new String[]{"remove"});
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -269,9 +264,8 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Shop name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -289,9 +283,8 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Shop name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -309,9 +302,8 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Shop name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -332,9 +324,8 @@ public final class PlayerShopCommand extends AbstractPlayerCommand {
             this.addAliases(new String[]{"destination", "pwarp"});
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

@@ -49,9 +49,8 @@ public final class FlyCommand extends AbstractPlayerCommand {
         this.addUsageVariant(new FlyOtherCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -159,9 +158,8 @@ public final class FlyCommand extends AbstractPlayerCommand {
             }
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -186,9 +184,8 @@ public final class FlyCommand extends AbstractPlayerCommand {
             this.minutesArg = withRequiredArg("minutes", "Minutes of flight", ArgTypes.INTEGER);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -211,9 +208,8 @@ public final class FlyCommand extends AbstractPlayerCommand {
             this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

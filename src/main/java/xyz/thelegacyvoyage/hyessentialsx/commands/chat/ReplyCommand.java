@@ -56,9 +56,8 @@ public final class ReplyCommand extends AbstractPlayerCommand {
         this.messageArg = withListRequiredArg("message", "Message", ArgTypes.STRING);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

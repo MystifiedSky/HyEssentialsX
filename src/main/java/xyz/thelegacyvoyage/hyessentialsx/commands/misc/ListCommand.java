@@ -32,9 +32,8 @@ public final class ListCommand extends CommandBase {
         this.addAliases(new String[]{"online", "playerlist", "plist", "who"});
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

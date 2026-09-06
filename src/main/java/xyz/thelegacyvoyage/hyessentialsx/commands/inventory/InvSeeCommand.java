@@ -37,9 +37,8 @@ public final class InvSeeCommand extends AbstractPlayerCommand {
         this.addUsageVariant(new InvSeeSectionCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -160,9 +159,8 @@ public final class InvSeeCommand extends AbstractPlayerCommand {
             this.sectionArg = withRequiredArg("section", "Inventory section", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

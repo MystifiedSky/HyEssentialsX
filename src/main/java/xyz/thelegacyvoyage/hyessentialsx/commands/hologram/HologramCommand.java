@@ -66,8 +66,8 @@ public class HologramCommand extends AbstractCommand {
       this.addSubCommand(new HologramCommand.ListImagesCommand(plugin));
    }
 
-   protected boolean canGeneratePermission() {
-      return false;
+   {
+       requireNoPermission();
    }
 
    @Nullable
@@ -132,8 +132,8 @@ public class HologramCommand extends AbstractCommand {
          this.nameArg = this.withRequiredArg("name", "Name for the hologram", ArgTypes.STRING);
       }
 
-      protected boolean canGeneratePermission() {
-         return false;
+      {
+          requireNoPermission();
       }
 
       protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
@@ -195,8 +195,8 @@ public class HologramCommand extends AbstractCommand {
          this.addAliases(new String[]{"remove", "del"});
       }
 
-      protected boolean canGeneratePermission() {
-         return false;
+      {
+          requireNoPermission();
       }
 
       @Nullable
@@ -227,8 +227,8 @@ public class HologramCommand extends AbstractCommand {
          this.nameArg = this.withRequiredArg("name", "Name of the hologram to edit", ArgTypes.STRING);
       }
 
-      protected boolean canGeneratePermission() {
-         return false;
+      {
+          requireNoPermission();
       }
 
       protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
@@ -261,8 +261,8 @@ public class HologramCommand extends AbstractCommand {
          this.plugin = plugin;
       }
 
-      protected boolean canGeneratePermission() {
-         return false;
+      {
+          requireNoPermission();
       }
 
       @Nullable
@@ -308,8 +308,8 @@ public class HologramCommand extends AbstractCommand {
          this.addAliases(new String[]{"tp", "teleport", "goto"});
       }
 
-      protected boolean canGeneratePermission() {
-         return false;
+      {
+          requireNoPermission();
       }
 
       protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
@@ -348,8 +348,8 @@ public class HologramCommand extends AbstractCommand {
          this.addAliases(new String[]{"move"});
       }
 
-      protected boolean canGeneratePermission() {
-         return false;
+      {
+          requireNoPermission();
       }
 
       protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
@@ -387,8 +387,8 @@ public class HologramCommand extends AbstractCommand {
          this.textArg = this.withRequiredArg("text", "Text to add", ArgTypes.STRING);
       }
 
-      protected boolean canGeneratePermission() {
-         return false;
+      {
+          requireNoPermission();
       }
 
       @Nullable
@@ -437,8 +437,8 @@ public class HologramCommand extends AbstractCommand {
          this.textArg = this.withRequiredArg("text", "New text for the line", ArgTypes.STRING);
       }
 
-      protected boolean canGeneratePermission() {
-         return false;
+      {
+          requireNoPermission();
       }
 
       @Nullable
@@ -490,8 +490,8 @@ public class HologramCommand extends AbstractCommand {
          this.addAliases(new String[]{"delline"});
       }
 
-      protected boolean canGeneratePermission() {
-         return false;
+      {
+          requireNoPermission();
       }
 
       @Nullable
@@ -534,8 +534,8 @@ public class HologramCommand extends AbstractCommand {
          this.nameArg = this.withRequiredArg("name", "Name of the hologram", ArgTypes.STRING);
       }
 
-      protected boolean canGeneratePermission() {
-         return false;
+      {
+          requireNoPermission();
       }
 
       @Nullable
@@ -584,8 +584,8 @@ public class HologramCommand extends AbstractCommand {
          this.plugin = plugin;
       }
 
-      protected boolean canGeneratePermission() {
-         return false;
+      {
+          requireNoPermission();
       }
 
       @Nullable
@@ -653,8 +653,8 @@ public class HologramCommand extends AbstractCommand {
          this.addAliases(new String[]{"clean", "purge"});
       }
 
-      protected boolean canGeneratePermission() {
-         return false;
+      {
+          requireNoPermission();
       }
 
       @Nullable
@@ -690,8 +690,8 @@ public class HologramCommand extends AbstractCommand {
          this.addAliases(new String[]{"animations", "anims"});
       }
 
-      protected boolean canGeneratePermission() {
-         return false;
+      {
+          requireNoPermission();
       }
 
       @Nullable
@@ -722,8 +722,8 @@ public class HologramCommand extends AbstractCommand {
          this.plugin = plugin;
       }
 
-      protected boolean canGeneratePermission() {
-         return false;
+      {
+          requireNoPermission();
       }
 
       @Nullable

@@ -60,9 +60,8 @@ public final class MoneyCommand extends CommandBase {
         this.addAliases(new String[]{"balance", "bal", "eco", "cash", "wallet"});
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -132,9 +131,8 @@ public final class MoneyCommand extends CommandBase {
             this.targetArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -237,9 +235,8 @@ public final class MoneyCommand extends CommandBase {
             this.amountArg = withRequiredArg("amount", "Amount", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -259,9 +256,8 @@ public final class MoneyCommand extends CommandBase {
             this.amountArg = withRequiredArg("amount", "Amount", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

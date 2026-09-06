@@ -34,9 +34,8 @@ public final class NickCommand extends CommandBase {
         this.addUsageVariant(new OtherNickVariant());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -135,9 +134,8 @@ public final class NickCommand extends CommandBase {
             this.nicknameArg = withRequiredArg("nickname", "Nickname, or off", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -158,9 +156,8 @@ public final class NickCommand extends CommandBase {
             this.nicknameArg = withRequiredArg("nickname", "Nickname, or off", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

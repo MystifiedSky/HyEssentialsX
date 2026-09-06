@@ -54,9 +54,8 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
         this.addAliases(new String[]{"balancetop"});
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -149,9 +148,8 @@ public final class BalanceTopCommand extends AbstractPlayerCommand {
             this.limitArg = withRequiredArg("limit", "Number of balances to show", ArgTypes.INTEGER);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

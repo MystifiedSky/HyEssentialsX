@@ -26,9 +26,8 @@ public final class KickAllCommand extends CommandBase {
         this.reasonArg = withListRequiredArg("reason", "Kick reason", ArgTypes.STRING);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

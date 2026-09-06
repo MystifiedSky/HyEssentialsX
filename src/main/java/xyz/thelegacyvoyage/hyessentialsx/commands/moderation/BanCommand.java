@@ -38,9 +38,8 @@ public final class BanCommand extends CommandBase {
         this.addAliases(new String[]{"permban"});
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -112,9 +111,8 @@ public final class BanCommand extends CommandBase {
             this.reasonArg = withListRequiredArg("reason", "Reason", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

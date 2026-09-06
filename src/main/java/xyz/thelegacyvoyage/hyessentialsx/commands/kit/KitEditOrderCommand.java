@@ -36,9 +36,8 @@ public final class KitEditOrderCommand extends AbstractPlayerCommand {
         this.positionArg = withRequiredArg("position", "1-based list position", ArgTypes.INTEGER);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

@@ -36,9 +36,8 @@ public final class WarningsCommand extends CommandBase {
         this.playerArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

@@ -55,9 +55,8 @@ public final class SpawnCommand extends AbstractPlayerCommand {
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -344,9 +343,8 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -368,9 +366,8 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             this.setPermissionGroups();
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

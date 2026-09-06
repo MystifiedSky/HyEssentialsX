@@ -19,9 +19,8 @@ public class InfoSubCommand extends CommandBase {
         this.setPermissionGroups();
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

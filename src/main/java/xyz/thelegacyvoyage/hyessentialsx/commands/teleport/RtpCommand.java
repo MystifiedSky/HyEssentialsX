@@ -65,9 +65,8 @@ public final class RtpCommand extends CommandBase {
         this.addAliases(new String[]{"randomtp", "wild"});
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -305,9 +304,8 @@ public final class RtpCommand extends CommandBase {
             this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -339,9 +337,8 @@ public final class RtpCommand extends CommandBase {
             this.worldArg = withRequiredArg("world", "Target world", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

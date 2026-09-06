@@ -41,9 +41,8 @@ public final class TpaCommand extends AbstractPlayerCommand {
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -120,9 +119,8 @@ public final class TpaCommand extends AbstractPlayerCommand {
             this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -153,9 +151,8 @@ public final class TpaCommand extends AbstractPlayerCommand {
             super("gui", "Open the TPA request menu");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

@@ -48,9 +48,8 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
         this.addSubCommand(new SetPermissionSubCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -90,9 +89,8 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
             this.addAliases(new String[]{"gui", "editor", "edit"});
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -110,9 +108,8 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
             super("list", "List announcement presets");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -136,9 +133,8 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Preset name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -156,9 +152,8 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
             super("next", "Send the next scheduled announcement now");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -180,9 +175,8 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
             this.addUsageVariant(new CreateMessageVariant());
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -201,9 +195,8 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
                 this.messageArg = withListRequiredArg("message", "Initial chat message", ArgTypes.STRING);
             }
 
-            @Override
-            protected boolean canGeneratePermission() {
-                return false;
+            {
+                requireNoPermission();
             }
 
             @Override
@@ -231,9 +224,8 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Preset name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -254,9 +246,8 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Preset name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -283,9 +274,8 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
             this.secondsArg = withRequiredArg("seconds", "Seconds, minimum 30", ArgTypes.INTEGER);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -302,9 +292,8 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
             super("random", "Use random scheduled announcement order");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -320,9 +309,8 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
             super("sequential", "Use sequential scheduled announcement order");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -343,9 +331,8 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
             this.messageArg = withListRequiredArg("message", "Chat message", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -374,9 +361,8 @@ public final class AnnouncementCommand extends AbstractPlayerCommand {
             this.permissionArg = withRequiredArg("permission", "Permission node, or none", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

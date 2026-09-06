@@ -56,9 +56,8 @@ public final class MsgCommand extends AbstractPlayerCommand {
         this.messageArg = withListRequiredArg("message", "Message", ArgTypes.STRING);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

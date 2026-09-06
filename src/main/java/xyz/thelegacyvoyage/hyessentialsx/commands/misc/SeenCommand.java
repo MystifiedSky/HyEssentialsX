@@ -30,9 +30,8 @@ public final class SeenCommand extends CommandBase {
         this.nameArg = withRequiredArg("player", "Player name", ArgTypes.STRING);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

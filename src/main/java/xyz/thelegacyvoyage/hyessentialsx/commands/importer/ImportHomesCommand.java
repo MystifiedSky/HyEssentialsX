@@ -42,9 +42,8 @@ public final class ImportHomesCommand extends CommandBase {
         this.gson = new GsonBuilder().create();
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

@@ -45,9 +45,8 @@ public final class LeaderboardCommand extends CommandBase {
         this.addUsageVariant(new LeaderboardStatLimitCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -125,9 +124,8 @@ public final class LeaderboardCommand extends CommandBase {
             this.statArg.suggest(LeaderboardCommand.this::suggestStats);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -155,9 +153,8 @@ public final class LeaderboardCommand extends CommandBase {
             this.statArg.suggest(LeaderboardCommand.this::suggestStats);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

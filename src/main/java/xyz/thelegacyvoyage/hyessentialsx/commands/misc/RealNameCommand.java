@@ -26,9 +26,8 @@ public final class RealNameCommand extends CommandBase {
         this.nameArg = withRequiredArg("name", "Nickname or player name", ArgTypes.STRING);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

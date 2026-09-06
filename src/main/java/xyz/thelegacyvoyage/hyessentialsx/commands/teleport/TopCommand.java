@@ -42,9 +42,8 @@ public final class TopCommand extends AbstractPlayerCommand {
         this.addUsageVariant(new TopOtherCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -171,9 +170,8 @@ public final class TopCommand extends AbstractPlayerCommand {
             this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

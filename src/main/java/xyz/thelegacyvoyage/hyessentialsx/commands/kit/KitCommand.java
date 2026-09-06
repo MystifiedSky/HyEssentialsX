@@ -46,9 +46,8 @@ public final class KitCommand extends AbstractPlayerCommand {
         this.addUsageVariant(new ClaimKitCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -98,9 +97,8 @@ public final class KitCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -214,9 +212,8 @@ public final class KitCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

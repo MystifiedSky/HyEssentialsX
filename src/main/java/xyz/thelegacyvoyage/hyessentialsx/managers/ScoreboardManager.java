@@ -19,7 +19,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.ui.scoreboard.ScoreboardHud;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
-import xyz.thelegacyvoyage.hyessentialsx.util.LuckPermsUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.PermissionProviderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.PluginInfoUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
@@ -1568,11 +1568,11 @@ public final class ScoreboardManager {
 
     @Nonnull
     private String resolveRank(@Nonnull UUID uuid) {
-        String primary = LuckPermsUtil.getPrimaryGroup(uuid);
+        String primary = PermissionProviderUtil.getPrimaryGroup(uuid);
         if (primary != null && !primary.isBlank()) {
             return primary;
         }
-        Set<String> groups = LuckPermsUtil.getGroupsFallback(uuid);
+        Set<String> groups = PermissionProviderUtil.getGroupsFallback(uuid);
         if (!groups.isEmpty()) {
             return groups.iterator().next();
         }

@@ -25,9 +25,8 @@ public final class CombatLogCommand extends CommandBase {
         this.addSubCommand(new ReloadCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -48,9 +47,8 @@ public final class CombatLogCommand extends CommandBase {
             this.setPermissionGroups();
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

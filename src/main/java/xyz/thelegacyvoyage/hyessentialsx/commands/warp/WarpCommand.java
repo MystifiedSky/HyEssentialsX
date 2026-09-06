@@ -60,9 +60,8 @@ public final class WarpCommand extends CommandBase {
         this.addSubCommand(new ListSubCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -248,9 +247,8 @@ public final class WarpCommand extends CommandBase {
             this.warpArg.suggest(WarpCommand.this::suggestWarps);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -274,9 +272,8 @@ public final class WarpCommand extends CommandBase {
             this.warpArg.suggest(WarpCommand.this::suggestWarps);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -299,9 +296,8 @@ public final class WarpCommand extends CommandBase {
             super("list", "List available warps");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

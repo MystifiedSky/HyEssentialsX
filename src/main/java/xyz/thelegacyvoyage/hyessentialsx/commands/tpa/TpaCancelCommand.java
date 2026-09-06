@@ -32,9 +32,8 @@ public final class TpaCancelCommand extends AbstractPlayerCommand {
         this.targetArg = withRequiredArg("player", "Player to cancel for", ArgTypes.PLAYER_REF);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

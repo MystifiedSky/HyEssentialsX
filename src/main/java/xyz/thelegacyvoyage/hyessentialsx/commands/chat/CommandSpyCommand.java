@@ -32,9 +32,8 @@ public final class CommandSpyCommand extends CommandBase {
         this.addSubCommand(new UnfilterSubCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -101,9 +100,8 @@ public final class CommandSpyCommand extends CommandBase {
             CommandPermissionUtil.apply(this, CommandSpyManager.PERMISSION_NODE);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -119,9 +117,8 @@ public final class CommandSpyCommand extends CommandBase {
             CommandPermissionUtil.apply(this, CommandSpyManager.PERMISSION_NODE);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -137,9 +134,8 @@ public final class CommandSpyCommand extends CommandBase {
             CommandPermissionUtil.apply(this, CommandSpyManager.PERMISSION_NODE);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -158,9 +154,8 @@ public final class CommandSpyCommand extends CommandBase {
             this.commandArg = withRequiredArg("command", "Command name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -179,9 +174,8 @@ public final class CommandSpyCommand extends CommandBase {
             this.commandArg = withRequiredArg("command", "Command name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

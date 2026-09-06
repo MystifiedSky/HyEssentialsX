@@ -182,8 +182,8 @@ public class EntityPositionSyncManager {
             TransformComponent transform = (TransformComponent)store.getComponent(entityRef, TransformComponent.getComponentType());
             if (transform != null) {
                double yOffset = (double)(-i) * lineSpacing;
-               transform.getPosition().set(basePosition.x(), basePosition.y() + yOffset, basePosition.z());
-               transform.markChunkDirty(store);
+               transform.setPosition(new org.joml.Vector3d(
+                       basePosition.x(), basePosition.y() + yOffset, basePosition.z()));
             }
          }
       }

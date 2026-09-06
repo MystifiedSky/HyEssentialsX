@@ -39,9 +39,8 @@ public final class TempBanCommand extends CommandBase {
         this.addUsageVariant(new TempBanReasonCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -117,9 +116,8 @@ public final class TempBanCommand extends CommandBase {
             this.reasonArg = withListRequiredArg("reason", "Reason", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

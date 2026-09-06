@@ -25,9 +25,8 @@ public final class SleepPercentCommand extends CommandBase {
         this.addAliases(new String[]{"sp"});
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -66,9 +65,8 @@ public final class SleepPercentCommand extends CommandBase {
             this.percentArg = withRequiredArg("percent", "Sleep percentage", ArgTypes.INTEGER);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

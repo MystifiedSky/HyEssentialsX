@@ -40,9 +40,8 @@ public final class WarnCommand extends CommandBase {
         this.addUsageVariant(new WarnReasonCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -155,9 +154,8 @@ public final class WarnCommand extends CommandBase {
             this.reasonArg = withListRequiredArg("reason", "Reason", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

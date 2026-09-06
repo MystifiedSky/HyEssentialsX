@@ -36,9 +36,8 @@ public final class UnignoreCommand extends AbstractPlayerCommand {
         this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

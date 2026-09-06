@@ -58,9 +58,8 @@ public final class StatsCommand extends CommandBase {
         this.addUsageVariant(new StatsPlayerCategoryCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -149,9 +148,8 @@ public final class StatsCommand extends CommandBase {
             this.firstArg.suggest(StatsCommand.this::suggestCategories);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -179,9 +177,8 @@ public final class StatsCommand extends CommandBase {
             this.categoryArg.suggest(StatsCommand.this::suggestCategories);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

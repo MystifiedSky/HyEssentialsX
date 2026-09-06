@@ -43,9 +43,8 @@ public final class ScoreboardCommand extends AbstractCommand {
         this.addSubCommand(new ReloadCommand(scoreboardManager, config));
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Nullable
@@ -70,9 +69,8 @@ public final class ScoreboardCommand extends AbstractCommand {
             CommandPermissionUtil.apply(this, PERMISSION_NODE);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -114,9 +112,8 @@ public final class ScoreboardCommand extends AbstractCommand {
             CommandPermissionUtil.apply(this, PERMISSION_NODE);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -158,9 +155,8 @@ public final class ScoreboardCommand extends AbstractCommand {
             CommandPermissionUtil.apply(this, PERMISSION_NODE);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -198,9 +194,8 @@ public final class ScoreboardCommand extends AbstractCommand {
             CommandPermissionUtil.apply(this, PERMISSION_NODE);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -242,9 +237,8 @@ public final class ScoreboardCommand extends AbstractCommand {
             CommandPermissionUtil.apply(this, PERMISSION_NODE);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -282,9 +276,8 @@ public final class ScoreboardCommand extends AbstractCommand {
             CommandPermissionUtil.apply(this, PERMISSION_NODE);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -322,9 +315,8 @@ public final class ScoreboardCommand extends AbstractCommand {
             CommandPermissionUtil.apply(this, PERMISSION_NODE);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

@@ -39,9 +39,8 @@ public final class IpBanCommand extends CommandBase {
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -115,9 +114,8 @@ public final class IpBanCommand extends CommandBase {
             this.reasonArg = withListRequiredArg("reason", "Reason", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

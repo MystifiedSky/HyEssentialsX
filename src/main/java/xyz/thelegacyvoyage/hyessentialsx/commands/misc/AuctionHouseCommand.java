@@ -49,9 +49,8 @@ public final class AuctionHouseCommand extends AbstractPlayerCommand {
         CommandPermissionUtil.apply(this, USE_PERMISSION);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -89,9 +88,8 @@ public final class AuctionHouseCommand extends AbstractPlayerCommand {
             this.actionArg = withRequiredArg("action", "spawn, remove, or list", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

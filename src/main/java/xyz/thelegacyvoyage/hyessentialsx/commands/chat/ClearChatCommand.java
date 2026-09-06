@@ -19,9 +19,8 @@ public final class ClearChatCommand extends CommandBase {
         this.addAliases(new String[]{"cc"});
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

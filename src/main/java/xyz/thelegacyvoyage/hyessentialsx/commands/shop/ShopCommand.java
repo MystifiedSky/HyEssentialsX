@@ -66,9 +66,8 @@ public final class ShopCommand extends AbstractPlayerCommand {
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -90,9 +89,8 @@ public final class ShopCommand extends AbstractPlayerCommand {
             super("list", "List admin shops");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -115,9 +113,8 @@ public final class ShopCommand extends AbstractPlayerCommand {
             this.addAliases(new String[]{"shop"});
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -139,9 +136,8 @@ public final class ShopCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Shop name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -170,9 +166,8 @@ public final class ShopCommand extends AbstractPlayerCommand {
             this.addAliases(new String[]{"remove"});
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -206,9 +201,8 @@ public final class ShopCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Shop name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -225,9 +219,8 @@ public final class ShopCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Shop name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

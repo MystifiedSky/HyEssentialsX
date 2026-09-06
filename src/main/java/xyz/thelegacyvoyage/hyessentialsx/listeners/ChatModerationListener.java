@@ -13,8 +13,10 @@ import xyz.thelegacyvoyage.hyessentialsx.models.MuteModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.HyFactionsUtil;
-import xyz.thelegacyvoyage.hyessentialsx.util.LuckPermsUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
+import xyz.thelegacyvoyage.hyessentialsx.util.HyperPermsUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.LuckPermsUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.PermissionProviderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
@@ -144,10 +146,10 @@ public final class ChatModerationListener {
 
     @Nonnull
     private String buildFormattedBase(@Nonnull PlayerRef sender) {
-        String groupName = LuckPermsUtil.getPrimaryGroup(sender.getUuid());
+        String groupName = PermissionProviderUtil.getPrimaryGroup(sender.getUuid());
         if (groupName == null || groupName.isBlank()) {
             groupName = config.getHighestPriorityGroup(
-                    LuckPermsUtil.getGroupsFallback(sender.getUuid())
+                    PermissionProviderUtil.getGroupsFallback(sender.getUuid())
             );
         }
         String format = config.getChatFormatForGroup(groupName);
@@ -165,10 +167,14 @@ public final class ChatModerationListener {
         UUID uuid = sender.getUuid();
         String luckPermsPrefix = LuckPermsUtil.getPrefix(uuid);
         String luckPermsSuffix = LuckPermsUtil.getSuffix(uuid);
+        String hyperPermsPrefix = HyperPermsUtil.getPrefix(uuid);
+        String hyperPermsSuffix = HyperPermsUtil.getSuffix(uuid);
+        String providerPrefix = PermissionProviderUtil.getPrefix(uuid);
+        String providerSuffix = PermissionProviderUtil.getSuffix(uuid);
         String localPrefix = config.getChatPrefixForGroup(groupName);
         String localSuffix = config.getChatSuffixForGroup(groupName);
-        String prefix = luckPermsPrefix.isBlank() ? localPrefix : luckPermsPrefix;
-        String suffix = luckPermsSuffix.isBlank() ? localSuffix : luckPermsSuffix;
+        String prefix = providerPrefix.isBlank() ? localPrefix : providerPrefix;
+        String suffix = providerSuffix.isBlank() ? localSuffix : providerSuffix;
         String resolved = format
                 .replace("{player}", nicknames.displayName(sender))
                 .replace("{displayname}", nicknames.displayName(sender))
@@ -176,14 +182,20 @@ public final class ChatModerationListener {
                 .replace("{username}", sender.getUsername())
                 .replace("%luckperms_prefix%", luckPermsPrefix)
                 .replace("{luckperms_prefix}", luckPermsPrefix)
+                .replace("%hyperperms_prefix%", hyperPermsPrefix)
+                .replace("{hyperperms_prefix}", hyperPermsPrefix)
                 .replace("{local_prefix}", localPrefix)
                 .replace("{prefix}", prefix)
                 .replace("%luckperms_suffix%", luckPermsSuffix)
                 .replace("{luckperms_suffix}", luckPermsSuffix)
+                .replace("%hyperperms_suffix%", hyperPermsSuffix)
+                .replace("{hyperperms_suffix}", hyperPermsSuffix)
                 .replace("{local_suffix}", localSuffix)
                 .replace("{suffix}", suffix)
                 .replace("%luckperms_primary_group%", groupName)
                 .replace("{luckperms_primary_group}", groupName)
+                .replace("%hyperperms_primary_group%", groupName)
+                .replace("{hyperperms_primary_group}", groupName)
                 .replace("{group}", groupName)
                 .replace("{faction}", faction);
         return replaceLuckPermsMeta(uuid, resolved);

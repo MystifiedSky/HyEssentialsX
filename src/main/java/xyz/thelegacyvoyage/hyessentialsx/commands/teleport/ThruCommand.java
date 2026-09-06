@@ -49,9 +49,8 @@ public final class ThruCommand extends AbstractPlayerCommand {
         this.addAliases(new String[]{"through", "wallthrough"});
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

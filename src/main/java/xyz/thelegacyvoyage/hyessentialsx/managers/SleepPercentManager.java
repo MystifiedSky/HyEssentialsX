@@ -2,7 +2,7 @@ package xyz.thelegacyvoyage.hyessentialsx.managers;
 
 import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep;
 import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSomnolence;
-import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep.MorningWakeUp;
+import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep.FullyAwake;
 import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep.NoddingOff;
 import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep.Slumber;
 import com.hypixel.hytale.builtin.beds.sleep.resources.WorldSleep;
@@ -181,7 +181,7 @@ public final class SleepPercentManager {
             if (somnolence == null) continue;
             PlayerSleep sleepState = somnolence.getSleepState();
             if (!(sleepState instanceof NoddingOff) && !(sleepState instanceof Slumber)) continue;
-            PlayerSomnolence wakeUpState = new PlayerSomnolence(new MorningWakeUp(wakeUp));
+            PlayerSomnolence wakeUpState = new PlayerSomnolence(FullyAwake.INSTANCE);
             store.putComponent(entityRef, PlayerSomnolence.getComponentType(), wakeUpState);
         }
 

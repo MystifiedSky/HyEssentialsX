@@ -30,9 +30,8 @@ public final class UnfreezeCommand extends AbstractPlayerCommand {
         this.targetArg = withRequiredArg("player", "Player to unfreeze", ArgTypes.PLAYER_REF);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

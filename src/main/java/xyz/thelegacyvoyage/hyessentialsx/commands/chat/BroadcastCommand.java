@@ -41,9 +41,8 @@ public final class BroadcastCommand extends CommandBase {
         this.addUsageVariant(new BroadcastMessageCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -81,9 +80,8 @@ public final class BroadcastCommand extends CommandBase {
             this.messageArg = withListRequiredArg("message", "Message to broadcast", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -100,9 +98,8 @@ public final class BroadcastCommand extends CommandBase {
             CommandPermissionUtil.apply(this, AnnouncementCommand.PERMISSION_NODE);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

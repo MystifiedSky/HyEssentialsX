@@ -39,9 +39,8 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
         this.addUsageVariant(new FlySpeedOtherCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -117,9 +116,8 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
             this.speedArg = withRequiredArg("speed", "Fly speed multiplier", ArgTypes.FLOAT);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -146,9 +144,8 @@ public final class FlySpeedCommand extends AbstractPlayerCommand {
             this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

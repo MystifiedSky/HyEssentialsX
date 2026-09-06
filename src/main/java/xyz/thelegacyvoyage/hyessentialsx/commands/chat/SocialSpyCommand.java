@@ -25,9 +25,8 @@ public final class SocialSpyCommand extends AbstractPlayerCommand {
         this.addAliases(new String[]{"sspy", "esocialspy"});
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

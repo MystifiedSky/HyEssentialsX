@@ -54,7 +54,7 @@ For stable server setup instructions, use the wiki first. The README is a projec
 - Java 25 toolchain.
 - Gradle wrapper included in this repository.
 - A compatible Hytale server jar available at one of the paths checked by `build.gradle`, usually `server/HytaleServer.jar` or `libs/HytaleServer.jar`.
-- Hytale server version range currently targeted by the manifest: `^0.5.0`.
+- Hytale server version range currently targeted by the manifest: `^0.6.3`.
 
 Optional runtime integrations:
 

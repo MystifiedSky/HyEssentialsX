@@ -33,9 +33,8 @@ public final class UnbanCommand extends AbstractAsyncCommand {
         this.profileArg = withRequiredArg("player", "Player name", ArgTypes.GAME_PROFILE_LOOKUP);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

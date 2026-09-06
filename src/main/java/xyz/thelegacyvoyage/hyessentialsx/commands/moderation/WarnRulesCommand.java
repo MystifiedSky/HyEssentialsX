@@ -34,9 +34,8 @@ public final class WarnRulesCommand extends CommandBase {
         this.addSubCommand(new ResetSubCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -49,9 +48,8 @@ public final class WarnRulesCommand extends CommandBase {
             super("list", "List warning escalation rules");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -77,9 +75,8 @@ public final class WarnRulesCommand extends CommandBase {
             this.addUsageVariant(new SetDetailVariant());
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -156,9 +153,8 @@ public final class WarnRulesCommand extends CommandBase {
                 this.detailArg = withListRequiredArg("detail", "Reason or command text", ArgTypes.STRING);
             }
 
-            @Override
-            protected boolean canGeneratePermission() {
-                return false;
+            {
+                requireNoPermission();
             }
 
             @Override
@@ -202,9 +198,8 @@ public final class WarnRulesCommand extends CommandBase {
             this.idArg = withRequiredArg("id", "Rule ID", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -229,9 +224,8 @@ public final class WarnRulesCommand extends CommandBase {
             this.addAliases(new String[]{"remove"});
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -251,9 +245,8 @@ public final class WarnRulesCommand extends CommandBase {
             super("reset", "Restore default warning escalation rules");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

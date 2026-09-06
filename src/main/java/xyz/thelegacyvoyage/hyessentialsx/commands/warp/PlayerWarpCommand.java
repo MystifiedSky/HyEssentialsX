@@ -72,9 +72,8 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
         this.addSubCommand(new ModerateSubCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -115,9 +114,8 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("warp", "Player warp name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -139,9 +137,8 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
             this.addAliases(new String[]{"open", "go"});
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -163,9 +160,8 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
             this.addUsageVariant(new CreateWithDescriptionCommand());
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -187,9 +183,8 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
                 this.descArg = withListRequiredArg("description", "Description", ArgTypes.STRING);
             }
 
-            @Override
-            protected boolean canGeneratePermission() {
-                return false;
+            {
+                requireNoPermission();
             }
 
             @Override
@@ -214,9 +209,8 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
             this.addAliases(new String[]{"del", "remove"});
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -246,9 +240,8 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
             this.newNameArg = withRequiredArg("newName", "New warp name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -284,9 +277,8 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Warp name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -323,9 +315,8 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
             this.addUsageVariant(new DescWithTextCommand());
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -347,9 +338,8 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
                 this.descArg = withListRequiredArg("description", "Description", ArgTypes.STRING);
             }
 
-            @Override
-            protected boolean canGeneratePermission() {
-                return false;
+            {
+                requireNoPermission();
             }
 
             @Override
@@ -373,9 +363,8 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Warp name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -396,9 +385,8 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
             this.nameArg = withRequiredArg("name", "Warp name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -422,9 +410,8 @@ public final class PlayerWarpCommand extends AbstractPlayerCommand {
             this.addAliases(new String[]{"admin"});
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

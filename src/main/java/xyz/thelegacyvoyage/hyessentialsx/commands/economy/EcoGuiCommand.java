@@ -40,9 +40,8 @@ public final class EcoGuiCommand extends AbstractPlayerCommand {
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

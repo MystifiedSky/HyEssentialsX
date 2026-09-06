@@ -32,9 +32,8 @@ public final class KitDeleteCommand extends AbstractPlayerCommand {
         this.nameArg = withRequiredArg("name", "Kit name", ArgTypes.STRING);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

@@ -60,9 +60,8 @@ public final class RankupCommand extends AbstractPlayerCommand {
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -182,9 +181,8 @@ public final class RankupCommand extends AbstractPlayerCommand {
             this.setPermissionGroups();
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -199,9 +197,8 @@ public final class RankupCommand extends AbstractPlayerCommand {
             this.setPermissionGroups();
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

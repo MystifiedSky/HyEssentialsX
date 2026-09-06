@@ -2,7 +2,6 @@ package xyz.thelegacyvoyage.hyessentialsx.listeners;
 
 import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep;
 import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSomnolence;
-import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep.MorningWakeUp;
 import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep.NoddingOff;
 import com.hypixel.hytale.builtin.beds.sleep.components.PlayerSleep.Slumber;
 import com.hypixel.hytale.builtin.mounts.MountedComponent;
@@ -17,6 +16,7 @@ import com.hypixel.hytale.component.dependency.SystemDependency;
 import com.hypixel.hytale.component.dependency.SystemGroupDependency;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.tick.EntityTickingSystem;
+import com.hypixel.hytale.protocol.FlyMode;
 import com.hypixel.hytale.protocol.MovementSettings;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.movement.MovementManager;
@@ -151,13 +151,13 @@ public final class FlyNoFallListener {
             if (movementManager != null) {
                 boolean changed = false;
                 MovementSettings settings = movementManager.getSettings();
-                if (settings != null && !settings.canFly) {
-                    settings.canFly = true;
+                if (settings != null && settings.fly == FlyMode.Disabled) {
+                    settings.fly = FlyMode.Allowed;
                     changed = true;
                 }
                 MovementSettings defaults = movementManager.getDefaultSettings();
-                if (defaults != null && !defaults.canFly) {
-                    defaults.canFly = true;
+                if (defaults != null && defaults.fly == FlyMode.Disabled) {
+                    defaults.fly = FlyMode.Allowed;
                     changed = true;
                 }
                 if (changed) {
@@ -177,7 +177,7 @@ public final class FlyNoFallListener {
             PlayerSomnolence somnolence = chunk.getComponent(index, PlayerSomnolence.getComponentType());
             if (somnolence == null) return false;
             PlayerSleep state = somnolence.getSleepState();
-            return state instanceof Slumber || state instanceof NoddingOff || state instanceof MorningWakeUp;
+            return state instanceof Slumber || state instanceof NoddingOff;
         }
 
         private boolean isMounted(@Nonnull ArchetypeChunk<EntityStore> chunk, int index) {
@@ -229,9 +229,13 @@ public final class FlyNoFallListener {
             MovementManager movementManager = chunk.getComponent(index, MovementManager.getComponentType());
             if (movementManager == null) return false;
             MovementSettings settings = movementManager.getSettings();
-            if (settings != null && settings.canFly) return true;
+            if (settings != null && isFlyingAllowed(settings.fly)) return true;
             MovementSettings defaults = movementManager.getDefaultSettings();
-            return defaults != null && defaults.canFly;
+            return defaults != null && isFlyingAllowed(defaults.fly);
+        }
+
+        private static boolean isFlyingAllowed(FlyMode flyMode) {
+            return flyMode == FlyMode.Allowed || flyMode == FlyMode.Forced;
         }
 
         private static boolean isFallDamage(@Nonnull Damage event) {

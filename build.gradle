@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'xyz.thelegacyvoyage.hyessentialsx'
-version = '1.5.6'
+version = '1.5.7'
 
 repositories {
     mavenCentral()
@@ -24,7 +24,12 @@ sourceSets {
 def serverJarPath = file('libs/HytaleServer.jar')
 def projectServerJar = file('server/HytaleServer.jar')
 def siblingServerJar = file('../server/HytaleServer.jar')
-def serverJarCandidates = [projectServerJar, serverJarPath, siblingServerJar]
+def appDataPath = System.getenv('APPDATA')
+def launcherServerJar = appDataPath == null
+        ? null
+        : file("${appDataPath}/Hytale/install/release/package/game/latest/Server/HytaleServer.jar")
+def serverJarCandidates = [launcherServerJar, projectServerJar, serverJarPath, siblingServerJar]
+        .findAll { it != null }
 def existingServerJars = serverJarCandidates.findAll { it.exists() }
 def selectedServerJar
 if (existingServerJars) {
@@ -53,10 +58,10 @@ def resolveServerVersionFromJar = { File jarFile ->
 }
 
 def selectedServerVersion = resolveServerVersionFromJar(selectedServerJar)
-def pluginServerVersionRange = '^0.5.0'
+def pluginServerVersionRange = '^0.6.3'
 
 dependencies {
-    // Use the newest available HytaleServer.jar (project/server/libs), fallback to libs for clarity
+    // Prefer the newest available HytaleServer.jar, including the official launcher installation.
     compileOnly files(selectedServerJar)
     // JSR305 annotations (@Nonnull, @Nullable)
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
@@ -113,7 +118,8 @@ tasks.named('build') {
 tasks.register('copyServerJar') {
     doLast {
         def destJar = file('libs/HytaleServer.jar')
-        def sources = [file('server/HytaleServer.jar'), file('../server/HytaleServer.jar')]
+        def sources = [launcherServerJar, file('server/HytaleServer.jar'), file('../server/HytaleServer.jar')]
+                .findAll { it != null }
         def latestSource = sources.findAll { it.exists() }.max { it.lastModified() }
         if (latestSource == null) {
             return

@@ -33,9 +33,8 @@ public final class DelWarpCommand extends AbstractPlayerCommand {
         this.nameArg = withRequiredArg("name", "Warp name", ArgTypes.STRING);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

@@ -39,9 +39,8 @@ public final class TpahereCommand extends AbstractPlayerCommand {
         this.targetArg = withRequiredArg("player", "Player to request", ArgTypes.PLAYER_REF);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

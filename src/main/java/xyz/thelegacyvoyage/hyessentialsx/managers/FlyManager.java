@@ -9,6 +9,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.protocol.FlyMode;
 import com.hypixel.hytale.protocol.MovementSettings;
 import com.hypixel.hytale.protocol.MovementStates;
 import com.hypixel.hytale.protocol.SavedMovementStates;
@@ -151,10 +152,10 @@ public final class FlyManager {
 
         movementManager.applyDefaultSettings();
         MovementSettings settings = movementManager.getSettings();
-        if (settings != null) settings.canFly = enabled;
+        if (settings != null) settings.fly = enabled ? FlyMode.Allowed : FlyMode.Disabled;
 
         MovementSettings defaults = movementManager.getDefaultSettings();
-        if (defaults != null) defaults.canFly = enabled;
+        if (defaults != null) defaults.fly = enabled ? FlyMode.Allowed : FlyMode.Disabled;
         applyFlySpeedMultiplier(playerId, settings, defaults);
 
         MovementStatesComponent statesComponent = targetStore.getComponent(targetRef, MovementStatesComponent.getComponentType());

@@ -39,9 +39,8 @@ public class HyEssentialsXPluginCommand extends AbstractCommandCollection {
         this.addSubCommand(new LanguageSubCommand(languageManager));
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false; // No permission required for base command
+    {
+        requireNoPermission();
     }
 }
 

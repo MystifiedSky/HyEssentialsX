@@ -132,8 +132,8 @@ public class EntityToolPacketHandler {
                   Vec3d correctPosition = new Vec3d(basePosition.x(), basePosition.y() + yOffset, basePosition.z());
                   TransformComponent transform = (TransformComponent)store.getComponent(entityRef, TransformComponent.getComponentType());
                   if (transform != null) {
-                     transform.getPosition().set(correctPosition.x(), correctPosition.y(), correctPosition.z());
-                     transform.markChunkDirty(store);
+                     transform.setPosition(new org.joml.Vector3d(
+                             correctPosition.x(), correctPosition.y(), correctPosition.z()));
                   }
 
                   ++lineIndex;

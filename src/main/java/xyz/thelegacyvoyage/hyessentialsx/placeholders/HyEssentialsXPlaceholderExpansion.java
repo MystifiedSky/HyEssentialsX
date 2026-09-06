@@ -10,7 +10,9 @@ import xyz.thelegacyvoyage.hyessentialsx.managers.NicknameManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.PlaytimeManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
+import xyz.thelegacyvoyage.hyessentialsx.util.HyperPermsUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.LuckPermsUtil;
+import xyz.thelegacyvoyage.hyessentialsx.util.PermissionProviderUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.TimeUtil;
 
 import javax.annotation.Nonnull;
@@ -98,6 +100,9 @@ public final class HyEssentialsXPlaceholderExpansion extends PlaceholderExpansio
                 "luckperms_suffix",
                 "luckperms_primary_group",
                 "luckperms_meta_<key>",
+                "hyperperms_prefix",
+                "hyperperms_suffix",
+                "hyperperms_primary_group",
                 "nickname",
                 "nickname_plain",
                 "displayname",
@@ -138,6 +143,12 @@ public final class HyEssentialsXPlaceholderExpansion extends PlaceholderExpansio
             case "luckperms_prefix" -> LuckPermsUtil.getPrefix(uuid);
             case "luckperms_suffix" -> LuckPermsUtil.getSuffix(uuid);
             case "luckperms_primary_group" -> resolveRank(uuid);
+            case "hyperperms_prefix" -> HyperPermsUtil.getPrefix(uuid);
+            case "hyperperms_suffix" -> HyperPermsUtil.getSuffix(uuid);
+            case "hyperperms_primary_group" -> {
+                String primary = HyperPermsUtil.getPrimaryGroup(uuid);
+                yield primary == null ? "" : primary;
+            }
             case "nickname" -> nicknames.hasNickname(player) ? nicknames.displayName(player) : "";
             case "nickname_plain" -> nicknames.hasNickname(player) ? NicknameManager.plain(nicknames.displayName(player)) : "";
             case "displayname" -> nicknames.displayName(player);
@@ -170,11 +181,11 @@ public final class HyEssentialsXPlaceholderExpansion extends PlaceholderExpansio
 
     @Nonnull
     private String resolveRank(@Nonnull UUID uuid) {
-        String primary = LuckPermsUtil.getPrimaryGroup(uuid);
+        String primary = PermissionProviderUtil.getPrimaryGroup(uuid);
         if (primary != null && !primary.isBlank()) {
             return primary;
         }
-        Set<String> groups = LuckPermsUtil.getGroupsFallback(uuid);
+        Set<String> groups = PermissionProviderUtil.getGroupsFallback(uuid);
         if (!groups.isEmpty()) {
             return groups.iterator().next();
         }

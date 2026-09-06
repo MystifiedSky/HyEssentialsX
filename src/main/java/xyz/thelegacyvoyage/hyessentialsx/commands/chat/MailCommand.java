@@ -60,9 +60,8 @@ public final class MailCommand extends CommandBase {
         this.addSubCommand(new ReplySubCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -83,9 +82,8 @@ public final class MailCommand extends CommandBase {
             this.messageArg = withListRequiredArg("message", "Message", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -105,9 +103,8 @@ public final class MailCommand extends CommandBase {
             this.messageArg = withListRequiredArg("message", "Message", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -127,9 +124,8 @@ public final class MailCommand extends CommandBase {
             this.idArg = withRequiredArg("id", "Inbox message id", ArgTypes.INTEGER);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -147,9 +143,8 @@ public final class MailCommand extends CommandBase {
             this.addUsageVariant(new ListOptionsVariant());
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -168,9 +163,8 @@ public final class MailCommand extends CommandBase {
                 this.optionsArg = withListRequiredArg("options", "Filter/page: inbox, sent, read, unread, page <n>", ArgTypes.STRING);
             }
 
-            @Override
-            protected boolean canGeneratePermission() {
-                return false;
+            {
+                requireNoPermission();
             }
 
             @Override
@@ -192,9 +186,8 @@ public final class MailCommand extends CommandBase {
             this.targetArg = withRequiredArg("id", "Inbox message id or all", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -211,9 +204,8 @@ public final class MailCommand extends CommandBase {
             super("clear", "Clear your inbox");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -235,9 +227,8 @@ public final class MailCommand extends CommandBase {
             this.messageArg = withListRequiredArg("message", "Message", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

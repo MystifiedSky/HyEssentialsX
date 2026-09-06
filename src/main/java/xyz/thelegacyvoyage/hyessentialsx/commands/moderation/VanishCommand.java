@@ -36,9 +36,8 @@ public final class VanishCommand extends CommandBase {
         this.addUsageVariant(new VanishOtherCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -113,9 +112,8 @@ public final class VanishCommand extends CommandBase {
             this.targetArg = withRequiredArg("player", "Target player", ArgTypes.PLAYER_REF);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

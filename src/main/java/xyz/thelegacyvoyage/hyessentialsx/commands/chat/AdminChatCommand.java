@@ -37,9 +37,8 @@ public final class AdminChatCommand extends AbstractPlayerCommand {
         this.addUsageVariant(new AdminChatMessageCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -90,9 +89,8 @@ public final class AdminChatCommand extends AbstractPlayerCommand {
             this.msgArg = withListRequiredArg("message", "Message", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

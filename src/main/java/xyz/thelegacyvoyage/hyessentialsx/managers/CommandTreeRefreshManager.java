@@ -30,7 +30,9 @@ public final class CommandTreeRefreshManager {
     private final ConfigManager config;
     private final Map<UUID, ScheduledFuture<?>> pendingRefreshes = new ConcurrentHashMap<>();
     private final List<Object> luckPermsSubscriptions = new ArrayList<>();
+    private final List<Object> hyperPermsSubscriptions = new ArrayList<>();
     private volatile boolean luckPermsSubscribed;
+    private volatile boolean hyperPermsSubscribed;
 
     public CommandTreeRefreshManager(@Nonnull ConfigManager config) {
         this.config = config;
@@ -54,9 +56,11 @@ public final class CommandTreeRefreshManager {
     public synchronized void start() {
         if (!config.isCommandTreeRefreshEnabled()) {
             unsubscribeLuckPermsEvents();
+            unsubscribeHyperPermsEvents();
             return;
         }
         subscribeLuckPermsEvents();
+        subscribeHyperPermsEvents();
         scheduleRefreshAll(1_000L);
     }
 
@@ -67,6 +71,7 @@ public final class CommandTreeRefreshManager {
 
     public synchronized void shutdown() {
         unsubscribeLuckPermsEvents();
+        unsubscribeHyperPermsEvents();
         for (ScheduledFuture<?> task : pendingRefreshes.values()) {
             task.cancel(false);
         }
@@ -300,6 +305,162 @@ public final class CommandTreeRefreshManager {
         }
         luckPermsSubscriptions.clear();
         luckPermsSubscribed = false;
+    }
+
+    private void subscribeHyperPermsEvents() {
+        if (hyperPermsSubscribed) {
+            return;
+        }
+        try {
+            Class<?> hyperPermsClass = Class.forName("com.hyperperms.HyperPerms");
+            Object hyperPerms = hyperPermsClass.getMethod("getApi").invoke(null);
+            if (hyperPerms == null) {
+                return;
+            }
+            Object eventBus = hyperPerms.getClass().getMethod("getEventBus").invoke(hyperPerms);
+            Method subscribe = eventBus.getClass().getMethod("subscribe", Class.class, Consumer.class);
+
+            subscribeHyperPermsEvent(eventBus, subscribe,
+                    "com.hyperperms.api.events.UserGroupChangeEvent",
+                    this::onHyperPermsUserEvent);
+            subscribeHyperPermsEvent(eventBus, subscribe,
+                    "com.hyperperms.api.events.UserLoadEvent",
+                    this::onHyperPermsUserEvent);
+            subscribeHyperPermsEvent(eventBus, subscribe,
+                    "com.hyperperms.api.events.UserUnloadEvent",
+                    this::onHyperPermsUserEvent);
+            subscribeHyperPermsEvent(eventBus, subscribe,
+                    "com.hyperperms.api.events.PermissionChangeEvent",
+                    this::onHyperPermsPermissionChange);
+            subscribeHyperPermsEvent(eventBus, subscribe,
+                    "com.hyperperms.api.events.GroupModifyEvent",
+                    event -> scheduleRefreshAll(250L));
+            subscribeHyperPermsEvent(eventBus, subscribe,
+                    "com.hyperperms.api.events.GroupCreateEvent",
+                    event -> scheduleRefreshAll(250L));
+            subscribeHyperPermsEvent(eventBus, subscribe,
+                    "com.hyperperms.api.events.GroupDeleteEvent",
+                    event -> scheduleRefreshAll(250L));
+            subscribeHyperPermsEvent(eventBus, subscribe,
+                    "com.hyperperms.api.events.ContextChangeEvent",
+                    this::onHyperPermsContextChange);
+            subscribeHyperPermsEvent(eventBus, subscribe,
+                    "com.hyperperms.api.events.DataReloadEvent",
+                    event -> scheduleRefreshAll(250L));
+
+            hyperPermsSubscribed = !hyperPermsSubscriptions.isEmpty();
+            if (hyperPermsSubscribed) {
+                Log.info("[HyEssentialsX] HyperPerms command tree refresh hooks registered.");
+            }
+        } catch (ClassNotFoundException ignored) {
+        } catch (InvocationTargetException e) {
+            String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+            Log.warn("[HyEssentialsX] HyperPerms command tree refresh hooks unavailable: " + message);
+        } catch (Throwable t) {
+            Log.warn("[HyEssentialsX] HyperPerms command tree refresh hooks unavailable: " + t.getMessage());
+        }
+    }
+
+    private void subscribeHyperPermsEvent(
+            @Nonnull Object eventBus,
+            @Nonnull Method subscribe,
+            @Nonnull String eventClassName,
+            @Nonnull Consumer<Object> handler
+    ) {
+        try {
+            Class<?> eventClass = Class.forName(eventClassName);
+            Object subscription = subscribe.invoke(eventBus, eventClass, handler);
+            if (subscription != null) {
+                hyperPermsSubscriptions.add(subscription);
+            }
+        } catch (ClassNotFoundException ignored) {
+        } catch (Throwable t) {
+            Log.warn("[HyEssentialsX] Failed to register HyperPerms hook " + eventClassName + ": " + t.getMessage());
+        }
+    }
+
+    private void onHyperPermsUserEvent(@Nonnull Object event) {
+        UUID uuid = extractUuidByMethods(event, "getUuid", "getUUID");
+        if (uuid != null) {
+            scheduleRefresh(uuid, 250L);
+        }
+    }
+
+    private void onHyperPermsPermissionChange(@Nonnull Object event) {
+        UUID uuid = null;
+        try {
+            Object holder = event.getClass().getMethod("getHolder").invoke(event);
+            uuid = extractHolderUuid(holder);
+        } catch (Throwable ignored) {
+        }
+        if (uuid != null) {
+            scheduleRefresh(uuid, 250L);
+        } else {
+            scheduleRefreshAll(250L);
+        }
+    }
+
+    private void onHyperPermsContextChange(@Nonnull Object event) {
+        UUID uuid = extractUuidByMethods(event, "getUuid", "getUUID");
+        if (uuid != null) {
+            scheduleRefresh(uuid, 250L);
+        } else {
+            scheduleRefreshAll(250L);
+        }
+    }
+
+    @Nullable
+    private UUID extractHolderUuid(@Nullable Object holder) {
+        if (holder == null) {
+            return null;
+        }
+        UUID uuid = extractUuidByMethods(holder, "getUuid", "getUUID", "getUniqueId");
+        if (uuid != null) {
+            return uuid;
+        }
+        try {
+            Object identifier = holder.getClass().getMethod("getIdentifier").invoke(holder);
+            if (identifier != null) {
+                return UUID.fromString(identifier.toString());
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    @Nullable
+    private UUID extractUuidByMethods(@Nullable Object value, @Nonnull String... methodNames) {
+        if (value == null) {
+            return null;
+        }
+        for (String methodName : methodNames) {
+            try {
+                Object uuid = value.getClass().getMethod(methodName).invoke(value);
+                if (uuid instanceof UUID typed) {
+                    return typed;
+                }
+                if (uuid != null) {
+                    return UUID.fromString(uuid.toString());
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return null;
+    }
+
+    private synchronized void unsubscribeHyperPermsEvents() {
+        for (Object subscription : hyperPermsSubscriptions) {
+            try {
+                subscription.getClass().getMethod("unsubscribe").invoke(subscription);
+            } catch (Throwable ignored) {
+            }
+            try {
+                subscription.getClass().getMethod("close").invoke(subscription);
+            } catch (Throwable ignored) {
+            }
+        }
+        hyperPermsSubscriptions.clear();
+        hyperPermsSubscribed = false;
     }
 
     private void refresh(@Nonnull PlayerRef player) {

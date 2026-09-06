@@ -36,9 +36,8 @@ public final class CustomTextCommand extends CommandBase {
         }
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

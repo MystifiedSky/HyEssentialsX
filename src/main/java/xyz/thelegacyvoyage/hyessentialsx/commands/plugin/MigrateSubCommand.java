@@ -134,9 +134,8 @@ public final class MigrateSubCommand extends AbstractAsyncCommand {
             this.mergeArg = withRequiredArg("merge", "Merge with existing data", ArgTypes.BOOLEAN);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

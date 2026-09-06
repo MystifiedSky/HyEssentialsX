@@ -41,9 +41,8 @@ public final class SpawnRouteCommand extends CommandBase {
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -68,9 +67,8 @@ public final class SpawnRouteCommand extends CommandBase {
             super("list", "List spawn routing configuration");
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -87,9 +85,8 @@ public final class SpawnRouteCommand extends CommandBase {
             this.modeArg = withRequiredArg("mode", "first, random, or nearest", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -113,9 +110,8 @@ public final class SpawnRouteCommand extends CommandBase {
             this.spawnArg = withRequiredArg("spawn", "Named spawn, or none", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -133,9 +129,8 @@ public final class SpawnRouteCommand extends CommandBase {
             this.spawnArg = withRequiredArg("spawn", "Named spawn, or none", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -155,9 +150,8 @@ public final class SpawnRouteCommand extends CommandBase {
             this.spawnsArg = withRequiredArg("spawns", "Comma-separated named spawns, or none", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -190,9 +184,8 @@ public final class SpawnRouteCommand extends CommandBase {
             this.spawnsArg = withRequiredArg("spawns", "Comma-separated named spawns", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -220,9 +213,8 @@ public final class SpawnRouteCommand extends CommandBase {
             this.idArg = withRequiredArg("id", "Route ID", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -246,9 +238,8 @@ public final class SpawnRouteCommand extends CommandBase {
             this.addUsageVariant(new OrderSetVariant());
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -271,9 +262,8 @@ public final class SpawnRouteCommand extends CommandBase {
                 this.orderArg = withListRequiredArg("sources", "Sources: bed, firstjoin, death, group, world, permission, main, setspawn, worlddefault", ArgTypes.STRING);
             }
 
-            @Override
-            protected boolean canGeneratePermission() {
-                return false;
+            {
+                requireNoPermission();
             }
 
             @Override

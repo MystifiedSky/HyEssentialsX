@@ -63,9 +63,8 @@ public final class HomeCommand extends AbstractPlayerCommand {
         xyz.thelegacyvoyage.hyessentialsx.util.CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -217,9 +216,8 @@ public final class HomeCommand extends AbstractPlayerCommand {
             this.homeNameArg = withRequiredArg("home", "Home name", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -395,9 +393,8 @@ public final class HomeCommand extends AbstractPlayerCommand {
             this.addUsageVariant(new PlayerHomeTeleportCommand());
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -422,9 +419,8 @@ public final class HomeCommand extends AbstractPlayerCommand {
                 this.otherHomeArg = withListRequiredArg("home", "Home name", ArgTypes.STRING);
             }
 
-            @Override
-            protected boolean canGeneratePermission() {
-                return false;
+            {
+                requireNoPermission();
             }
 
             @Override

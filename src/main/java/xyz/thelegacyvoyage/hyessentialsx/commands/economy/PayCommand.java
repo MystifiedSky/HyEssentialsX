@@ -48,9 +48,8 @@ public final class PayCommand extends AbstractPlayerCommand {
         this.addUsageVariant(new PayPlayerCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -152,9 +151,8 @@ public final class PayCommand extends AbstractPlayerCommand {
             this.amountArg = withRequiredArg("amount", "Amount to pay", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

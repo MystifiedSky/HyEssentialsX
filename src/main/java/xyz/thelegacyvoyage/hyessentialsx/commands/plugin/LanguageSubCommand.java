@@ -28,9 +28,8 @@ public class LanguageSubCommand extends CommandBase {
         this.addUsageVariant(new SetLanguageCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -95,9 +94,8 @@ public class LanguageSubCommand extends CommandBase {
             this.codeArg = withRequiredArg("code", "Language code (e.g. en-us)", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

@@ -33,9 +33,8 @@ public final class TpaDenyCommand extends AbstractPlayerCommand {
         this.requesterArg = withRequiredArg("player", "Player to deny", ArgTypes.PLAYER_REF);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

@@ -36,9 +36,8 @@ public final class BanListCommand extends AbstractPlayerCommand {
         this.addAliases(new String[]{"bans", "ipbans"});
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

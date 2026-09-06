@@ -16,9 +16,8 @@ public class HelpSubCommand extends CommandBase {
         this.setPermissionGroups();
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

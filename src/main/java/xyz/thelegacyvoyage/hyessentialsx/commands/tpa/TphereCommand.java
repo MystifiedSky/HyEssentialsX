@@ -37,9 +37,8 @@ public final class TphereCommand extends AbstractPlayerCommand {
         this.targetArg = withRequiredArg("player", "Player to teleport", ArgTypes.PLAYER_REF);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override

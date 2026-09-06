@@ -38,9 +38,8 @@ public class UISubCommand extends AbstractPlayerCommand {
         CommandPermissionUtil.apply(this, PERMISSION_NODE);
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     /**

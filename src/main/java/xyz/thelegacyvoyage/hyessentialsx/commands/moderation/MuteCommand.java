@@ -36,9 +36,8 @@ public final class MuteCommand extends CommandBase {
         this.addUsageVariant(new MuteTimedReasonCommand());
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
+    {
+        requireNoPermission();
     }
 
     @Override
@@ -104,9 +103,8 @@ public final class MuteCommand extends CommandBase {
             this.timeArg = withRequiredArg("time", "Duration (e.g. 30d) or reason", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override
@@ -136,9 +134,8 @@ public final class MuteCommand extends CommandBase {
             this.reasonArg = withListRequiredArg("reason", "Reason", ArgTypes.STRING);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        {
+            requireNoPermission();
         }
 
         @Override

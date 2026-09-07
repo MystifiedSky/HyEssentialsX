@@ -18,6 +18,7 @@ import xyz.thelegacyvoyage.hyessentialsx.models.PlayerDataModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
+import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.PlaceholderApiUtil;
 import xyz.thelegacyvoyage.hyessentialsx.managers.StorageManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 import java.util.logging.Level;
 
 /**
@@ -46,18 +48,21 @@ public class PlayerListener {
     private final VanishManager vanishManager;
     private final MailManager mailManager;
     private final SpawnManager spawnManager;
+    private final BooleanSupplier assetPackRestartRequired;
     private final Set<UUID> pendingFirstJoinRoutes = ConcurrentHashMap.newKeySet();
 
     public PlayerListener(@Nonnull ConfigManager config,
                           @Nonnull StorageManager storage,
                           @Nonnull VanishManager vanishManager,
                           @Nonnull MailManager mailManager,
-                          @Nonnull SpawnManager spawnManager) {
+                          @Nonnull SpawnManager spawnManager,
+                          @Nonnull BooleanSupplier assetPackRestartRequired) {
         this.config = config;
         this.storage = storage;
         this.vanishManager = vanishManager;
         this.mailManager = mailManager;
         this.spawnManager = spawnManager;
+        this.assetPackRestartRequired = assetPackRestartRequired;
     }
 
     /**
@@ -106,6 +111,10 @@ public class PlayerListener {
         LOGGER.at(Level.INFO).log("[HyEssentialsX] Player %s connected to world %s", playerName, worldName);
 
         if (player == null) return;
+
+        if (assetPackRestartRequired.getAsBoolean()) {
+            Messages.sendPrefixedKey(player, "assets.rebuilt_restart", Map.of());
+        }
 
         boolean firstJoin = isFirstJoin(player);
         if (firstJoin) {

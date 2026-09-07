@@ -786,7 +786,14 @@ public class HyEssentialsXPlugin extends JavaPlugin {
 
     private void registerListeners() {
         EventRegistry bus = getEventRegistry();
-        new PlayerListener(configManager, storage, vanishManager, mailManager, spawnManager).register(bus);
+        new PlayerListener(
+                configManager,
+                storage,
+                vanishManager,
+                mailManager,
+                spawnManager,
+                () -> hologramService != null && hologramService.isAssetPackRestartRequired()
+        ).register(bus);
         new PlayerDataListener(
                 storage,
                 banManager,

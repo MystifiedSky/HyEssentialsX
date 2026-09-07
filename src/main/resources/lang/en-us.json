@@ -743,6 +743,7 @@
     "spawnroute.group_deleted":  "\u0026aGroup route \u0026f{id}\u0026a deleted.",
     "spawnroute.group_not_found":  "\u0026cGroup route \u0026f{id}\u0026c was not found.",
     "spawnroute.invalid_group":  "\u0026cGroup route requires an id, permission, priority, and at least one named spawn.",
-    "spawnroute.invalid_spawns":  "\u0026cProvide at least one valid named spawn."
+    "spawnroute.invalid_spawns":  "\u0026cProvide at least one valid named spawn.",
+    "assets.rebuilt_restart":  "\u0026eHyEssentialsX automatically rebuilt its generated asset pack. The compatibility warning will be gone after the next server restart."
 }
 

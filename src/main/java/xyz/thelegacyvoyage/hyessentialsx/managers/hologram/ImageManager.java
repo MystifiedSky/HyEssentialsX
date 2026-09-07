@@ -1,5 +1,7 @@
 package xyz.thelegacyvoyage.hyessentialsx.managers.hologram;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import xyz.thelegacyvoyage.hyessentialsx.managers.hologram.HologramService;
 import com.hypixel.hytale.assetstore.AssetStore;
 import xyz.thelegacyvoyage.hyessentialsx.util.hologram.ByteArrayCommonAsset;
@@ -12,16 +14,21 @@ import com.hypixel.hytale.server.core.asset.type.model.config.Model;
 import com.hypixel.hytale.server.core.asset.type.model.config.ModelAsset;
 import com.hypixel.hytale.server.core.universe.Universe;
 import java.awt.image.BufferedImage;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -35,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -52,6 +60,7 @@ public class ImageManager {
    private final Path modsFolder;
    @Nonnull
    private final Map<String, ImageManager.ImageData> imageRegistry = new ConcurrentHashMap();
+   private volatile boolean assetPackRestartRequired;
    private static final String ASSET_PREFIX = "HyEssentialsX_Hologram_Image_";
    private static final String ASSETS_ZIP_NAME = "HyEssentialsX_Assets.zip";
    private static final String ASSET_PACK_NAME = "HyEssentialsX_Assets";
@@ -101,9 +110,21 @@ public class ImageManager {
          }
 
          Path assetsZip = this.modsFolder.resolve(ASSETS_ZIP_NAME);
-         if (!Files.exists(assetsZip, new LinkOption[0]) && !imageFiles.isEmpty()) {
-            this.plugin.getLogger().at(Level.INFO).log("Generating initial assets zip...");
+         boolean packExists = Files.exists(assetsZip, new LinkOption[0]);
+         String pluginVersion = PluginInfoUtil.getVersion();
+         String serverVersion = PluginInfoUtil.getServerVersion();
+         if (!packExists || !isAssetPackCurrent(
+                 assetsZip,
+                 pluginVersion,
+                 serverVersion)) {
+            this.plugin.getLogger().at(Level.INFO).log(packExists
+                    ? "Asset pack manifest is stale or invalid; regenerating for the current plugin/server version..."
+                    : "Generating initial assets zip...");
             this.generateAssetsZip();
+            if (packExists && isAssetPackCurrent(assetsZip, pluginVersion, serverVersion)) {
+               this.plugin.getLogger().at(Level.WARNING).log(
+                       "Updated " + ASSETS_ZIP_NAME + "; restart the server once more to load the refreshed pack manifest.");
+            }
          }
 
          Api var10000 = this.plugin.getLogger().at(Level.INFO);
@@ -190,12 +211,16 @@ public class ImageManager {
 
    public void generateAssetsZip() {
       Path assetsZip = this.modsFolder.resolve(ASSETS_ZIP_NAME);
+      Path tempZip = null;
       this.plugin.getLogger().at(Level.INFO).log("=== Generating " + ASSETS_ZIP_NAME + " ===");
       this.plugin.getLogger().at(Level.INFO).log("Output location: " + String.valueOf(assetsZip.toAbsolutePath()));
 
       try {
+         Files.createDirectories(this.modsFolder);
+         tempZip = Files.createTempFile(this.modsFolder, "HyEssentialsX_Assets_", ".zip.tmp");
          List<ImageManager.ImageFileInfo> imageFiles = this.scanImageFiles();
-         ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(assetsZip.toFile()));
+         ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(
+                 tempZip, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE));
 
          try {
             this.addResourceToZip(zos, "Common/Characters/HyEssentialsX_Hologram_Billboard.blockymodel", "Common/Characters/HyEssentialsX_Hologram_Billboard.blockymodel");
@@ -259,13 +284,110 @@ public class ImageManager {
          }
 
          zos.close();
+         boolean replacedWhileLocked = moveReplacing(tempZip, assetsZip);
+         tempZip = null;
+         this.assetPackRestartRequired = true;
+         if (replacedWhileLocked) {
+            this.plugin.getLogger().at(Level.WARNING).log(
+                    "Hytale had the existing asset pack open, so it was safely backed up and refreshed in place.");
+         }
          this.plugin.getLogger().at(Level.INFO).log("=== Successfully created " + ASSETS_ZIP_NAME + " ===");
          this.plugin.getLogger().at(Level.INFO).log("Contains " + imageFiles.size() + " custom image(s) (with billboard variants)");
       } catch (IOException var25) {
          this.plugin.getLogger().at(Level.SEVERE).log("Failed to generate assets zip: " + var25.getMessage());
          var25.printStackTrace();
+      } finally {
+         if (tempZip != null) {
+            try {
+               Files.deleteIfExists(tempZip);
+            } catch (IOException ignored) {
+            }
+         }
       }
 
+   }
+
+   public boolean isAssetPackRestartRequired() {
+      return this.assetPackRestartRequired;
+   }
+
+   static boolean isAssetPackCurrent(@Nonnull Path assetsZip,
+                                     @Nonnull String expectedVersion,
+                                     @Nonnull String expectedServerVersion) {
+      if (!Files.isRegularFile(assetsZip)) {
+         return false;
+      }
+      try (ZipFile zip = new ZipFile(assetsZip.toFile())) {
+         ZipEntry manifestEntry = zip.getEntry("manifest.json");
+         if (manifestEntry == null || manifestEntry.isDirectory()) {
+            return false;
+         }
+         try (InputStreamReader reader = new InputStreamReader(
+                 zip.getInputStream(manifestEntry), StandardCharsets.UTF_8)) {
+            JsonObject manifest = JsonParser.parseReader(reader).getAsJsonObject();
+            return ASSET_PACK_NAME.equals(stringValue(manifest, "Name"))
+                    && "xyz.thelegacyvoyage.hyessentialsx.assets".equals(stringValue(manifest, "Group"))
+                    && expectedVersion.equals(stringValue(manifest, "Version"))
+                    && expectedServerVersion.equals(stringValue(manifest, "ServerVersion"));
+         }
+      } catch (Exception ignored) {
+         return false;
+      }
+   }
+
+   @Nonnull
+   private static String stringValue(@Nonnull JsonObject object, @Nonnull String key) {
+      return object.has(key) && !object.get(key).isJsonNull() ? object.get(key).getAsString() : "";
+   }
+
+   static boolean moveReplacing(@Nonnull Path source, @Nonnull Path target) throws IOException {
+      try {
+         Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+         return false;
+      } catch (AtomicMoveNotSupportedException ignored) {
+         try {
+            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+            return false;
+         } catch (AccessDeniedException locked) {
+            replaceLockedFile(source, target);
+            return true;
+         }
+      } catch (AccessDeniedException locked) {
+         replaceLockedFile(source, target);
+         return true;
+      }
+   }
+
+   private static void replaceLockedFile(@Nonnull Path source, @Nonnull Path target) throws IOException {
+      Path directory = target.toAbsolutePath().getParent();
+      Path backup = Files.createTempFile(directory, "HyEssentialsX_Assets_backup_", ".zip.tmp");
+      try {
+         Files.copy(target, backup, StandardCopyOption.REPLACE_EXISTING);
+         try {
+            copyFileContents(source, target);
+         } catch (IOException writeFailure) {
+            try {
+               copyFileContents(backup, target);
+            } catch (IOException restoreFailure) {
+               writeFailure.addSuppressed(restoreFailure);
+            }
+            throw writeFailure;
+         }
+      } finally {
+         Files.deleteIfExists(backup);
+         Files.deleteIfExists(source);
+      }
+   }
+
+   private static void copyFileContents(@Nonnull Path source, @Nonnull Path target) throws IOException {
+      try (InputStream input = Files.newInputStream(source);
+           OutputStream output = Files.newOutputStream(
+                   target,
+                   StandardOpenOption.CREATE,
+                   StandardOpenOption.TRUNCATE_EXISTING,
+                   StandardOpenOption.WRITE)) {
+         input.transferTo(output);
+      }
    }
 
    private void addResourceToZip(ZipOutputStream zos, String resourcePath, String zipPath) throws IOException {

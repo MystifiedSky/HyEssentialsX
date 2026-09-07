@@ -105,6 +105,11 @@ public final class HologramService {
         return hologramManager;
     }
 
+    public boolean isAssetPackRestartRequired() {
+        return hologramManager != null
+                && hologramManager.getImageManager().isAssetPackRestartRequired();
+    }
+
     @Nonnull
     public ConfigManager getConfigManager() {
         return configManager;

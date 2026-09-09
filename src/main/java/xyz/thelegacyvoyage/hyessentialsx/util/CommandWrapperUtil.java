@@ -25,6 +25,7 @@ public final class CommandWrapperUtil {
         if (permission != null && !permission.isBlank()) {
             wrapper.requirePermission(permission);
         }
+        copyField(wrapper, delegate, "openToEveryone");
 
         copyListField(wrapper, delegate, "requiredArguments");
         copyMapField(wrapper, delegate, "optionalArguments");

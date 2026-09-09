@@ -580,6 +580,10 @@ public class HyEssentialsXPlugin extends JavaPlugin {
     private void registerCommands() {
         var registry = getCommandRegistry();
         java.util.function.Consumer<AbstractCommand> reg = cmd -> {
+            // Hytale 0.6.3 generates missing permissions while recursively assigning
+            // command owners. Do this before wrapping so copied subcommands do not
+            // resolve permissions through an unowned original parent command.
+            cmd.setOwner(this);
             AbstractCommand toRegister = cmd;
             if (commandSpyManager != null) {
                 toRegister = commandSpyManager.wrap(toRegister);

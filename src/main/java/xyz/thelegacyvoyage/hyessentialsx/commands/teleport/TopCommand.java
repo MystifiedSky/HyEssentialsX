@@ -12,7 +12,7 @@ import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayer
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
+import com.hypixel.hytale.server.core.universe.world.chunk.heightmap.HeightmapColumn;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
@@ -91,11 +91,21 @@ public final class TopCommand extends AbstractPlayerCommand {
         int blockX = (int) Math.floor(pos.x());
         int blockZ = (int) Math.floor(pos.z());
         long chunkIndex = ChunkUtil.indexChunkFromBlock(blockX, blockZ);
-        WorldChunk chunk = targetWorld.getChunkIfLoaded(chunkIndex);
-        if (chunk == null) {
+        HeightmapColumn heightmap = targetWorld.getChunkStore().getChunkComponent(
+                chunkIndex, HeightmapColumn.getComponentType());
+        if (heightmap == null) {
             Messages.errKey(context, "error.chunk_not_loaded", Map.of());
             return;
         }
+
+        int localX = ChunkUtil.localCoordinate(blockX);
+        int localZ = ChunkUtil.localCoordinate(blockZ);
+        int height = heightmap.getHeight(localX, localZ);
+        if (height == HeightmapColumn.NO_HEIGHT) {
+            Messages.errKey(context, "top.no_surface", Map.of());
+            return;
+        }
+        double targetY = height + 1.0;
 
         if (transform.getPosition() != null) {
             com.hypixel.hytale.math.vector.Rotation3f rot = transform.getRotation();
@@ -110,11 +120,6 @@ public final class TopCommand extends AbstractPlayerCommand {
                     startYaw, startPitch
             );
         }
-
-        int localX = ChunkUtil.localCoordinate(blockX);
-        int localZ = ChunkUtil.localCoordinate(blockZ);
-        short height = chunk.getHeight(localX, localZ);
-        double targetY = height + 1.0;
 
         Ref<EntityStore> targetRef = target.getReference();
         Store<EntityStore> targetStore = targetRef != null ? targetRef.getStore() : null;

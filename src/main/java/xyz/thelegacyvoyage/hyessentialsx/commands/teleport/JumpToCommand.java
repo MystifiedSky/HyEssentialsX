@@ -2,7 +2,6 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.teleport;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.util.ChunkUtil;
 import org.joml.Vector3d;
 import com.hypixel.hytale.protocol.BlockMaterial;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
@@ -12,10 +11,10 @@ import com.hypixel.hytale.server.core.modules.entity.component.HeadRotation;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.WorldBlockUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
@@ -152,21 +151,18 @@ public final class JumpToCommand extends AbstractPlayerCommand {
 
     private boolean isSolidBlock(@Nonnull World world, int x, int y, int z) {
         if (y < 0 || y > 319) return false;
-        long chunkIndex = ChunkUtil.indexChunkFromBlock(x, z);
-        WorldChunk chunk = world.getChunkIfLoaded(chunkIndex);
-        if (chunk == null) return false;
-        BlockType type = chunk.getBlockType(x, y, z);
+        BlockType type = WorldBlockUtil.getBlockType(world, x, y, z);
         return type != null && type.getMaterial() == BlockMaterial.Solid;
     }
 
     @Nullable
     private Vector3d findSafePositionAbove(@Nonnull World world, int x, int y, int z) {
         for (int checkY = y + 1; checkY <= 319; checkY++) {
-            if (!isSolidBlock(world, x, checkY, z) && !isSolidBlock(world, x, checkY + 1, z)) {
+            if (WorldBlockUtil.isClearBlock(world, x, checkY, z) && WorldBlockUtil.isClearBlock(world, x, checkY + 1, z)) {
                 return new Vector3d(x + 0.5, checkY, z + 0.5);
             }
         }
-        if (!isSolidBlock(world, x, y + 1, z) && !isSolidBlock(world, x, y + 2, z)) {
+        if (WorldBlockUtil.isClearBlock(world, x, y + 1, z) && WorldBlockUtil.isClearBlock(world, x, y + 2, z)) {
             return new Vector3d(x + 0.5, y + 1, z + 0.5);
         }
         return null;

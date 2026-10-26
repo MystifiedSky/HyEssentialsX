@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'xyz.thelegacyvoyage.hyessentialsx'
-version = '1.5.8'
+version = '1.5.9'
 
 repositories {
     mavenCentral()
@@ -58,7 +58,7 @@ def resolveServerVersionFromJar = { File jarFile ->
 }
 
 def selectedServerVersion = resolveServerVersionFromJar(selectedServerJar)
-def pluginServerVersionRange = '^0.6.3'
+def pluginServerVersionRange = '^0.7.4'
 
 dependencies {
     // Prefer the newest available HytaleServer.jar, including the official launcher installation.

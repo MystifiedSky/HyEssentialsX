@@ -2,7 +2,6 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.teleport;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Transform;
 import com.hypixel.hytale.protocol.BlockMaterial;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
@@ -13,11 +12,11 @@ import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayer
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.joml.Vector3d;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.WorldBlockUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
@@ -115,7 +114,7 @@ public final class BottomCommand extends AbstractPlayerCommand {
     @Nullable
     private Vector3d findSafeLower(@Nonnull World world, int x, int startY, int z) {
         for (int y = Math.min(startY - 1, 318); y >= 1; y--) {
-            if (isSolidBlock(world, x, y - 1, z) && !isSolidBlock(world, x, y, z) && !isSolidBlock(world, x, y + 1, z)) {
+            if (isSolidBlock(world, x, y - 1, z) && WorldBlockUtil.isClearBlock(world, x, y, z) && WorldBlockUtil.isClearBlock(world, x, y + 1, z)) {
                 return new Vector3d(x + 0.5D, y, z + 0.5D);
             }
         }
@@ -124,9 +123,7 @@ public final class BottomCommand extends AbstractPlayerCommand {
 
     private boolean isSolidBlock(@Nonnull World world, int x, int y, int z) {
         if (y < 0 || y > 319) return false;
-        WorldChunk chunk = world.getChunkIfLoaded(ChunkUtil.indexChunkFromBlock(x, z));
-        if (chunk == null) return false;
-        BlockType type = chunk.getBlockType(x, y, z);
+        BlockType type = WorldBlockUtil.getBlockType(world, x, y, z);
         return type != null && type.getMaterial() == BlockMaterial.Solid;
     }
 

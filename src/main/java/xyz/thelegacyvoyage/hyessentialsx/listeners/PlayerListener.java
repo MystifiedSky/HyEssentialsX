@@ -194,12 +194,13 @@ public class PlayerListener {
         if (!config.isSpawnEnabled()) return;
         boolean firstJoin = pendingFirstJoinRoutes.remove(player.getUuid());
         String route = firstJoin ? "firstjoin" : "join";
-        SpawnModel spawn = spawnManager.getRoutedSpawn(world, player, route);
-        if (spawn == null) return;
-        String err = TeleportationUtil.teleportToSpawn(store, ref, spawn);
-        if (err != null) {
-            Log.warn("Join spawn routing failed for " + player.getUsername() + ": " + err);
-        }
+        spawnManager.getRoutedSpawnAsync(world, player, route).thenAcceptAsync(spawn -> {
+            if (spawn == null || !ref.isValid() || player.getReference() != ref) return;
+            String err = TeleportationUtil.teleportToSpawn(store, ref, spawn);
+            if (err != null) {
+                Log.warn("Join spawn routing failed for " + player.getUsername() + ": " + err);
+            }
+        }, world);
     }
 
     private boolean isFirstJoin(@Nonnull PlayerRef player) {

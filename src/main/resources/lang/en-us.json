@@ -578,6 +578,7 @@
     "rtp.override_world_missing":  "\u0026eRTP override world \u0027{world}\u0027 is not loaded. Using current world.",
     "rtp.other.warmup":  "\u0026aTeleporting {player} shortly...",
     "rtp.other.success":  "\u0026aTeleported {player} to a random location.",
+    "top.no_surface": "&cNo surface was found in this column.",
     "top.self":  "\u0026aTeleported to top.",
     "top.other":  "\u0026aTeleported {player} to top.",
     "top.by":  "\u0026aYou were teleported to the top by {player}.",

@@ -13,7 +13,6 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
-import xyz.thelegacyvoyage.hyessentialsx.models.SpawnModel;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.Log;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
@@ -60,45 +59,38 @@ public final class DeathSpawnListener {
             // engine bed respawn if needed.
         }
 
-        private void applyRespawnByPriority(
-                @Nonnull Ref<EntityStore> ref,
-                @Nonnull Store<EntityStore> store,
-                @Nonnull CommandBuffer<EntityStore> buffer,
-                @Nonnull PlayerRef player,
-                @Nonnull World world
-        ) {
-            String worldName = world.getName();
-            for (String source : configManager.getSpawnRouteOrder("death")) {
-                switch (source) {
-                    case "bed" -> {
-                        if (tryTeleportToBed(ref, store, buffer, worldName)) return;
-                    }
-                    default -> {
-                        SpawnModel spawn = spawnManager.getSpawnForRouteSource(world, player, source);
-                        if (spawn == null) break;
-                        if (!worldName.equalsIgnoreCase(spawn.getWorldName())) {
-                            if (Universe.get().getWorld(spawn.getWorldName()) == null) {
-                                Log.warn("Respawn teleport failed: world not loaded: " + spawn.getWorldName());
-                                break;
-                            }
-                            spawnManager.queueRespawnTeleport(player.getUuid(), spawn);
-                            return;
-                        }
-                        String err = TeleportationUtil.teleportToSpawn(store, ref, spawn, buffer);
-                        if (err != null) {
-                            Log.warn("Respawn teleport failed: " + err);
-                            break;
-                        }
-                        return;
-                    }
+        private void applyRespawnSource(Ref<EntityStore> ref, Store<EntityStore> store,
+                                         PlayerRef player, World world,
+                                         java.util.List<String> order, int index) {
+            if (index >= order.size() || !ref.isValid() || player.getReference() != ref) return;
+            String source = order.get(index);
+            if ("bed".equals(source)) {
+                if (!tryTeleportToBed(ref, store, world.getName())) {
+                    applyRespawnSource(ref, store, player, world, order, index + 1);
                 }
+                return;
             }
+            spawnManager.getSpawnForRouteSourceAsync(world, player, source).thenAcceptAsync(spawn -> {
+                if (!ref.isValid() || player.getReference() != ref) return;
+                if (spawn == null || Universe.get().getWorld(spawn.getWorldName()) == null) {
+                    applyRespawnSource(ref, store, player, world, order, index + 1);
+                    return;
+                }
+                if (!world.getName().equalsIgnoreCase(spawn.getWorldName())) {
+                    spawnManager.queueRespawnTeleport(player.getUuid(), spawn);
+                    return;
+                }
+                String err = TeleportationUtil.teleportToSpawn(store, ref, spawn);
+                if (err != null) {
+                    Log.warn("Respawn teleport failed: " + err);
+                    applyRespawnSource(ref, store, player, world, order, index + 1);
+                }
+            }, world);
         }
 
         private boolean tryTeleportToBed(
                 @Nonnull Ref<EntityStore> ref,
                 @Nonnull Store<EntityStore> store,
-                @Nonnull CommandBuffer<EntityStore> buffer,
                 @Nonnull String worldName
         ) {
             Player playerEntity = store.getComponent(ref, Player.getComponentType());
@@ -142,7 +134,7 @@ public final class DeathSpawnListener {
 
             if (!configManager.isSpawnEnabled()) return;
 
-            applyRespawnByPriority(ref, store, buffer, player, world);
+            applyRespawnSource(ref, store, player, world, configManager.getSpawnRouteOrder("death"), 0);
         }
 
         @Override

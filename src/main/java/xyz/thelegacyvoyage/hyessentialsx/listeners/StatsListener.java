@@ -468,8 +468,8 @@ public final class StatsListener {
         if (source == null) {
             return "unknown";
         }
-        if (source instanceof Damage.EnvironmentSource environmentSource) {
-            return "hystats__environment_damage_" + environmentSource.getType();
+        if (source instanceof Damage.EnvironmentSource) {
+            return "hystats__environment_damage_" + (event.getCause() != null ? event.getCause().getId() : "unknown");
         }
         return source.getClass().getSimpleName();
     }

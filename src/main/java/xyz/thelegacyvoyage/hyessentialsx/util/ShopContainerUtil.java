@@ -1,9 +1,7 @@
 package xyz.thelegacyvoyage.hyessentialsx.util;
 
-import com.hypixel.hytale.component.Holder;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.util.ChunkUtil;
 import org.joml.Vector3d;
 import org.joml.Vector3i;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
@@ -11,12 +9,11 @@ import com.hypixel.hytale.server.core.inventory.container.CombinedItemContainer;
 import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 import com.hypixel.hytale.server.core.inventory.transaction.ListTransaction;
 import com.hypixel.hytale.server.core.inventory.transaction.ItemStackTransaction;
+import com.hypixel.hytale.server.core.modules.block.BlockModule;
 import com.hypixel.hytale.server.core.modules.block.components.ItemContainerBlock;
 import com.hypixel.hytale.server.core.modules.entity.component.HeadRotation;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
-import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopChestModel;
 import xyz.thelegacyvoyage.hyessentialsx.models.ShopItemModel;
@@ -63,12 +60,8 @@ public final class ShopContainerUtil {
 
     @Nullable
     public static ItemContainer getContainerAt(@Nonnull World world, @Nonnull Vector3i pos) {
-        long chunkIndex = ChunkUtil.indexChunkFromBlock(pos.x(), pos.z());
-        WorldChunk chunk = world.getChunkIfLoaded(chunkIndex);
-        if (chunk == null) return null;
-        Holder<ChunkStore> holder = chunk.getBlockComponentHolder(pos.x(), pos.y(), pos.z());
-        if (holder == null) return null;
-        ItemContainerBlock containerBlock = holder.getComponent(ItemContainerBlock.getComponentType());
+        ItemContainerBlock containerBlock = BlockModule.getComponent(
+                ItemContainerBlock.getComponentType(), world, pos.x(), pos.y(), pos.z());
         return containerBlock != null ? containerBlock.getItemContainer() : null;
     }
 

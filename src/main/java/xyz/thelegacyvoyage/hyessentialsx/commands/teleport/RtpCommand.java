@@ -2,7 +2,6 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.teleport;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Transform;
 import org.joml.Vector3d;
 import com.hypixel.hytale.protocol.BlockMaterial;
@@ -15,13 +14,12 @@ import com.hypixel.hytale.server.core.modules.collision.WorldUtil;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.chunk.ChunkColumn;
-import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
 import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.WorldBlockUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.ConfigManager;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.CommandSenderUtil;
@@ -392,47 +390,31 @@ public final class RtpCommand extends CommandBase {
         double distance = minRadius + random.nextDouble() * (maxRadius - minRadius);
         int randomX = (int) (center.x() + distance * Math.cos(angle));
         int randomZ = (int) (center.z() + distance * Math.sin(angle));
-        long chunkIndex = ChunkUtil.indexChunkFromBlock(randomX, randomZ);
-        WorldChunk existingChunk = world.getChunkIfLoaded(chunkIndex);
-        if (existingChunk == null) {
-            existingChunk = world.getChunkIfInMemory(chunkIndex);
+        // A loaded column no longer means its vertical sections are resident in 0.7.
+        var loads = new java.util.ArrayList<java.util.concurrent.CompletableFuture<?>>();
+        for (int y = MIN_WORLD_Y; y <= MAX_WORLD_Y + 2; y += 32) {
+            loads.add(world.getChunkStore().getChunkSectionReferenceAtBlockAsync(randomX, y, randomZ));
         }
-
-        if (existingChunk != null) {
-            Vector3d safePosition = findHighestSolidBlock(world, randomX, randomZ);
-            if (safePosition != null) {
-                callback.accept(safePosition);
-            } else {
-                findRandomSafeLocationAsync(world, center, minRadius, maxRadius, maxChecks, currentAttempt + 1, callback);
-            }
-            return;
-        }
-
-        world.getChunkAsync(chunkIndex).whenComplete((chunk, error) ->
-                runOnWorldThread(world, () -> {
-                    if (error == null && chunk != null) {
-                        Vector3d safePosition = findHighestSolidBlock(world, randomX, randomZ);
-                        if (safePosition != null) {
-                            callback.accept(safePosition);
-                        } else {
-                            findRandomSafeLocationAsync(world, center, minRadius, maxRadius, maxChecks, currentAttempt + 1, callback);
-                        }
+        java.util.concurrent.CompletableFuture.allOf(loads.toArray(java.util.concurrent.CompletableFuture[]::new))
+                .whenComplete((ignored, error) -> runOnWorldThread(world, () -> {
+                    Vector3d safePosition = error == null ? findHighestSolidBlock(world, randomX, randomZ) : null;
+                    if (safePosition != null) {
+                        callback.accept(safePosition);
                     } else {
                         findRandomSafeLocationAsync(world, center, minRadius, maxRadius, maxChecks, currentAttempt + 1, callback);
                     }
-                })
-        );
+                }));
     }
 
     @Nullable
     private Vector3d findHighestSolidBlock(@Nonnull World world, int x, int z) {
         for (int y = MAX_WORLD_Y; y >= MIN_WORLD_Y; y--) {
-            if (isWaterOrLava(world, x, y, z)) {
+            if (hasFluid(world, x, y, z)) {
                 return null;
             }
             if (isSolidBlock(world, x, y, z)
-                    && !isSolidBlock(world, x, y + 1, z)
-                    && !isSolidBlock(world, x, y + 2, z)
+                    && WorldBlockUtil.isClearBlock(world, x, y + 1, z)
+                    && WorldBlockUtil.isClearBlock(world, x, y + 2, z)
                     && isSafeGround(world, x, y, z)) {
                 return new Vector3d(x + 0.5, y + 1.0, z + 0.5);
             }
@@ -452,53 +434,24 @@ public final class RtpCommand extends CommandBase {
         return isSolidBlock(world, x, y, z);
     }
 
-    private boolean isWaterOrLava(@Nonnull World world, int x, int y, int z) {
+    private boolean hasFluid(@Nonnull World world, int x, int y, int z) {
         if (!isValidY(y)) {
             return false;
         }
         int fluidId = getBlockFluidId(world, x, y, z);
-        return fluidId == 7 || fluidId == 8 || fluidId == 6 || fluidId == 11;
+        return fluidId != 0;
     }
 
     private int getBlockFluidId(@Nonnull World world, int x, int y, int z) {
         if (!isValidY(y)) {
             return 0;
         }
-        try {
-            long chunkIndex = ChunkUtil.indexChunkFromBlock(x, z);
-            WorldChunk worldChunk = world.getChunk(chunkIndex);
-            if (worldChunk == null) {
-                return 0;
-            }
-            Ref<ChunkStore> chunkRef = worldChunk.getReference();
-            if (chunkRef == null) {
-                return 0;
-            }
-            ChunkColumn chunkColumn = world.getChunkStore().getStore().getComponent(chunkRef, ChunkColumn.getComponentType());
-            if (chunkColumn == null) {
-                return 0;
-            }
-            return WorldUtil.getFluidIdAtPosition(world.getChunkStore().getStore(), chunkColumn, x, y, z);
-        } catch (RuntimeException ex) {
-            return 0;
-        }
+        return WorldUtil.getFluidIdAtPosition(world.getChunkStore(), x, y, z);
     }
 
     @Nullable
     private BlockType getBlockType(@Nonnull World world, int x, int y, int z) {
-        if (!isValidY(y)) {
-            return null;
-        }
-        try {
-            long chunkIndex = ChunkUtil.indexChunkFromBlock(x, z);
-            WorldChunk worldChunk = world.getChunk(chunkIndex);
-            if (worldChunk == null) {
-                return null;
-            }
-            return worldChunk.getBlockType(x, y, z);
-        } catch (RuntimeException ex) {
-            return null;
-        }
+        return isValidY(y) ? WorldBlockUtil.getBlockType(world, x, y, z) : null;
     }
 
     private boolean isValidY(int y) {

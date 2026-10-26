@@ -27,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
 
@@ -101,53 +102,43 @@ public final class SpawnManager {
         return getSpawn();
     }
 
-    @Nullable
-    public SpawnModel getSpawnForPlayer(@Nonnull World world, @Nonnull PlayerRef player) {
-        return getSpawnForPlayer(world, player.getUuid());
+    public CompletableFuture<SpawnModel> getSpawnForPlayerAsync(@Nonnull World world, @Nonnull PlayerRef player) {
+        return getRoutedSpawnAsync(world, player, "command");
     }
 
-    @Nullable
-    public SpawnModel getSpawnForPlayer(@Nonnull World world, @Nonnull UUID playerId) {
-        return getRoutedSpawn(world, playerId, null, "command");
+    public CompletableFuture<SpawnModel> getRoutedSpawnAsync(@Nonnull World world,
+                                                            @Nonnull PlayerRef player,
+                                                            @Nonnull String route) {
+        return resolveRouteAsync(world, player, config.getSpawnRouteOrder(route), 0);
     }
 
-    @Nullable
-    public SpawnModel getRoutedSpawn(@Nonnull World world, @Nonnull PlayerRef player, @Nonnull String route) {
-        return getRoutedSpawn(world, player.getUuid(), player, route);
+    private CompletableFuture<SpawnModel> resolveRouteAsync(World world, PlayerRef player,
+                                                            List<String> order, int index) {
+        if (index >= order.size()) return CompletableFuture.completedFuture(null);
+        String source = order.get(index);
+        if ("bed".equals(source)) return resolveRouteAsync(world, player, order, index + 1);
+        return getSpawnForRouteSourceAsync(world, player, source).thenComposeAsync(spawn ->
+                spawn != null ? CompletableFuture.completedFuture(spawn)
+                        : resolveRouteAsync(world, player, order, index + 1), world);
     }
 
-    @Nullable
-    public SpawnModel getRoutedSpawn(@Nonnull World world,
-                                     @Nonnull UUID playerId,
-                                     @Nullable PlayerRef player,
-                                     @Nonnull String route) {
-        List<String> order = config.getSpawnRouteOrder(route);
-        if (order.isEmpty()) return null;
-        for (String source : order) {
-            if ("bed".equals(source)) {
-                continue;
-            }
-            SpawnModel spawn = getSpawnForRouteSource(world, playerId, player, source);
-            if (spawn != null) {
-                return spawn;
-            }
+    public CompletableFuture<SpawnModel> getSpawnForRouteSourceAsync(@Nonnull World world,
+                                                                     @Nonnull PlayerRef player,
+                                                                     @Nonnull String source) {
+        UUID playerId = player.getUuid();
+        if ("worlddefault".equals(normalizeRouteSource(source))) {
+            if (!config.isUseWorldDefaultSpawnIfUnset()) return CompletableFuture.completedFuture(null);
+            ISpawnProvider provider = world.getWorldConfig().getSpawnProvider();
+            if (provider == null) return CompletableFuture.completedFuture(null);
+            return provider.getSpawnPointAsync(world, playerId).handle((transform, error) -> {
+                if (error != null) {
+                    Log.warn("Could not resolve world spawn: " + error.getMessage());
+                    return null;
+                }
+                return toSpawnModel(world, transform);
+            });
         }
-        return null;
-    }
-
-    @Nullable
-    public SpawnModel getSpawnForRouteSource(@Nonnull World world,
-                                             @Nonnull PlayerRef player,
-                                             @Nonnull String source) {
-        return getSpawnForRouteSource(world, player.getUuid(), player, source);
-    }
-
-    @Nullable
-    public SpawnModel getSpawnForRouteSource(@Nonnull World world,
-                                             @Nonnull UUID playerId,
-                                             @Nullable PlayerRef player,
-                                             @Nonnull String source) {
-        return switch (normalizeRouteSource(source)) {
+        SpawnModel spawn = switch (normalizeRouteSource(source)) {
             case "firstjoin" -> selectNamedSpawn(List.of(config.getFirstJoinSpawnName()), world, playerId, player);
             case "death" -> selectNamedSpawn(List.of(config.getDeathSpawnName()), world, playerId, player);
             case "group" -> getGroupRouteSpawn(world, playerId, player);
@@ -155,9 +146,9 @@ public final class SpawnManager {
             case "permission" -> getPermissionSpawn(playerId);
             case "main" -> getSpawn();
             case "setspawn" -> getConfiguredSpawnForPlayer(playerId);
-            case "worlddefault" -> config.isUseWorldDefaultSpawnIfUnset() ? getWorldDefaultSpawn(world, playerId) : null;
             default -> null;
         };
+        return CompletableFuture.completedFuture(spawn);
     }
 
     public void queueRespawnTeleport(@Nonnull UUID playerId, @Nonnull SpawnModel spawn) {
@@ -225,7 +216,15 @@ public final class SpawnManager {
         ISpawnProvider provider = world.getWorldConfig().getSpawnProvider();
         if (provider == null) return null;
 
-        Transform transform = provider.getSpawnPoint(world, playerId);
+        // Protection only uses X/Z, so it can use the configured points without loading terrain.
+        Transform[] points = provider.getSpawnPoints();
+        if (points == null || points.length == 0) return null;
+        int index = Math.floorMod((int) com.hypixel.hytale.math.util.HashUtil.hashUuid(playerId), points.length);
+        return toSpawnModel(world, points[index]);
+    }
+
+    @Nullable
+    private SpawnModel toSpawnModel(@Nonnull World world, @Nullable Transform transform) {
         if (transform == null) return null;
 
         Vector3d pos = transform.getPosition();

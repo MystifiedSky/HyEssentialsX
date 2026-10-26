@@ -11,7 +11,6 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.joml.Vector3d;
-import org.joml.Vector3f;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.TPManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.SpawnManager;
@@ -25,6 +24,7 @@ import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public final class SpawnCommand extends AbstractPlayerCommand {
 
@@ -104,12 +104,13 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             Messages.noPerm(context, "/spawn <player>");
             return;
         }
-        SpawnResult result = spawnOther(context, target, world, true);
-        if (result == SpawnResult.IMMEDIATE) {
-            Messages.okKey(context, "spawn.other.success", Map.of("player", target.getUsername()));
-        } else if (result == SpawnResult.QUEUED) {
-            Messages.okKey(context, "spawn.other.warmup", Map.of("player", target.getUsername()));
-        }
+        spawnOther(context, target, world, true).thenAccept(result -> {
+            if (result == SpawnResult.IMMEDIATE) {
+                Messages.okKey(context, "spawn.other.success", Map.of("player", target.getUsername()));
+            } else if (result == SpawnResult.QUEUED) {
+                Messages.okKey(context, "spawn.other.warmup", Map.of("player", target.getUsername()));
+            }
+        });
     }
 
     private void spawnSelf(@Nonnull CommandContext context,
@@ -121,11 +122,19 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             return;
         }
 
-        SpawnModel spawn = spawnManager.getSpawnForPlayer(world, playerRef);
+        spawnManager.getSpawnForPlayerAsync(world, playerRef).thenAcceptAsync(spawn -> {
+            if (!ref.isValid() || playerRef.getReference() != ref) return;
+            spawnSelfResolved(context, store, ref, playerRef, world, spawn);
+        }, world);
+    }
+
+    private void spawnSelfResolved(CommandContext context, Store<EntityStore> store, Ref<EntityStore> ref,
+                                   PlayerRef playerRef, World world, @Nullable SpawnModel spawn) {
         if (spawn == null) {
             Messages.errKey(context, "spawn.not_set", Map.of());
             return;
         }
+        if (!cooldowns.canUse(context, playerRef, CooldownKeys.SPAWN, "/spawn", BYPASS_PERMISSION, world)) return;
 
         com.hypixel.hytale.math.vector.Transform transform = playerRef.getTransform();
         Vector3d startPos = null;
@@ -197,7 +206,7 @@ public final class SpawnCommand extends AbstractPlayerCommand {
         Messages.okKey(context, "teleport.success.spawn", Map.of());
     }
 
-    private SpawnResult spawnOther(@Nonnull CommandContext context,
+    private CompletableFuture<SpawnResult> spawnOther(@Nonnull CommandContext context,
                                    @Nonnull PlayerRef target,
                                    @Nonnull World fallbackWorld,
                                    boolean notifySender) {
@@ -206,10 +215,15 @@ public final class SpawnCommand extends AbstractPlayerCommand {
             if (notifySender) {
                 Messages.errKey(context, "error.world_not_loaded", Map.of());
             }
-            return SpawnResult.FAILED;
+            return CompletableFuture.completedFuture(SpawnResult.FAILED);
         }
+        return CompletableFuture.completedFuture(null)
+                .thenComposeAsync(ignored -> spawnManager.getSpawnForPlayerAsync(targetWorld, target), targetWorld)
+                .thenApplyAsync(spawn -> spawnOtherResolved(context, target, targetWorld, notifySender, spawn), targetWorld);
+    }
 
-        SpawnModel spawn = spawnManager.getSpawnForPlayer(targetWorld, target);
+    private SpawnResult spawnOtherResolved(CommandContext context, PlayerRef target, World targetWorld,
+                                            boolean notifySender, @Nullable SpawnModel spawn) {
         if (spawn == null) {
             if (notifySender) {
                 Messages.errKey(context, "spawn.not_set", Map.of());
@@ -237,7 +251,8 @@ public final class SpawnCommand extends AbstractPlayerCommand {
 
         Ref<EntityStore> targetRef = target.getReference();
         Store<EntityStore> targetStore = targetRef != null ? targetRef.getStore() : null;
-        if (targetRef == null || targetStore == null) {
+        if (targetRef == null || !targetRef.isValid() || targetStore == null
+                || targetStore.getExternalData().getWorld() != targetWorld) {
             if (notifySender) {
                 Messages.errKey(context, "error.target_access", Map.of());
             }
@@ -390,26 +405,21 @@ public final class SpawnCommand extends AbstractPlayerCommand {
                 Messages.noPerm(context, "/spawn all");
                 return;
             }
-            int success = 0;
-            int skipped = 0;
+            var results = new java.util.ArrayList<CompletableFuture<SpawnResult>>();
             for (PlayerRef target : Universe.get().getPlayers()) {
-                if (target == null) continue;
-                SpawnResult result = spawnOther(context, target, world, false);
-                if (result == SpawnResult.IMMEDIATE || result == SpawnResult.QUEUED) {
-                    success++;
-                } else {
-                    skipped++;
-                }
+                if (target != null) results.add(spawnOther(context, target, world, false));
             }
-            String msg = Messages.tr(null, "spawn.all.success", Map.of(
-                    "count", String.valueOf(success)
-            ));
-            if (skipped > 0) {
-                msg += " " + Messages.tr(null, "spawn.all.skipped", Map.of(
-                        "count", String.valueOf(skipped)
-                ));
-            }
-            Messages.ok(context, msg);
+            CompletableFuture.allOf(results.toArray(CompletableFuture[]::new))
+                    .thenRun(() -> {
+                        long success = results.stream().map(CompletableFuture::join)
+                                .filter(result -> result != SpawnResult.FAILED).count();
+                        int skipped = results.size() - (int) success;
+                        String msg = Messages.tr(null, "spawn.all.success", Map.of("count", String.valueOf(success)));
+                        if (skipped > 0) {
+                            msg += " " + Messages.tr(null, "spawn.all.skipped", Map.of("count", String.valueOf(skipped)));
+                        }
+                        Messages.ok(context, msg);
+                    });
         }
     }
 }

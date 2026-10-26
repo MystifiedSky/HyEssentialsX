@@ -2,23 +2,19 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.teleport;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.util.ChunkUtil;
 import org.joml.Vector3d;
 import com.hypixel.hytale.protocol.BlockMaterial;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
-import com.hypixel.hytale.server.core.modules.collision.WorldUtil;
 import com.hypixel.hytale.server.core.modules.entity.component.HeadRotation;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.chunk.ChunkColumn;
-import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
-import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import xyz.thelegacyvoyage.hyessentialsx.managers.BackManager;
 import xyz.thelegacyvoyage.hyessentialsx.managers.CommandCooldownManager;
+import xyz.thelegacyvoyage.hyessentialsx.util.WorldBlockUtil;
 import xyz.thelegacyvoyage.hyessentialsx.util.CooldownKeys;
 import xyz.thelegacyvoyage.hyessentialsx.util.Messages;
 import xyz.thelegacyvoyage.hyessentialsx.util.TeleportationUtil;
@@ -199,37 +195,13 @@ public final class ThruCommand extends AbstractPlayerCommand {
 
     private boolean isClearBlock(@Nonnull World world, int x, int y, int z) {
         if (y < 0 || y > 319) return false;
-        long chunkIndex = ChunkUtil.indexChunkFromBlock(x, z);
-        WorldChunk chunk = world.getChunkIfLoaded(chunkIndex);
-        if (chunk == null) return false;
-        BlockType type = chunk.getBlockType(x, y, z);
-        if (type == null) return true;
-        return type.getMaterial() != BlockMaterial.Solid && !isLiquidAt(chunk, x, y, z);
+        return WorldBlockUtil.isClearBlock(world, x, y, z);
     }
 
     private boolean isSolidBlock(@Nonnull World world, int x, int y, int z) {
         if (y < 0 || y > 319) return false;
-        long chunkIndex = ChunkUtil.indexChunkFromBlock(x, z);
-        WorldChunk chunk = world.getChunkIfLoaded(chunkIndex);
-        if (chunk == null) return false;
-        BlockType type = chunk.getBlockType(x, y, z);
+        BlockType type = WorldBlockUtil.getBlockType(world, x, y, z);
         return type != null && type.getMaterial() == BlockMaterial.Solid;
     }
 
-    private boolean isLiquidAt(@Nonnull WorldChunk chunk, int x, int y, int z) {
-        try {
-            Ref<ChunkStore> chunkRef = chunk.getReference();
-            if (chunkRef == null) {
-                return false;
-            }
-            ChunkColumn chunkColumn = chunk.getWorld().getChunkStore().getStore()
-                    .getComponent(chunkRef, ChunkColumn.getComponentType());
-            if (chunkColumn == null) {
-                return false;
-            }
-            return WorldUtil.getFluidIdAtPosition(chunk.getWorld().getChunkStore().getStore(), chunkColumn, x, y, z) != 0;
-        } catch (RuntimeException ex) {
-            return false;
-        }
-    }
 }

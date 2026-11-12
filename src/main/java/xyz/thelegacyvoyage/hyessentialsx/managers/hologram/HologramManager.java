@@ -565,8 +565,7 @@ public class HologramManager {
                      var10000.log("Spawned item hologram at " + var10001 + " with item: " + itemData.itemId);
                   }
                } catch (Exception var19) {
-                  this.plugin.getLogger().at(Level.WARNING).log("Error spawning item line: " + var19.getMessage());
-                  var19.printStackTrace();
+                  this.plugin.getLogger().at(Level.WARNING).withCause(var19).log("Error spawning item line: " + var19.getMessage());
                }
 
             };
@@ -696,8 +695,7 @@ public class HologramManager {
                      }
                   }
                } catch (Exception var19) {
-                  this.plugin.getLogger().at(Level.WARNING).log("Error spawning image hologram: " + var19.getMessage());
-                  var19.printStackTrace();
+                  this.plugin.getLogger().at(Level.WARNING).withCause(var19).log("Error spawning image hologram: " + var19.getMessage());
                }
 
             };

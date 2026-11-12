@@ -48,6 +48,10 @@ public final class ShopPlacementUtil {
         world.execute(() -> future.complete(checkInWorldThread(playerRef, world, store, ref, position)));
         try {
             return future.get(1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            warnOnce("Shop placement check timed out; allowing placement. " + e.getMessage());
+            return SimpleClaimsUtil.canPlaceShop(playerRef, world, position);
         } catch (Exception e) {
             warnOnce("Shop placement check timed out; allowing placement. " + e.getMessage());
             return SimpleClaimsUtil.canPlaceShop(playerRef, world, position);

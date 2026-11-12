@@ -271,9 +271,7 @@ public final class EcotaleMigration extends ModMigration {
         }
 
         int imported = 0;
-        String dbBase = sourceDir.resolve(DEFAULT_H2_FILE).toAbsolutePath().toString();
-        String jdbc = "jdbc:h2:" + dbBase + ";MODE=MySQL;AUTO_SERVER=FALSE;DB_CLOSE_ON_EXIT=FALSE";
-        try (Connection connection = DriverManager.getConnection(jdbc, "sa", "");
+        try (Connection connection = openLegacyH2(sourceDir.resolve(DEFAULT_H2_FILE));
              PreparedStatement statement = connection.prepareStatement(
                      "SELECT uuid, player_name, balance FROM balances"
              );
@@ -300,6 +298,14 @@ public final class EcotaleMigration extends ModMigration {
         return imported;
     }
 
+    static Connection openLegacyH2(Path dbBase) throws java.sql.SQLException {
+        // Ecotale owns the existing embedded file and its legacy credentials.
+        // Never create, re-key, write to it, or expose a network database listener.
+        String jdbc = "jdbc:h2:" + dbBase.toAbsolutePath()
+                + ";MODE=MySQL;AUTO_SERVER=FALSE;DB_CLOSE_ON_EXIT=FALSE;IFEXISTS=TRUE;ACCESS_MODE_DATA=r";
+        return DriverManager.getConnection(jdbc, "sa", "");
+    }
+
     private int importFromMySql(@Nonnull Map<UUID, MutableUser> users,
                                 @Nonnull EcotaleSettings settings) {
         String host = blankToDefault(settings.mysqlHost, DEFAULT_MYSQL_HOST);
@@ -315,6 +321,8 @@ public final class EcotaleMigration extends ModMigration {
         props.setProperty("password", password);
 
         int imported = 0;
+        // Prefix has been restricted to ASCII letters, digits and underscore;
+        // SQL parameters cannot bind identifiers. No record values enter this SQL.
         String sql = "SELECT uuid, player_name, balance FROM " + tablePrefix + "balances";
         try (Connection connection = DriverManager.getConnection(jdbc, props);
              PreparedStatement statement = connection.prepareStatement(sql);

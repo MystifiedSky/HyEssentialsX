@@ -294,8 +294,7 @@ public class ImageManager {
          this.plugin.getLogger().at(Level.INFO).log("=== Successfully created " + ASSETS_ZIP_NAME + " ===");
          this.plugin.getLogger().at(Level.INFO).log("Contains " + imageFiles.size() + " custom image(s) (with billboard variants)");
       } catch (IOException var25) {
-         this.plugin.getLogger().at(Level.SEVERE).log("Failed to generate assets zip: " + var25.getMessage());
-         var25.printStackTrace();
+         this.plugin.getLogger().at(Level.SEVERE).withCause(var25).log("Failed to generate assets zip: " + var25.getMessage());
       } finally {
          if (tempZip != null) {
             try {
@@ -873,8 +872,7 @@ public class ImageManager {
 
          this.plugin.getLogger().at(Level.INFO).log("=== Live Asset Load Complete ===");
       } catch (Exception var27) {
-         this.plugin.getLogger().at(Level.SEVERE).log("Live asset loading failed: " + var27.getMessage());
-         var27.printStackTrace();
+         this.plugin.getLogger().at(Level.SEVERE).withCause(var27).log("Live asset loading failed: " + var27.getMessage());
       }
 
       return loadedCount;
@@ -920,8 +918,7 @@ public class ImageManager {
          boundingBoxField.set(modelAsset, hitBox);
          return modelAsset;
       } catch (Exception var25) {
-         this.plugin.getLogger().at(Level.WARNING).log("Failed to create ModelAsset " + modelAssetId + ": " + var25.getMessage());
-         var25.printStackTrace();
+         this.plugin.getLogger().at(Level.WARNING).withCause(var25).log("Failed to create ModelAsset " + modelAssetId + ": " + var25.getMessage());
          return null;
       }
    }

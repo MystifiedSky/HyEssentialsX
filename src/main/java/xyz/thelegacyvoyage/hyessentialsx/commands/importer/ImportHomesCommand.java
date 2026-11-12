@@ -2,6 +2,7 @@ package xyz.thelegacyvoyage.hyessentialsx.commands.importer;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.SerializedName;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
@@ -115,7 +116,7 @@ public final class ImportHomesCommand extends CommandBase {
                 continue;
             }
 
-            String worldRaw = firstNonBlank(entry.world, entry.worldId, entry.worldName, entry.worldUuid, entry.worldUUID);
+            String worldRaw = firstNonBlank(entry.world, entry.worldId, entry.worldName, entry.worldUuid, entry.legacyWorldUuid);
             String worldId = null;
             String worldName = null;
             if (worldRaw != null) {
@@ -245,7 +246,8 @@ public final class ImportHomesCommand extends CommandBase {
         String worldName;
         String worldId;
         String worldUuid;
-        String worldUUID;
+        @SerializedName("worldUUID")
+        String legacyWorldUuid;
     }
 
     private static final class ImportPosition {

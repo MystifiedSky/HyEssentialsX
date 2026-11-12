@@ -157,7 +157,7 @@ public final class MysqlStorageBackend implements StorageBackend {
 
     @Override
     public void saveWarps(@Nonnull Map<String, WarpModel> warps) {
-        replaceMap("hex_warps", "name", warps, "warps");
+        replaceMap(MapTable.WARPS, warps, "warps");
     }
 
     @Override
@@ -183,7 +183,7 @@ public final class MysqlStorageBackend implements StorageBackend {
 
     @Override
     public void saveKits(@Nonnull Map<String, KitModel> kits) {
-        replaceMap("hex_kits", "name", kits, "kits");
+        replaceMap(MapTable.KITS, kits, "kits");
     }
 
     @Override
@@ -209,7 +209,7 @@ public final class MysqlStorageBackend implements StorageBackend {
 
     @Override
     public void saveShops(@Nonnull Map<String, ShopModel> shops) {
-        replaceMap("hex_shops", "name", shops, "shops");
+        replaceMap(MapTable.SHOPS, shops, "shops");
     }
 
     @Override
@@ -235,11 +235,26 @@ public final class MysqlStorageBackend implements StorageBackend {
 
     @Override
     public void saveIpBans(@Nonnull Map<String, IpBanModel> bans) {
-        replaceMap("hex_ipbans", "ip", bans, "ip bans");
+        replaceMap(MapTable.IP_BANS, bans, "ip bans");
     }
 
-    private <T> void replaceMap(@Nonnull String table,
-                                @Nonnull String keyColumn,
+    // Only these fixed statements may be used for full-map replacement.
+    enum MapTable {
+        WARPS("DELETE FROM hex_warps", "INSERT INTO hex_warps (name, json) VALUES (?, ?)"),
+        KITS("DELETE FROM hex_kits", "INSERT INTO hex_kits (name, json) VALUES (?, ?)"),
+        SHOPS("DELETE FROM hex_shops", "INSERT INTO hex_shops (name, json) VALUES (?, ?)"),
+        IP_BANS("DELETE FROM hex_ipbans", "INSERT INTO hex_ipbans (ip, json) VALUES (?, ?)");
+
+        final String deleteSql;
+        final String insertSql;
+
+        MapTable(String deleteSql, String insertSql) {
+            this.deleteSql = deleteSql;
+            this.insertSql = insertSql;
+        }
+    }
+
+    private <T> void replaceMap(@Nonnull MapTable table,
                                 @Nonnull Map<String, T> values,
                                 @Nonnull String label) {
         if (!available) return;
@@ -247,10 +262,10 @@ public final class MysqlStorageBackend implements StorageBackend {
             conn.setAutoCommit(false);
             try {
                 try (Statement st = conn.createStatement()) {
-                    st.executeUpdate("DELETE FROM " + table);
+                    st.executeUpdate(table.deleteSql);
                 }
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO " + table + " (" + keyColumn + ", json) VALUES (?, ?)")) {
+                        table.insertSql)) {
                     for (Map.Entry<String, T> entry : values.entrySet()) {
                         ps.setString(1, entry.getKey());
                         ps.setString(2, gson.toJson(entry.getValue()));

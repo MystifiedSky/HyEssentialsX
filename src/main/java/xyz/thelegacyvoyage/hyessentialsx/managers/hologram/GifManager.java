@@ -102,6 +102,7 @@ public class GifManager {
             }
          } catch (InterruptedException var2) {
             this.animationScheduler.shutdownNow();
+            Thread.currentThread().interrupt();
          }
 
          this.animationScheduler = null;
@@ -120,7 +121,13 @@ public class GifManager {
 
          try {
             GifManager.GifData gifData = (GifManager.GifData)this.gifRegistry.get(state.gifName);
-            if (gifData != null && gifData.frameCount != 0) {
+            if (gifData != null && gifData.frameCount > 0) {
+               if (state.cachedGifData != gifData) {
+                  state.currentFrame = 0;
+                  state.accumulatedTime = 0L;
+                  state.frameModels = null;
+                  state.cachedGifData = gifData;
+               }
                long elapsed = currentTime - state.lastFrameTime;
                state.accumulatedTime += (long)((float)elapsed * state.speedMultiplier);
                state.lastFrameTime = currentTime;
@@ -144,16 +151,10 @@ public class GifManager {
 
    private void updateEntityFrame(@Nonnull GifManager.GifAnimationState state, @Nonnull GifManager.GifData gifData) {
       try {
-         if (state.frameModels == null) {
-            state.frameModels = new Model[gifData.frameCount];
-            int i = 0;
-
-            while(true) {
-               if (i >= gifData.frameCount) {
-                  this.plugin.getLogger().at(Level.INFO).log("Cached " + gifData.frameCount + " frame models for GIF: " + state.gifName);
-                  break;
-               }
-
+         Model[] frameModels = state.frameModels;
+         if (frameModels == null || frameModels.length != gifData.frameCount) {
+            frameModels = new Model[gifData.frameCount];
+            for (int i = 0; i < frameModels.length; i++) {
                String frameAssetId = gifData.frameAssetIds[i];
                if (state.billboard && state.doubleSided) {
                   frameAssetId = frameAssetId + "_Billboard_DoubleSided";
@@ -165,16 +166,19 @@ public class GifManager {
 
                ModelAsset frameAsset = (ModelAsset)ModelAsset.getAssetMap().getAsset(frameAssetId);
                if (frameAsset != null) {
-                  state.frameModels[i] = Model.createScaledModel(frameAsset, state.scale);
+                  frameModels[i] = Model.createScaledModel(frameAsset, state.scale);
                } else {
                   this.plugin.getLogger().at(Level.WARNING).log("GIF frame asset not found: " + frameAssetId);
                }
-
-               ++i;
             }
+            state.frameModels = frameModels;
+            this.plugin.getLogger().at(Level.INFO).log("Cached " + gifData.frameCount + " frame models for GIF: " + state.gifName);
          }
 
-         Model frameModel = state.frameModels[state.currentFrame];
+         if (state.currentFrame < 0 || state.currentFrame >= frameModels.length) {
+            return;
+         }
+         Model frameModel = frameModels[state.currentFrame];
          if (frameModel == null) {
             return;
          }
@@ -664,6 +668,7 @@ public class GifManager {
       public long lastFrameTime;
       public long accumulatedTime;
       public Model[] frameModels;
+      private GifData cachedGifData;
 
       public GifAnimationState(UUID entityId, UUID worldId, String gifName, float scale, float speedMultiplier, boolean billboard, FacingDirection facing) {
          this(entityId, worldId, gifName, scale, speedMultiplier, billboard, false, facing);

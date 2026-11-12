@@ -86,6 +86,9 @@ public final class PlaceholderApiUtil {
         try {
             world.execute(() -> future.complete(applyInternal(player, text)));
             return future.get(1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return applyInternal(player, text);
         } catch (Throwable ignored) {
             return applyInternal(player, text);
         }
@@ -102,6 +105,9 @@ public final class PlaceholderApiUtil {
         try {
             world.execute(() -> future.complete(applyStringInternal(player, text)));
             return future.get(1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return applyStringInternal(player, text);
         } catch (Throwable ignored) {
             return applyStringInternal(player, text);
         }

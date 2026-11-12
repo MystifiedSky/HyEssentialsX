@@ -129,8 +129,7 @@ public final class HyFactionsUtil {
         if (element.isJsonPrimitive()) {
             String value = element.getAsString();
             if (looksLikeUuid(value)) {
-                UUID factionId = parseUuid(value);
-                return factionId != null ? null : null;
+                return null;
             }
             return value;
         }

@@ -388,6 +388,9 @@ public final class TeleportationUtil {
 
         try {
             return future.get(1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "Teleport failed to queue: timed out waiting for the world thread.";
         } catch (Exception e) {
             return "Teleport failed to queue: timed out waiting for the world thread.";
         }

@@ -615,6 +615,9 @@ public final class StorageManager {
             Future<?> barrier = ioPool.submit(() -> {});
             barrier.get();
         } catch (RejectedExecutionException ignored) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            Log.warn("Failed to flush storage queue: " + e.getMessage());
         } catch (Exception e) {
             Log.warn("Failed to flush storage queue: " + e.getMessage());
         }

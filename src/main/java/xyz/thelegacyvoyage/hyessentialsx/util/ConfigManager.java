@@ -2680,7 +2680,8 @@ public final class ConfigManager {
     }
 
     public boolean isRankupEnabled() {
-        return playtimeRewardsEnabled;
+        // Rankup is a compatibility alias for the unified playtime rewards toggle.
+        return isPlaytimeRewardsEnabled();
     }
 
     public void setRankupEnabled(boolean enabled) {

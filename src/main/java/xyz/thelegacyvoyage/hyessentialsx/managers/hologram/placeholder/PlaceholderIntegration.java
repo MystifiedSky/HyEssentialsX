@@ -10,11 +10,8 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 public class PlaceholderIntegration {
-
-    private static final Pattern GENERIC_PLACEHOLDER_PATTERN = Pattern.compile(".*(\\{[^}]+}|%[^%]+%).*");
 
     private final HologramService plugin;
     private final ConfigManager config;
@@ -59,7 +56,38 @@ public class PlaceholderIntegration {
     }
 
     public boolean containsPlaceholders(@Nonnull String text) {
-        return GENERIC_PLACEHOLDER_PATTERN.matcher(text).matches();
+        return containsPlaceholderTokens(text);
+    }
+
+    static boolean containsPlaceholderTokens(@Nonnull String text) {
+        // The former whole-line pattern allowed line breaks inside a token only.
+        int firstLineBreak = text.length();
+        int lastLineBreak = -1;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '\n' || c == '\r' || c == '\u0085' || c == '\u2028' || c == '\u2029') {
+                firstLineBreak = Math.min(firstLineBreak, i);
+                lastLineBreak = i;
+            }
+        }
+        return containsDelimitedToken(text, '{', '}', firstLineBreak, lastLineBreak)
+                || containsDelimitedToken(text, '%', '%', firstLineBreak, lastLineBreak);
+    }
+
+    private static boolean containsDelimitedToken(String text, char opening, char closing,
+                                                   int firstLineBreak, int lastLineBreak) {
+        int start = text.indexOf(opening);
+        while (start >= 0 && start <= firstLineBreak) {
+            int end = text.indexOf(closing, start + 1);
+            if (end < 0) {
+                return false;
+            }
+            if (end > start + 1 && end >= lastLineBreak) {
+                return true;
+            }
+            start = text.indexOf(opening, end);
+        }
+        return false;
     }
 
     @Nonnull
